@@ -31,7 +31,7 @@ COPY backend/ ./backend
 COPY --from=frontend-builder /app/frontend/dist /app/static
 
 # Create data dir for SQLite persistence
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data && chmod -R 777 /app/data
 
 EXPOSE 8000
 

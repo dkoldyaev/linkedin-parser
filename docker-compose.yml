@@ -7,9 +7,9 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data
-      - ./backend:/app/backend
     environment:
       - DATA_DIR=/app/data
+      - DATABASE_URL=${DATABASE_URL:-}
       - STATIC_DIR=/app/static
       - LLM_PROVIDER=${LLM_PROVIDER:-mistral}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
