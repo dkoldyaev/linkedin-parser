@@ -1,0 +1,156 @@
+import React, { useState } from 'react';
+import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+
+export default function BatchImportModal({ isOpen, onClose, onImportComplete }) {
+  const [urlsText, setUrlsText] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const urls = urlsText
+      .split('\n')
+      .map(u => u.trim())
+      .filter(u => u.length > 0);
+
+    if (urls.length === 0) {
+      setError('Пожалуйста, введите хотя бы одну ссылку на вакансию.');
+      return;
+    }
+
+    const defaultTags = tagsInput
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const res = await fetch('/api/vacancies/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          urls,
+          default_tags: defaultTags
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Ошибка сервера: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setResult(data);
+      onImportComplete();
+    } catch (err) {
+      setError(err.message || 'Произошла ошибка при импорте');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setResult(null);
+    setError(null);
+    setUrlsText('');
+    setTagsInput('');
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+        <div className="modal-header">
+          <div className="modal-title">
+            <UploadCloud size={20} color="#6366f1" />
+            <span>Пакетный импорт вакансий LinkedIn</span>
+          </div>
+          <button className="btn-icon" onClick={handleClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {error && (
+              <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}>
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {result && (
+              <div className="info-banner" style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' }}>
+                <CheckCircle size={18} />
+                <div>
+                  <strong>Импорт завершен!</strong> Успешно: {result.imported} из {result.total}.
+                  {result.failed > 0 && <span style={{ color: '#fca5a5', marginLeft: '6px' }}>Ошибок: {result.failed}</span>}
+                </div>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">
+                Ссылки на вакансии LinkedIn (каждая с новой строки):
+              </label>
+              <textarea
+                className="form-textarea"
+                rows={7}
+                placeholder="https://www.linkedin.com/jobs/view/4462938317/&#10;https://www.linkedin.com/jobs/view/senior-python-developer-1234567890/&#10;https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4192503234"
+                value={urlsText}
+                onChange={e => setUrlsText(e.target.value)}
+                disabled={loading}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Общие метки для всей пачки (через запятую, необязательно):
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="например: python, remote, eu, high-priority"
+                value={tagsInput}
+                onChange={e => setTagsInput(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="info-banner">
+              <span>
+                💡 <strong>Как это работает:</strong> Мы автоматически запрашиваем публичные данные вакансии с LinkedIn (название, компанию, локацию, описание), извлекаем данные о компании и генерируем краткое саммари с ключевым стеком через нейросеть.
+              </span>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
+              Закрыть
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Парсим и анализируем...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={16} />
+                  <span>Импортировать</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

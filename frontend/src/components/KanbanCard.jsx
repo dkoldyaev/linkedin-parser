@@ -1,0 +1,133 @@
+import React from 'react';
+import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag } from 'lucide-react';
+
+const COLUMNS = [
+  "Еще не написан",
+  "Написал",
+  "Собеседование",
+  "Тестовое",
+  "Оффер"
+];
+
+export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
+  const currentIndex = COLUMNS.indexOf(vacancy.status);
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', vacancy.id.toString());
+    e.currentTarget.classList.add('is-dragging');
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.classList.remove('is-dragging');
+  };
+
+  const handleMoveLeft = (e) => {
+    e.stopPropagation();
+    if (currentIndex > 0) {
+      onStatusChange(vacancy.id, COLUMNS[currentIndex - 1]);
+    }
+  };
+
+  const handleMoveRight = (e) => {
+    e.stopPropagation();
+    if (currentIndex < COLUMNS.length - 1) {
+      onStatusChange(vacancy.id, COLUMNS[currentIndex + 1]);
+    }
+  };
+
+  return (
+    <div
+      className="kanban-card"
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={() => onClick(vacancy)}
+    >
+      <div className="card-top">
+        <div className="card-company">
+          <Building2 size={12} />
+          <span>{vacancy.company}</span>
+          {vacancy.company_url && (
+            <a 
+              href={vacancy.company_url} 
+              target="_blank" 
+              rel="noreferrer" 
+              onClick={e => e.stopPropagation()}
+              title="LinkedIn компании"
+            >
+              <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
+      </div>
+
+      <h3 className="card-title">{vacancy.title}</h3>
+
+      {vacancy.location && (
+        <div className="card-location">
+          <MapPin size={12} />
+          <span>{vacancy.location}</span>
+        </div>
+      )}
+
+      {vacancy.ai_summary && (
+        <div className="card-summary">
+          {vacancy.ai_summary}
+        </div>
+      )}
+
+      {/* Tech stack pills */}
+      {vacancy.tech_stack && vacancy.tech_stack.length > 0 && (
+        <div className="card-tech-stack">
+          {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
+            <span key={i} className="tech-chip">
+              {tech}
+            </span>
+          ))}
+          {vacancy.tech_stack.length > 4 && (
+            <span className="tech-chip" style={{ color: 'var(--text-muted)' }}>
+              +{vacancy.tech_stack.length - 4}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Custom labels / tags */}
+      {vacancy.tags && vacancy.tags.length > 0 && (
+        <div className="card-tags">
+          {vacancy.tags.map((tag, i) => (
+            <span key={i} className="tag-chip">
+              <Tag size={10} />
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="card-footer">
+        <span className="card-date">
+          {new Date(vacancy.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+        </span>
+
+        <div className="card-quick-actions">
+          <button
+            className="quick-move-btn"
+            title="Переместить назад"
+            disabled={currentIndex <= 0}
+            onClick={handleMoveLeft}
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <button
+            className="quick-move-btn"
+            title="Переместить вперед"
+            disabled={currentIndex >= COLUMNS.length - 1}
+            onClick={handleMoveRight}
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

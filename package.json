@@ -1,0 +1,21 @@
+{
+  "name": "linkedin-parser-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
+  "scripts": {
+    "test:backend": "PYTHONPATH=. ./.venv/bin/python tests/test_integration.py",
+    "test:mistral": "./.venv/bin/python tests/test_mistral.py",
+    "test:llm": "PYTHONPATH=. ./.venv/bin/python tests/test_vacancy_llm.py",
+    "backend:dev": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --reload --port 8000",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "build": "npm run frontend:build",
+    "start": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:restart": "docker compose restart",
+    "docker:logs": "docker compose logs -f"
+  }
+}
