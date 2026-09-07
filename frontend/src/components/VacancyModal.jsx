@@ -13,13 +13,11 @@ const COLUMNS = [
 ];
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
-  if (!isOpen || !vacancy) return null;
-
-  const [status, setStatus] = useState(vacancy.status || "Еще не написан");
-  const [tags, setTags] = useState(vacancy.tags || []);
+  const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
+  const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
-  const [notes, setNotes] = useState(vacancy.notes || "");
-  const [techStack, setTechStack] = useState(vacancy.tech_stack || []);
+  const [notes, setNotes] = useState(vacancy?.notes || "");
+  const [techStack, setTechStack] = useState(vacancy?.tech_stack || []);
   const [newTechInput, setNewTechInput] = useState("");
   
   const [resummarizing, setResummarizing] = useState(false);
@@ -27,11 +25,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
 
   useEffect(() => {
-    setStatus(vacancy.status || "Еще не написан");
-    setTags(vacancy.tags || []);
-    setNotes(vacancy.notes || "");
-    setTechStack(vacancy.tech_stack || []);
+    if (vacancy) {
+      setStatus(vacancy.status || "Еще не написан");
+      setTags(vacancy.tags || []);
+      setNotes(vacancy.notes || "");
+      setTechStack(vacancy.tech_stack || []);
+    }
   }, [vacancy]);
+
+  if (!isOpen || !vacancy) return null;
 
   const handleStatusChange = async (newStatus) => {
     setStatus(newStatus);

@@ -16,8 +16,27 @@ services:
       - MISTRAL_MODEL=${MISTRAL_MODEL:-mistral-small-latest}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - MERCURE_URL=${MERCURE_URL:-http://mercure/.well-known/mercure}
+      - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-http://localhost:3000/.well-known/mercure}
+      - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+    depends_on:
+      - mercure
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  mercure:
+    image: dunglas/mercure:latest
+    container_name: linkedin_mercure
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins *
+        anonymous
+    ports:
+      - "${MERCURE_PORT:-3000}:80"

@@ -5,8 +5,8 @@ def run_test():
     client = TestClient(app)
 
     url = "https://www.linkedin.com/jobs/view/4462938317"
-    print("Sending batch import request...")
-    import_resp = client.post("/api/vacancies/batch", json={
+    print("Sending batch import request (with wait=true)...")
+    import_resp = client.post("/api/vacancies/batch?wait=true", json={
         "urls": [url],
         "default_tags": ["python", "remote-eu"]
     })

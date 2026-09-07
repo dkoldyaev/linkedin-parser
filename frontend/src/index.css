@@ -724,3 +724,86 @@ body {
   border-radius: var(--radius-md);
   margin-top: 8px;
 }
+
+/* Mercure & Queue Indicators */
+.status-indicators {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mercure-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.mercure-pill.online {
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.mercure-pill.connecting {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseAnimation 2s infinite ease-in-out;
+}
+
+.pulse-dot.amber {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+@keyframes pulseAnimation {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.queue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  color: #c7d2fe;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+  animation: bounceSubtle 2s infinite ease-in-out;
+}
+
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.queue-badge-count {
+  background: #6366f1;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}

@@ -58,6 +58,31 @@ class BatchImportResponse(BaseModel):
     failed: int
     results: List[ImportItemResult]
 
+class TaskInfo(BaseModel):
+    task_id: str
+    url: str
+    status: str
+    created_at: float
+    vacancy_id: Optional[int] = None
+    title: Optional[str] = None
+    company: Optional[str] = None
+    error: Optional[str] = None
+
+class QueueStatusResponse(BaseModel):
+    pending: int
+    processing: int
+    total_remaining: int
+    completed: int
+    failed: int
+    recent_tasks: List[TaskInfo] = Field(default_factory=list)
+
+class AsyncBatchImportResponse(BaseModel):
+    status: str = "queued"
+    queued: int
+    batch_id: str
+    message: str
+    tasks: List[TaskInfo] = Field(default_factory=list)
+
 class SettingsResponse(BaseModel):
     llm_provider: str
     mistral_api_key_set: bool

@@ -1,7 +1,7 @@
 import os
-import asyncio
 import logging
-from typing import List, Optional
+from contextlib import asynccontextmanager
+from typing import List, Optional, Union
 from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -17,12 +17,16 @@ from .schemas import (
     VacancyUpdate,
     BatchImportRequest,
     BatchImportResponse,
+    AsyncBatchImportResponse,
+    QueueStatusResponse,
     ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
 )
 from .scraper import scrape_linkedin_job, extract_job_id
 from .llm import analyze_vacancy_with_llm
+from .mercure import get_mercure_public_url
+from .queue_manager import queue_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("linkedin_tracker")
@@ -30,7 +34,15 @@ logger = logging.getLogger("linkedin_tracker")
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="LinkedIn Vacancy Tracker", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    queue_manager.start()
+    yield
+    await queue_manager.stop()
+
+
+app = FastAPI(title="LinkedIn Vacancy Tracker", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware for local dev
 app.add_middleware(
@@ -45,6 +57,21 @@ app.add_middleware(
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/api/config")
+def get_config():
+    """Return Mercure public hub URL and topics for frontend SSE connection."""
+    return {
+        "mercure_hub_url": get_mercure_public_url(),
+        "mercure_topic": "vacancies",
+    }
+
+
+@app.get("/api/queue/status", response_model=QueueStatusResponse)
+def get_queue_status():
+    """Get active parsing queue status and recent tasks."""
+    return queue_manager.get_status()
 
 
 @app.get("/api/vacancies", response_model=List[VacancyResponse])
@@ -131,15 +158,15 @@ def delete_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@app.post("/api/vacancies/batch", response_model=BatchImportResponse)
-async def batch_import_vacancies(payload: BatchImportRequest, db: Session = Depends(get_db)):
+@app.post("/api/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse])
+async def batch_import_vacancies(
+    payload: BatchImportRequest,
+    wait: bool = Query(False, description="If True, wait synchronously for all URLs to finish"),
+    db: Session = Depends(get_db),
+):
     """
-    Parse a list of LinkedIn URLs, analyze with LLM, and store in DB.
+    Enqueue a list of LinkedIn URLs to background queue, or optionally process synchronously.
     """
-    results: List[ImportItemResult] = []
-    imported_count = 0
-    failed_count = 0
-
     # Filter out blank lines and duplicates
     unique_urls = []
     seen = set()
@@ -148,6 +175,22 @@ async def batch_import_vacancies(payload: BatchImportRequest, db: Session = Depe
         if u and u not in seen:
             seen.add(u)
             unique_urls.append(u)
+
+    if not wait:
+        # Default: Asynchronous queue processing
+        batch_id, tasks = queue_manager.enqueue(unique_urls, payload.default_tags)
+        return AsyncBatchImportResponse(
+            status="queued",
+            queued=len(tasks),
+            batch_id=batch_id,
+            message=f"{len(tasks)} вакансий успешно добавлено в очередь на обработку",
+            tasks=[t.to_info() for t in tasks],
+        )
+
+    # Synchronous processing mode (if wait=True, e.g. for testing)
+    results: List[ImportItemResult] = []
+    imported_count = 0
+    failed_count = 0
 
     for url in unique_urls:
         try:

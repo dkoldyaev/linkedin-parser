@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { X, Settings, Key, Check, Bot, Cpu } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-
   const [provider, setProvider] = useState('mistral');
   const [mistralKey, setMistralKey] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
@@ -16,17 +14,21 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data.llm_provider) setProvider(data.llm_provider);
-        if (data.mistral_model) setMistralModel(data.mistral_model);
-        if (data.gemini_model) setGeminiModel(data.gemini_model);
-        setMistralKeySet(data.mistral_api_key_set);
-        setGeminiKeySet(data.gemini_api_key_set);
-      })
-      .catch(err => console.error('Failed to load settings', err));
-  }, []);
+    if (isOpen) {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => {
+          if (data.llm_provider) setProvider(data.llm_provider);
+          if (data.mistral_model) setMistralModel(data.mistral_model);
+          if (data.gemini_model) setGeminiModel(data.gemini_model);
+          setMistralKeySet(data.mistral_api_key_set);
+          setGeminiKeySet(data.gemini_api_key_set);
+        })
+        .catch(err => console.error('Failed to load settings', err));
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handleSave = async (e) => {
     e.preventDefault();

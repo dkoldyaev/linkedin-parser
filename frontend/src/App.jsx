@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
-  RefreshCw, CheckCircle2, AlertCircle, X, Sparkles
+  RefreshCw, CheckCircle2, AlertCircle, X, Loader2
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -11,9 +11,12 @@ import SettingsModal from './components/SettingsModal';
 export default function App() {
   const [vacancies, setVacancies] = useState([]);
   const [allTags, setAllTags] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
+
+  // Queue & Mercure state
+  const [queueRemaining, setQueueRemaining] = useState(0);
+  const [mercureStatus, setMercureStatus] = useState('connecting'); // 'connected' | 'connecting'
 
   // Modals state
   const [isBatchOpen, setIsBatchOpen] = useState(false);
@@ -25,7 +28,7 @@ export default function App() {
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
   const fetchVacancies = useCallback(async () => {
@@ -43,12 +46,10 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
-    } finally {
-      setLoading(false);
     }
   }, [search, selectedTag]);
 
-  const fetchTags = async () => {
+  const fetchTags = useCallback(async () => {
     try {
       const res = await fetch('/api/tags');
       if (res.ok) {
@@ -58,12 +59,124 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch tags', err);
     }
-  };
+  }, []);
+
+  const fetchQueueStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/queue/status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.total_remaining !== undefined) {
+          setQueueRemaining(data.total_remaining);
+        }
+      }
+    } catch (err) {
+      console.debug('Failed to fetch queue status', err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchVacancies();
     fetchTags();
-  }, [fetchVacancies]);
+    fetchQueueStatus();
+  }, [fetchVacancies, fetchTags, fetchQueueStatus]);
+
+  // Connect to Mercure SSE Hub for real-time updates
+  useEffect(() => {
+    let eventSource = null;
+    let isSubscribed = true;
+
+    const initMercure = async () => {
+      try {
+        setMercureStatus('connecting');
+        let hubUrl = 'http://localhost:3000/.well-known/mercure';
+        let topic = 'vacancies';
+
+        try {
+          const configRes = await fetch('/api/config');
+          if (configRes.ok) {
+            const cfg = await configRes.json();
+            if (cfg.mercure_hub_url) hubUrl = cfg.mercure_hub_url;
+            if (cfg.mercure_topic) topic = cfg.mercure_topic;
+          }
+        } catch (e) {
+          console.warn('Could not fetch /api/config, fallback to default Mercure hub', e);
+        }
+
+        if (!isSubscribed) return;
+
+        const sseUrl = new URL(hubUrl);
+        sseUrl.searchParams.append('topic', topic);
+
+        eventSource = new EventSource(sseUrl.toString());
+
+        eventSource.onopen = () => {
+          if (isSubscribed) {
+            setMercureStatus('connected');
+          }
+        };
+
+        eventSource.onerror = () => {
+          if (isSubscribed) {
+            setMercureStatus('connecting');
+          }
+        };
+
+        eventSource.onmessage = (event) => {
+          if (!isSubscribed) return;
+          try {
+            const data = JSON.parse(event.data);
+            const { type, vacancy, total_remaining, error, url } = data;
+
+            if (total_remaining !== undefined) {
+              setQueueRemaining(total_remaining);
+            }
+
+            if (type === 'vacancy_created' && vacancy) {
+              setVacancies(prev => {
+                const exists = prev.some(v => v.id === vacancy.id);
+                if (exists) {
+                  return prev.map(v => v.id === vacancy.id ? vacancy : v);
+                }
+                return [vacancy, ...prev];
+              });
+              showToast(`✨ Новая вакансия: ${vacancy.title} (${vacancy.company})`);
+              fetchTags();
+            } else if (type === 'vacancy_updated' && vacancy) {
+              setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
+              showToast(`Обновлена вакансия: ${vacancy.title}`);
+              fetchTags();
+            } else if (type === 'task_failed') {
+              showToast(`Ошибка парсинга ссылки: ${error || url}`, 'error');
+            } else if (type === 'queue_updated') {
+              if (total_remaining !== undefined) {
+                setQueueRemaining(total_remaining);
+              }
+            } else if (type === 'queue_idle') {
+              setQueueRemaining(0);
+              showToast('Все вакансии из очереди обработаны!');
+              fetchVacancies();
+              fetchTags();
+            }
+          } catch (err) {
+            console.error('Failed to parse Mercure message', err);
+          }
+        };
+      } catch (err) {
+        console.error('Failed to initialize Mercure EventSource', err);
+        if (isSubscribed) setMercureStatus('connecting');
+      }
+    };
+
+    initMercure();
+
+    return () => {
+      isSubscribed = false;
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [fetchTags, fetchVacancies]);
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
@@ -155,6 +268,24 @@ export default function App() {
         </div>
 
         <div className="header-actions">
+          {/* Real-time Queue & Mercure status indicators */}
+          <div className="status-indicators">
+            {queueRemaining > 0 && (
+              <div className="queue-pill" title="Задач осталось в очереди на обработку">
+                <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                <span>Осталось в очереди: <strong className="queue-badge-count">{queueRemaining}</strong></span>
+              </div>
+            )}
+
+            <div 
+              className={`mercure-pill ${mercureStatus === 'connected' ? 'online' : 'connecting'}`}
+              title={mercureStatus === 'connected' ? 'Mercure SSE подключен (авто-обновление карточек активно)' : 'Подключение к Mercure SSE...'}
+            >
+              <span className={`pulse-dot ${mercureStatus === 'connected' ? '' : 'amber'}`} />
+              <span>{mercureStatus === 'connected' ? 'Mercure Live' : 'Подключение...'}</span>
+            </div>
+          </div>
+
           <button className="btn btn-secondary btn-icon" onClick={() => fetchVacancies()} title="Обновить">
             <RefreshCw size={16} />
           </button>
@@ -208,6 +339,7 @@ export default function App() {
       <BatchImportModal
         isOpen={isBatchOpen}
         onClose={() => setIsBatchOpen(false)}
+        queueRemaining={queueRemaining}
         onImportComplete={handleImportComplete}
       />
 
