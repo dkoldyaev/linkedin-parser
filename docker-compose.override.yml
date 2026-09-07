@@ -1,7 +1,0 @@
-services:
-  app:
-    ports:
-      - "${PORT:-8000}:8000"
-  mercure:
-    ports:
-      - "${MERCURE_PORT:-3000}:80"
