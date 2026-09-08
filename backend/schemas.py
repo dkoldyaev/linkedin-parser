@@ -10,6 +10,7 @@ class VacancyBase(BaseModel):
     company_url: Optional[str] = None
     company_info: Optional[str] = None
     location: Optional[str] = None
+    city: Optional[str] = None
     country: Optional[str] = None
     description: Optional[str] = None
     ai_summary: Optional[str] = None
@@ -24,6 +25,9 @@ class VacancyCreate(VacancyBase):
 class VacancyUpdate(BaseModel):
     title: Optional[str] = None
     company: Optional[str] = None
+    location: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
     status: Optional[str] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None

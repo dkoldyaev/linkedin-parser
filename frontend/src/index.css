@@ -301,6 +301,92 @@ body {
   color: #a5b4fc;
   font-weight: 600;
 }
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.filter-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select-icon {
+  position: absolute;
+  left: 9px;
+  pointer-events: none;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 5px 26px 5px 28px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.filter-select:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.filter-select:focus,
+.filter-select.active {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.14);
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.filter-select-chevron {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.filter-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.filter-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
 
 /* Kanban Board Layout */
 .kanban-board {

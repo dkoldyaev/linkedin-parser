@@ -3,6 +3,7 @@ import logging
 from typing import Dict, Any, Optional
 import httpx
 from bs4 import BeautifulSoup
+from .location_parser import parse_location
 
 logger = logging.getLogger(__name__)
 
@@ -132,21 +133,13 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     if company_url:
         company_url = company_url.split("?")[0]
 
-    # Location & Country
+    # Location, City & Country
     location_elem = (
         soup.find("span", class_=lambda c: c and ("topcard__flavor--bullet" in c or "job-location" in c))
         or soup.find("span", class_=lambda c: c and "top-card-layout__first-subline" in c)
     )
     location = location_elem.get_text(strip=True) if location_elem else ""
-
-    # Country heuristic
-    country = ""
-    if location:
-        parts = [p.strip() for p in location.split(",") if p.strip()]
-        if len(parts) > 1:
-            country = parts[-1]
-        else:
-            country = parts[0]
+    city, country = parse_location(location)
 
     # Job description
     desc_elem = (
@@ -184,6 +177,7 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "company_url": company_url,
         "company_info": company_info,
         "location": location,
+        "city": city,
         "country": country,
         "description": description,
     }

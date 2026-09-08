@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
-  RefreshCw, CheckCircle2, AlertCircle, X, Loader2
+  RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
+  Globe, MapPin, RotateCcw, ChevronDown
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -11,8 +12,12 @@ import SettingsModal from './components/SettingsModal';
 export default function App() {
   const [vacancies, setVacancies] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [allCountries, setAllCountries] = useState([]);
+  const [allCities, setAllCities] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
@@ -37,6 +42,8 @@ export default function App() {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
       if (selectedTag) params.append('tag', selectedTag);
+      if (selectedCountry) params.append('country', selectedCountry);
+      if (selectedCity) params.append('city', selectedCity);
       if (params.toString()) url += `?${params.toString()}`;
 
       const res = await fetch(url);
@@ -47,7 +54,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [search, selectedTag]);
+  }, [search, selectedTag, selectedCountry, selectedCity]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -60,6 +67,45 @@ export default function App() {
       console.error('Failed to fetch tags', err);
     }
   }, []);
+
+  const fetchCountries = useCallback(async () => {
+    try {
+      const res = await fetch('/api/countries');
+      if (res.ok) {
+        const data = await res.json();
+        setAllCountries(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch countries', err);
+    }
+  }, []);
+
+  const fetchCities = useCallback(async (countryFilter = '') => {
+    try {
+      const url = countryFilter ? `/api/cities?country=${encodeURIComponent(countryFilter)}` : '/api/cities';
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setAllCities(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cities', err);
+    }
+  }, []);
+
+  const handleCountryChange = (country) => {
+    setSelectedCountry(country);
+    setSelectedCity('');
+    fetchCities(country);
+  };
+
+  const resetAllFilters = () => {
+    setSelectedTag('');
+    setSelectedCountry('');
+    setSelectedCity('');
+    setSearch('');
+    fetchCities('');
+  };
 
   const fetchQueueStatus = useCallback(async () => {
     try {
@@ -78,8 +124,10 @@ export default function App() {
   useEffect(() => {
     fetchVacancies();
     fetchTags();
+    fetchCountries();
+    fetchCities(selectedCountry);
     fetchQueueStatus();
-  }, [fetchVacancies, fetchTags, fetchQueueStatus]);
+  }, [fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchQueueStatus, selectedCountry]);
 
   // Connect to Mercure SSE Hub for real-time updates
   useEffect(() => {
@@ -142,10 +190,14 @@ export default function App() {
               });
               showToast(`✨ Новая вакансия: ${vacancy.title} (${vacancy.company})`);
               fetchTags();
+              fetchCountries();
+              fetchCities(selectedCountry);
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
               showToast(`Обновлена вакансия: ${vacancy.title}`);
               fetchTags();
+              fetchCountries();
+              fetchCities(selectedCountry);
             } else if (type === 'task_failed') {
               showToast(`Ошибка парсинга ссылки: ${error || url}`, 'error');
             } else if (type === 'queue_updated') {
@@ -157,6 +209,8 @@ export default function App() {
               showToast('Все вакансии из очереди обработаны!');
               fetchVacancies();
               fetchTags();
+              fetchCountries();
+              fetchCities(selectedCountry);
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -176,7 +230,7 @@ export default function App() {
         eventSource.close();
       }
     };
-  }, [fetchTags, fetchVacancies]);
+  }, [fetchTags, fetchVacancies, fetchCountries, fetchCities, selectedCountry]);
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
@@ -208,18 +262,24 @@ export default function App() {
     setVacancies(prev => prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v));
     setSelectedVacancy(updatedVacancy);
     fetchTags();
+    fetchCountries();
+    fetchCities(selectedCountry);
   };
 
   const handleVacancyDelete = (deletedId) => {
     setVacancies(prev => prev.filter(v => v.id !== deletedId));
     setSelectedVacancy(null);
     fetchTags();
+    fetchCountries();
+    fetchCities(selectedCountry);
     showToast('Вакансия удалена');
   };
 
   const handleImportComplete = () => {
     fetchVacancies();
     fetchTags();
+    fetchCountries();
+    fetchCities(selectedCountry);
     showToast('Пакетный импорт успешно завершен!');
   };
 
@@ -301,28 +361,96 @@ export default function App() {
         </div>
       </header>
 
-      {/* Filter bar for Tags */}
-      {allTags.length > 0 && (
+      {/* Filter bar for Country, City & Tags */}
+      {(allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedTag) && (
         <div className="filter-bar">
-          <div className="filter-label">
-            <Filter size={12} />
-            <span>Метки:</span>
-          </div>
-          <button
-            className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
-            onClick={() => setSelectedTag('')}
-          >
-            Все ({vacancies.length})
-          </button>
-          {allTags.map(tag => (
+          {/* Location: Country Filter */}
+          {(allCountries.length > 0 || selectedCountry) && (
+            <div className="filter-group">
+              <div className="filter-select-wrapper">
+                <Globe size={13} className="filter-select-icon" />
+                <select
+                  className={`filter-select ${selectedCountry ? 'active' : ''}`}
+                  value={selectedCountry}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  title="Фильтр по стране"
+                >
+                  <option value="">Все страны ({allCountries.length})</option>
+                  {allCountries.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="filter-select-chevron" />
+              </div>
+            </div>
+          )}
+
+          {/* Location: City Filter */}
+          {(allCities.length > 0 || selectedCity) && (
+            <div className="filter-group">
+              <div className="filter-select-wrapper">
+                <MapPin size={13} className="filter-select-icon" />
+                <select
+                  className={`filter-select ${selectedCity ? 'active' : ''}`}
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  title="Фильтр по городу"
+                >
+                  <option value="">Все города ({allCities.length})</option>
+                  {allCities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="filter-select-chevron" />
+              </div>
+            </div>
+          )}
+
+          {/* Divider if we have both locations and tags */}
+          {((allCountries.length > 0 || allCities.length > 0) && allTags.length > 0) && (
+            <div className="filter-divider" />
+          )}
+
+          {/* Tag filters */}
+          {allTags.length > 0 && (
+            <div className="filter-group" style={{ overflowX: 'auto' }}>
+              <div className="filter-label">
+                <Filter size={12} />
+                <span>Метки:</span>
+              </div>
+              <button
+                className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
+                onClick={() => setSelectedTag('')}
+              >
+                Все ({vacancies.length})
+              </button>
+              {allTags.map(tag => (
+                <button
+                  key={tag}
+                  className={`tag-filter-chip ${selectedTag === tag ? 'active' : ''}`}
+                  onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Reset all filters */}
+          {(selectedCountry || selectedCity || selectedTag || search) && (
             <button
-              key={tag}
-              className={`tag-filter-chip ${selectedTag === tag ? 'active' : ''}`}
-              onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+              className="filter-reset-btn"
+              onClick={resetAllFilters}
+              title="Сбросить все фильтры"
             >
-              #{tag}
+              <RotateCcw size={11} />
+              <span>Сбросить</span>
             </button>
-          ))}
+          )}
         </div>
       )}
 

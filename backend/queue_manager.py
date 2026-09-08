@@ -309,6 +309,7 @@ class RedisQueueManager:
                     existing.company = scraped["company"]
                     existing.company_url = scraped["company_url"]
                     existing.location = scraped["location"]
+                    existing.city = scraped.get("city")
                     existing.country = scraped["country"]
                     existing.description = scraped["description"]
                     if scraped.get("company_info"):
@@ -332,6 +333,7 @@ class RedisQueueManager:
                         company_url=scraped["company_url"],
                         company_info=scraped.get("company_info"),
                         location=scraped["location"],
+                        city=scraped.get("city"),
                         country=scraped["country"],
                         description=scraped["description"],
                         ai_summary=None,

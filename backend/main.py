@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from .database import engine, Base, get_db
+from .database import engine, Base, get_db, ensure_db_schema
 from .models import Vacancy, AppSetting, VALID_STATUSES
 from .schemas import (
     VacancyResponse,
@@ -24,6 +24,7 @@ from .schemas import (
     SettingsUpdateRequest,
 )
 from .scraper import scrape_linkedin_job, extract_job_id
+from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm
 from .mercure import get_mercure_public_url
 from .queue_manager import queue_manager
@@ -31,8 +32,38 @@ from .queue_manager import queue_manager
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("linkedin_tracker")
 
-# Create database tables
+# Create database tables and ensure schema columns
 Base.metadata.create_all(bind=engine)
+ensure_db_schema()
+
+def backfill_missing_locations():
+    """Backfill city and country for vacancies where city is NULL or needs update."""
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        vacancies = db.query(Vacancy).filter(Vacancy.location.isnot(None)).all()
+        updated = 0
+        for v in vacancies:
+            if v.location:
+                c_city, c_country = parse_location(v.location)
+                changed = False
+                if c_city != (v.city or ""):
+                    v.city = c_city
+                    changed = True
+                if c_country and v.country != c_country:
+                    v.country = c_country
+                    changed = True
+                if changed:
+                    updated += 1
+        if updated > 0:
+            db.commit()
+            logger.info(f"Backfilled city/country for {updated} vacancies")
+    except Exception as e:
+        logger.warning(f"Could not backfill locations: {e}")
+    finally:
+        db.close()
+
+backfill_missing_locations()
 
 
 @asynccontextmanager
@@ -78,6 +109,8 @@ async def get_queue_status():
 def list_vacancies(
     status_filter: Optional[str] = Query(None, alias="status"),
     tag: Optional[str] = None,
+    country: Optional[str] = None,
+    city: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -86,6 +119,12 @@ def list_vacancies(
     if status_filter and status_filter in VALID_STATUSES:
         query = query.filter(Vacancy.status == status_filter)
 
+    if country and country.strip():
+        query = query.filter(Vacancy.country.ilike(country.strip()))
+
+    if city and city.strip():
+        query = query.filter(Vacancy.city.ilike(city.strip()))
+
     if search:
         search_fmt = f"%{search}%"
         query = query.filter(
@@ -93,6 +132,8 @@ def list_vacancies(
                 Vacancy.title.ilike(search_fmt),
                 Vacancy.company.ilike(search_fmt),
                 Vacancy.location.ilike(search_fmt),
+                Vacancy.city.ilike(search_fmt),
+                Vacancy.country.ilike(search_fmt),
                 Vacancy.description.ilike(search_fmt),
                 Vacancy.ai_summary.ilike(search_fmt),
             )
@@ -225,6 +266,7 @@ async def batch_import_vacancies(
                 existing.company_url = scraped["company_url"]
                 existing.company_info = llm_res.get("company_info") or scraped.get("company_info")
                 existing.location = scraped["location"]
+                existing.city = scraped.get("city")
                 existing.country = scraped["country"]
                 existing.description = scraped["description"]
                 existing.ai_summary = llm_res.get("summary")
@@ -258,6 +300,7 @@ async def batch_import_vacancies(
                     company_url=scraped["company_url"],
                     company_info=llm_res.get("company_info") or scraped.get("company_info"),
                     location=scraped["location"],
+                    city=scraped.get("city"),
                     country=scraped["country"],
                     description=scraped["description"],
                     ai_summary=llm_res.get("summary"),
@@ -333,6 +376,25 @@ def list_unique_tags(db: Session = Depends(get_db)):
             if t and t.strip():
                 all_tags.add(t.strip())
     return sorted(list(all_tags))
+
+
+@app.get("/api/countries", response_model=List[str])
+def list_countries(db: Session = Depends(get_db)):
+    """Return distinct countries present in vacancies."""
+    vacancies = db.query(Vacancy.country).filter(Vacancy.country.isnot(None)).distinct().all()
+    countries = {v[0].strip() for v in vacancies if v[0] and v[0].strip()}
+    return sorted(list(countries))
+
+
+@app.get("/api/cities", response_model=List[str])
+def list_cities(country: Optional[str] = None, db: Session = Depends(get_db)):
+    """Return distinct cities present in vacancies, optionally filtered by country."""
+    query = db.query(Vacancy.city).filter(Vacancy.city.isnot(None))
+    if country and country.strip():
+        query = query.filter(Vacancy.country.ilike(country.strip()))
+    vacancies = query.distinct().all()
+    cities = {v[0].strip() for v in vacancies if v[0] and v[0].strip()}
+    return sorted(list(cities))
 
 
 @app.get("/api/settings", response_model=SettingsResponse)

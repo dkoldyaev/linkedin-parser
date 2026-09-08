@@ -65,3 +65,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def ensure_db_schema():
+    """Ensure newly added columns exist in existing database tables."""
+    from sqlalchemy import text
+    try:
+        with engine.begin() as conn:
+            dialect = engine.dialect.name
+            if dialect == "sqlite":
+                result = conn.execute(text("PRAGMA table_info(vacancies)")).fetchall()
+                existing_cols = {r[1] for r in result}
+                if existing_cols:
+                    if "city" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN city VARCHAR(128)"))
+            elif dialect == "postgresql":
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
+    except Exception as e:
+        logger.warning(f"Schema migration check: {e}")
