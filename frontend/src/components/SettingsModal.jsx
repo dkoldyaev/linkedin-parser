@@ -86,7 +86,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={handleSave}>
+        <form onSubmit={handleSave} className="modal-form">
           <div className="modal-body">
             {/* Locale / Language Selector */}
             <div className="form-group">
