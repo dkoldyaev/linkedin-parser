@@ -12,6 +12,15 @@ if DATABASE_URL:
     # Support postgres:// URL scheme from some cloud providers
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    # If running outside container on host, resolve host.docker.internal to localhost if needed
+    if "host.docker.internal" in DATABASE_URL and not os.path.exists("/.dockerenv"):
+        import socket
+        try:
+            socket.gethostbyname("host.docker.internal")
+        except socket.gaierror:
+            DATABASE_URL = DATABASE_URL.replace("host.docker.internal", "localhost")
+
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,

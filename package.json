@@ -6,6 +6,15 @@
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
     "install:deps": "./.venv/bin/pip install -r backend/requirements.txt",
+    "check:pg": "lsof -i :5432 || pg_isready",
+    "check:pg:dbs": "psql -U dkoldaev -h localhost -l || psql -U postgres -h localhost -l || psql -l",
+    "check:pg:vacancies": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, job_id, title, company, location, status, tags, created_at FROM vacancies ORDER BY id DESC LIMIT 5;'",
+    "check:pg:vacancy:detail": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, title, company, location, tech_stack, ai_summary FROM vacancies WHERE id = 3;'",
+    "pg:create:db": "psql -U dkoldaev -h localhost -c 'CREATE DATABASE linkedin_tracker;' || psql -U postgres -h localhost -c 'CREATE DATABASE linkedin_tracker;'",
+    "test:pg:docker": "docker run --rm alpine nc -zv host.docker.internal 5432",
+    "test:pg:docker:conn": "docker run --rm python:3.11-slim sh -c 'pip install psycopg2-binary sqlalchemy && python3 -c \"from sqlalchemy import create_engine, text; e = create_engine(\\\"postgresql://dkoldaev@host.docker.internal:5432/linkedin_tracker\\\"); print(e.connect().execute(text(\\\"SELECT count(*) FROM vacancies;\\\")).fetchone())\"'",
+    "test:pg": "PYTHONPATH=. ./.venv/bin/python tests/test_postgres.py",
+    "migrate:sqlite:pg": "PYTHONPATH=. ./.venv/bin/python tests/migrate_sqlite_to_pg.py",
     "test:backend": "PYTHONPATH=. ./.venv/bin/python tests/test_integration.py",
     "test:queue": "PYTHONPATH=. ./.venv/bin/python tests/test_queue.py",
     "test:mistral": "./.venv/bin/python tests/test_mistral.py",
@@ -20,6 +29,14 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:restart": "docker compose restart",
-    "docker:logs": "docker compose logs -f"
+    "docker:ps": "docker compose ps",
+    "docker:logs": "docker compose logs -f",
+    "docker:logs:tail": "docker compose logs --tail=50",
+    "docker:logs:tracker": "docker compose logs linkedin_tracker --tail=30",
+    "test:curl": "curl -s http://localhost:8000/api/health && echo '' && curl -s http://localhost:8000/api/vacancies | python3 -m json.tool | grep -E '\"id\"|\"title\"|\"company\"' | head -n 12 && curl -s http://localhost:8000/api/tags",
+    "test:crud": "curl -s -X POST http://localhost:8000/api/vacancies -H 'Content-Type: application/json' -d '{\"title\":\"Docker Postgres Engineer\",\"company\":\"Test Corp\",\"url\":\"https://linkedin.com/jobs/view/99999\",\"tags\":[\"docker\",\"postgres-live\"]}' | python3 -m json.tool && echo '---' && curl -s http://localhost:8000/api/vacancies | python3 -m json.tool | grep -E '\"title\"'",
+    "import:job": "curl -s -X POST http://localhost:8000/api/vacancies/batch -H 'Content-Type: application/json' -d '{\"urls\": [\"https://www.linkedin.com/jobs/view/4409263207/\"], \"default_tags\": [\"demo-job\"]}'",
+    "check:queue": "curl -s http://localhost:8000/api/queue/status | python3 -m json.tool",
+    "check:last:vacancy": "curl -s http://localhost:8000/api/vacancies | python3 -c 'import sys, json; data=json.load(sys.stdin); print(json.dumps(data[0], indent=2, ensure_ascii=False) if data else \"No vacancies\")'"
   }
 }
