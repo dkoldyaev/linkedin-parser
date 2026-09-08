@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean
 from .database import Base
 
 VALID_STATUSES = [
@@ -25,6 +25,7 @@ class Vacancy(Base):
     country = Column(String(128), nullable=True)
     description = Column(Text, nullable=True)
     workplace_type = Column(String(32), nullable=True)  # "remote", "hybrid", "on-site"
+    is_closed = Column(Boolean, default=False, nullable=False)
 
     # Salary fields (raw numeric values & period)
     salary_min = Column(Float, nullable=True)

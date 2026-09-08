@@ -14,6 +14,7 @@ class VacancyBase(BaseModel):
     country: Optional[str] = None
     description: Optional[str] = None
     workplace_type: Optional[str] = None
+    is_closed: bool = False
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     salary_currency: Optional[str] = None
@@ -34,6 +35,7 @@ class VacancyUpdate(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     workplace_type: Optional[str] = None
+    is_closed: Optional[bool] = None
     status: Optional[str] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None

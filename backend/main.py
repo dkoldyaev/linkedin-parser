@@ -155,6 +155,7 @@ def list_vacancies(
     country: Optional[str] = None,
     city: Optional[str] = None,
     workplace_type: Optional[str] = None,
+    is_closed: Optional[bool] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -171,6 +172,9 @@ def list_vacancies(
 
     if workplace_type and workplace_type.strip():
         query = query.filter(Vacancy.workplace_type.ilike(workplace_type.strip()))
+
+    if is_closed is not None:
+        query = query.filter(Vacancy.is_closed == is_closed)
 
     if search:
         search_fmt = f"%{search}%"
@@ -329,6 +333,7 @@ async def batch_import_vacancies(
                 if s_curr is not None: existing.salary_currency = s_curr
                 if s_per is not None: existing.salary_period = s_per
                 if w_type: existing.workplace_type = w_type
+                if "is_closed" in scraped: existing.is_closed = scraped["is_closed"]
 
                 # Merge tags without duplicating
                 current_tags = set(existing.tags or [])
@@ -368,6 +373,7 @@ async def batch_import_vacancies(
                     country=scraped["country"],
                     description=scraped["description"],
                     workplace_type=w_type,
+                    is_closed=scraped.get("is_closed", False),
                     salary_min=s_min,
                     salary_max=s_max,
                     salary_currency=s_curr,

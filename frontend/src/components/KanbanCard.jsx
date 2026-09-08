@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote, Laptop, Layers, Building } from 'lucide-react';
+import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 
@@ -41,7 +41,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
   return (
     <div
-      className="kanban-card"
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -63,6 +63,12 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
             </a>
           )}
         </div>
+        {vacancy.is_closed && (
+          <div className="card-closed-badge" title="Заявки больше не принимаются (вакансия закрыта)">
+            <Ban size={10} />
+            <span>Закрыта</span>
+          </div>
+        )}
       </div>
 
       <h3 className="card-title">{vacancy.title}</h3>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
-  Laptop, Layers, Building 
+  Laptop, Layers, Building, Ban
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -28,6 +28,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
   const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
+  const [isClosed, setIsClosed] = useState(vacancy?.is_closed || false);
   const [savingSalary, setSavingSalary] = useState(false);
   const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
 
@@ -49,6 +50,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSalaryCurrency(vacancy.salary_currency || '$');
       setSalaryPeriod(vacancy.salary_period || 'month');
       setWorkplaceType(vacancy.workplace_type || '');
+      setIsClosed(Boolean(vacancy.is_closed));
       setReparsing(false);
     }
   }, [vacancy]);
@@ -81,6 +83,21 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       onUpdate({ ...vacancy, workplace_type: val });
     } catch (err) {
       console.error('Failed to update workplace type', err);
+    }
+  };
+
+  const handleToggleClosed = async () => {
+    const nextVal = !isClosed;
+    setIsClosed(nextVal);
+    try {
+      await fetch(`/api/vacancies/${vacancy.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_closed: nextVal })
+      });
+      onUpdate({ ...vacancy, is_closed: nextVal });
+    } catch (err) {
+      console.error('Failed to update closed status', err);
     }
   };
 
@@ -300,6 +317,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   <span>{currentSalaryInfo.formatted}</span>
                 </span>
               )}
+              {isClosed && (
+                <span className="card-closed-badge" style={{ marginLeft: '8px' }} title="Заявки больше не принимаются">
+                  <Ban size={12} />
+                  <span>Прием заявок закрыт</span>
+                </span>
+              )}
             </div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
               {vacancy.title}
@@ -425,6 +448,44 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 <option value="hybrid">Гибрид (Hybrid)</option>
                 <option value="on-site">On-site (Офис)</option>
               </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Прием заявок:
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleClosed}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  border: '1px solid',
+                  borderColor: isClosed ? 'rgba(244, 63, 94, 0.45)' : 'rgba(16, 185, 129, 0.35)',
+                  background: isClosed ? 'rgba(244, 63, 94, 0.12)' : 'rgba(16, 185, 129, 0.08)',
+                  color: isClosed ? '#fb7185' : '#34d399',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Нажмите, чтобы переключить статус приема заявок"
+              >
+                {isClosed ? (
+                  <>
+                    <Ban size={12} />
+                    <span>Закрыта (не принимаются)</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={12} />
+                    <span>Открыта (принимаются)</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

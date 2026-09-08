@@ -25,6 +25,7 @@
     "migrate:sqlite:pg": "PYTHONPATH=. ./.venv/bin/python tests/migrate_sqlite_to_pg.py",
     "test:backend": "PYTHONPATH=. ./.venv/bin/python tests/test_integration.py",
     "test:salary": "PYTHONPATH=. ./.venv/bin/python tests/test_salary.py",
+    "test:closed": "PYTHONPATH=. ./.venv/bin/python tests/test_closed.py",
     "test:locations": "PYTHONPATH=. ./.venv/bin/python tests/test_locations.py",
     "test:queue": "PYTHONPATH=. ./.venv/bin/python tests/test_queue.py",
     "test:mistral": "./.venv/bin/python tests/test_mistral.py",
@@ -50,10 +51,11 @@
     "check:queue": "curl -s http://localhost:8000/api/queue/status | python3 -m json.tool",
     "check:api:filters": "curl -s http://localhost:8000/api/countries && echo '' && curl -s http://localhost:8000/api/cities && echo '' && curl -s 'http://localhost:8000/api/vacancies?city=Barcelona' | python3 -c 'import sys, json; vs=json.load(sys.stdin); print(f\"Found {len(vs)} in Barcelona: {[v[\"title\"] for v in vs]}\")'",
     "check:last:vacancy": "curl -s http://localhost:8000/api/vacancies | python3 -c 'import sys, json; data=json.load(sys.stdin); print(json.dumps(data[0], indent=2, ensure_ascii=False) if data else \"No vacancies\")'",
-    "test:all": "npm run check:python && npm run test:workplace && npm run frontend:build",
+    "test:all": "npm run check:python && npm run test:workplace && npm run test:salary && npm run test:closed && npm run frontend:build",
     "git:status": "git status",
     "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'",
     "commit:workplace": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/App.jsx frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/utils/workplace.js frontend/src/index.css tests/test_workplace.py package.json && git commit -m 'feat: add workplace type (remote, hybrid, on-site) and filter'",
-    "commit:all": "git add -A && git commit -m 'feat: add workplace type (remote, hybrid, on-site) and filter'"
+    "commit:closed": "git add backend/database.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_closed.py package.json && git commit -m 'feat: add closed vacancy status parsing and card design'",
+    "commit:all": "git add -A && git commit -m 'feat: add closed vacancy status parsing and card design'"
   }
 }

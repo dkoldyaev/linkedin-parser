@@ -201,7 +201,55 @@ def extract_workplace_type_from_soup(soup: BeautifulSoup, raw_location: str, cri
         if res:
             return res
 
-    return None
+def extract_is_closed_from_soup(soup: BeautifulSoup, html: Optional[str] = None) -> bool:
+    """
+    Detect if LinkedIn job is closed / no longer accepting applications.
+    Checks LinkedIn-specific classes, figcaption/status elements, and localized closed banners.
+    """
+    # 1. Look for explicit closed job classes or tags
+    closed_elem = soup.find(class_=lambda c: c and any(k in str(c).lower() for k in [
+        "closed-job", 
+        "topcard__flavor--closed",
+        "job-details-jobs-unified-top-card__closed-badge"
+    ]))
+    if closed_elem:
+        return True
+
+    # 2. Check figcaption or top-card / header badges / alerts / flavor elements
+    closed_patterns = [
+        r"no longer accepting applications",
+        r"заявки больше не принимаются",
+        r"при[её]м заявок (?:закрыт|заверш[её]н)",
+        r"при[её]м откликов (?:закрыт|заверш[её]н|приостановлен)",
+        r"вакансия закрыта",
+        r"es werden keine bewerbungen mehr angenommen",
+        r"les candidatures ne sont plus acceptées",
+        r"ya no se aceptan solicitudes",
+    ]
+    combined_regex = re.compile("|".join(closed_patterns), re.IGNORECASE)
+
+    # Check any figcaption specifically (LinkedIn frequently renders closed notices as <figcaption class="closed-job__flavor">)
+    for fig in soup.find_all("figcaption"):
+        if combined_regex.search(fig.get_text(strip=True)):
+            return True
+
+    # Look in badges, alerts, and top-card subline/flavor elements (excluding long description body)
+    for el in soup.find_all(["span", "div", "p", "section"], class_=lambda c: c and any(k in str(c).lower() for k in [
+        "flavor", "banner", "alert", "status", "entity-info", "topcard", "top-card", "badge", "message"
+    ])):
+        classes = el.get("class") or []
+        class_str = " ".join(classes) if isinstance(classes, list) else str(classes)
+        if any(dc in class_str for dc in ["description__text", "show-more-less-html__markup"]):
+            continue
+        text = el.get_text(strip=True)
+        if len(text) < 150 and combined_regex.search(text):
+            return True
+
+    # 3. Check if html text has closed-job class
+    if html and ("closed-job" in html or "closed-job__flavor" in html or "topcard__flavor--closed" in html):
+        return True
+
+    return False
 
 
 async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
@@ -308,6 +356,9 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     # Extract workplace type (remote, hybrid, on-site)
     workplace_type = extract_workplace_type_from_soup(soup, location, criteria)
 
+    # Detect if vacancy is closed / no longer accepting applications
+    is_closed = extract_is_closed_from_soup(soup, html)
+
     return {
         "job_id": job_id,
         "url": url,
@@ -320,6 +371,7 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "country": country,
         "description": description,
         "workplace_type": workplace_type,
+        "is_closed": is_closed,
         "salary_min": salary_data.get("salary_min"),
         "salary_max": salary_data.get("salary_max"),
         "salary_currency": salary_data.get("salary_currency"),

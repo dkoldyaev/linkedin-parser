@@ -335,6 +335,8 @@ class RedisQueueManager:
                         existing.salary_period = scraped["salary_period"]
                     if scraped.get("workplace_type"):
                         existing.workplace_type = scraped["workplace_type"]
+                    if "is_closed" in scraped:
+                        existing.is_closed = scraped["is_closed"]
 
                     db.commit()
                     db.refresh(existing)
@@ -353,6 +355,7 @@ class RedisQueueManager:
                         country=scraped["country"],
                         description=scraped["description"],
                         workplace_type=scraped.get("workplace_type"),
+                        is_closed=scraped.get("is_closed", False),
                         salary_min=scraped.get("salary_min"),
                         salary_max=scraped.get("salary_max"),
                         salary_currency=scraped.get("salary_currency"),
