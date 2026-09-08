@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
@@ -140,6 +140,17 @@ export default function App() {
     fetchQueueStatus();
   }, [fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchQueueStatus, selectedCountry]);
 
+  const callbacksRef = useRef({});
+  callbacksRef.current = {
+    fetchTags,
+    fetchVacancies,
+    fetchCountries,
+    fetchCities,
+    selectedCountry,
+    showToast,
+    t
+  };
+
   // Connect to Mercure SSE Hub for real-time updates
   useEffect(() => {
     let eventSource = null;
@@ -186,6 +197,15 @@ export default function App() {
           try {
             const data = JSON.parse(event.data);
             const { type, error_code, vacancy, total_remaining, url } = data;
+            const {
+              fetchTags: currentFetchTags,
+              fetchVacancies: currentFetchVacancies,
+              fetchCountries: currentFetchCountries,
+              fetchCities: currentFetchCities,
+              selectedCountry: currentSelectedCountry,
+              showToast: currentShowToast,
+              t: currentT
+            } = callbacksRef.current;
 
             if (total_remaining !== undefined) {
               setQueueRemaining(total_remaining);
@@ -199,31 +219,31 @@ export default function App() {
                 }
                 return [vacancy, ...prev];
               });
-              showToast(t('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
-              fetchTags();
-              fetchCountries();
-              fetchCities(selectedCountry);
+              currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
+              currentFetchTags();
+              currentFetchCountries();
+              currentFetchCities(currentSelectedCountry);
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
-              showToast(t('mercure.vacancy_updated', { title: vacancy.title }));
-              fetchTags();
-              fetchCountries();
-              fetchCities(selectedCountry);
+              currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
+              currentFetchTags();
+              currentFetchCountries();
+              currentFetchCities(currentSelectedCountry);
             } else if (type === 'task_failed') {
-              const errText = error_code ? t(`mercure.errors.${error_code}`) : (data.error || t('mercure.errors.ERR_UNKNOWN'));
-              showToast(t('mercure.task_failed', { error: errText, url: url || '' }), 'error');
+              const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
+              currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');
             } else if (type === 'queue_updated') {
               if (total_remaining !== undefined) {
                 setQueueRemaining(total_remaining);
               }
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
-              showToast(t('mercure.queue_idle'));
-              fetchVacancies();
-              fetchTags();
-              fetchCountries();
-              fetchCities(selectedCountry);
+              currentShowToast(currentT('mercure.queue_idle'));
+              currentFetchVacancies();
+              currentFetchTags();
+              currentFetchCountries();
+              currentFetchCities(currentSelectedCountry);
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -243,7 +263,7 @@ export default function App() {
         eventSource.close();
       }
     };
-  }, [fetchTags, fetchVacancies, fetchCountries, fetchCities, selectedCountry, showToast, t]);
+  }, []);
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
