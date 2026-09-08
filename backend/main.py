@@ -446,6 +446,25 @@ async def resummarize_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
     return v
 
 
+@app.post("/api/vacancies/{vacancy_id}/reparse")
+async def reparse_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
+    """Add vacancy URL to background processing queue to re-scrape and update DB."""
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Вакансия не найдена")
+
+    if not v.url:
+        raise HTTPException(status_code=400, detail="У вакансии отсутствует ссылка (URL)")
+
+    batch_id, tasks = await queue_manager.enqueue([v.url], default_tags=[], vacancy_id=v.id)
+    return {
+        "status": "queued",
+        "batch_id": batch_id,
+        "task_id": tasks[0].task_id if tasks else None,
+        "message": "Вакансия отправлена на повторную обработку в фоне",
+    }
+
+
 @app.get("/api/tags", response_model=List[str])
 def list_unique_tags(db: Session = Depends(get_db)):
     vacancies = db.query(Vacancy).all()

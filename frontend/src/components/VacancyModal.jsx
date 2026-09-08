@@ -32,6 +32,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
 
   const [resummarizing, setResummarizing] = useState(false);
+  const [reparsing, setReparsing] = useState(false);
+  const [reparseError, setReparseError] = useState(null);
+  const [reparseSuccess, setReparseSuccess] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
 
@@ -46,6 +49,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSalaryCurrency(vacancy.salary_currency || '$');
       setSalaryPeriod(vacancy.salary_period || 'month');
       setWorkplaceType(vacancy.workplace_type || '');
+      setReparsing(false);
     }
   }, [vacancy]);
 
@@ -215,6 +219,30 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
+  const handleReparse = async () => {
+    if (!vacancy?.id || reparsing) return;
+    setReparsing(true);
+    setReparseError(null);
+    setReparseSuccess(false);
+    try {
+      const res = await fetch(`/api/vacancies/${vacancy.id}/reparse`, {
+        method: 'POST'
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Не удалось отправить на перегенерацию');
+      }
+      setReparseSuccess(true);
+      setTimeout(() => setReparseSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to reparse vacancy', err);
+      setReparseError(err.message || 'Ошибка при перегенерации');
+      setTimeout(() => setReparseError(null), 6000);
+    } finally {
+      setReparsing(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (window.confirm(`Удалить вакансию "${vacancy.title}"?`)) {
       try {
@@ -279,6 +307,37 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleReparse}
+              disabled={reparsing || !vacancy.url}
+              title={vacancy.url ? "Заново распарсить страницу по ссылке и обновить данные" : "У вакансии отсутствует ссылка"}
+              style={{
+                fontSize: '0.75rem',
+                padding: '6px 12px',
+                borderColor: reparseSuccess ? '#10b981' : undefined,
+                color: reparseSuccess ? '#10b981' : undefined,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {reparsing ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>В очереди...</span>
+                </>
+              ) : reparseSuccess ? (
+                <>
+                  <Check size={14} color="#10b981" />
+                  <span>В обработке!</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={14} />
+                  <span>Перегенерировать</span>
+                </>
+              )}
+            </button>
             <a 
               href={vacancy.url} 
               target="_blank" 
@@ -294,6 +353,30 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </button>
           </div>
         </div>
+
+        {reparseError && (
+          <div style={{
+            margin: '12px 24px 0',
+            padding: '10px 14px',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            color: '#fca5a5',
+            fontSize: '0.8125rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px'
+          }}>
+            <span><strong>Ошибка при перегенерации:</strong> {reparseError}</span>
+            <button
+              onClick={() => setReparseError(null)}
+              style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0 }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Body */}
         <div className="modal-body">

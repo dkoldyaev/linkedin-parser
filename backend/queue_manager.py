@@ -135,7 +135,7 @@ class RedisQueueManager:
             self.redis = None
         logger.info("RedisQueueManager stopped")
 
-    async def enqueue(self, urls: List[str], default_tags: List[str]) -> Tuple[str, List[JobTask]]:
+    async def enqueue(self, urls: List[str], default_tags: List[str], vacancy_id: Optional[int] = None) -> Tuple[str, List[JobTask]]:
         """Add URLs to Stage 1 (Scraping) queue in Redis. Returns (batch_id, list_of_tasks)."""
         if not self.redis:
             raise RuntimeError("Redis broker is not connected")
@@ -157,6 +157,7 @@ class RedisQueueManager:
                     batch_id=batch_id,
                     status="pending",
                     stage="scraping",
+                    vacancy_id=vacancy_id,
                 )
                 new_tasks.append(task)
 
@@ -298,13 +299,17 @@ class RedisQueueManager:
             with SessionLocal() as db:
                 job_id = extract_job_id(task.url)
                 existing = None
-                if job_id:
+                if task.vacancy_id:
+                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
+                if not existing and job_id:
                     existing = db.query(Vacancy).filter(Vacancy.job_id == job_id).first()
                 if not existing:
                     existing = db.query(Vacancy).filter(Vacancy.url == task.url).first()
 
                 initial_tags = list(task.default_tags)
                 if existing:
+                    if scraped.get("job_id"):
+                        existing.job_id = scraped["job_id"]
                     existing.title = scraped["title"]
                     existing.company = scraped["company"]
                     existing.company_url = scraped["company_url"]

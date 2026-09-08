@@ -203,6 +203,7 @@ export default function App() {
               fetchCities(selectedCountry);
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
+              setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               showToast(`Обновлена вакансия: ${vacancy.title}`);
               fetchTags();
               fetchCountries();
