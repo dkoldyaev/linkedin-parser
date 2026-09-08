@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: linkedin_tracker
     restart: unless-stopped
     volumes:
       - ./data:/app/data
@@ -35,7 +34,6 @@ services:
 
   mercure:
     image: dunglas/mercure:latest
-    container_name: linkedin_mercure
     restart: unless-stopped
     environment:
       SERVER_NAME: ':80'

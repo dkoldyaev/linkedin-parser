@@ -1,0 +1,51 @@
+services:
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/linkedin_tracker
+      BROKER_URL: redis://redis:6379/0
+      MERCURE_URL: http://mercure/.well-known/mercure
+    depends_on:
+      mercure:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mercure:
+    extends:
+      file: docker-compose.yml
+      service: mercure
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: linkedin_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linkedin_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
