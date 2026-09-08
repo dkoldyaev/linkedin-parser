@@ -57,6 +57,10 @@ def test_api_filtering():
     backfill_missing_workplace_types()
 
     client = TestClient(app)
+    login_res = client.post("/api/auth/dev-login", json={"email": "workplace_test@local.user"})
+    token = login_res.json()["token"]
+    client = TestClient(app, cookies={"access_token": token})
+
     res = client.get("/api/vacancies")
     assert res.status_code == 200
     all_vacs = res.json()
@@ -75,6 +79,10 @@ def test_api_filtering():
 def test_crud_workplace():
     print("\n--- Testing CRUD with workplace_type ---")
     client = TestClient(app)
+    login_res = client.post("/api/auth/dev-login", json={"email": "workplace_test@local.user"})
+    token = login_res.json()["token"]
+    client = TestClient(app, cookies={"access_token": token})
+
     # Create test vacancy
     create_payload = {
         "title": "Remote Python Engineer",

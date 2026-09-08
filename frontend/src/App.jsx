@@ -2,16 +2,20 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
 import VacancyModal from './components/VacancyModal';
 import SettingsModal from './components/SettingsModal';
+import LoginModal from './components/LoginModal';
 import { useTranslation } from './i18n/I18nContext';
 
 export default function App() {
   const { t } = useTranslation();
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [vacancies, setVacancies] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
@@ -45,7 +49,43 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const checkAuth = useCallback(async () => {
+    try {
+      setAuthLoading(true);
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      console.debug('Auth check error', err);
+      setUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+    setUser(null);
+    setVacancies([]);
+    setAllTags([]);
+    setAllCountries([]);
+    setAllCities([]);
+  };
+
   const fetchVacancies = useCallback(async () => {
+    if (!user) return;
     try {
       let url = '/api/vacancies';
       const params = new URLSearchParams();
@@ -64,9 +104,10 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType]);
+  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType]);
 
   const fetchTags = useCallback(async () => {
+    if (!user) return;
     try {
       const res = await fetch('/api/tags');
       if (res.ok) {
@@ -76,9 +117,10 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch tags', err);
     }
-  }, []);
+  }, [user]);
 
   const fetchCountries = useCallback(async () => {
+    if (!user) return;
     try {
       const res = await fetch('/api/countries');
       if (res.ok) {
@@ -88,9 +130,10 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch countries', err);
     }
-  }, []);
+  }, [user]);
 
   const fetchCities = useCallback(async (countryFilter = '') => {
+    if (!user) return;
     try {
       const url = countryFilter ? `/api/cities?country=${encodeURIComponent(countryFilter)}` : '/api/cities';
       const res = await fetch(url);
@@ -101,7 +144,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch cities', err);
     }
-  }, []);
+  }, [user]);
 
   const handleCountryChange = (country) => {
     setSelectedCountry(country);
@@ -119,6 +162,7 @@ export default function App() {
   };
 
   const fetchQueueStatus = useCallback(async () => {
+    if (!user) return;
     try {
       const res = await fetch('/api/queue/status');
       if (res.ok) {
@@ -130,15 +174,16 @@ export default function App() {
     } catch (err) {
       console.debug('Failed to fetch queue status', err);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) return;
     fetchVacancies();
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
     fetchQueueStatus();
-  }, [fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchQueueStatus, selectedCountry]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
@@ -153,6 +198,7 @@ export default function App() {
 
   // Connect to Mercure SSE Hub for real-time updates
   useEffect(() => {
+    if (!user) return;
     let eventSource = null;
     let isSubscribed = true;
 
@@ -160,7 +206,7 @@ export default function App() {
       try {
         setMercureStatus('connecting');
         let hubUrl = 'http://localhost:3000/.well-known/mercure';
-        let topic = 'vacancies';
+        let topic = `vacancies:${user.id}`;
 
         try {
           const configRes = await fetch('/api/config');
@@ -263,7 +309,7 @@ export default function App() {
         eventSource.close();
       }
     };
-  }, []);
+  }, [user]);
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
@@ -317,6 +363,18 @@ export default function App() {
   };
 
   const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
+
+  if (authLoading) {
+    return (
+      <div className="auth-loading-screen">
+        <Loader2 size={40} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginModal onLoginSuccess={(userData) => setUser(userData)} />;
+  }
 
   return (
     <div className="app-container">
@@ -393,6 +451,21 @@ export default function App() {
             <Plus size={16} />
             <span>{t('nav.batch_import_btn')}</span>
           </button>
+
+          {/* User Profile Badge & Logout */}
+          <div className="user-profile-badge">
+            {user.picture ? (
+              <img src={user.picture} alt={user.name} className="user-avatar" />
+            ) : (
+              <div className="user-avatar-placeholder">
+                {(user.name || user.email || 'U')[0].toUpperCase()}
+              </div>
+            )}
+            <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
+            <button className="btn-logout" onClick={handleLogout} title={t('auth.logout')}>
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </header>
 

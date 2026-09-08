@@ -3,6 +3,9 @@ from backend.main import app
 
 def run_test():
     client = TestClient(app)
+    login_res = client.post("/api/auth/dev-login", json={"email": "integration_test@local.user"})
+    token = login_res.json()["token"]
+    client = TestClient(app, cookies={"access_token": token})
 
     url = "https://www.linkedin.com/jobs/view/4462938317"
     print("Sending batch import request (with wait=true)...")

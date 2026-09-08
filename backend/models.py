@@ -1,5 +1,6 @@
 import datetime
-from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import relationship
 from .database import Base
 
 VALID_STATUSES = [
@@ -10,10 +11,42 @@ VALID_STATUSES = [
     "Оффер",
 ]
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    google_id = Column(String(128), unique=True, index=True, nullable=False)
+    email = Column(String(256), unique=True, index=True, nullable=False)
+    name = Column(String(256), nullable=False, default="")
+    picture = Column(String(1024), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    vacancies = relationship("Vacancy", back_populates="user", cascade="all, delete-orphan")
+    settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserSetting(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    key = Column(String(128), nullable=False)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "key", name="uq_user_setting_key"),
+    )
+
+    user = relationship("User", back_populates="settings")
+
+
 class Vacancy(Base):
     __tablename__ = "vacancies"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True)
     job_id = Column(String(64), index=True, nullable=True)
     url = Column(String(1024), nullable=False)
     title = Column(String(256), nullable=False, default="Untitled Vacancy")
@@ -44,6 +77,8 @@ class Vacancy(Base):
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="vacancies")
 
 
 class AppSetting(Base):

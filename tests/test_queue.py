@@ -7,13 +7,23 @@ import jwt
 
 def test_queue_endpoints():
     with TestClient(app) as client:
-        # 1. Test /api/config
+        # 1. Test /api/config unauthenticated
         config_resp = client.get("/api/config")
         assert config_resp.status_code == 200, f"Config failed: {config_resp.text}"
         config_data = config_resp.json()
         assert "mercure_hub_url" in config_data
         assert config_data["mercure_topic"] == "vacancies"
-        print("✓ /api/config test passed:", config_data)
+
+        # Dev login to get authenticated client
+        login_res = client.post("/api/auth/dev-login", json={"email": "queue_test@local.user"})
+        token = login_res.json()["token"]
+        user_id = login_res.json()["user"]["id"]
+        client.cookies.set("access_token", token)
+
+        # Test /api/config authenticated
+        config_auth_resp = client.get("/api/config")
+        assert config_auth_resp.json()["mercure_topic"] == f"vacancies:{user_id}"
+        print("✓ /api/config test passed:", config_auth_resp.json())
 
         # 2. Test Mercure JWT Generation
         token = generate_publisher_jwt()

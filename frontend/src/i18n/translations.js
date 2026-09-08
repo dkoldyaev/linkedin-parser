@@ -183,6 +183,16 @@ export const translations = {
         ERR_NETWORK: "Сетевая ошибка при запросе",
         ERR_UNKNOWN: "Неизвестная ошибка обработки",
       }
+    },
+    auth: {
+      title: "Вход в систему",
+      subtitle: "Авторизуйтесь для доступа к персональной доске вакансий и настройкам",
+      google_login: "Войти через Google",
+      dev_login: "Тестовый вход (Dev режим)",
+      dev_hint: "Для локальной разработки и тестирования",
+      google_not_configured: "Google OAuth не настроен в .env (GOOGLE_CLIENT_ID). Вы можете использовать Dev-вход.",
+      logout: "Выйти",
+      logged_in_as: "Вы вошли как",
     }
   },
   en: {
@@ -369,6 +379,16 @@ export const translations = {
         ERR_NETWORK: "Network error during request",
         ERR_UNKNOWN: "Unknown processing error",
       }
+    },
+    auth: {
+      title: "Sign In",
+      subtitle: "Sign in to access your personal board and custom settings",
+      google_login: "Sign in with Google",
+      dev_login: "Quick Dev Login",
+      dev_hint: "For local development and testing without Google keys",
+      google_not_configured: "Google OAuth is not configured in .env (GOOGLE_CLIENT_ID). You can use Dev Mode login.",
+      logout: "Log out",
+      logged_in_as: "Signed in as",
     }
   }
 };

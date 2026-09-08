@@ -51,6 +51,9 @@ def test_db_backfill_and_api():
 
     print("\n--- Testing API endpoints ---")
     client = TestClient(app)
+    login_res = client.post("/api/auth/dev-login", json={"email": "location_test@local.user"})
+    token = login_res.json()["token"]
+    client = TestClient(app, cookies={"access_token": token})
 
     # Test /api/countries
     countries_res = client.get("/api/countries")

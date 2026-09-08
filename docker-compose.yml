@@ -20,6 +20,11 @@ services:
       - MERCURE_URL=${MERCURE_URL:-http://mercure/.well-known/mercure}
       - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-http://localhost:3000/.well-known/mercure}
       - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+      - JWT_SECRET=${JWT_SECRET:-!ChangeThisAppJWTSecretKeyForUserSessions!}
+      - DEV_AUTH=${DEV_AUTH:-true}
     depends_on:
       - mercure
     healthcheck:

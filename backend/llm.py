@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 import httpx
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from .models import AppSetting
+from .models import AppSetting, UserSetting
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -45,11 +45,15 @@ def extract_fallback_tech_stack(text: str) -> List[str]:
     return found[:12]
 
 
-def get_setting_or_env(db: Optional[Session], key: str, default: str = "") -> str:
-    """Retrieve setting from DB or environment variable."""
+def get_setting_or_env(db: Optional[Session], key: str, default: str = "", user_id: Optional[int] = None) -> str:
+    """Retrieve setting from user_settings, falling back to AppSetting or environment variable."""
     if db:
+        if user_id:
+            u_setting = db.query(UserSetting).filter(UserSetting.user_id == user_id, UserSetting.key == key).first()
+            if u_setting and u_setting.value is not None:
+                return u_setting.value
         setting = db.query(AppSetting).filter(AppSetting.key == key).first()
-        if setting and setting.value:
+        if setting and setting.value is not None:
             return setting.value
     return os.getenv(key.upper(), default)
 
@@ -129,6 +133,7 @@ async def analyze_vacancy_with_llm(
     provider: str,
     language: str,
     db: Optional[Session] = None,
+    user_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Summarize vacancy and extract tech stack & company info using configured LLM.
@@ -143,10 +148,10 @@ async def analyze_vacancy_with_llm(
     provider = str(provider).strip().lower()
     language = str(language).strip().lower()
 
-    mistral_key = get_setting_or_env(db, "mistral_api_key")
-    gemini_key = get_setting_or_env(db, "gemini_api_key")
-    mistral_model = get_setting_or_env(db, "mistral_model", "mistral-small-latest")
-    gemini_model = get_setting_or_env(db, "gemini_model", "gemini-2.5-flash")
+    mistral_key = get_setting_or_env(db, "mistral_api_key", user_id=user_id)
+    gemini_key = get_setting_or_env(db, "gemini_api_key", user_id=user_id)
+    mistral_model = get_setting_or_env(db, "mistral_model", "mistral-small-latest", user_id=user_id)
+    gemini_model = get_setting_or_env(db, "gemini_model", "gemini-2.5-flash", user_id=user_id)
 
     # Prompt constructing based on language
     if language.startswith("en"):

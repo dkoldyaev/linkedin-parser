@@ -1,16 +1,17 @@
 import os
+import uuid
 import logging
 from contextlib import asynccontextmanager
 from typing import List, Optional, Union
-from fastapi import FastAPI, Depends, HTTPException, Query, status
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from .database import engine, Base, get_db, ensure_db_schema
-from .models import Vacancy, AppSetting, VALID_STATUSES
+from .models import Vacancy, AppSetting, User, UserSetting, VALID_STATUSES
 from .schemas import (
     VacancyResponse,
     VacancyCreate,
@@ -22,10 +23,26 @@ from .schemas import (
     ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
+    UserResponse,
+    AuthConfigResponse,
+    DevLoginRequest,
+)
+from .auth import (
+    get_current_user,
+    get_optional_user,
+    is_google_configured,
+    get_google_auth_url,
+    exchange_google_code,
+    get_google_user_info,
+    get_or_create_user,
+    get_or_create_dev_user,
+    create_access_token,
+    COOKIE_NAME,
+    ACCESS_TOKEN_EXPIRE_DAYS,
 )
 from .scraper import scrape_linkedin_job, extract_job_id
 from .location_parser import parse_location
-from .llm import analyze_vacancy_with_llm
+from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import get_mercure_public_url
 from .queue_manager import queue_manager
 
@@ -133,19 +150,127 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.get("/api/auth/config", response_model=AuthConfigResponse)
+def get_auth_config():
+    dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
+    return AuthConfigResponse(
+        google_configured=is_google_configured(),
+        google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
+        dev_mode=dev_enabled,
+    )
+
+
+@app.get("/api/auth/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@app.get("/api/auth/google/login")
+def google_login(request: Request):
+    if not is_google_configured():
+        raise HTTPException(
+            status_code=400,
+            detail="Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env"
+        )
+    
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/google/callback"
+    
+    state = uuid.uuid4().hex
+    auth_url = get_google_auth_url(redirect_uri=redirect_uri, state=state)
+    response = RedirectResponse(url=auth_url)
+    response.set_cookie("oauth_state", state, max_age=600, httponly=True, samesite="lax")
+    return response
+
+
+@app.get("/api/auth/google/callback")
+async def google_callback(
+    request: Request,
+    code: str = Query(...),
+    state: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    cookie_state = request.cookies.get("oauth_state")
+    if cookie_state and state and cookie_state != state:
+        logger.warning(f"OAuth state mismatch: expected {cookie_state}, got {state}")
+    
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    if not redirect_uri:
+        redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/google/callback"
+    
+    tokens = await exchange_google_code(code, redirect_uri=redirect_uri)
+    access_token = tokens.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="No access token returned by Google")
+    
+    user_info = await get_google_user_info(access_token)
+    google_id = user_info.get("sub")
+    email = user_info.get("email")
+    name = user_info.get("name", "")
+    picture = user_info.get("picture")
+
+    if not google_id or not email:
+        raise HTTPException(status_code=400, detail="Incomplete user profile from Google")
+
+    user = get_or_create_user(db, google_id=google_id, email=email, name=name, picture=picture)
+    token = create_access_token({"sub": str(user.id), "email": user.email, "name": user.name})
+
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        max_age=86400 * ACCESS_TOKEN_EXPIRE_DAYS,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
+    response.delete_cookie("oauth_state")
+    return response
+
+
+@app.post("/api/auth/dev-login")
+def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depends(get_db)):
+    dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
+    if not dev_enabled and is_google_configured():
+        raise HTTPException(status_code=403, detail="Dev login is disabled in production")
+    
+    user = get_or_create_dev_user(db, email=payload.email or "dev@local.user", name=payload.name or "Dev User")
+    token = create_access_token({"sub": str(user.id), "email": user.email, "name": user.name})
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        max_age=86400 * ACCESS_TOKEN_EXPIRE_DAYS,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
+    return {
+        "user": UserResponse.model_validate(user),
+        "token": token,
+    }
+
+
+@app.post("/api/auth/logout")
+def logout(response: Response):
+    response.delete_cookie(key=COOKIE_NAME, path="/")
+    return {"status": "ok"}
+
+
 @app.get("/api/config")
-def get_config():
+def get_config(current_user: Optional[User] = Depends(get_optional_user)):
     """Return Mercure public hub URL and topics for frontend SSE connection."""
+    topic = f"vacancies:{current_user.id}" if current_user else "vacancies"
     return {
         "mercure_hub_url": get_mercure_public_url(),
-        "mercure_topic": "vacancies",
+        "mercure_topic": topic,
     }
 
 
 @app.get("/api/queue/status", response_model=QueueStatusResponse)
-async def get_queue_status():
-    """Get active parsing queue status and recent tasks."""
-    return await queue_manager.get_status()
+async def get_queue_status(current_user: User = Depends(get_current_user)):
+    """Get active parsing queue status and recent tasks scoped to user."""
+    return await queue_manager.get_status(user_id=current_user.id)
 
 
 @app.get("/api/vacancies", response_model=List[VacancyResponse])
@@ -157,9 +282,10 @@ def list_vacancies(
     workplace_type: Optional[str] = None,
     is_closed: Optional[bool] = None,
     search: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Vacancy)
+    query = db.query(Vacancy).filter(Vacancy.user_id == current_user.id)
 
     if status_filter and status_filter in VALID_STATUSES:
         query = query.filter(Vacancy.status == status_filter)
@@ -203,16 +329,26 @@ def list_vacancies(
 
 
 @app.get("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
-def get_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
-    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+def get_vacancy(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
     return v
 
 
 @app.post("/api/vacancies", response_model=VacancyResponse)
-def create_vacancy(payload: VacancyCreate, db: Session = Depends(get_db)):
-    v = Vacancy(**payload.model_dump())
+def create_vacancy(
+    payload: VacancyCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    data = payload.model_dump()
+    data["user_id"] = current_user.id
+    v = Vacancy(**data)
     db.add(v)
     db.commit()
     db.refresh(v)
@@ -220,8 +356,13 @@ def create_vacancy(payload: VacancyCreate, db: Session = Depends(get_db)):
 
 
 @app.patch("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
-def update_vacancy(vacancy_id: int, payload: VacancyUpdate, db: Session = Depends(get_db)):
-    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+def update_vacancy(
+    vacancy_id: int,
+    payload: VacancyUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
@@ -241,8 +382,12 @@ def update_vacancy(vacancy_id: int, payload: VacancyUpdate, db: Session = Depend
 
 
 @app.delete("/api/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
-    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+def delete_vacancy(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
     db.delete(v)
@@ -254,6 +399,7 @@ def delete_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
 async def batch_import_vacancies(
     payload: BatchImportRequest,
     wait: bool = Query(False, description="If True, wait synchronously for all URLs to finish"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
@@ -270,7 +416,9 @@ async def batch_import_vacancies(
 
     if not wait:
         # Default: Asynchronous queue processing
-        batch_id, tasks = await queue_manager.enqueue(unique_urls, payload.default_tags)
+        batch_id, tasks = await queue_manager.enqueue(
+            unique_urls, payload.default_tags, user_id=current_user.id
+        )
         return AsyncBatchImportResponse(
             status="queued",
             queued=len(tasks),
@@ -288,21 +436,24 @@ async def batch_import_vacancies(
         try:
             job_id = extract_job_id(url)
             
-            # Check if vacancy with same job_id or url already exists
+            # Check if vacancy with same job_id or url already exists for current_user
             existing = None
             if job_id:
-                existing = db.query(Vacancy).filter(Vacancy.job_id == job_id).first()
+                existing = db.query(Vacancy).filter(
+                    Vacancy.job_id == job_id,
+                    Vacancy.user_id == current_user.id,
+                ).first()
             if not existing:
-                existing = db.query(Vacancy).filter(Vacancy.url == url).first()
+                existing = db.query(Vacancy).filter(
+                    Vacancy.url == url,
+                    Vacancy.user_id == current_user.id,
+                ).first()
 
             # Scrape vacancy
             scraped = await scrape_linkedin_job(url)
             
-            setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
-            llm_provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
-
-            setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
-            language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
+            llm_provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id).lower()
+            language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
 
             # Run LLM summarization
             llm_res = await analyze_vacancy_with_llm(
@@ -313,6 +464,7 @@ async def batch_import_vacancies(
                 provider=llm_provider,
                 language=language,
                 db=db,
+                user_id=current_user.id,
             )
 
             # Combine tags
@@ -370,6 +522,7 @@ async def batch_import_vacancies(
                 w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
 
                 new_v = Vacancy(
+                    user_id=current_user.id,
                     job_id=scraped.get("job_id"),
                     url=url,
                     title=scraped["title"],
@@ -428,20 +581,19 @@ async def resummarize_vacancy(
     vacancy_id: int,
     language: Optional[str] = Query(None),
     provider: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Re-run LLM summarization for an existing vacancy."""
-    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
     if not provider:
-        setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
-        provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
+        provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id).lower()
 
     if not language:
-        setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
-        language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
+        language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
 
     llm_res = await analyze_vacancy_with_llm(
         title=v.title,
@@ -451,6 +603,7 @@ async def resummarize_vacancy(
         provider=provider,
         language=language,
         db=db,
+        user_id=current_user.id,
     )
 
     if llm_res.get("summary"):
@@ -476,16 +629,22 @@ async def resummarize_vacancy(
 
 
 @app.post("/api/vacancies/{vacancy_id}/reparse")
-async def reparse_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
+async def reparse_vacancy(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Add vacancy URL to background processing queue to re-scrape and update DB."""
-    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Вакансия не найдена")
 
     if not v.url:
         raise HTTPException(status_code=400, detail="У вакансии отсутствует ссылка (URL)")
 
-    batch_id, tasks = await queue_manager.enqueue([v.url], default_tags=[], vacancy_id=v.id)
+    batch_id, tasks = await queue_manager.enqueue(
+        [v.url], default_tags=[], vacancy_id=v.id, user_id=current_user.id
+    )
     return {
         "status": "queued",
         "batch_id": batch_id,
@@ -495,8 +654,11 @@ async def reparse_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/tags", response_model=List[str])
-def list_unique_tags(db: Session = Depends(get_db)):
-    vacancies = db.query(Vacancy).all()
+def list_unique_tags(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
     all_tags = set()
     for v in vacancies:
         for t in (v.tags or []):
@@ -506,17 +668,29 @@ def list_unique_tags(db: Session = Depends(get_db)):
 
 
 @app.get("/api/countries", response_model=List[str])
-def list_countries(db: Session = Depends(get_db)):
-    """Return distinct countries present in vacancies."""
-    vacancies = db.query(Vacancy.country).filter(Vacancy.country.isnot(None)).distinct().all()
+def list_countries(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Return distinct countries present in current user's vacancies."""
+    vacancies = (
+        db.query(Vacancy.country)
+        .filter(Vacancy.user_id == current_user.id, Vacancy.country.isnot(None))
+        .distinct()
+        .all()
+    )
     countries = {v[0].strip() for v in vacancies if v[0] and v[0].strip()}
     return sorted(list(countries))
 
 
 @app.get("/api/cities", response_model=List[str])
-def list_cities(country: Optional[str] = None, db: Session = Depends(get_db)):
-    """Return distinct cities present in vacancies, optionally filtered by country."""
-    query = db.query(Vacancy.city).filter(Vacancy.city.isnot(None))
+def list_cities(
+    country: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Return distinct cities present in current user's vacancies, optionally filtered by country."""
+    query = db.query(Vacancy.city).filter(Vacancy.user_id == current_user.id, Vacancy.city.isnot(None))
     if country and country.strip():
         query = query.filter(Vacancy.country.ilike(country.strip()))
     vacancies = query.distinct().all()
@@ -525,12 +699,12 @@ def list_cities(country: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @app.get("/api/settings", response_model=SettingsResponse)
-def get_settings(db: Session = Depends(get_db)):
+def get_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     def _val(key: str, env_default: str = ""):
-        setting = db.query(AppSetting).filter(AppSetting.key == key).first()
-        if setting and setting.value is not None:
-            return setting.value
-        return os.getenv(key.upper(), env_default)
+        return get_setting_or_env(db, key, env_default, user_id=current_user.id)
 
     provider = _val("llm_provider", "mistral")
     mistral_key = _val("mistral_api_key", "")
@@ -550,12 +724,19 @@ def get_settings(db: Session = Depends(get_db)):
 
 
 @app.post("/api/settings", response_model=SettingsResponse)
-def update_settings(payload: SettingsUpdateRequest, db: Session = Depends(get_db)):
+def update_settings(
+    payload: SettingsUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     def _set(k: str, v: Optional[str]):
         if v is not None:
-            setting = db.query(AppSetting).filter(AppSetting.key == k).first()
+            setting = db.query(UserSetting).filter(
+                UserSetting.user_id == current_user.id,
+                UserSetting.key == k
+            ).first()
             if not setting:
-                setting = AppSetting(key=k, value=v)
+                setting = UserSetting(user_id=current_user.id, key=k, value=v)
                 db.add(setting)
             else:
                 setting.value = v
@@ -574,7 +755,7 @@ def update_settings(payload: SettingsUpdateRequest, db: Session = Depends(get_db
         _set("locale", payload.locale.strip().lower())
 
     db.commit()
-    return get_settings(db)
+    return get_settings(current_user=current_user, db=db)
 
 
 # Static files mount for built React frontend

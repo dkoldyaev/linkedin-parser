@@ -2,10 +2,30 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    picture: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class AuthConfigResponse(BaseModel):
+    google_configured: bool
+    google_client_id: Optional[str] = None
+    dev_mode: bool = True
+
+class DevLoginRequest(BaseModel):
+    email: Optional[str] = "dev@local.user"
+    name: Optional[str] = "Dev User"
+
 class VacancyBase(BaseModel):
     title: str
     company: str
     url: str
+    user_id: Optional[int] = None
     job_id: Optional[str] = None
     company_url: Optional[str] = None
     company_info: Optional[str] = None
@@ -81,6 +101,7 @@ class TaskInfo(BaseModel):
     stage: Optional[str] = None  # scraping, ai_analysis, completed, failed
     created_at: float
     vacancy_id: Optional[int] = None
+    user_id: Optional[int] = None
     title: Optional[str] = None
     company: Optional[str] = None
     error: Optional[str] = None

@@ -13,7 +13,7 @@ from .database import SessionLocal
 from .models import Vacancy, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import scrape_linkedin_job, extract_job_id
-from .llm import analyze_vacancy_with_llm
+from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
     publish_mercure_event,
     EVENT_VACANCY_CREATED,
@@ -53,6 +53,7 @@ class JobTask:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     vacancy_id: Optional[int] = None
+    user_id: Optional[int] = None
     title: Optional[str] = None
     company: Optional[str] = None
     error: Optional[str] = None
@@ -72,6 +73,7 @@ class JobTask:
             created_at=data.get("created_at", time.time()),
             updated_at=data.get("updated_at", time.time()),
             vacancy_id=data.get("vacancy_id"),
+            user_id=data.get("user_id"),
             title=data.get("title"),
             company=data.get("company"),
             error=data.get("error"),
@@ -85,6 +87,7 @@ class JobTask:
             stage=self.stage,
             created_at=self.created_at,
             vacancy_id=self.vacancy_id,
+            user_id=self.user_id,
             title=self.title,
             company=self.company,
             error=self.error,
@@ -94,6 +97,12 @@ class JobTask:
 class RedisQueueManager:
     def __init__(self, broker_url: Optional[str] = None, scrape_concurrency: int = 1, ai_concurrency: int = 1):
         self.broker_url = broker_url or os.getenv("BROKER_URL", "redis://host.docker.internal:6379/0")
+        if "host.docker.internal" in self.broker_url and not os.path.exists("/.dockerenv"):
+            import socket
+            try:
+                socket.gethostbyname("host.docker.internal")
+            except socket.gaierror:
+                self.broker_url = self.broker_url.replace("host.docker.internal", "localhost")
         self.scrape_concurrency = scrape_concurrency
         self.ai_concurrency = ai_concurrency
         self.redis: Optional[aioredis.Redis] = None
@@ -149,7 +158,13 @@ class RedisQueueManager:
             self.redis = None
         logger.info("RedisQueueManager stopped")
 
-    async def enqueue(self, urls: List[str], default_tags: List[str], vacancy_id: Optional[int] = None) -> Tuple[str, List[JobTask]]:
+    async def enqueue(
+        self,
+        urls: List[str],
+        default_tags: List[str],
+        vacancy_id: Optional[int] = None,
+        user_id: Optional[int] = None,
+    ) -> Tuple[str, List[JobTask]]:
         """Add URLs to Stage 1 (Scraping) queue in Redis. Returns (batch_id, list_of_tasks)."""
         if not self.redis:
             raise RuntimeError("Redis broker is not connected")
@@ -172,6 +187,7 @@ class RedisQueueManager:
                     status="pending",
                     stage="scraping",
                     vacancy_id=vacancy_id,
+                    user_id=user_id,
                 )
                 new_tasks.append(task)
 
@@ -187,7 +203,8 @@ class RedisQueueManager:
 
         total_remaining = await self._calculate_total_remaining()
 
-        # Notify Mercure about newly enqueued items
+        # Notify Mercure about newly enqueued items (user topic and global topic)
+        mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
         asyncio.create_task(
             publish_mercure_event(
                 event_type=EVENT_QUEUE_UPDATED,
@@ -196,12 +213,13 @@ class RedisQueueManager:
                     "batch_id": batch_id,
                     "queued_count": len(new_tasks),
                     "total_remaining": total_remaining,
-                }
+                },
+                topic=mercure_topic,
             )
         )
 
         logger.info(
-            f"Enqueued {len(new_tasks)} URLs in batch {batch_id} into Scrape Queue. "
+            f"Enqueued {len(new_tasks)} URLs in batch {batch_id} for user {user_id} into Scrape Queue. "
             f"Total remaining tasks: {total_remaining}"
         )
         return batch_id, new_tasks
@@ -215,7 +233,7 @@ class RedisQueueManager:
         pr_ai = await self.redis.scard(AI_PROCESSING_SET)
         return p_scrape + p_ai + pr_scrape + pr_ai
 
-    async def get_status(self) -> QueueStatusResponse:
+    async def get_status(self, user_id: Optional[int] = None) -> QueueStatusResponse:
         """Query Redis for queue status of both stages and recent task info."""
         if not self.redis:
             return QueueStatusResponse(
@@ -235,7 +253,7 @@ class RedisQueueManager:
         completed = int(stats.get("completed", 0))
         failed = int(stats.get("failed", 0))
 
-        recent_ids = await self.redis.lrange(RECENT_LIST, 0, 14)
+        recent_ids = await self.redis.lrange(RECENT_LIST, 0, 19)
         recent_tasks = []
         if recent_ids:
             pipe = self.redis.pipeline()
@@ -247,7 +265,8 @@ class RedisQueueManager:
                 if raw:
                     try:
                         task = JobTask.from_dict(json.loads(raw))
-                        recent_tasks.append(task.to_info())
+                        if user_id is None or task.user_id == user_id:
+                            recent_tasks.append(task.to_info())
                     except Exception as e:
                         logger.warning(f"Error decoding task JSON: {e}")
 
@@ -353,12 +372,15 @@ class RedisQueueManager:
                     if "is_closed" in scraped:
                         existing.is_closed = scraped["is_closed"]
 
+                    if not existing.user_id and task.user_id:
+                        existing.user_id = task.user_id
                     db.commit()
                     db.refresh(existing)
                     saved_vacancy = existing
                     event_type = "vacancy_updated"
                 else:
                     new_v = Vacancy(
+                        user_id=task.user_id,
                         job_id=scraped.get("job_id"),
                         url=task.url,
                         title=scraped["title"],
@@ -395,9 +417,10 @@ class RedisQueueManager:
             total_rem = await self._calculate_total_remaining()
             logger.info(
                 f"[Stage 1 - Scrape] Saved vacancy {saved_vacancy.id}: '{saved_vacancy.title}' "
-                f"({saved_vacancy.company}). Pushing to Stage 2 (AI queue)..."
+                f"({saved_vacancy.company}) for user {task.user_id}. Pushing to Stage 2 (AI queue)..."
             )
 
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=event_type,
                 data={
@@ -407,7 +430,8 @@ class RedisQueueManager:
                     "batch_id": task.batch_id,
                     "url": task.url,
                     "total_remaining": total_rem,
-                }
+                },
+                topic=mercure_topic,
             )
 
             # 4. Enqueue into Stage 2 (AI Queue)
@@ -434,6 +458,7 @@ class RedisQueueManager:
             total_rem = await self._calculate_total_remaining()
             logger.error(f"[Stage 1 - Scrape] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
 
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=EVENT_TASK_FAILED,
                 data={
@@ -443,7 +468,8 @@ class RedisQueueManager:
                     "batch_id": task.batch_id,
                     "url": task.url,
                     "total_remaining": total_rem,
-                }
+                },
+                topic=mercure_topic,
             )
 
     # -------------------------------------------------------------------------
@@ -506,12 +532,9 @@ class RedisQueueManager:
                 vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
-
-                setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
-                provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
-
-                setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
-                language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
+                user_id = task.user_id or (vacancy.user_id if vacancy else None)
+                provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=user_id).lower()
+                language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
 
                 # Call LLM summarization with required provider and language
                 llm_res = await analyze_vacancy_with_llm(
@@ -522,6 +545,7 @@ class RedisQueueManager:
                     provider=provider,
                     language=language,
                     db=db,
+                    user_id=user_id,
                 )
 
                 # Update vacancy in DB
@@ -562,6 +586,7 @@ class RedisQueueManager:
             )
 
             # Publish updated vacancy to Mercure Hub: frontend updates card with AI summary & tech stack!
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
@@ -571,7 +596,8 @@ class RedisQueueManager:
                     "batch_id": task.batch_id,
                     "url": task.url,
                     "total_remaining": total_rem,
-                }
+                },
+                topic=mercure_topic,
             )
 
         except Exception as e:
@@ -586,8 +612,9 @@ class RedisQueueManager:
                 await pipe.execute()
 
             total_rem = await self._calculate_total_remaining()
-            logger.error(f"[Stage 2 - AI] Task {task.task_id} failed during AI analysis: {e}", exc_info=True)
+            logger.error(f"[Stage 2 - AI] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
 
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=EVENT_TASK_FAILED,
                 data={
@@ -597,7 +624,8 @@ class RedisQueueManager:
                     "batch_id": task.batch_id,
                     "url": task.url,
                     "total_remaining": total_rem,
-                }
+                },
+                topic=mercure_topic,
             )
 
 

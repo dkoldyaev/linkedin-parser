@@ -16,12 +16,15 @@ export function I18nProvider({ children }) {
     return 'ru';
   });
 
-  // Sync with /api/settings on initial mount
+  // Sync with /api/settings on initial mount if authenticated
   useEffect(() => {
     fetch('/api/settings')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then(data => {
-        if (data.locale && (data.locale === 'ru' || data.locale === 'en')) {
+        if (data && data.locale && (data.locale === 'ru' || data.locale === 'en')) {
           setLocaleState(data.locale);
           try {
             localStorage.setItem('app_locale', data.locale);

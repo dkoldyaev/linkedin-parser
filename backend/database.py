@@ -91,6 +91,8 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN workplace_type VARCHAR(32)"))
                     if "is_closed" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN is_closed BOOLEAN DEFAULT 0 NOT NULL"))
+                    if "user_id" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN user_id INTEGER"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -99,6 +101,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_period VARCHAR(32)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS workplace_type VARCHAR(32)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT FALSE NOT NULL"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

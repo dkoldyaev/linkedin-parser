@@ -78,6 +78,9 @@ class TestClosedVacancy(unittest.TestCase):
     def test_database_and_api(self):
         ensure_db_schema()
         client = TestClient(app)
+        login_res = client.post("/api/auth/dev-login", json={"email": "closed_test@local.user"})
+        token = login_res.json()["token"]
+        client = TestClient(app, cookies={"access_token": token})
 
         # Create a vacancy with is_closed=False
         res = client.post("/api/vacancies", json={
