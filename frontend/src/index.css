@@ -941,6 +941,7 @@ body {
 .mercure-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 4px 10px;
   border-radius: 9999px;
@@ -951,6 +952,12 @@ body {
   backdrop-filter: blur(8px);
   color: var(--text-secondary);
   transition: all var(--transition-fast);
+  width: 118px;
+  min-width: 118px;
+  max-width: 118px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .mercure-pill.online {
