@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -15,9 +15,16 @@ export default function App() {
   const [allCountries, setAllCountries] = useState([]);
   const [allCities, setAllCities] = useState([]);
   const [search, setSearch] = useState('');
+  const onChangeSearch = (event) => {
+    setSearch(event.target.value);
+  };
+  const resetSearch = () => {
+    setSearch('');
+  };
   const [selectedTag, setSelectedTag] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
+  const [selectedWorkplaceType, setSelectedWorkplaceType] = useState('');
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
@@ -44,6 +51,7 @@ export default function App() {
       if (selectedTag) params.append('tag', selectedTag);
       if (selectedCountry) params.append('country', selectedCountry);
       if (selectedCity) params.append('city', selectedCity);
+      if (selectedWorkplaceType) params.append('workplace_type', selectedWorkplaceType);
       if (params.toString()) url += `?${params.toString()}`;
 
       const res = await fetch(url);
@@ -54,7 +62,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [search, selectedTag, selectedCountry, selectedCity]);
+  }, [search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -103,6 +111,7 @@ export default function App() {
     setSelectedTag('');
     setSelectedCountry('');
     setSelectedCity('');
+    setSelectedWorkplaceType('');
     setSearch('');
     fetchCities('');
   };
@@ -305,11 +314,11 @@ export default function App() {
               className="search-input"
               placeholder="Поиск по вакансиям, компаниям, стеку..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={onChangeSearch}
             />
             {search && (
               <button
-                onClick={() => setSearch('')}
+                onClick={resetSearch}
                 style={{
                   position: 'absolute',
                   right: '10px',
@@ -361,8 +370,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Filter bar for Country, City & Tags */}
-      {(allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedTag) && (
+      {/* Filter bar for Country, City, Workplace & Tags */}
+      {(allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedTag) && (
         <div className="filter-bar">
           {/* Location: Country Filter */}
           {(allCountries.length > 0 || selectedCountry) && (
@@ -410,8 +419,27 @@ export default function App() {
             </div>
           )}
 
-          {/* Divider if we have both locations and tags */}
-          {((allCountries.length > 0 || allCities.length > 0) && allTags.length > 0) && (
+          {/* Workplace Type Filter */}
+          <div className="filter-group">
+            <div className="filter-select-wrapper">
+              <Laptop size={13} className="filter-select-icon" />
+              <select
+                className={`filter-select ${selectedWorkplaceType ? 'active' : ''}`}
+                value={selectedWorkplaceType}
+                onChange={(e) => setSelectedWorkplaceType(e.target.value)}
+                title="Фильтр по формату работы"
+              >
+                <option value="">Все форматы</option>
+                <option value="remote">Удаленка</option>
+                <option value="hybrid">Гибрид</option>
+                <option value="on-site">On-site</option>
+              </select>
+              <ChevronDown size={11} className="filter-select-chevron" />
+            </div>
+          </div>
+
+          {/* Divider if we have both dropdowns and tags */}
+          {allTags.length > 0 && (
             <div className="filter-divider" />
           )}
 
@@ -441,7 +469,7 @@ export default function App() {
           )}
 
           {/* Reset all filters */}
-          {(selectedCountry || selectedCity || selectedTag || search) && (
+          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedTag || search) && (
             <button
               className="filter-reset-btn"
               onClick={resetAllFilters}

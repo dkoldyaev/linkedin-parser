@@ -24,6 +24,7 @@ class Vacancy(Base):
     city = Column(String(128), nullable=True)
     country = Column(String(128), nullable=True)
     description = Column(Text, nullable=True)
+    workplace_type = Column(String(32), nullable=True)  # "remote", "hybrid", "on-site"
 
     # Salary fields (raw numeric values & period)
     salary_min = Column(Float, nullable=True)

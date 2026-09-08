@@ -5,7 +5,8 @@
   "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
-    "check:python": "./.venv/bin/python -m py_compile backend/llm.py backend/main.py",
+    "check:python": "./.venv/bin/python -m py_compile backend/models.py backend/database.py backend/schemas.py backend/scraper.py backend/llm.py backend/queue_manager.py backend/main.py",
+    "test:workplace": "PYTHONPATH=. ./.venv/bin/python tests/test_workplace.py",
     "install:deps": "./.venv/bin/pip install -r backend/requirements.txt",
     "check:pg": "lsof -i :5432 || pg_isready",
     "check:pg:dbs": "psql -U dkoldaev -h localhost -l || psql -U postgres -h localhost -l || psql -l",
@@ -49,6 +50,10 @@
     "check:queue": "curl -s http://localhost:8000/api/queue/status | python3 -m json.tool",
     "check:api:filters": "curl -s http://localhost:8000/api/countries && echo '' && curl -s http://localhost:8000/api/cities && echo '' && curl -s 'http://localhost:8000/api/vacancies?city=Barcelona' | python3 -c 'import sys, json; vs=json.load(sys.stdin); print(f\"Found {len(vs)} in Barcelona: {[v[\"title\"] for v in vs]}\")'",
     "check:last:vacancy": "curl -s http://localhost:8000/api/vacancies | python3 -c 'import sys, json; data=json.load(sys.stdin); print(json.dumps(data[0], indent=2, ensure_ascii=False) if data else \"No vacancies\")'",
-    "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'"
+    "test:all": "npm run check:python && npm run test:workplace && npm run frontend:build",
+    "git:status": "git status",
+    "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'",
+    "commit:workplace": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/App.jsx frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/utils/workplace.js frontend/src/index.css tests/test_workplace.py package.json && git commit -m 'feat: add workplace type (remote, hybrid, on-site) and filter'",
+    "commit:all": "git add -A && git commit -m 'feat: add workplace type (remote, hybrid, on-site) and filter'"
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote } from 'lucide-react';
+import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote, Laptop, Layers, Building } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
+import { getWorkplaceInfo } from '../utils/workplace';
 
 const COLUMNS = [
   "Еще не написан",
@@ -13,6 +14,7 @@ const COLUMNS = [
 export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
   const currentIndex = COLUMNS.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy);
+  const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());
@@ -65,8 +67,16 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
       <h3 className="card-title">{vacancy.title}</h3>
 
-      {(vacancy.location || salaryInfo.hasSalary) && (
+      {(vacancy.location || salaryInfo.hasSalary || workplaceInfo) && (
         <div className="card-meta">
+          {workplaceInfo && (
+            <div className={`card-workplace-badge ${workplaceInfo.className}`} title={`Формат работы: ${workplaceInfo.fullLabel || workplaceInfo.label}`}>
+              {workplaceInfo.key === 'remote' && <Laptop size={11} />}
+              {workplaceInfo.key === 'hybrid' && <Layers size={11} />}
+              {workplaceInfo.key === 'on-site' && <Building size={11} />}
+              <span>{workplaceInfo.label}</span>
+            </div>
+          )}
           {vacancy.location && (
             <div className="card-location">
               <MapPin size={12} />

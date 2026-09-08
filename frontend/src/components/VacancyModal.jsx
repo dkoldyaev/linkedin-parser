@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
-  Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote 
+  Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
+  Laptop, Layers, Building 
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
+import { getWorkplaceInfo } from '../utils/workplace';
 
 const COLUMNS = [
   "Еще не написан",
@@ -25,6 +27,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [salaryMax, setSalaryMax] = useState(vacancy?.salary_max ?? '');
   const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
+  const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
   const [savingSalary, setSavingSalary] = useState(false);
   const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
 
@@ -42,6 +45,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSalaryMax(vacancy.salary_max ?? '');
       setSalaryCurrency(vacancy.salary_currency || '$');
       setSalaryPeriod(vacancy.salary_period || 'month');
+      setWorkplaceType(vacancy.workplace_type || '');
     }
   }, [vacancy]);
 
@@ -58,6 +62,21 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       onUpdate({ ...vacancy, status: newStatus });
     } catch (err) {
       console.error('Failed to update status', err);
+    }
+  };
+
+  const handleWorkplaceTypeChange = async (newType) => {
+    const val = newType || null;
+    setWorkplaceType(val || "");
+    try {
+      await fetch(`/api/vacancies/${vacancy.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workplace_type: val })
+      });
+      onUpdate({ ...vacancy, workplace_type: val });
+    } catch (err) {
+      console.error('Failed to update workplace type', err);
     }
   };
 
@@ -215,6 +234,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     salary_period: salaryPeriod || vacancy.salary_period,
   });
 
+  const modalWorkplaceInfo = getWorkplaceInfo(workplaceType || vacancy.workplace_type);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
@@ -235,6 +256,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 <span className="card-location" style={{ marginLeft: '6px' }}>
                   <MapPin size={12} />
                   {vacancy.location}
+                </span>
+              )}
+              {modalWorkplaceInfo && (
+                <span className={`card-workplace-badge ${modalWorkplaceInfo.className}`} style={{ marginLeft: '6px' }}>
+                  {modalWorkplaceInfo.key === 'remote' && <Laptop size={11} />}
+                  {modalWorkplaceInfo.key === 'hybrid' && <Layers size={11} />}
+                  {modalWorkplaceInfo.key === 'on-site' && <Building size={11} />}
+                  <span>{modalWorkplaceInfo.label}</span>
                 </span>
               )}
               {currentSalaryInfo.hasSalary && (
@@ -268,32 +297,51 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
         {/* Body */}
         <div className="modal-body">
-          {/* Status Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)' }}>
-            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              Статус на доске:
-            </span>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {COLUMNS.map(col => (
-                <button
-                  key={col}
-                  onClick={() => handleStatusChange(col)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: status === col ? 'var(--primary)' : 'var(--border-subtle)',
-                    background: status === col ? 'var(--primary-light)' : 'transparent',
-                    color: status === col ? '#a5b4fc' : 'var(--text-muted)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {col}
-                </button>
-              ))}
+          {/* Status & Workplace Format Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Статус на доске:
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {COLUMNS.map(col => (
+                  <button
+                    key={col}
+                    onClick={() => handleStatusChange(col)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: status === col ? 'var(--primary)' : 'var(--border-subtle)',
+                      background: status === col ? 'var(--primary-light)' : 'transparent',
+                      color: status === col ? '#a5b4fc' : 'var(--text-muted)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {col}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Формат:
+              </span>
+              <select
+                className="form-input"
+                style={{ fontSize: '0.75rem', padding: '5px 10px', cursor: 'pointer', minWidth: '135px' }}
+                value={workplaceType}
+                onChange={e => handleWorkplaceTypeChange(e.target.value)}
+              >
+                <option value="">Не указан</option>
+                <option value="remote">Удаленка (Remote)</option>
+                <option value="hybrid">Гибрид (Hybrid)</option>
+                <option value="on-site">On-site (Офис)</option>
+              </select>
             </div>
           </div>
 

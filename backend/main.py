@@ -66,6 +66,48 @@ def backfill_missing_locations():
 backfill_missing_locations()
 
 
+def backfill_missing_workplace_types():
+    """Backfill workplace_type for vacancies where workplace_type is NULL."""
+    import re
+    from .database import SessionLocal
+    from .scraper import normalize_workplace_type
+    db = SessionLocal()
+    try:
+        vacancies = db.query(Vacancy).filter(Vacancy.workplace_type.is_(None)).all()
+        updated = 0
+        for v in vacancies:
+            w_type = None
+            if v.location:
+                w_type = normalize_workplace_type(v.location)
+            if not w_type and v.title:
+                w_type = normalize_workplace_type(v.title)
+            if not w_type and v.description:
+                m = re.search(r"Workplace(?:\s+type)?:\s*([A-Za-z\-]+)", v.description, re.IGNORECASE)
+                if m:
+                    w_type = normalize_workplace_type(m.group(1))
+                if not w_type:
+                    if re.search(r"\b(?:remote|удален(?:но|ка))\b", v.description[:1000], re.IGNORECASE):
+                        w_type = "remote"
+                    elif re.search(r"\b(?:hybrid|гибрид)\b", v.description[:1000], re.IGNORECASE):
+                        w_type = "hybrid"
+                    elif re.search(r"\b(?:on-site|onsite|в офисе)\b", v.description[:1000], re.IGNORECASE):
+                        w_type = "on-site"
+
+            if w_type:
+                v.workplace_type = w_type
+                updated += 1
+
+        if updated > 0:
+            db.commit()
+            logger.info(f"Backfilled workplace_type for {updated} vacancies")
+    except Exception as e:
+        logger.warning(f"Could not backfill workplace_types: {e}")
+    finally:
+        db.close()
+
+backfill_missing_workplace_types()
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -112,6 +154,7 @@ def list_vacancies(
     tag: Optional[str] = None,
     country: Optional[str] = None,
     city: Optional[str] = None,
+    workplace_type: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -125,6 +168,9 @@ def list_vacancies(
 
     if city and city.strip():
         query = query.filter(Vacancy.city.ilike(city.strip()))
+
+    if workplace_type and workplace_type.strip():
+        query = query.filter(Vacancy.workplace_type.ilike(workplace_type.strip()))
 
     if search:
         search_fmt = f"%{search}%"
@@ -277,10 +323,12 @@ async def batch_import_vacancies(
                 s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
                 s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
                 s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
+                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
                 if s_min is not None: existing.salary_min = s_min
                 if s_max is not None: existing.salary_max = s_max
                 if s_curr is not None: existing.salary_currency = s_curr
                 if s_per is not None: existing.salary_period = s_per
+                if w_type: existing.workplace_type = w_type
 
                 # Merge tags without duplicating
                 current_tags = set(existing.tags or [])
@@ -306,6 +354,7 @@ async def batch_import_vacancies(
                 s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
                 s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
                 s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
+                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
 
                 new_v = Vacancy(
                     job_id=scraped.get("job_id"),
@@ -318,6 +367,7 @@ async def batch_import_vacancies(
                     city=scraped.get("city"),
                     country=scraped["country"],
                     description=scraped["description"],
+                    workplace_type=w_type,
                     salary_min=s_min,
                     salary_max=s_max,
                     salary_currency=s_curr,
@@ -388,6 +438,8 @@ async def resummarize_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
         v.salary_currency = llm_res["salary_currency"]
     if llm_res.get("salary_period") is not None:
         v.salary_period = llm_res["salary_period"]
+    if llm_res.get("workplace_type"):
+        v.workplace_type = llm_res["workplace_type"]
 
     db.commit()
     db.refresh(v)

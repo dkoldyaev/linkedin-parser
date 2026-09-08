@@ -146,6 +146,64 @@ def extract_salary_from_soup(soup: BeautifulSoup) -> Dict[str, Any]:
     return result
 
 
+def normalize_workplace_type(val: Optional[str]) -> Optional[str]:
+    """Normalize workplace type string to 'remote', 'hybrid', or 'on-site'."""
+    if not val:
+        return None
+    val_lower = str(val).strip().lower()
+    if any(k in val_lower for k in ["remote", "удален", "telecommute", "wfh"]):
+        return "remote"
+    if any(k in val_lower for k in ["hybrid", "гибрид"]):
+        return "hybrid"
+    if any(k in val_lower for k in ["on-site", "onsite", "on site", "в офисе"]):
+        return "on-site"
+    return None
+
+
+def extract_workplace_type_from_soup(soup: BeautifulSoup, raw_location: str, criteria: Dict[str, str]) -> Optional[str]:
+    """Extract workplace type ('remote', 'hybrid', 'on-site') from LinkedIn markup, criteria or location."""
+    # 1. Criteria list (most reliable when present)
+    for k, v in criteria.items():
+        if "workplace" in k.lower():
+            res = normalize_workplace_type(v)
+            if res:
+                return res
+
+    # 2. JSON-LD schema
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            raw_text = script.string or script.get_text()
+            if not raw_text:
+                continue
+            data = json.loads(raw_text)
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                if isinstance(item, dict) and item.get("@type") == "JobPosting":
+                    if item.get("jobLocationType") == "TELECOMMUTE":
+                        return "remote"
+                    wp = item.get("workplaceType")
+                    res = normalize_workplace_type(wp)
+                    if res:
+                        return res
+        except Exception:
+            pass
+
+    # 3. Location string (often has '(Hybrid)', '(Remote)', '(On-site)')
+    if raw_location:
+        res = normalize_workplace_type(raw_location)
+        if res:
+            return res
+
+    # 4. Topcard bullet / flavor elements
+    for el in soup.find_all(class_=lambda c: c and ("topcard__flavor" in c or "workplace-type" in c or "job-criteria" in c)):
+        text = el.get_text(strip=True)
+        res = normalize_workplace_type(text)
+        if res:
+            return res
+
+    return None
+
+
 async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     """
     Fetch and parse LinkedIn job vacancy page.
@@ -247,6 +305,9 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     if salary_data.get("salary_raw_text"):
         description += f"\n\n--- Compensation ---\n{salary_data['salary_raw_text']}"
 
+    # Extract workplace type (remote, hybrid, on-site)
+    workplace_type = extract_workplace_type_from_soup(soup, location, criteria)
+
     return {
         "job_id": job_id,
         "url": url,
@@ -258,6 +319,7 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "city": city,
         "country": country,
         "description": description,
+        "workplace_type": workplace_type,
         "salary_min": salary_data.get("salary_min"),
         "salary_max": salary_data.get("salary_max"),
         "salary_currency": salary_data.get("salary_currency"),

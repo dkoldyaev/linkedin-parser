@@ -87,12 +87,15 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_currency VARCHAR(16)"))
                     if "salary_period" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_period VARCHAR(32)"))
+                    if "workplace_type" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN workplace_type VARCHAR(32)"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_max DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_currency VARCHAR(16)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_period VARCHAR(32)"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS workplace_type VARCHAR(32)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

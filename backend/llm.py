@@ -154,7 +154,12 @@ async def analyze_vacancy_with_llm(
 - Верни "salary_min" (число или null) и "salary_max" (число или null). Если указана фиксированная сумма без вилки, укажи ее в salary_min и salary_max одинаковой или только в salary_min. Числа должны быть абсолютными числами (например, 120000, а не "120k").
 - "salary_currency": символ или код валюты ("$", "€", "₽", "£", "USD", "EUR" и т.д., или null если не указано).
 - "salary_period": строго одно из значений: "year", "month", "hour", "day", "week" (или null если зарплата не указана). Если указано "a year", "/yr", "per year", "annual" -> "year". Если "a month", "/mo", "monthly" -> "month". Если "per hour", "/hr", "hourly" -> "hour".
-- Если зарплата не упомянута вообще, укажи null для всех полей зарплаты.
+Правила для формата работы (workplace_type):
+- Извлеки формат работы (строго одно из значений: "remote", "hybrid", "on-site", или null если невозможно определить):
+  - "remote": удаленная работа (Remote, Удаленно, WFH, Work from home, 100% remote).
+  - "hybrid": гибридный формат (Hybrid, Гибрид, гибкий график офис/дом, X дней в неделю в офисе).
+  - "on-site": работа строго в офисе / на месте (On-site, Onsite, В офисе, На территории работодателя).
+  - null: если формат работы не упомянут ни в описании, ни в локации.
 
 Название: {title}
 Компания: {company}
@@ -169,6 +174,7 @@ async def analyze_vacancy_with_llm(
   "summary": "Кратко и по делу: суть задач без вводных слов и штампов (например: 'Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему').",
   "tech_stack": ["название технологии 1", "технология 2"],
   "company_info": "1-2 предложения о том, чем занимается компания/какой продукт делает (из текста вакансии или контекста).",
+  "workplace_type": "remote",
   "salary_min": 120000,
   "salary_max": 150000,
   "salary_currency": "$",
@@ -203,6 +209,7 @@ async def analyze_vacancy_with_llm(
             "summary": f"Вакансия {title} в {company} ({location}). Ключевой стек: {', '.join(fallback_stack[:5]) if fallback_stack else 'не указан'}.",
             "tech_stack": fallback_stack,
             "company_info": f"Компания {company} ({location})" if company else "",
+            "workplace_type": None,
             "salary_min": None,
             "salary_max": None,
             "salary_currency": None,
@@ -217,6 +224,16 @@ async def analyze_vacancy_with_llm(
             cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
             cleaned = re.sub(r"\s*```$", "", cleaned)
         data = json.loads(cleaned)
+
+        # Normalize workplace_type
+        raw_workplace = str(data.get("workplace_type") or "").strip().lower()
+        clean_workplace = None
+        if any(k in raw_workplace for k in ["remote", "удален", "telecommute", "wfh"]):
+            clean_workplace = "remote"
+        elif any(k in raw_workplace for k in ["hybrid", "гибрид"]):
+            clean_workplace = "hybrid"
+        elif any(k in raw_workplace for k in ["on-site", "onsite", "on site", "офис"]):
+            clean_workplace = "on-site"
 
         # Normalize salary fields
         def _to_float(v):
@@ -253,6 +270,7 @@ async def analyze_vacancy_with_llm(
             "summary": data.get("summary", "").strip(),
             "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
             "company_info": data.get("company_info", "").strip(),
+            "workplace_type": clean_workplace,
             "salary_min": clean_min,
             "salary_max": clean_max,
             "salary_currency": clean_curr,
@@ -265,6 +283,7 @@ async def analyze_vacancy_with_llm(
             "summary": raw_response[:300] if raw_response else "",
             "tech_stack": extract_fallback_tech_stack(description),
             "company_info": "",
+            "workplace_type": None,
             "salary_min": None,
             "salary_max": None,
             "salary_currency": None,

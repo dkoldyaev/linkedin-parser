@@ -328,6 +328,8 @@ class RedisQueueManager:
                         existing.salary_currency = scraped["salary_currency"]
                     if scraped.get("salary_period") is not None:
                         existing.salary_period = scraped["salary_period"]
+                    if scraped.get("workplace_type"):
+                        existing.workplace_type = scraped["workplace_type"]
 
                     db.commit()
                     db.refresh(existing)
@@ -345,6 +347,7 @@ class RedisQueueManager:
                         city=scraped.get("city"),
                         country=scraped["country"],
                         description=scraped["description"],
+                        workplace_type=scraped.get("workplace_type"),
                         salary_min=scraped.get("salary_min"),
                         salary_max=scraped.get("salary_max"),
                         salary_currency=scraped.get("salary_currency"),
@@ -500,6 +503,8 @@ class RedisQueueManager:
                     vacancy.salary_currency = llm_res["salary_currency"]
                 if llm_res.get("salary_period") is not None:
                     vacancy.salary_period = llm_res["salary_period"]
+                if llm_res.get("workplace_type") and not vacancy.workplace_type:
+                    vacancy.workplace_type = llm_res["workplace_type"]
 
                 db.commit()
                 db.refresh(vacancy)
