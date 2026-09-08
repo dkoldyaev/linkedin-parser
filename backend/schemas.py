@@ -61,7 +61,8 @@ class BatchImportResponse(BaseModel):
 class TaskInfo(BaseModel):
     task_id: str
     url: str
-    status: str
+    status: str  # pending, processing, completed, failed
+    stage: Optional[str] = None  # scraping, ai_analysis, completed, failed
     created_at: float
     vacancy_id: Optional[int] = None
     title: Optional[str] = None
@@ -74,6 +75,10 @@ class QueueStatusResponse(BaseModel):
     total_remaining: int
     completed: int
     failed: int
+    pending_scrape: int = 0
+    pending_ai: int = 0
+    processing_scrape: int = 0
+    processing_ai: int = 0
     recent_tasks: List[TaskInfo] = Field(default_factory=list)
 
 class AsyncBatchImportResponse(BaseModel):

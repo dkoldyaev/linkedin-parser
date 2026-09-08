@@ -10,6 +10,7 @@ services:
     environment:
       - DATA_DIR=/app/data
       - DATABASE_URL=${DATABASE_URL:-}
+      - BROKER_URL=${BROKER_URL}
       - STATIC_DIR=/app/static
       - LLM_PROVIDER=${LLM_PROVIDER:-mistral}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}

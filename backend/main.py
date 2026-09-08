@@ -37,7 +37,7 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    queue_manager.start()
+    await queue_manager.start()
     yield
     await queue_manager.stop()
 
@@ -69,9 +69,9 @@ def get_config():
 
 
 @app.get("/api/queue/status", response_model=QueueStatusResponse)
-def get_queue_status():
+async def get_queue_status():
     """Get active parsing queue status and recent tasks."""
-    return queue_manager.get_status()
+    return await queue_manager.get_status()
 
 
 @app.get("/api/vacancies", response_model=List[VacancyResponse])
@@ -178,7 +178,7 @@ async def batch_import_vacancies(
 
     if not wait:
         # Default: Asynchronous queue processing
-        batch_id, tasks = queue_manager.enqueue(unique_urls, payload.default_tags)
+        batch_id, tasks = await queue_manager.enqueue(unique_urls, payload.default_tags)
         return AsyncBatchImportResponse(
             status="queued",
             queued=len(tasks),
