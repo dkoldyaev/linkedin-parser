@@ -10,6 +10,27 @@ logger = logging.getLogger("linkedin_tracker.mercure")
 DEFAULT_MERCURE_SECRET = "!ChangeThisMercureHubJWTSecretKey!"
 DEFAULT_TOPIC = "vacancies"
 
+# Mercure Event Types
+EVENT_VACANCY_CREATED = "vacancy_created"
+EVENT_VACANCY_UPDATED = "vacancy_updated"
+EVENT_TASK_FAILED = "task_failed"
+EVENT_QUEUE_UPDATED = "queue_updated"
+EVENT_QUEUE_IDLE = "queue_idle"
+
+# Mercure Message Codes
+MSG_VACANCY_CREATED = "VACANCY_CREATED"
+MSG_VACANCY_UPDATED = "VACANCY_UPDATED"
+MSG_TASK_FAILED = "TASK_FAILED"
+MSG_QUEUE_UPDATED = "QUEUE_UPDATED"
+MSG_QUEUE_IDLE = "QUEUE_IDLE"
+
+# Mercure Error Codes (strictly constant codes, no human text)
+ERR_SCRAPE_FAILED = "ERR_SCRAPE_FAILED"
+ERR_AI_ANALYSIS_FAILED = "ERR_AI_ANALYSIS_FAILED"
+ERR_VACANCY_NOT_FOUND = "ERR_VACANCY_NOT_FOUND"
+ERR_NETWORK = "ERR_NETWORK"
+ERR_UNKNOWN = "ERR_UNKNOWN"
+
 
 def get_mercure_secret() -> str:
     return os.getenv("MERCURE_JWT_SECRET", DEFAULT_MERCURE_SECRET)

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import KanbanCard from './KanbanCard';
+import { useTranslation } from '../i18n/I18nContext';
 
 const COLUMNS = [
-  { id: "Еще не написан", name: "Еще не написан", color: "#6366f1" },
-  { id: "Написал", name: "Написал", color: "#0284c7" },
-  { id: "Собеседование", name: "Собеседование", color: "#d97706" },
-  { id: "Тестовое", name: "Тестовое", color: "#9333ea" },
-  { id: "Оффер", name: "Оффер", color: "#059669" },
+  { id: "Еще не написан", color: "#6366f1" },
+  { id: "Написал", color: "#0284c7" },
+  { id: "Собеседование", color: "#d97706" },
+  { id: "Тестовое", color: "#9333ea" },
+  { id: "Оффер", color: "#059669" },
 ];
 
 export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) {
+  const { t } = useTranslation();
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
   const handleDragOver = (e, columnId) => {
@@ -36,6 +38,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
     <div className="kanban-board">
       {COLUMNS.map(col => {
         const columnVacancies = vacancies.filter(v => v.status === col.id);
+        const columnName = t(`kanban.columns.${col.id}`);
 
         return (
           <div
@@ -48,7 +51,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
             <div className="column-header">
               <div className="column-title-group">
                 <span className="column-dot" style={{ background: col.color }} />
-                <span className="column-name">{col.name}</span>
+                <span className="column-name">{columnName}</span>
               </div>
               <span className="column-badge">{columnVacancies.length}</span>
             </div>
@@ -65,7 +68,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
 
               {columnVacancies.length === 0 && (
                 <div className="empty-column">
-                  Перетащите сюда или создайте вакансию
+                  {t('kanban.empty_column')}
                 </div>
               )}
             </div>

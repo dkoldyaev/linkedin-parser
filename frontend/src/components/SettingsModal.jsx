@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, Key, Check, Bot, Cpu } from 'lucide-react';
+import { X, Settings, Check, Bot, Globe } from 'lucide-react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export default function SettingsModal({ isOpen, onClose }) {
+  const { t, locale, setLocale } = useTranslation();
+  const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [provider, setProvider] = useState('mistral');
   const [mistralKey, setMistralKey] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
@@ -21,12 +24,16 @@ export default function SettingsModal({ isOpen, onClose }) {
           if (data.llm_provider) setProvider(data.llm_provider);
           if (data.mistral_model) setMistralModel(data.mistral_model);
           if (data.gemini_model) setGeminiModel(data.gemini_model);
+          if (data.locale) {
+            setSelectedLocale(data.locale);
+            setLocale(data.locale);
+          }
           setMistralKeySet(data.mistral_api_key_set);
           setGeminiKeySet(data.gemini_api_key_set);
         })
         .catch(err => console.error('Failed to load settings', err));
     }
-  }, [isOpen]);
+  }, [isOpen, setLocale]);
 
   if (!isOpen) return null;
 
@@ -38,6 +45,7 @@ export default function SettingsModal({ isOpen, onClose }) {
         llm_provider: provider,
         mistral_model: mistralModel,
         gemini_model: geminiModel,
+        locale: selectedLocale,
       };
       if (mistralKey) payload.mistral_api_key = mistralKey;
       if (geminiKey) payload.gemini_api_key = geminiKey;
@@ -54,6 +62,7 @@ export default function SettingsModal({ isOpen, onClose }) {
         setGeminiKeySet(data.gemini_api_key_set);
         setMistralKey('');
         setGeminiKey('');
+        setLocale(selectedLocale);
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);
       }
@@ -70,7 +79,7 @@ export default function SettingsModal({ isOpen, onClose }) {
         <div className="modal-header">
           <div className="modal-title">
             <Settings size={20} color="#6366f1" />
-            <span>Настройки AI (Mistral / Gemini)</span>
+            <span>{t('settingsModal.title')}</span>
           </div>
           <button className="btn-icon" onClick={onClose}>
             <X size={18} />
@@ -79,11 +88,62 @@ export default function SettingsModal({ isOpen, onClose }) {
 
         <form onSubmit={handleSave}>
           <div className="modal-body">
+            {/* Locale / Language Selector */}
+            <div className="form-group">
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Globe size={15} />
+                <span>{t('settingsModal.language_section_title')}</span>
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                <div
+                  onClick={() => setSelectedLocale('ru')}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid',
+                    borderColor: selectedLocale === 'ru' ? 'var(--primary)' : 'var(--border-subtle)',
+                    background: selectedLocale === 'ru' ? 'var(--primary-light)' : 'var(--bg-card)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <strong style={{ color: selectedLocale === 'ru' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    🇷🇺 {t('settingsModal.language_ru')}
+                  </strong>
+                  {selectedLocale === 'ru' && <Check size={16} color="#6366f1" />}
+                </div>
+
+                <div
+                  onClick={() => setSelectedLocale('en')}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid',
+                    borderColor: selectedLocale === 'en' ? 'var(--primary)' : 'var(--border-subtle)',
+                    background: selectedLocale === 'en' ? 'var(--primary-light)' : 'var(--bg-card)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <strong style={{ color: selectedLocale === 'en' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
+                    🇬🇧 {t('settingsModal.language_en')}
+                  </strong>
+                  {selectedLocale === 'en' && <Check size={16} color="#6366f1" />}
+                </div>
+              </div>
+            </div>
+
             {/* Active Provider Selector */}
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Bot size={15} />
-                <span>Активная нейросеть для анализа вакансий:</span>
+                <span>{t('settingsModal.active_provider_label')}</span>
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
                 <div
@@ -102,11 +162,11 @@ export default function SettingsModal({ isOpen, onClose }) {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <strong style={{ color: provider === 'mistral' ? '#a5b4fc' : 'var(--text-primary)' }}>Mistral AI</strong>
+                    <strong style={{ color: provider === 'mistral' ? '#a5b4fc' : 'var(--text-primary)' }}>{t('settingsModal.mistral_title')}</strong>
                     {provider === 'mistral' && <Check size={16} color="#6366f1" />}
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Рекомендуется: mistral-small-latest
+                    {t('settingsModal.mistral_recommended')}
                   </span>
                 </div>
 
@@ -126,11 +186,11 @@ export default function SettingsModal({ isOpen, onClose }) {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <strong style={{ color: provider === 'gemini' ? '#a5b4fc' : 'var(--text-primary)' }}>Google Gemini</strong>
+                    <strong style={{ color: provider === 'gemini' ? '#a5b4fc' : 'var(--text-primary)' }}>{t('settingsModal.gemini_title')}</strong>
                     {provider === 'gemini' && <Check size={16} color="#6366f1" />}
                   </div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Рекомендуется: gemini-2.5-flash
+                    {t('settingsModal.gemini_recommended')}
                   </span>
                 </div>
               </div>
@@ -147,9 +207,9 @@ export default function SettingsModal({ isOpen, onClose }) {
               gap: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <strong style={{ fontSize: '0.875rem' }}>Mistral AI конфигурация</strong>
+                <strong style={{ fontSize: '0.875rem' }}>{t('settingsModal.mistral_config_title')}</strong>
                 <span style={{ fontSize: '0.75rem', color: mistralKeySet ? '#10b981' : '#f59e0b' }}>
-                  {mistralKeySet ? '● Ключ задан' : '○ Ключ не задан'}
+                  {mistralKeySet ? t('settingsModal.key_set') : t('settingsModal.key_not_set')}
                 </span>
               </div>
 
@@ -158,14 +218,14 @@ export default function SettingsModal({ isOpen, onClose }) {
                 <input
                   type="password"
                   className="form-input"
-                  placeholder={mistralKeySet ? "•••••••••••••••• (ключ сохранен, введите для замены)" : "Введите Mistral API ключ"}
+                  placeholder={mistralKeySet ? t('settingsModal.mistral_key_placeholder_set') : t('settingsModal.mistral_key_placeholder_empty')}
                   value={mistralKey}
                   onChange={e => setMistralKey(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Модель Mistral</label>
+                <label className="form-label">{t('settingsModal.mistral_model_label')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -187,9 +247,9 @@ export default function SettingsModal({ isOpen, onClose }) {
               gap: '12px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <strong style={{ fontSize: '0.875rem' }}>Google Gemini конфигурация</strong>
+                <strong style={{ fontSize: '0.875rem' }}>{t('settingsModal.gemini_config_title')}</strong>
                 <span style={{ fontSize: '0.75rem', color: geminiKeySet ? '#10b981' : '#f59e0b' }}>
-                  {geminiKeySet ? '● Ключ задан' : '○ Ключ не задан'}
+                  {geminiKeySet ? t('settingsModal.key_set') : t('settingsModal.key_not_set')}
                 </span>
               </div>
 
@@ -198,14 +258,14 @@ export default function SettingsModal({ isOpen, onClose }) {
                 <input
                   type="password"
                   className="form-input"
-                  placeholder={geminiKeySet ? "•••••••••••••••• (ключ сохранен, введите для замены)" : "Введите Gemini API ключ"}
+                  placeholder={geminiKeySet ? t('settingsModal.gemini_key_placeholder_set') : t('settingsModal.gemini_key_placeholder_empty')}
                   value={geminiKey}
                   onChange={e => setGeminiKey(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Модель Gemini</label>
+                <label className="form-label">{t('settingsModal.gemini_model_label')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -217,23 +277,21 @@ export default function SettingsModal({ isOpen, onClose }) {
             </div>
 
             <div className="info-banner">
-              <span>
-                🔒 Ключи можно сохранить прямо здесь (они хранятся локально в SQLite базе) либо передать через <code>.env</code> переменные (<code>MISTRAL_API_KEY</code> / <code>GEMINI_API_KEY</code>).
-              </span>
+              <span>{t('settingsModal.security_note')}</span>
             </div>
           </div>
 
           <div className="modal-footer">
             {savedSuccess && (
               <span style={{ color: '#10b981', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Check size={16} /> Настройки сохранены!
+                <Check size={16} /> {t('settingsModal.settings_saved')}
               </span>
             )}
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Отмена
+              {t('settingsModal.cancel_btn')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              Сохранить настройки
+              {t('settingsModal.save_btn')}
             </button>
           </div>
         </form>

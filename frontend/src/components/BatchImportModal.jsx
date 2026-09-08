@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
+  const { t } = useTranslation();
   const [urlsText, setUrlsText] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       .filter(u => u.length > 0);
 
     if (urls.length === 0) {
-      setError('Пожалуйста, введите хотя бы одну ссылку на вакансию.');
+      setError(t('batchModal.error_empty_urls'));
       return;
     }
 
@@ -42,7 +44,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       });
 
       if (!res.ok) {
-        throw new Error(`Ошибка сервера: ${res.status}`);
+        throw new Error(t('batchModal.error_server', { status: res.status }));
       }
 
       const data = await res.json();
@@ -53,7 +55,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         onImportComplete();
       }
     } catch (err) {
-      setError(err.message || 'Произошла ошибка при отправке в очередь');
+      setError(err.message || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -67,13 +69,15 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     onClose();
   };
 
+  const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
+
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <UploadCloud size={20} color="#6366f1" />
-            <span>Пакетный импорт вакансий LinkedIn</span>
+            <span>{t('batchModal.title')}</span>
           </div>
           <button className="btn-icon" onClick={handleClose}>
             <X size={18} />
@@ -93,10 +97,10 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               <div className="info-banner" style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' }}>
                 <CheckCircle size={18} />
                 <div>
-                  <strong>{result.status === 'queued' ? 'Задачи поставлены в очередь!' : 'Импорт завершен!'}</strong>{' '}
+                  <strong>{result.status === 'queued' ? t('batchModal.queued_success_title') : t('batchModal.import_completed')}</strong>{' '}
                   {result.status === 'queued' 
-                    ? `Добавлено ссылок: ${result.queued}. Новые карточки будут появляться на доске в реальном времени через Mercure SSE.`
-                    : `Успешно: ${result.imported} из ${result.total}.`}
+                    ? t('batchModal.queued_success_desc', { count: result.queued })
+                    : t('batchModal.import_result', { imported: result.imported, total: result.total })}
                 </div>
               </div>
             )}
@@ -105,9 +109,9 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               <div className="info-banner" style={{ background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#c7d2fe' }}>
                 <Loader2 size={18} className="spin" style={{ animation: 'spin 1.2s linear infinite', flexShrink: 0 }} />
                 <div>
-                  Осталось обработать в очереди: <strong>{queueRemaining}</strong> {queueRemaining === 1 ? 'ссылку' : 'ссылок'}.
+                  {t('batchModal.queue_remaining_notice', { count: queueRemaining, unit: queueUnit })}
                   <span style={{ display: 'block', fontSize: '0.75rem', color: '#a5b4fc', marginTop: '2px' }}>
-                    Вы можете закрыть это окно — парсинг продолжится в фоне, карточки появятся на Канбан-доске сами.
+                    {t('batchModal.background_notice')}
                   </span>
                 </div>
               </div>
@@ -115,12 +119,12 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
             <div className="form-group">
               <label className="form-label">
-                Ссылки на вакансии LinkedIn (каждая с новой строки):
+                {t('batchModal.urls_label')}
               </label>
               <textarea
                 className="form-textarea"
                 rows={7}
-                placeholder="https://www.linkedin.com/jobs/view/4462938317/&#10;https://www.linkedin.com/jobs/view/senior-python-developer-1234567890/&#10;https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4192503234"
+                placeholder={t('batchModal.urls_placeholder')}
                 value={urlsText}
                 onChange={e => setUrlsText(e.target.value)}
                 disabled={loading}
@@ -130,39 +134,33 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
             <div className="form-group">
               <label className="form-label">
-                Общие метки для всей пачки (через запятую, необязательно):
+                {t('batchModal.tags_label')}
               </label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="например: python, remote, eu, high-priority"
+                placeholder={t('batchModal.tags_placeholder')}
                 value={tagsInput}
                 onChange={e => setTagsInput(e.target.value)}
                 disabled={loading}
               />
             </div>
-
-            <div className="info-banner">
-              <span>
-                💡 <strong>Асинхронная обработка:</strong> Бэкенд сохраняет ссылки в очередь и поочередно скрейпит данные и запрашивает AI-саммари. Как только карточка готова, Mercure отправляет её в интерфейс без перезагрузки страницы.
-              </span>
-            </div>
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
-              Закрыть
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Ставим в очередь...</span>
+                  <span>{t('batchModal.submitting_btn')}</span>
                 </>
               ) : (
                 <>
                   <UploadCloud size={16} />
-                  <span>Поставить в очередь</span>
+                  <span>{t('batchModal.submit_btn')}</span>
                 </>
               )}
             </button>

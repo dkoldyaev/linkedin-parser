@@ -298,12 +298,20 @@ async def batch_import_vacancies(
             # Scrape vacancy
             scraped = await scrape_linkedin_job(url)
             
+            setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
+            llm_provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
+
+            setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
+            language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
+
             # Run LLM summarization
             llm_res = await analyze_vacancy_with_llm(
                 title=scraped["title"],
                 company=scraped["company"],
                 location=scraped["location"],
                 description=scraped["description"],
+                provider=llm_provider,
+                language=language,
                 db=db,
             )
 
@@ -416,17 +424,32 @@ async def batch_import_vacancies(
 
 
 @app.post("/api/vacancies/{vacancy_id}/resummarize", response_model=VacancyResponse)
-async def resummarize_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
+async def resummarize_vacancy(
+    vacancy_id: int,
+    language: Optional[str] = Query(None),
+    provider: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
     """Re-run LLM summarization for an existing vacancy."""
     v = db.query(Vacancy).filter(Vacancy.id == vacancy_id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if not provider:
+        setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
+        provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
+
+    if not language:
+        setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
+        language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
 
     llm_res = await analyze_vacancy_with_llm(
         title=v.title,
         company=v.company,
         location=v.location or "",
         description=v.description or "",
+        provider=provider,
+        language=language,
         db=db,
     )
 
@@ -514,6 +537,7 @@ def get_settings(db: Session = Depends(get_db)):
     gemini_key = _val("gemini_api_key", "")
     mistral_model = _val("mistral_model", "mistral-small-latest")
     gemini_model = _val("gemini_model", "gemini-2.5-flash")
+    locale = _val("locale", "ru")
 
     return SettingsResponse(
         llm_provider=provider,
@@ -521,6 +545,7 @@ def get_settings(db: Session = Depends(get_db)):
         mistral_model=mistral_model,
         gemini_api_key_set=bool(gemini_key),
         gemini_model=gemini_model,
+        locale=locale,
     )
 
 
@@ -545,6 +570,8 @@ def update_settings(payload: SettingsUpdateRequest, db: Session = Depends(get_db
         _set("gemini_api_key", payload.gemini_api_key.strip())
     if payload.gemini_model is not None:
         _set("gemini_model", payload.gemini_model.strip())
+    if payload.locale is not None:
+        _set("locale", payload.locale.strip().lower())
 
     db.commit()
     return get_settings(db)

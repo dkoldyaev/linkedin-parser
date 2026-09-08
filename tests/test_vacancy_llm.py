@@ -14,7 +14,8 @@ async def main():
         company=scraped["company"],
         location=scraped["location"],
         description=scraped["description"],
-        provider="mistral"
+        provider="mistral",
+        language="ru",
     )
     
     print("\nMISTRAL AI RESULT:")

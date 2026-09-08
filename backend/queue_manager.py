@@ -10,11 +10,25 @@ from dataclasses import dataclass, field, asdict
 import redis.asyncio as aioredis
 
 from .database import SessionLocal
-from .models import Vacancy
+from .models import Vacancy, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import scrape_linkedin_job, extract_job_id
 from .llm import analyze_vacancy_with_llm
-from .mercure import publish_mercure_event
+from .mercure import (
+    publish_mercure_event,
+    EVENT_VACANCY_CREATED,
+    EVENT_VACANCY_UPDATED,
+    EVENT_TASK_FAILED,
+    EVENT_QUEUE_UPDATED,
+    EVENT_QUEUE_IDLE,
+    MSG_VACANCY_CREATED,
+    MSG_VACANCY_UPDATED,
+    MSG_TASK_FAILED,
+    MSG_QUEUE_UPDATED,
+    MSG_QUEUE_IDLE,
+    ERR_SCRAPE_FAILED,
+    ERR_AI_ANALYSIS_FAILED,
+)
 
 logger = logging.getLogger("linkedin_tracker.queue")
 
@@ -176,8 +190,9 @@ class RedisQueueManager:
         # Notify Mercure about newly enqueued items
         asyncio.create_task(
             publish_mercure_event(
-                event_type="queue_updated",
+                event_type=EVENT_QUEUE_UPDATED,
                 data={
+                    "message_code": MSG_QUEUE_UPDATED,
                     "batch_id": batch_id,
                     "queued_count": len(new_tasks),
                     "total_remaining": total_remaining,
@@ -386,6 +401,7 @@ class RedisQueueManager:
             await publish_mercure_event(
                 event_type=event_type,
                 data={
+                    "message_code": MSG_VACANCY_CREATED if event_type == EVENT_VACANCY_CREATED else MSG_VACANCY_UPDATED,
                     "vacancy": vacancy_data,
                     "task_id": task.task_id,
                     "batch_id": task.batch_id,
@@ -419,12 +435,13 @@ class RedisQueueManager:
             logger.error(f"[Stage 1 - Scrape] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
 
             await publish_mercure_event(
-                event_type="task_failed",
+                event_type=EVENT_TASK_FAILED,
                 data={
+                    "message_code": MSG_TASK_FAILED,
+                    "error_code": ERR_SCRAPE_FAILED,
                     "task_id": task.task_id,
                     "batch_id": task.batch_id,
                     "url": task.url,
-                    "error": str(e),
                     "total_remaining": total_rem,
                 }
             )
@@ -462,8 +479,11 @@ class RedisQueueManager:
                 if total_rem == 0:
                     asyncio.create_task(
                         publish_mercure_event(
-                            event_type="queue_idle",
-                            data={"total_remaining": 0}
+                            event_type=EVENT_QUEUE_IDLE,
+                            data={
+                                "message_code": MSG_QUEUE_IDLE,
+                                "total_remaining": 0,
+                            }
                         )
                     )
 
@@ -487,12 +507,20 @@ class RedisQueueManager:
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
 
-                # Call LLM summarization
+                setting_prov = db.query(AppSetting).filter(AppSetting.key == "llm_provider").first()
+                provider = (setting_prov.value if setting_prov and setting_prov.value else os.getenv("LLM_PROVIDER", "mistral")).lower()
+
+                setting_loc = db.query(AppSetting).filter(AppSetting.key == "locale").first()
+                language = (setting_loc.value if setting_loc and setting_loc.value else os.getenv("LOCALE", "ru")).lower()
+
+                # Call LLM summarization with required provider and language
                 llm_res = await analyze_vacancy_with_llm(
                     title=vacancy.title,
                     company=vacancy.company,
                     location=vacancy.location or "",
                     description=vacancy.description or "",
+                    provider=provider,
+                    language=language,
                     db=db,
                 )
 
@@ -535,8 +563,9 @@ class RedisQueueManager:
 
             # Publish updated vacancy to Mercure Hub: frontend updates card with AI summary & tech stack!
             await publish_mercure_event(
-                event_type="vacancy_updated",
+                event_type=EVENT_VACANCY_UPDATED,
                 data={
+                    "message_code": MSG_VACANCY_UPDATED,
                     "vacancy": vacancy_data,
                     "task_id": task.task_id,
                     "batch_id": task.batch_id,
@@ -560,12 +589,13 @@ class RedisQueueManager:
             logger.error(f"[Stage 2 - AI] Task {task.task_id} failed during AI analysis: {e}", exc_info=True)
 
             await publish_mercure_event(
-                event_type="task_failed",
+                event_type=EVENT_TASK_FAILED,
                 data={
+                    "message_code": MSG_TASK_FAILED,
+                    "error_code": ERR_AI_ANALYSIS_FAILED,
                     "task_id": task.task_id,
                     "batch_id": task.batch_id,
                     "url": task.url,
-                    "error": str(e),
                     "total_remaining": total_rem,
                 }
             )

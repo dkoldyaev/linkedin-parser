@@ -110,6 +110,7 @@ class SettingsResponse(BaseModel):
     mistral_model: str
     gemini_api_key_set: bool
     gemini_model: str
+    locale: str = "ru"
 
 class SettingsUpdateRequest(BaseModel):
     llm_provider: Optional[str] = None
@@ -117,3 +118,4 @@ class SettingsUpdateRequest(BaseModel):
     mistral_model: Optional[str] = None
     gemini_api_key: Optional[str] = None
     gemini_model: Optional[str] = None
+    locale: Optional[str] = None

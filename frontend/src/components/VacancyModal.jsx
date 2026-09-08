@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
+import { useTranslation } from '../i18n/I18nContext';
 
 const COLUMNS = [
   "Еще не написан",
@@ -16,6 +17,7 @@ const COLUMNS = [
 ];
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
+  const { t, locale } = useTranslation();
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
@@ -177,21 +179,25 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleSaveSalary = async () => {
     setSavingSalary(true);
-    const minVal = salaryMin !== '' && !isNaN(Number(salaryMin)) ? Number(salaryMin) : null;
-    const maxVal = salaryMax !== '' && !isNaN(Number(salaryMax)) ? Number(salaryMax) : null;
-    const patchData = {
-      salary_min: minVal,
-      salary_max: maxVal,
-      salary_currency: salaryCurrency,
-      salary_period: salaryPeriod,
-    };
     try {
+      const payload = {
+        salary_min: salaryMin !== '' ? parseFloat(salaryMin) : null,
+        salary_max: salaryMax !== '' ? parseFloat(salaryMax) : null,
+        salary_currency: salaryCurrency || null,
+        salary_period: salaryPeriod || null,
+      };
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patchData)
+        body: JSON.stringify(payload)
       });
-      onUpdate({ ...vacancy, ...patchData });
+      onUpdate({
+        ...vacancy,
+        salary_min: payload.salary_min,
+        salary_max: payload.salary_max,
+        salary_currency: payload.salary_currency,
+        salary_period: payload.salary_period,
+      });
       setSavedSalarySuccess(true);
       setTimeout(() => setSavedSalarySuccess(false), 2000);
     } catch (err) {
@@ -222,7 +228,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleResummarize = async () => {
     setResummarizing(true);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -247,13 +253,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Не удалось отправить на перегенерацию');
+        throw new Error(errData.detail || t('common.error'));
       }
       setReparseSuccess(true);
       setTimeout(() => setReparseSuccess(false), 3000);
     } catch (err) {
       console.error('Failed to reparse vacancy', err);
-      setReparseError(err.message || 'Ошибка при перегенерации');
+      setReparseError(err.message || t('common.error'));
       setTimeout(() => setReparseError(null), 6000);
     } finally {
       setReparsing(false);
@@ -261,7 +267,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   };
 
   const handleDelete = async () => {
-    if (window.confirm(`Удалить вакансию "${vacancy.title}"?`)) {
+    if (window.confirm(t('vacancyModal.delete_confirm'))) {
       try {
         await fetch(`/api/vacancies/${vacancy.id}`, { method: 'DELETE' });
         onDelete(vacancy.id);
@@ -277,9 +283,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     salary_max: salaryMax !== '' ? salaryMax : vacancy.salary_max,
     salary_currency: salaryCurrency || vacancy.salary_currency,
     salary_period: salaryPeriod || vacancy.salary_period,
-  });
+  }, t);
 
-  const modalWorkplaceInfo = getWorkplaceInfo(workplaceType || vacancy.workplace_type);
+  const modalWorkplaceInfo = getWorkplaceInfo(workplaceType || vacancy.workplace_type, t);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -293,7 +299,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {vacancy.company}
               </span>
               {vacancy.company_url && (
-                <a href={vacancy.company_url} target="_blank" rel="noreferrer" title="Страница компании" style={{ color: '#94a3b8' }}>
+                <a href={vacancy.company_url} target="_blank" rel="noreferrer" title={t('kanban.company_linkedin')} style={{ color: '#94a3b8' }}>
                   <ExternalLink size={12} />
                 </a>
               )}
@@ -318,9 +324,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               )}
               {isClosed && (
-                <span className="card-closed-badge" style={{ marginLeft: '8px' }} title="Заявки больше не принимаются">
+                <span className="card-closed-badge" style={{ marginLeft: '8px' }} title={t('kanban.closed_hint')}>
                   <Ban size={12} />
-                  <span>Прием заявок закрыт</span>
+                  <span>{t('vacancyModal.closed_badge')}</span>
                 </span>
               )}
             </div>
@@ -335,7 +341,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               className="btn btn-secondary"
               onClick={handleReparse}
               disabled={reparsing || !vacancy.url}
-              title={vacancy.url ? "Заново распарсить страницу по ссылке и обновить данные" : "У вакансии отсутствует ссылка"}
+              title={vacancy.url ? t('vacancyModal.reparse_btn') : undefined}
               style={{
                 fontSize: '0.75rem',
                 padding: '6px 12px',
@@ -347,17 +353,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               {reparsing ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>В очереди...</span>
+                  <span>{t('vacancyModal.reparsing')}</span>
                 </>
               ) : reparseSuccess ? (
                 <>
                   <Check size={14} color="#10b981" />
-                  <span>В обработке!</span>
+                  <span>{t('vacancyModal.saved_salary')}</span>
                 </>
               ) : (
                 <>
                   <RefreshCw size={14} />
-                  <span>Перегенерировать</span>
+                  <span>{t('vacancyModal.reparse_btn')}</span>
                 </>
               )}
             </button>
@@ -391,7 +397,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             justifyContent: 'space-between',
             gap: '10px'
           }}>
-            <span><strong>Ошибка при перегенерации:</strong> {reparseError}</span>
+            <span><strong>{t('common.error')}:</strong> {reparseError}</span>
             <button
               onClick={() => setReparseError(null)}
               style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', padding: 0 }}
@@ -407,7 +413,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Статус на доске:
+                {t('vacancyModal.status_label')}
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {COLUMNS.map(col => (
@@ -427,7 +433,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    {col}
+                    {t(`kanban.columns.${col}`)}
                   </button>
                 ))}
               </div>
@@ -435,7 +441,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Формат:
+                {t('vacancyModal.workplace_label')}
               </span>
               <select
                 className="form-input"
@@ -443,17 +449,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 value={workplaceType}
                 onChange={e => handleWorkplaceTypeChange(e.target.value)}
               >
-                <option value="">Не указан</option>
-                <option value="remote">Удаленка (Remote)</option>
-                <option value="hybrid">Гибрид (Hybrid)</option>
-                <option value="on-site">On-site (Офис)</option>
+                <option value="">{t('vacancyModal.not_specified')}</option>
+                <option value="remote">{t('workplace.full_remote')}</option>
+                <option value="hybrid">{t('workplace.full_hybrid')}</option>
+                <option value="on-site">{t('workplace.full_onsite')}</option>
               </select>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Прием заявок:
-              </span>
               <button
                 type="button"
                 onClick={handleToggleClosed}
@@ -472,17 +475,16 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   color: isClosed ? '#fb7185' : '#34d399',
                   transition: 'all 0.15s ease'
                 }}
-                title="Нажмите, чтобы переключить статус приема заявок"
               >
                 {isClosed ? (
                   <>
                     <Ban size={12} />
-                    <span>Закрыта (не принимаются)</span>
+                    <span>{t('kanban.closed')}</span>
                   </>
                 ) : (
                   <>
                     <Check size={12} />
-                    <span>Открыта (принимаются)</span>
+                    <span>{t('vacancyModal.closed_badge')}</span>
                   </>
                 )}
               </button>
@@ -494,12 +496,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Banknote size={15} color="#34d399" />
-                <span style={{ fontWeight: 600 }}>Зарплата / Компенсация</span>
+                <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {currentSalaryInfo.hasSalary && (
                   <span style={{ fontSize: '0.8125rem', color: '#34d399', fontWeight: 600 }}>
-                    Итого за месяц: {currentSalaryInfo.formatted}
+                    {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
                   </span>
                 )}
                 <button
@@ -512,39 +514,39 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   {savedSalarySuccess ? (
                     <>
                       <Check size={14} color="#10b981" />
-                      <span style={{ color: '#10b981' }}>Сохранено!</span>
+                      <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_salary')}</span>
                     </>
                   ) : (
-                    <span>Сохранить ЗП</span>
+                    <span>{t('vacancyModal.save_salary')}</span>
                   )}
                 </button>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Минимум</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.min')}</span>
                 <input
                   type="number"
                   className="form-input"
                   style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
-                  placeholder="напр. 100000"
+                  placeholder={t('vacancyModal.min_placeholder')}
                   value={salaryMin}
                   onChange={e => setSalaryMin(e.target.value)}
                 />
               </div>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Максимум</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.max')}</span>
                 <input
                   type="number"
                   className="form-input"
                   style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
-                  placeholder="напр. 140000"
+                  placeholder={t('vacancyModal.max_placeholder')}
                   value={salaryMax}
                   onChange={e => setSalaryMax(e.target.value)}
                 />
               </div>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Валюта</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.currency')}</span>
                 <select
                   className="form-input"
                   style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
@@ -560,18 +562,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </select>
               </div>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Период</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.period')}</span>
                 <select
                   className="form-input"
                   style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
                   value={salaryPeriod}
                   onChange={e => setSalaryPeriod(e.target.value)}
                 >
-                  <option value="year">в год (/ 12)</option>
-                  <option value="month">в месяц</option>
-                  <option value="hour">в час (× 160)</option>
-                  <option value="week">в неделю</option>
-                  <option value="day">в день</option>
+                  <option value="year">{t('salary.in_year_opt')}</option>
+                  <option value="month">{t('salary.in_month_opt')}</option>
+                  <option value="hour">{t('salary.in_hour_opt')}</option>
+                  <option value="week">{t('salary.in_week_opt')}</option>
+                  <option value="day">{t('salary.in_day_opt')}</option>
                 </select>
               </div>
             </div>
@@ -592,7 +594,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#c7d2fe', fontWeight: 600, fontSize: '0.9rem' }}>
                 <Sparkles size={16} color="#a5b4fc" />
-                <span>AI-Саммари вакансии</span>
+                <span>{t('vacancyModal.ai_summary_title')}</span>
               </div>
               <button
                 className="btn btn-secondary"
@@ -603,24 +605,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {resummarizing ? (
                   <>
                     <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Анализ...</span>
+                    <span>{t('vacancyModal.analyzing')}</span>
                   </>
                 ) : (
                   <>
                     <RefreshCw size={12} />
-                    <span>Обновить AI</span>
+                    <span>{t('vacancyModal.resummarize_btn')}</span>
                   </>
                 )}
               </button>
             </div>
             
             <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-              {vacancy.ai_summary || "Саммари еще не сформировано (проверьте API ключ в Настройках)."}
+              {vacancy.ai_summary || t('vacancyModal.no_summary')}
             </p>
 
             {vacancy.company_info && (
               <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(99, 102, 241, 0.15)', fontSize: '0.8125rem', color: '#94a3b8' }}>
-                <strong style={{ color: '#c7d2fe' }}>О компании: </strong>
+                <strong style={{ color: '#c7d2fe' }}>{t('vacancyModal.about_company')}</strong>
                 {vacancy.company_info}
               </div>
             )}
@@ -629,7 +631,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {/* Tech Stack */}
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Стек технологий</span>
+              <span>{t('vacancyModal.tech_stack_title')}</span>
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
               {techStack.map(tech => (
@@ -644,7 +646,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               ))}
               {techStack.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Стек не указан</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tech_stack')}</span>
               )}
             </div>
             <form onSubmit={handleAddTech} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
@@ -652,7 +654,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 type="text"
                 className="form-input"
                 style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder="+ Добавить технологию"
+                placeholder={t('vacancyModal.add_tech_placeholder')}
                 value={newTechInput}
                 onChange={e => setNewTechInput(e.target.value)}
               />
@@ -665,15 +667,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {/* Custom Tags */}
           <div className="form-group">
             <label className="form-label">
-              Метки / Лейблы задачи
+              {t('vacancyModal.tags_title')}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-              {tags.map(t => (
-                <span key={t} className="tag-chip" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+              {tags.map(tagItem => (
+                <span key={tagItem} className="tag-chip" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
                   <Tag size={11} />
-                  {t}
+                  {tagItem}
                   <button 
-                    onClick={() => handleRemoveTag(t)} 
+                    onClick={() => handleRemoveTag(tagItem)} 
                     style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: '2px' }}
                   >
                     <X size={12} />
@@ -681,7 +683,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               ))}
               {tags.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Нет меток</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tags')}</span>
               )}
             </div>
             <form onSubmit={handleAddTag} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
@@ -689,7 +691,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 type="text"
                 className="form-input"
                 style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder="+ Новая метка (напр. 'remote')"
+                placeholder={t('vacancyModal.add_tag_placeholder')}
                 value={newTagInput}
                 onChange={e => setNewTagInput(e.target.value)}
               />
@@ -704,7 +706,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <StickyNote size={14} />
-                <span>Личные заметки (контакты рекрутера, дата интервью, ожидания по зарплате)</span>
+                <span>{t('vacancyModal.notes_title')}</span>
               </label>
               <button
                 type="button"
@@ -716,17 +718,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {savedNotesSuccess ? (
                   <>
                     <Check size={14} color="#10b981" />
-                    <span style={{ color: '#10b981' }}>Сохранено!</span>
+                    <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_notes')}</span>
                   </>
                 ) : (
-                  <span>Сохранить заметку</span>
+                  <span>{t('vacancyModal.save_notes')}</span>
                 )}
               </button>
             </div>
             <textarea
               className="form-textarea"
               style={{ minHeight: '80px' }}
-              placeholder="Напишите любые заметки по процессу..."
+              placeholder={t('vacancyModal.notes_placeholder')}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
@@ -736,7 +738,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <FileText size={14} />
-              <span>Оригинальный текст вакансии с LinkedIn</span>
+              <span>{t('vacancyModal.orig_description_title')}</span>
             </label>
             <div style={{
               background: 'var(--bg-main)',
@@ -750,7 +752,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               color: 'var(--text-secondary)',
               whiteSpace: 'pre-wrap'
             }}>
-              {vacancy.description || "Текст вакансии отсутствует"}
+              {vacancy.description || t('vacancyModal.not_specified')}
             </div>
           </div>
         </div>
@@ -759,10 +761,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
           <button className="btn btn-danger" onClick={handleDelete}>
             <Trash2 size={14} />
-            <span>Удалить вакансию</span>
+            <span>{t('vacancyModal.delete_vacancy')}</span>
           </button>
           <button className="btn btn-secondary" onClick={onClose}>
-            Закрыть
+            {t('vacancyModal.close_btn')}
           </button>
         </div>
       </div>

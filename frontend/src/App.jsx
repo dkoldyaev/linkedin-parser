@@ -8,8 +8,10 @@ import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
 import VacancyModal from './components/VacancyModal';
 import SettingsModal from './components/SettingsModal';
+import { useTranslation } from './i18n/I18nContext';
 
 export default function App() {
+  const { t } = useTranslation();
   const [vacancies, setVacancies] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
@@ -38,10 +40,10 @@ export default function App() {
   // Toast notifications
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
-  };
+  }, []);
 
   const fetchVacancies = useCallback(async () => {
     try {
@@ -183,7 +185,7 @@ export default function App() {
           if (!isSubscribed) return;
           try {
             const data = JSON.parse(event.data);
-            const { type, vacancy, total_remaining, error, url } = data;
+            const { type, error_code, vacancy, total_remaining, url } = data;
 
             if (total_remaining !== undefined) {
               setQueueRemaining(total_remaining);
@@ -197,26 +199,27 @@ export default function App() {
                 }
                 return [vacancy, ...prev];
               });
-              showToast(`✨ Новая вакансия: ${vacancy.title} (${vacancy.company})`);
+              showToast(t('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
               fetchTags();
               fetchCountries();
               fetchCities(selectedCountry);
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
-              showToast(`Обновлена вакансия: ${vacancy.title}`);
+              showToast(t('mercure.vacancy_updated', { title: vacancy.title }));
               fetchTags();
               fetchCountries();
               fetchCities(selectedCountry);
             } else if (type === 'task_failed') {
-              showToast(`Ошибка парсинга ссылки: ${error || url}`, 'error');
+              const errText = error_code ? t(`mercure.errors.${error_code}`) : (data.error || t('mercure.errors.ERR_UNKNOWN'));
+              showToast(t('mercure.task_failed', { error: errText, url: url || '' }), 'error');
             } else if (type === 'queue_updated') {
               if (total_remaining !== undefined) {
                 setQueueRemaining(total_remaining);
               }
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
-              showToast('Все вакансии из очереди обработаны!');
+              showToast(t('mercure.queue_idle'));
               fetchVacancies();
               fetchTags();
               fetchCountries();
@@ -240,7 +243,7 @@ export default function App() {
         eventSource.close();
       }
     };
-  }, [fetchTags, fetchVacancies, fetchCountries, fetchCities, selectedCountry]);
+  }, [fetchTags, fetchVacancies, fetchCountries, fetchCities, selectedCountry, showToast, t]);
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
@@ -259,12 +262,12 @@ export default function App() {
       if (!res.ok) {
         throw new Error('Update failed');
       }
-      showToast(`Перемещено в «${newStatus}»`);
+      const localizedStatus = t(`kanban.columns.${newStatus}`);
+      showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
       console.error('Failed to update status', err);
-      // Revert if failed
       fetchVacancies();
-      showToast('Не удалось обновить статус', 'error');
+      showToast(t('nav.update_status_failed'), 'error');
     }
   };
 
@@ -282,7 +285,7 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
-    showToast('Вакансия удалена');
+    showToast(t('nav.vacancy_deleted'));
   };
 
   const handleImportComplete = () => {
@@ -290,8 +293,10 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
-    showToast('Пакетный импорт успешно завершен!');
+    showToast(t('nav.batch_import_completed'));
   };
+
+  const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
 
   return (
     <div className="app-container">
@@ -302,8 +307,8 @@ export default function App() {
             <Briefcase size={20} />
           </div>
           <div>
-            <h1 className="brand-title">LinkedIn Jobs Tracker</h1>
-            <p className="brand-subtitle">AI-саммари & Канбан воронка</p>
+            <h1 className="brand-title">{t('nav.title')}</h1>
+            <p className="brand-subtitle">{t('nav.subtitle')}</p>
           </div>
         </div>
 
@@ -313,7 +318,7 @@ export default function App() {
             <input
               type="text"
               className="search-input"
-              placeholder="Поиск по вакансиям, компаниям, стеку..."
+              placeholder={t('nav.search_placeholder')}
               value={search}
               onChange={onChangeSearch}
             />
@@ -341,32 +346,32 @@ export default function App() {
           {/* Real-time Queue & Mercure status indicators */}
           <div className="status-indicators">
             {queueRemaining > 0 && (
-              <div className="queue-pill" title="Задач осталось в очереди на обработку">
+              <div className="queue-pill" title={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}>
                 <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>Осталось в очереди: <strong className="queue-badge-count">{queueRemaining}</strong></span>
+                <span>{t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}</span>
               </div>
             )}
 
             <div 
               className={`mercure-pill ${mercureStatus === 'connected' ? 'online' : 'connecting'}`}
-              title={mercureStatus === 'connected' ? 'Mercure SSE подключен (авто-обновление карточек активно)' : 'Подключение к Mercure SSE...'}
+              title={mercureStatus === 'connected' ? t('nav.mercure_online') : t('nav.mercure_connecting')}
             >
               <span className={`pulse-dot ${mercureStatus === 'connected' ? '' : 'amber'}`} />
-              <span>{mercureStatus === 'connected' ? 'Mercure Live' : 'Подключение...'}</span>
+              <span>{mercureStatus === 'connected' ? t('nav.mercure_online') : t('nav.mercure_connecting')}</span>
             </div>
           </div>
 
-          <button className="btn btn-secondary btn-icon" onClick={() => fetchVacancies()} title="Обновить">
+          <button className="btn btn-secondary btn-icon" onClick={() => fetchVacancies()} title={t('nav.refresh_btn')}>
             <RefreshCw size={16} />
           </button>
           
-          <button className="btn btn-secondary btn-icon" onClick={() => setIsSettingsOpen(true)} title="Настройки AI">
+          <button className="btn btn-secondary btn-icon" onClick={() => setIsSettingsOpen(true)} title={t('nav.settings_btn')}>
             <Settings size={16} />
           </button>
 
           <button className="btn btn-primary" onClick={() => setIsBatchOpen(true)}>
             <Plus size={16} />
-            <span>Добавить вакансии</span>
+            <span>{t('nav.batch_import_btn')}</span>
           </button>
         </div>
       </header>
@@ -383,9 +388,9 @@ export default function App() {
                   className={`filter-select ${selectedCountry ? 'active' : ''}`}
                   value={selectedCountry}
                   onChange={(e) => handleCountryChange(e.target.value)}
-                  title="Фильтр по стране"
+                  title={t('nav.filter_all_countries')}
                 >
-                  <option value="">Все страны ({allCountries.length})</option>
+                  <option value="">{t('nav.filter_all_countries')} ({allCountries.length})</option>
                   {allCountries.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -406,9 +411,9 @@ export default function App() {
                   className={`filter-select ${selectedCity ? 'active' : ''}`}
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  title="Фильтр по городу"
+                  title={t('nav.filter_all_cities')}
                 >
-                  <option value="">Все города ({allCities.length})</option>
+                  <option value="">{t('nav.filter_all_cities')} ({allCities.length})</option>
                   {allCities.map((city) => (
                     <option key={city} value={city}>
                       {city}
@@ -428,12 +433,12 @@ export default function App() {
                 className={`filter-select ${selectedWorkplaceType ? 'active' : ''}`}
                 value={selectedWorkplaceType}
                 onChange={(e) => setSelectedWorkplaceType(e.target.value)}
-                title="Фильтр по формату работы"
+                title={t('nav.filter_all_workplaces')}
               >
-                <option value="">Все форматы</option>
-                <option value="remote">Удаленка</option>
-                <option value="hybrid">Гибрид</option>
-                <option value="on-site">On-site</option>
+                <option value="">{t('nav.filter_all_workplaces')}</option>
+                <option value="remote">{t('workplace.remote')}</option>
+                <option value="hybrid">{t('workplace.hybrid')}</option>
+                <option value="on-site">{t('workplace.on-site')}</option>
               </select>
               <ChevronDown size={11} className="filter-select-chevron" />
             </div>
@@ -449,13 +454,13 @@ export default function App() {
             <div className="filter-group" style={{ overflowX: 'auto' }}>
               <div className="filter-label">
                 <Filter size={12} />
-                <span>Метки:</span>
+                <span>{t('nav.tags_label')}</span>
               </div>
               <button
                 className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
                 onClick={() => setSelectedTag('')}
               >
-                Все ({vacancies.length})
+                {t('nav.all_tags')} ({vacancies.length})
               </button>
               {allTags.map(tag => (
                 <button
@@ -474,10 +479,10 @@ export default function App() {
             <button
               className="filter-reset-btn"
               onClick={resetAllFilters}
-              title="Сбросить все фильтры"
+              title={t('nav.reset_all_filters')}
             >
               <RotateCcw size={11} />
-              <span>Сбросить</span>
+              <span>{t('nav.reset_filters')}</span>
             </button>
           )}
         </div>

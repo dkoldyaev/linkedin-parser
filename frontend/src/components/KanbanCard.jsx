@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
+import { useTranslation } from '../i18n/I18nContext';
 
 const COLUMNS = [
   "Еще не написан",
@@ -12,9 +13,10 @@ const COLUMNS = [
 ];
 
 export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
+  const { t, formatDate } = useTranslation();
   const currentIndex = COLUMNS.indexOf(vacancy.status);
-  const salaryInfo = getSalaryDisplay(vacancy);
-  const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type);
+  const salaryInfo = getSalaryDisplay(vacancy, t);
+  const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());
@@ -57,16 +59,16 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
               target="_blank" 
               rel="noreferrer" 
               onClick={e => e.stopPropagation()}
-              title="LinkedIn компании"
+              title={t('kanban.company_linkedin')}
             >
               <ExternalLink size={10} />
             </a>
           )}
         </div>
         {vacancy.is_closed && (
-          <div className="card-closed-badge" title="Заявки больше не принимаются (вакансия закрыта)">
+          <div className="card-closed-badge" title={t('kanban.closed_hint')}>
             <Ban size={10} />
-            <span>Закрыта</span>
+            <span>{t('kanban.closed')}</span>
           </div>
         )}
       </div>
@@ -76,7 +78,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
       {(vacancy.location || salaryInfo.hasSalary || workplaceInfo) && (
         <div className="card-meta">
           {workplaceInfo && (
-            <div className={`card-workplace-badge ${workplaceInfo.className}`} title={`Формат работы: ${workplaceInfo.fullLabel || workplaceInfo.label}`}>
+            <div className={`card-workplace-badge ${workplaceInfo.className}`} title={t('workplace.badge_title', { format: workplaceInfo.fullLabel || workplaceInfo.label })}>
               {workplaceInfo.key === 'remote' && <Laptop size={11} />}
               {workplaceInfo.key === 'hybrid' && <Layers size={11} />}
               {workplaceInfo.key === 'on-site' && <Building size={11} />}
@@ -105,7 +107,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
       ) : (
         <div className="card-summary card-summary-pending" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#818cf8', padding: '6px 8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
           <Sparkles size={13} style={{ flexShrink: 0, animation: 'pulse 2s infinite' }} />
-          <span>Генерируем AI-саммари и стек...</span>
+          <span>{t('kanban.ai_generating')}</span>
         </div>
       )}
 
@@ -139,13 +141,13 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
       <div className="card-footer">
         <span className="card-date">
-          {new Date(vacancy.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+          {formatDate(vacancy.created_at)}
         </span>
 
         <div className="card-quick-actions">
           <button
             className="quick-move-btn"
-            title="Переместить назад"
+            title={t('kanban.move_left')}
             disabled={currentIndex <= 0}
             onClick={handleMoveLeft}
           >
@@ -153,7 +155,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
           </button>
           <button
             className="quick-move-btn"
-            title="Переместить вперед"
+            title={t('kanban.move_right')}
             disabled={currentIndex >= COLUMNS.length - 1}
             onClick={handleMoveRight}
           >

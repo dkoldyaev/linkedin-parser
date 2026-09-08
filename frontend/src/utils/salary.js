@@ -66,7 +66,7 @@ export function formatNumber(val) {
 /**
  * Get salary display information for cards and modals.
  */
-export function getSalaryDisplay(vacancy) {
+export function getSalaryDisplay(vacancy, t) {
   if (!vacancy) {
     return { hasSalary: false, formatted: '', original: '', monthlyMin: null, monthlyMax: null };
   }
@@ -83,39 +83,43 @@ export function getSalaryDisplay(vacancy) {
   const period = (salary_period || 'month').toLowerCase().trim();
   const { monthlyMin, monthlyMax } = calcMonthlySalary({ salary_min: min, salary_max: max, salary_period: period });
 
+  const perMonthLabel = t ? t('salary.per_month') : ' / мес';
+  const fromLabel = t ? t('salary.from') : 'от';
+  const toLabel = t ? t('salary.to') : 'до';
+
   // Format monthly text
   let formatted = '';
   if (monthlyMin !== null && monthlyMax !== null) {
     if (monthlyMin === monthlyMax) {
-      formatted = `${curr}${formatNumber(monthlyMin)} / мес`;
+      formatted = `${curr}${formatNumber(monthlyMin)} ${perMonthLabel}`;
     } else {
-      formatted = `${curr}${formatNumber(monthlyMin)} – ${curr}${formatNumber(monthlyMax)} / мес`;
+      formatted = `${curr}${formatNumber(monthlyMin)} – ${curr}${formatNumber(monthlyMax)} ${perMonthLabel}`;
     }
   } else if (monthlyMin !== null) {
-    formatted = `от ${curr}${formatNumber(monthlyMin)} / мес`;
+    formatted = `${fromLabel} ${curr}${formatNumber(monthlyMin)} ${perMonthLabel}`;
   } else if (monthlyMax !== null) {
-    formatted = `до ${curr}${formatNumber(monthlyMax)} / мес`;
+    formatted = `${toLabel} ${curr}${formatNumber(monthlyMax)} ${perMonthLabel}`;
   }
 
   // Original text (if period is not already month)
   let original = '';
-  const suffix = PERIOD_SUFFIXES[period] || `/${period}`;
+  const suffix = t ? t(`salary.per_${period}`) : (PERIOD_SUFFIXES[period] || `/${period}`);
   if (period !== 'month') {
     let origRange = '';
     if (min !== null && max !== null) {
       origRange = min === max ? `${curr}${formatNumber(min)}` : `${curr}${formatNumber(min)} – ${curr}${formatNumber(max)}`;
     } else if (min !== null) {
-      origRange = `от ${curr}${formatNumber(min)}`;
+      origRange = `${fromLabel} ${curr}${formatNumber(min)}`;
     } else if (max !== null) {
-      origRange = `до ${curr}${formatNumber(max)}`;
+      origRange = `${toLabel} ${curr}${formatNumber(max)}`;
     }
 
     if (period === 'year') {
-      original = `Оригинал: ${origRange} ${suffix} (деление на 12)`;
+      original = t ? t('salary.original_div12', { range: origRange, suffix }) : `Оригинал: ${origRange} ${suffix} (деление на 12)`;
     } else if (period === 'hour') {
-      original = `Оригинал: ${origRange} ${suffix} (расчет из 160 ч/мес)`;
+      original = t ? t('salary.original_mult160', { range: origRange, suffix }) : `Оригинал: ${origRange} ${suffix} (расчет из 160 ч/мес)`;
     } else {
-      original = `Оригинал: ${origRange} ${suffix}`;
+      original = t ? t('salary.original_prefix', { range: origRange, suffix }) : `Оригинал: ${origRange} ${suffix}`;
     }
   }
 

@@ -126,23 +126,72 @@ async def analyze_vacancy_with_llm(
     company: str,
     location: str,
     description: str,
+    provider: str,
+    language: str,
     db: Optional[Session] = None,
-    provider: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Summarize vacancy and extract tech stack & company info using configured LLM.
-    Returns: { "summary": str, "tech_stack": list[str], "company_info": str }
+    `provider` and `language` are strictly required.
+    Returns: { "summary": str, "tech_stack": list[str], "company_info": str, ... }
     """
-    if not provider:
-        provider = get_setting_or_env(db, "llm_provider", "mistral").lower()
+    if not provider or not str(provider).strip():
+        raise ValueError("Parameter 'provider' is required and cannot be empty")
+    if not language or not str(language).strip():
+        raise ValueError("Parameter 'language' is required and cannot be empty")
+
+    provider = str(provider).strip().lower()
+    language = str(language).strip().lower()
 
     mistral_key = get_setting_or_env(db, "mistral_api_key")
     gemini_key = get_setting_or_env(db, "gemini_api_key")
     mistral_model = get_setting_or_env(db, "mistral_model", "mistral-small-latest")
     gemini_model = get_setting_or_env(db, "gemini_model", "gemini-2.5-flash")
 
-    # Prompt constructing
-    prompt = f"""Проанализируй вакансию и сформируй краткое резюме на русском языке.
+    # Prompt constructing based on language
+    if language.startswith("en"):
+        prompt = f"""Analyze the job vacancy and generate a concise summary in English.
+
+Rules for the "summary" field:
+- Write extremely concisely and strictly to the point (1-2 crisp sentences).
+- Categorically avoid filler words and template phrases: DO NOT use phrases like "The position involves", "The company is looking for", "Responsibilities include", "The candidate will", "This role requires" or similar.
+- State the core work and tasks directly (e.g.: "Develop UI components, optimize rendering performance, and expand the design system").
+
+Rules for salary:
+- Extract compensation/salary if specified in the job text or metadata.
+- Return "salary_min" (number or null) and "salary_max" (number or null). If a single rate is given, set it in both salary_min and salary_max or only salary_min. Values must be absolute numbers (e.g. 120000, not "120k").
+- "salary_currency": currency symbol or code ("$", "€", "₽", "£", "USD", "EUR", etc., or null if not specified).
+- "salary_period": strictly one of: "year", "month", "hour", "day", "week" (or null if salary is not specified). If "a year", "/yr", "annual" -> "year". If "a month", "/mo" -> "month". If "per hour", "/hr" -> "hour".
+
+Rules for workplace_type:
+- Extract work format (strictly one of: "remote", "hybrid", "on-site", or null if not mentioned):
+  - "remote": remote work (Remote, WFH, Work from home, 100% remote).
+  - "hybrid": hybrid work (Hybrid, flexible office/home schedule).
+  - "on-site": strictly on-site / in office (On-site, Onsite, In office).
+  - null: if format is not mentioned.
+
+Job Title: {title}
+Company: {company}
+Location: {location}
+Job Description:
+\"\"\"
+{description[:8000]}
+\"\"\"
+
+Respond strictly in JSON format with the following fields:
+{{
+  "summary": "Concise and to the point: core tasks without filler phrases (e.g.: 'Develop UI components, optimize rendering performance, and expand the design system').",
+  "tech_stack": ["tech 1", "tech 2"],
+  "company_info": "1-2 sentences about what the company does / what product it builds.",
+  "workplace_type": "remote",
+  "salary_min": 120000,
+  "salary_max": 150000,
+  "salary_currency": "$",
+  "salary_period": "year"
+}}
+"""
+    else:
+        prompt = f"""Проанализируй вакансию и сформируй краткое резюме на русском языке.
 
 Правила для поля "summary":
 - Пиши предельно кратко и строго по делу (1-2 емких предложения).
@@ -183,32 +232,33 @@ async def analyze_vacancy_with_llm(
 """
 
     raw_response = None
-    used_provider = provider
 
     try:
         if provider == "gemini":
             if not gemini_key:
                 raise ValueError("Gemini API key is not configured")
             raw_response = await call_gemini(prompt, gemini_key, gemini_model)
-        else:
-            # Default to Mistral
+        elif provider == "mistral":
             if not mistral_key:
-                # If mistral key is missing but gemini is present, try fallback
-                if gemini_key:
-                    used_provider = "gemini"
-                    raw_response = await call_gemini(prompt, gemini_key, gemini_model)
-                else:
-                    raise ValueError("Mistral API key is not configured")
-            else:
-                raw_response = await call_mistral(prompt, mistral_key, mistral_model)
+                raise ValueError("Mistral API key is not configured")
+            raw_response = await call_mistral(prompt, mistral_key, mistral_model)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {provider}")
     except Exception as e:
-        logger.warning(f"LLM call failed for provider {used_provider}: {e}")
+        logger.warning(f"LLM call failed for provider {provider}: {e}")
         # Return fallback heuristic
         fallback_stack = extract_fallback_tech_stack(description)
+        if language.startswith("en"):
+            fallback_summary = f"Job vacancy {title} at {company} ({location}). Key tech stack: {', '.join(fallback_stack[:5]) if fallback_stack else 'not specified'}."
+            fallback_comp = f"Company {company} ({location})" if company else ""
+        else:
+            fallback_summary = f"Вакансия {title} в {company} ({location}). Ключевой стек: {', '.join(fallback_stack[:5]) if fallback_stack else 'не указан'}."
+            fallback_comp = f"Компания {company} ({location})" if company else ""
+
         return {
-            "summary": f"Вакансия {title} в {company} ({location}). Ключевой стек: {', '.join(fallback_stack[:5]) if fallback_stack else 'не указан'}.",
+            "summary": fallback_summary,
             "tech_stack": fallback_stack,
-            "company_info": f"Компания {company} ({location})" if company else "",
+            "company_info": fallback_comp,
             "workplace_type": None,
             "salary_min": None,
             "salary_max": None,
