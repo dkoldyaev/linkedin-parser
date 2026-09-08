@@ -1,5 +1,6 @@
 import React from 'react';
-import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag } from 'lucide-react';
+import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote } from 'lucide-react';
+import { getSalaryDisplay } from '../utils/salary';
 
 const COLUMNS = [
   "Еще не написан",
@@ -11,6 +12,7 @@ const COLUMNS = [
 
 export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
   const currentIndex = COLUMNS.indexOf(vacancy.status);
+  const salaryInfo = getSalaryDisplay(vacancy);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());
@@ -63,10 +65,20 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
       <h3 className="card-title">{vacancy.title}</h3>
 
-      {vacancy.location && (
-        <div className="card-location">
-          <MapPin size={12} />
-          <span>{vacancy.location}</span>
+      {(vacancy.location || salaryInfo.hasSalary) && (
+        <div className="card-meta">
+          {vacancy.location && (
+            <div className="card-location">
+              <MapPin size={12} />
+              <span>{vacancy.location}</span>
+            </div>
+          )}
+          {salaryInfo.hasSalary && (
+            <div className="card-salary-badge" title={salaryInfo.original || salaryInfo.formatted}>
+              <Banknote size={12} />
+              <span>{salaryInfo.formatted}</span>
+            </div>
+          )}
         </div>
       )}
 

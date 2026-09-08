@@ -1,4 +1,5 @@
 import re
+import json
 import logging
 from typing import Dict, Any, Optional
 import httpx
@@ -71,6 +72,78 @@ def clean_text(html_elem) -> str:
             prev_empty = False
             
     return "\n".join(clean_lines).strip()
+
+
+def extract_salary_from_soup(soup: BeautifulSoup) -> Dict[str, Any]:
+    """Extract structured salary info from JSON-LD schema or HTML elements if present."""
+    result = {
+        "salary_min": None,
+        "salary_max": None,
+        "salary_currency": None,
+        "salary_period": None,
+        "salary_raw_text": None,
+    }
+
+    # 1. Check JSON-LD scripts
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            raw_text = script.string or script.get_text()
+            if not raw_text:
+                continue
+            data = json.loads(raw_text)
+            items = data if isinstance(data, list) else [data]
+            for item in items:
+                if isinstance(item, dict) and item.get("@type") == "JobPosting":
+                    base_salary = item.get("baseSalary")
+                    if isinstance(base_salary, dict):
+                        currency = base_salary.get("currency")
+                        val_obj = base_salary.get("value")
+                        unit_text = None
+                        min_val = None
+                        max_val = None
+
+                        if isinstance(val_obj, dict):
+                            unit_text = val_obj.get("unitText")
+                            min_val = val_obj.get("minValue") if val_obj.get("minValue") is not None else val_obj.get("value")
+                            max_val = val_obj.get("maxValue") if val_obj.get("maxValue") is not None else val_obj.get("value")
+                        elif isinstance(val_obj, (int, float)):
+                            min_val = val_obj
+                            max_val = val_obj
+
+                        if not unit_text:
+                            unit_text = base_salary.get("unitText")
+
+                        period = None
+                        if unit_text:
+                            ut_upper = str(unit_text).upper()
+                            if "YEAR" in ut_upper or "ANNUAL" in ut_upper:
+                                period = "year"
+                            elif "MONTH" in ut_upper:
+                                period = "month"
+                            elif "HOUR" in ut_upper:
+                                period = "hour"
+                            elif "WEEK" in ut_upper:
+                                period = "week"
+                            elif "DAY" in ut_upper:
+                                period = "day"
+
+                        if min_val is not None or max_val is not None:
+                            result["salary_min"] = float(min_val) if min_val is not None else None
+                            result["salary_max"] = float(max_val) if max_val is not None else None
+                            result["salary_currency"] = currency or "$"
+                            result["salary_period"] = period or "year"
+                            return result
+        except Exception as e:
+            logger.debug(f"Could not parse JSON-LD for salary: {e}")
+
+    # 2. Check HTML compensation elements
+    comp_elem = soup.find(class_=lambda c: c and ("compensation__salary" in c or "topcard__flavor--salary" in c))
+    if comp_elem:
+        raw_t = comp_elem.get_text(strip=True)
+        if raw_t:
+            result["salary_raw_text"] = raw_t
+
+    return result
 
 
 async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
@@ -169,6 +242,11 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     if about_match:
         company_info = about_match.group(0).strip()
 
+    # Extract salary from page markup
+    salary_data = extract_salary_from_soup(soup)
+    if salary_data.get("salary_raw_text"):
+        description += f"\n\n--- Compensation ---\n{salary_data['salary_raw_text']}"
+
     return {
         "job_id": job_id,
         "url": url,
@@ -180,4 +258,8 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "city": city,
         "country": country,
         "description": description,
+        "salary_min": salary_data.get("salary_min"),
+        "salary_max": salary_data.get("salary_max"),
+        "salary_currency": salary_data.get("salary_currency"),
+        "salary_period": salary_data.get("salary_period"),
     }

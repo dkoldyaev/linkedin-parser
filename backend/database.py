@@ -66,6 +66,7 @@ def get_db():
     finally:
         db.close()
 
+
 def ensure_db_schema():
     """Ensure newly added columns exist in existing database tables."""
     from sqlalchemy import text
@@ -78,7 +79,20 @@ def ensure_db_schema():
                 if existing_cols:
                     if "city" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN city VARCHAR(128)"))
+                    if "salary_min" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_min REAL"))
+                    if "salary_max" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_max REAL"))
+                    if "salary_currency" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_currency VARCHAR(16)"))
+                    if "salary_period" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN salary_period VARCHAR(32)"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_max DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_currency VARCHAR(16)"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_period VARCHAR(32)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
+

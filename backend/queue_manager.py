@@ -320,6 +320,15 @@ class RedisQueueManager:
                         current_tags.add(t)
                     existing.tags = list(current_tags)
 
+                    if scraped.get("salary_min") is not None:
+                        existing.salary_min = scraped["salary_min"]
+                    if scraped.get("salary_max") is not None:
+                        existing.salary_max = scraped["salary_max"]
+                    if scraped.get("salary_currency") is not None:
+                        existing.salary_currency = scraped["salary_currency"]
+                    if scraped.get("salary_period") is not None:
+                        existing.salary_period = scraped["salary_period"]
+
                     db.commit()
                     db.refresh(existing)
                     saved_vacancy = existing
@@ -336,6 +345,10 @@ class RedisQueueManager:
                         city=scraped.get("city"),
                         country=scraped["country"],
                         description=scraped["description"],
+                        salary_min=scraped.get("salary_min"),
+                        salary_max=scraped.get("salary_max"),
+                        salary_currency=scraped.get("salary_currency"),
+                        salary_period=scraped.get("salary_period"),
                         ai_summary=None,
                         tech_stack=[],
                         tags=initial_tags,
@@ -479,6 +492,14 @@ class RedisQueueManager:
                     vacancy.tech_stack = llm_res["tech_stack"]
                 if llm_res.get("company_info") and not vacancy.company_info:
                     vacancy.company_info = llm_res["company_info"]
+                if llm_res.get("salary_min") is not None:
+                    vacancy.salary_min = llm_res["salary_min"]
+                if llm_res.get("salary_max") is not None:
+                    vacancy.salary_max = llm_res["salary_max"]
+                if llm_res.get("salary_currency") is not None:
+                    vacancy.salary_currency = llm_res["salary_currency"]
+                if llm_res.get("salary_period") is not None:
+                    vacancy.salary_period = llm_res["salary_period"]
 
                 db.commit()
                 db.refresh(vacancy)

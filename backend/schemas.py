@@ -13,6 +13,10 @@ class VacancyBase(BaseModel):
     city: Optional[str] = None
     country: Optional[str] = None
     description: Optional[str] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
+    salary_currency: Optional[str] = None
+    salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
@@ -31,6 +35,10 @@ class VacancyUpdate(BaseModel):
     status: Optional[str] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
+    salary_min: Optional[float] = None
+    salary_max: Optional[float] = None
+    salary_currency: Optional[str] = None
+    salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: Optional[List[str]] = None
     company_info: Optional[str] = None

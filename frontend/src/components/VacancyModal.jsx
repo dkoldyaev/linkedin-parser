@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
-  Trash2, RefreshCw, Check, Loader2, FileText, StickyNote 
+  Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote 
 } from 'lucide-react';
+import { getSalaryDisplay } from '../utils/salary';
 
 const COLUMNS = [
   "Еще не написан",
@@ -20,6 +21,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [techStack, setTechStack] = useState(vacancy?.tech_stack || []);
   const [newTechInput, setNewTechInput] = useState("");
   
+  const [salaryMin, setSalaryMin] = useState(vacancy?.salary_min ?? '');
+  const [salaryMax, setSalaryMax] = useState(vacancy?.salary_max ?? '');
+  const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
+  const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
+  const [savingSalary, setSavingSalary] = useState(false);
+  const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
+
   const [resummarizing, setResummarizing] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
@@ -30,6 +38,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setTags(vacancy.tags || []);
       setNotes(vacancy.notes || "");
       setTechStack(vacancy.tech_stack || []);
+      setSalaryMin(vacancy.salary_min ?? '');
+      setSalaryMax(vacancy.salary_max ?? '');
+      setSalaryCurrency(vacancy.salary_currency || '$');
+      setSalaryPeriod(vacancy.salary_period || 'month');
     }
   }, [vacancy]);
 
@@ -123,6 +135,32 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
+  const handleSaveSalary = async () => {
+    setSavingSalary(true);
+    const minVal = salaryMin !== '' && !isNaN(Number(salaryMin)) ? Number(salaryMin) : null;
+    const maxVal = salaryMax !== '' && !isNaN(Number(salaryMax)) ? Number(salaryMax) : null;
+    const patchData = {
+      salary_min: minVal,
+      salary_max: maxVal,
+      salary_currency: salaryCurrency,
+      salary_period: salaryPeriod,
+    };
+    try {
+      await fetch(`/api/vacancies/${vacancy.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchData)
+      });
+      onUpdate({ ...vacancy, ...patchData });
+      setSavedSalarySuccess(true);
+      setTimeout(() => setSavedSalarySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to save salary', err);
+    } finally {
+      setSavingSalary(false);
+    }
+  };
+
   const handleSaveNotes = async () => {
     setSavingNotes(true);
     try {
@@ -170,6 +208,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
+  const currentSalaryInfo = getSalaryDisplay({
+    salary_min: salaryMin !== '' ? salaryMin : vacancy.salary_min,
+    salary_max: salaryMax !== '' ? salaryMax : vacancy.salary_max,
+    salary_currency: salaryCurrency || vacancy.salary_currency,
+    salary_period: salaryPeriod || vacancy.salary_period,
+  });
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
@@ -190,6 +235,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 <span className="card-location" style={{ marginLeft: '6px' }}>
                   <MapPin size={12} />
                   {vacancy.location}
+                </span>
+              )}
+              {currentSalaryInfo.hasSalary && (
+                <span className="card-salary-badge" style={{ marginLeft: '8px' }} title={currentSalaryInfo.original || currentSalaryInfo.formatted}>
+                  <Banknote size={13} />
+                  <span>{currentSalaryInfo.formatted}</span>
                 </span>
               )}
             </div>
@@ -244,6 +295,99 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Salary Section */}
+          <div className="form-group" style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                <Banknote size={15} color="#34d399" />
+                <span style={{ fontWeight: 600 }}>Зарплата / Компенсация</span>
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {currentSalaryInfo.hasSalary && (
+                  <span style={{ fontSize: '0.8125rem', color: '#34d399', fontWeight: 600 }}>
+                    Итого за месяц: {currentSalaryInfo.formatted}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleSaveSalary}
+                  disabled={savingSalary}
+                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                >
+                  {savedSalarySuccess ? (
+                    <>
+                      <Check size={14} color="#10b981" />
+                      <span style={{ color: '#10b981' }}>Сохранено!</span>
+                    </>
+                  ) : (
+                    <span>Сохранить ЗП</span>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Минимум</span>
+                <input
+                  type="number"
+                  className="form-input"
+                  style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
+                  placeholder="напр. 100000"
+                  value={salaryMin}
+                  onChange={e => setSalaryMin(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Максимум</span>
+                <input
+                  type="number"
+                  className="form-input"
+                  style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
+                  placeholder="напр. 140000"
+                  value={salaryMax}
+                  onChange={e => setSalaryMax(e.target.value)}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Валюта</span>
+                <select
+                  className="form-input"
+                  style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
+                  value={salaryCurrency}
+                  onChange={e => setSalaryCurrency(e.target.value)}
+                >
+                  <option value="$">$ (USD)</option>
+                  <option value="€">€ (EUR)</option>
+                  <option value="₽">₽ (RUB)</option>
+                  <option value="£">£ (GBP)</option>
+                  <option value="CHF">CHF</option>
+                  <option value="CAD">CAD</option>
+                </select>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Период</span>
+                <select
+                  className="form-input"
+                  style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
+                  value={salaryPeriod}
+                  onChange={e => setSalaryPeriod(e.target.value)}
+                >
+                  <option value="year">в год (/ 12)</option>
+                  <option value="month">в месяц</option>
+                  <option value="hour">в час (× 160)</option>
+                  <option value="week">в неделю</option>
+                  <option value="day">в день</option>
+                </select>
+              </div>
+            </div>
+            {currentSalaryInfo.original && (
+              <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {currentSalaryInfo.original}
+              </div>
+            )}
           </div>
 
           {/* AI Summary Section */}

@@ -5,6 +5,7 @@
   "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
+    "check:python": "./.venv/bin/python -m py_compile backend/llm.py backend/main.py",
     "install:deps": "./.venv/bin/pip install -r backend/requirements.txt",
     "check:pg": "lsof -i :5432 || pg_isready",
     "check:pg:dbs": "psql -U dkoldaev -h localhost -l || psql -U postgres -h localhost -l || psql -l",
@@ -13,13 +14,17 @@
     "redis:ping": "docker exec redis redis-cli ping || nc -zv localhost 6379",
     "redis:logs": "docker logs redis --tail=50",
     "check:pg:vacancies": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, job_id, title, company, location, status, tags, created_at FROM vacancies ORDER BY id DESC LIMIT 5;'",
+    "check:pg:locations": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, title, company, location, city, country FROM vacancies;'",
     "check:pg:vacancy:detail": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, title, company, location, tech_stack, ai_summary FROM vacancies WHERE id = 3;'",
     "pg:create:db": "psql -U dkoldaev -h localhost -c 'CREATE DATABASE linkedin_tracker;' || psql -U postgres -h localhost -c 'CREATE DATABASE linkedin_tracker;'",
     "test:pg:docker": "docker run --rm alpine nc -zv host.docker.internal 5432",
     "test:pg:docker:conn": "docker run --rm python:3.11-slim sh -c 'pip install psycopg2-binary sqlalchemy && python3 -c \"from sqlalchemy import create_engine, text; e = create_engine(\\\"postgresql://dkoldaev@host.docker.internal:5432/linkedin_tracker\\\"); print(e.connect().execute(text(\\\"SELECT count(*) FROM vacancies;\\\")).fetchone())\"'",
     "test:pg": "PYTHONPATH=. ./.venv/bin/python tests/test_postgres.py",
+    "pg:migrate:locations": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128);' && PYTHONPATH=. DATABASE_URL='postgresql://dkoldaev@localhost:5432/linkedin_tracker' ./.venv/bin/python -c 'from backend.main import backfill_missing_locations; backfill_missing_locations(); print(\"Postgres locations backfilled!\")'",
     "migrate:sqlite:pg": "PYTHONPATH=. ./.venv/bin/python tests/migrate_sqlite_to_pg.py",
-    "check:pg:locations": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'SELECT id, title, company, location, city, country FROM vacancies;',\n    "pg:migrate:locations": "psql -U dkoldaev -h localhost -d linkedin_tracker -c 'ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128);' && PYTHONPATH=. DATABASE_URL='postgresql://dkoldaev@localhost:5432/linkedin_tracker' ./.venv/bin/python -c 'from backend.main import backfill_missing_locations; backfill_missing_locations(); print(\\"Postgres locations backfilled!\\")'",\n    "test:backend": "PYTHONPATH=. ./.venv/bin/python tests/test_integration.py",\n    "test:locations": "PYTHONPATH=. ./.venv/bin/python tests/test_locations.py",
+    "test:backend": "PYTHONPATH=. ./.venv/bin/python tests/test_integration.py",
+    "test:salary": "PYTHONPATH=. ./.venv/bin/python tests/test_salary.py",
+    "test:locations": "PYTHONPATH=. ./.venv/bin/python tests/test_locations.py",
     "test:queue": "PYTHONPATH=. ./.venv/bin/python tests/test_queue.py",
     "test:mistral": "./.venv/bin/python tests/test_mistral.py",
     "test:llm": "PYTHONPATH=. ./.venv/bin/python tests/test_vacancy_llm.py",
@@ -30,7 +35,8 @@
     "build": "npm run frontend:build",
     "start": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000",
     "docker:build": "docker compose build",
-    "docker:up": "docker compose up -d",\n    "docker:rebuild": "docker compose up -d --build",
+    "docker:up": "docker compose up -d",
+    "docker:rebuild": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:restart": "docker compose restart",
     "docker:ps": "docker compose ps",
@@ -40,7 +46,9 @@
     "test:curl": "curl -s http://localhost:8000/api/health && echo '' && curl -s http://localhost:8000/api/vacancies | python3 -m json.tool | grep -E '\"id\"|\"title\"|\"company\"' | head -n 12 && curl -s http://localhost:8000/api/tags",
     "test:crud": "curl -s -X POST http://localhost:8000/api/vacancies -H 'Content-Type: application/json' -d '{\"title\":\"Docker Postgres Engineer\",\"company\":\"Test Corp\",\"url\":\"https://linkedin.com/jobs/view/99999\",\"tags\":[\"docker\",\"postgres-live\"]}' | python3 -m json.tool && echo '---' && curl -s http://localhost:8000/api/vacancies | python3 -m json.tool | grep -E '\"title\"'",
     "import:job": "curl -s -X POST http://localhost:8000/api/vacancies/batch -H 'Content-Type: application/json' -d '{\"urls\": [\"https://www.linkedin.com/jobs/view/4409263207/\"], \"default_tags\": [\"demo-job\"]}'",
-    "check:queue": "curl -s http://localhost:8000/api/queue/status | python3 -m json.tool",\n    "check:api:filters": "curl -s http://localhost:8000/api/countries && echo '' && curl -s http://localhost:8000/api/cities && echo '' && curl -s 'http://localhost:8000/api/vacancies?city=Barcelona' | python3 -c 'import sys, json; vs=json.load(sys.stdin); print(f\\"Found {len(vs)} in Barcelona: {[v[\\\"title\\\"] for v in vs]}\\")'",
-    "check:last:vacancy": "curl -s http://localhost:8000/api/vacancies | python3 -c 'import sys, json; data=json.load(sys.stdin); print(json.dumps(data[0], indent=2, ensure_ascii=False) if data else \"No vacancies\")'"
+    "check:queue": "curl -s http://localhost:8000/api/queue/status | python3 -m json.tool",
+    "check:api:filters": "curl -s http://localhost:8000/api/countries && echo '' && curl -s http://localhost:8000/api/cities && echo '' && curl -s 'http://localhost:8000/api/vacancies?city=Barcelona' | python3 -c 'import sys, json; vs=json.load(sys.stdin); print(f\"Found {len(vs)} in Barcelona: {[v[\"title\"] for v in vs]}\")'",
+    "check:last:vacancy": "curl -s http://localhost:8000/api/vacancies | python3 -c 'import sys, json; data=json.load(sys.stdin); print(json.dumps(data[0], indent=2, ensure_ascii=False) if data else \"No vacancies\")'",
+    "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'"
   }
 }

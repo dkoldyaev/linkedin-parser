@@ -144,6 +144,18 @@ async def analyze_vacancy_with_llm(
     # Prompt constructing
     prompt = f"""Проанализируй вакансию и сформируй краткое резюме на русском языке.
 
+Правила для поля "summary":
+- Пиши предельно кратко и строго по делу (1-2 емких предложения).
+- Категорически избегай шаблонных фраз и "воды": НЕ используй конструкции вроде "Вакансия предполагает", "Компания ищет специалиста", "В обязанности входит", "Кандидату предстоит", "Данная позиция требует" и подобные.
+- Сразу формулируй суть работы и задач (например: "Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему").
+
+Правила для зарплаты:
+- Извлеки размер зарплаты (компенсации), если она указана в тексте или метаданных вакансии.
+- Верни "salary_min" (число или null) и "salary_max" (число или null). Если указана фиксированная сумма без вилки, укажи ее в salary_min и salary_max одинаковой или только в salary_min. Числа должны быть абсолютными числами (например, 120000, а не "120k").
+- "salary_currency": символ или код валюты ("$", "€", "₽", "£", "USD", "EUR" и т.д., или null если не указано).
+- "salary_period": строго одно из значений: "year", "month", "hour", "day", "week" (или null если зарплата не указана). Если указано "a year", "/yr", "per year", "annual" -> "year". Если "a month", "/mo", "monthly" -> "month". Если "per hour", "/hr", "hourly" -> "hour".
+- Если зарплата не упомянута вообще, укажи null для всех полей зарплаты.
+
 Название: {title}
 Компания: {company}
 Локация: {location}
@@ -154,9 +166,13 @@ async def analyze_vacancy_with_llm(
 
 Ответь строго в формате JSON со следующими полями:
 {{
-  "summary": "Кратко в 2-3 предложениях: что именно предстоит делать, суть задач, за что отвечает человек.",
+  "summary": "Кратко и по делу: суть задач без вводных слов и штампов (например: 'Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему').",
   "tech_stack": ["название технологии 1", "технология 2"],
-  "company_info": "1-2 предложения о том, чем занимается компания/какой продукт делает (из текста вакансии или контекста)."
+  "company_info": "1-2 предложения о том, чем занимается компания/какой продукт делает (из текста вакансии или контекста).",
+  "salary_min": 120000,
+  "salary_max": 150000,
+  "salary_currency": "$",
+  "salary_period": "year"
 }}
 """
 
@@ -187,6 +203,10 @@ async def analyze_vacancy_with_llm(
             "summary": f"Вакансия {title} в {company} ({location}). Ключевой стек: {', '.join(fallback_stack[:5]) if fallback_stack else 'не указан'}.",
             "tech_stack": fallback_stack,
             "company_info": f"Компания {company} ({location})" if company else "",
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "salary_period": None,
             "ai_error": str(e)
         }
 
@@ -197,10 +217,46 @@ async def analyze_vacancy_with_llm(
             cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
             cleaned = re.sub(r"\s*```$", "", cleaned)
         data = json.loads(cleaned)
+
+        # Normalize salary fields
+        def _to_float(v):
+            if v is None:
+                return None
+            try:
+                if isinstance(v, str):
+                    v = v.replace(",", "").replace(" ", "").replace("k", "000").replace("K", "000")
+                return float(v)
+            except Exception:
+                return None
+
+        clean_min = _to_float(data.get("salary_min"))
+        clean_max = _to_float(data.get("salary_max"))
+        if clean_min is not None and clean_max is not None and clean_min > clean_max:
+            clean_min, clean_max = clean_max, clean_min
+
+        clean_curr = str(data.get("salary_currency")).strip() if data.get("salary_currency") else None
+        raw_period = str(data.get("salary_period")).strip().lower() if data.get("salary_period") else None
+        clean_period = None
+        if raw_period:
+            if "year" in raw_period or "yr" in raw_period or "annum" in raw_period:
+                clean_period = "year"
+            elif "month" in raw_period or "mo" in raw_period:
+                clean_period = "month"
+            elif "hour" in raw_period or "hr" in raw_period:
+                clean_period = "hour"
+            elif "week" in raw_period:
+                clean_period = "week"
+            elif "day" in raw_period:
+                clean_period = "day"
+
         return {
             "summary": data.get("summary", "").strip(),
             "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
             "company_info": data.get("company_info", "").strip(),
+            "salary_min": clean_min,
+            "salary_max": clean_max,
+            "salary_currency": clean_curr,
+            "salary_period": clean_period,
             "ai_error": None,
         }
     except Exception as e:
@@ -209,5 +265,9 @@ async def analyze_vacancy_with_llm(
             "summary": raw_response[:300] if raw_response else "",
             "tech_stack": extract_fallback_tech_stack(description),
             "company_info": "",
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "salary_period": None,
             "ai_error": f"JSON parse error: {e}"
         }

@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON
 from .database import Base
 
 VALID_STATUSES = [
@@ -24,6 +24,12 @@ class Vacancy(Base):
     city = Column(String(128), nullable=True)
     country = Column(String(128), nullable=True)
     description = Column(Text, nullable=True)
+
+    # Salary fields (raw numeric values & period)
+    salary_min = Column(Float, nullable=True)
+    salary_max = Column(Float, nullable=True)
+    salary_currency = Column(String(16), nullable=True)  # e.g. "$", "€", "₽", "USD"
+    salary_period = Column(String(32), nullable=True)    # "year", "month", "hour", "week", "day"
     
     # AI-generated fields
     ai_summary = Column(Text, nullable=True)

@@ -66,6 +66,7 @@ def backfill_missing_locations():
 backfill_missing_locations()
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await queue_manager.start()
@@ -272,6 +273,15 @@ async def batch_import_vacancies(
                 existing.ai_summary = llm_res.get("summary")
                 existing.tech_stack = llm_res.get("tech_stack", [])
                 
+                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
+                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
+                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
+                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
+                if s_min is not None: existing.salary_min = s_min
+                if s_max is not None: existing.salary_max = s_max
+                if s_curr is not None: existing.salary_currency = s_curr
+                if s_per is not None: existing.salary_period = s_per
+
                 # Merge tags without duplicating
                 current_tags = set(existing.tags or [])
                 for t in initial_tags:
@@ -292,6 +302,11 @@ async def batch_import_vacancies(
                 imported_count += 1
             else:
                 # Create new vacancy
+                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
+                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
+                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
+                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
+
                 new_v = Vacancy(
                     job_id=scraped.get("job_id"),
                     url=url,
@@ -303,6 +318,10 @@ async def batch_import_vacancies(
                     city=scraped.get("city"),
                     country=scraped["country"],
                     description=scraped["description"],
+                    salary_min=s_min,
+                    salary_max=s_max,
+                    salary_currency=s_curr,
+                    salary_period=s_per,
                     ai_summary=llm_res.get("summary"),
                     tech_stack=llm_res.get("tech_stack", []),
                     tags=initial_tags,
@@ -361,6 +380,14 @@ async def resummarize_vacancy(vacancy_id: int, db: Session = Depends(get_db)):
         v.tech_stack = llm_res["tech_stack"]
     if llm_res.get("company_info"):
         v.company_info = llm_res["company_info"]
+    if llm_res.get("salary_min") is not None:
+        v.salary_min = llm_res["salary_min"]
+    if llm_res.get("salary_max") is not None:
+        v.salary_max = llm_res["salary_max"]
+    if llm_res.get("salary_currency") is not None:
+        v.salary_currency = llm_res["salary_currency"]
+    if llm_res.get("salary_period") is not None:
+        v.salary_period = llm_res["salary_period"]
 
     db.commit()
     db.refresh(v)

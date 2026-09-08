@@ -19,7 +19,7 @@ def run_test():
         v = vac_list[0]
         vid, vtitle, vcomp = v["id"], v["title"], v["company"]
         print(f"Vacancy ID: {vid} | Title: {vtitle} | Company: {vcomp}")
-        print(f"Location: {v['location']} | Country: {v['country']}")
+        print(f"Location: {v['location']} | City: {v.get('city')} | Country: {v['country']}")
         print(f"Tags: {v['tags']} | Status: {v['status']}")
         print(f"Tech stack: {v['tech_stack']}")
         print(f"Summary: {v['ai_summary']}")
@@ -29,9 +29,16 @@ def run_test():
 
         patch_resp2 = client.patch(f"/api/vacancies/{vid}", json={
             "tags": ["python", "remote-eu", "applied-today"],
-            "notes": "Sent CV via recruiter on LinkedIn"
+            "notes": "Sent CV via recruiter on LinkedIn",
+            "salary_min": 90000,
+            "salary_max": 120000,
+            "salary_currency": "$",
+            "salary_period": "year",
         })
         print("Notes & tags:", patch_resp2.json()["notes"], patch_resp2.json()["tags"])
+        print("Salary info:", patch_resp2.json().get("salary_min"), patch_resp2.json().get("salary_period"))
+        assert patch_resp2.json()["salary_min"] == 90000
+        assert patch_resp2.json()["salary_period"] == "year"
 
     tags = client.get("/api/tags").json()
     print("Distinct tags in DB:", tags)
