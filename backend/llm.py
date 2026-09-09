@@ -148,10 +148,10 @@ async def analyze_vacancy_with_llm(
     provider = str(provider).strip().lower()
     language = str(language).strip().lower()
 
-    mistral_key = get_setting_or_env(db, "mistral_api_key", user_id=user_id)
-    gemini_key = get_setting_or_env(db, "gemini_api_key", user_id=user_id)
-    mistral_model = get_setting_or_env(db, "mistral_model", "mistral-small-latest", user_id=user_id)
-    gemini_model = get_setting_or_env(db, "gemini_model", "gemini-2.5-flash", user_id=user_id)
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     # Prompt constructing based on language
     if language.startswith("en"):

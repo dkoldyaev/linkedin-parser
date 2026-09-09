@@ -421,23 +421,15 @@ export default function App() {
         </div>
 
         <div className="header-actions">
-          {/* Real-time Queue & Mercure status indicators */}
-          <div className="status-indicators">
-            {queueRemaining > 0 && (
+          {/* Real-time Queue status indicator */}
+          {queueRemaining > 0 && (
+            <div className="status-indicators">
               <div className="queue-pill" title={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}>
                 <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
                 <span>{t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}</span>
               </div>
-            )}
-
-            <div 
-              className={`mercure-pill ${mercureStatus === 'connected' ? 'online' : 'connecting'}`}
-              title={mercureStatus === 'connected' ? t('nav.mercure_online') : t('nav.mercure_connecting')}
-            >
-              <span className={`pulse-dot ${mercureStatus === 'connected' ? '' : 'amber'}`} />
-              <span>{mercureStatus === 'connected' ? t('nav.mercure_online') : t('nav.mercure_connecting')}</span>
             </div>
-          </div>
+          )}
 
           <button className="btn btn-secondary btn-icon" onClick={() => fetchVacancies()} title={t('nav.refresh_btn')}>
             <RefreshCw size={16} />

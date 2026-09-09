@@ -452,7 +452,7 @@ async def batch_import_vacancies(
             # Scrape vacancy
             scraped = await scrape_linkedin_job(url)
             
-            llm_provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id).lower()
+            llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
 
             # Run LLM summarization
@@ -590,7 +590,7 @@ async def resummarize_vacancy(
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
     if not provider:
-        provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id).lower()
+        provider = os.getenv("LLM_PROVIDER")
 
     if not language:
         language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
@@ -703,22 +703,14 @@ def get_settings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    def _val(key: str, env_default: str = ""):
-        return get_setting_or_env(db, key, env_default, user_id=current_user.id)
-
-    provider = _val("llm_provider", "mistral")
-    mistral_key = _val("mistral_api_key", "")
-    gemini_key = _val("gemini_api_key", "")
-    mistral_model = _val("mistral_model", "mistral-small-latest")
-    gemini_model = _val("gemini_model", "gemini-2.5-flash")
-    locale = _val("locale", "ru")
+    locale = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id)
 
     return SettingsResponse(
-        llm_provider=provider,
-        mistral_api_key_set=bool(mistral_key),
-        mistral_model=mistral_model,
-        gemini_api_key_set=bool(gemini_key),
-        gemini_model=gemini_model,
+        llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
+        mistral_api_key_set=bool(os.getenv("MISTRAL_API_KEY", "")),
+        mistral_model=os.getenv("MISTRAL_MODEL", "mistral-small-latest"),
+        gemini_api_key_set=bool(os.getenv("GEMINI_API_KEY", "")),
+        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         locale=locale,
     )
 
@@ -729,32 +721,18 @@ def update_settings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    def _set(k: str, v: Optional[str]):
-        if v is not None:
-            setting = db.query(UserSetting).filter(
-                UserSetting.user_id == current_user.id,
-                UserSetting.key == k
-            ).first()
-            if not setting:
-                setting = UserSetting(user_id=current_user.id, key=k, value=v)
-                db.add(setting)
-            else:
-                setting.value = v
-
-    if payload.llm_provider:
-        _set("llm_provider", payload.llm_provider.lower())
-    if payload.mistral_api_key is not None:
-        _set("mistral_api_key", payload.mistral_api_key.strip())
-    if payload.mistral_model is not None:
-        _set("mistral_model", payload.mistral_model.strip())
-    if payload.gemini_api_key is not None:
-        _set("gemini_api_key", payload.gemini_api_key.strip())
-    if payload.gemini_model is not None:
-        _set("gemini_model", payload.gemini_model.strip())
     if payload.locale is not None:
-        _set("locale", payload.locale.strip().lower())
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "locale"
+        ).first()
+        if not setting:
+            setting = UserSetting(user_id=current_user.id, key="locale", value=payload.locale.strip().lower())
+            db.add(setting)
+        else:
+            setting.value = payload.locale.strip().lower()
+        db.commit()
 
-    db.commit()
     return get_settings(current_user=current_user, db=db)
 
 

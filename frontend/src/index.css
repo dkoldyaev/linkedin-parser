@@ -187,8 +187,11 @@ body {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  height: 38px;
+  padding: 0 16px;
+  box-sizing: border-box;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 500;
@@ -1028,10 +1031,12 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 6px 4px 10px;
+  height: 38px;
+  padding: 0 8px 0 10px;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
+  border-radius: var(--radius-md);
   margin-left: 6px;
   transition: all 0.2s ease;
 }
@@ -1078,7 +1083,7 @@ body {
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   border: none;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);

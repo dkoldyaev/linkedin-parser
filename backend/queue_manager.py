@@ -533,7 +533,7 @@ class RedisQueueManager:
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
                 user_id = task.user_id or (vacancy.user_id if vacancy else None)
-                provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=user_id).lower()
+                provider = os.getenv("LLM_PROVIDER")
                 language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
 
                 # Call LLM summarization with required provider and language

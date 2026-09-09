@@ -1,4 +1,5 @@
 import unittest
+import os
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.database import ensure_db_schema, SessionLocal, engine, Base
@@ -132,18 +133,14 @@ class TestAuthAndIsolation(unittest.TestCase):
         token_b = res_b.json()["token"]
         client_b = TestClient(app, cookies={COOKIE_NAME: token_b})
 
-        # 2. User A sets Gemini provider and English locale
+        # 2. User A sets English locale
         set_a = client_a.post("/api/settings", json={
-            "llm_provider": "gemini",
-            "gemini_model": "gemini-2.5-pro",
             "locale": "en"
         })
         self.assertEqual(set_a.status_code, 200)
 
-        # 3. User B sets Mistral provider and Russian locale
+        # 3. User B sets Russian locale
         set_b = client_b.post("/api/settings", json={
-            "llm_provider": "mistral",
-            "mistral_model": "mistral-large-latest",
             "locale": "ru"
         })
         self.assertEqual(set_b.status_code, 200)
@@ -152,13 +149,11 @@ class TestAuthAndIsolation(unittest.TestCase):
         settings_a = client_a.get("/api/settings").json()
         settings_b = client_b.get("/api/settings").json()
 
-        self.assertEqual(settings_a["llm_provider"], "gemini")
-        self.assertEqual(settings_a["gemini_model"], "gemini-2.5-pro")
         self.assertEqual(settings_a["locale"], "en")
-
-        self.assertEqual(settings_b["llm_provider"], "mistral")
-        self.assertEqual(settings_b["mistral_model"], "mistral-large-latest")
         self.assertEqual(settings_b["locale"], "ru")
+        expected_provider = os.getenv("LLM_PROVIDER", "mistral").lower()
+        self.assertEqual(settings_a["llm_provider"], expected_provider)
+        self.assertEqual(settings_b["llm_provider"], expected_provider)
 
     def test_mercure_user_scoped_topic(self):
         res_a = self.client.post("/api/auth/dev-login", json={"email": "user_a@test.com", "name": "User Alpha"})
