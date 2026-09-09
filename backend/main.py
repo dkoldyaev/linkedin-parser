@@ -1,6 +1,7 @@
 import os
 import uuid
 import logging
+import datetime
 from contextlib import asynccontextmanager
 from typing import List, Optional, Union
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
@@ -11,11 +12,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from .database import engine, Base, get_db, ensure_db_schema
-from .models import Vacancy, AppSetting, User, UserSetting, VALID_STATUSES
+from .models import Vacancy, VacancyStatusHistory, AppSetting, User, UserSetting, VALID_STATUSES
 from .schemas import (
     VacancyResponse,
     VacancyCreate,
     VacancyUpdate,
+    VacancyHistoryItem,
+    VacancyHistoryUpdate,
+    VacancyHistoryCreate,
     BatchImportRequest,
     BatchImportResponse,
     AsyncBatchImportResponse,
@@ -350,6 +354,17 @@ def create_vacancy(
     data["user_id"] = current_user.id
     v = Vacancy(**data)
     db.add(v)
+    db.flush()
+
+    # Record initial stage in history
+    history_entry = VacancyStatusHistory(
+        vacancy_id=v.id,
+        from_status=None,
+        to_status=v.status,
+        comment=None,
+        created_at=v.created_at,
+    )
+    db.add(history_entry)
     db.commit()
     db.refresh(v)
     return v
@@ -373,9 +388,103 @@ def update_vacancy(
             detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
         )
 
+    status_comment = update_data.pop("status_comment", None)
+    if "status" in update_data and update_data["status"] != v.status:
+        old_status = v.status
+        new_status = update_data["status"]
+        history_entry = VacancyStatusHistory(
+            vacancy_id=v.id,
+            from_status=old_status,
+            to_status=new_status,
+            comment=status_comment,
+            created_at=datetime.datetime.utcnow(),
+        )
+        db.add(history_entry)
+
     for field, val in update_data.items():
         setattr(v, field, val)
 
+    db.commit()
+    db.refresh(v)
+    return v
+
+
+@app.patch("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+def update_vacancy_history_comment(
+    vacancy_id: int,
+    history_id: int,
+    payload: VacancyHistoryUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    history_item = db.query(VacancyStatusHistory).filter(
+        VacancyStatusHistory.id == history_id,
+        VacancyStatusHistory.vacancy_id == v.id
+    ).first()
+    if not history_item:
+        raise HTTPException(status_code=404, detail="History record not found")
+
+    history_item.comment = payload.comment
+    history_item.updated_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(v)
+    return v
+
+
+@app.post("/api/vacancies/{vacancy_id}/history", response_model=VacancyResponse)
+def add_vacancy_history_entry(
+    vacancy_id: int,
+    payload: VacancyHistoryCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if payload.to_status not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+        )
+
+    history_entry = VacancyStatusHistory(
+        vacancy_id=v.id,
+        from_status=payload.from_status if payload.from_status is not None else v.status,
+        to_status=payload.to_status,
+        comment=payload.comment,
+        created_at=datetime.datetime.utcnow(),
+    )
+    v.status = payload.to_status
+    db.add(history_entry)
+    db.commit()
+    db.refresh(v)
+    return v
+
+
+@app.delete("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+def delete_vacancy_history_entry(
+    vacancy_id: int,
+    history_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    history_item = db.query(VacancyStatusHistory).filter(
+        VacancyStatusHistory.id == history_id,
+        VacancyStatusHistory.vacancy_id == v.id
+    ).first()
+    if not history_item:
+        raise HTTPException(status_code=404, detail="History record not found")
+
+    db.delete(history_item)
     db.commit()
     db.refresh(v)
     return v
@@ -545,6 +654,13 @@ async def batch_import_vacancies(
                     status="Еще не написан",
                 )
                 db.add(new_v)
+                db.flush()
+                db.add(VacancyStatusHistory(
+                    vacancy_id=new_v.id,
+                    from_status=None,
+                    to_status=new_v.status,
+                    created_at=new_v.created_at,
+                ))
                 db.commit()
                 db.refresh(new_v)
 

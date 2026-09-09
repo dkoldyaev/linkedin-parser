@@ -80,6 +80,27 @@ class Vacancy(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="vacancies")
+    history = relationship(
+        "VacancyStatusHistory",
+        back_populates="vacancy",
+        cascade="all, delete-orphan",
+        order_by="VacancyStatusHistory.created_at.asc()",
+        lazy="selectin",
+    )
+
+
+class VacancyStatusHistory(Base):
+    __tablename__ = "vacancy_status_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="CASCADE"), nullable=False, index=True)
+    from_status = Column(String(64), nullable=True)
+    to_status = Column(String(64), nullable=False)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    vacancy = relationship("Vacancy", back_populates="history")
 
 
 class AppSetting(Base):

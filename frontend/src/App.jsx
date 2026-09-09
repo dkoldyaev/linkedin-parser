@@ -328,6 +328,11 @@ export default function App() {
       if (!res.ok) {
         throw new Error('Update failed');
       }
+      const updatedVacancy = await res.json();
+      setVacancies(prev => prev.map(v => v.id === vacancyId ? updatedVacancy : v));
+      if (selectedVacancy && selectedVacancy.id === vacancyId) {
+        setSelectedVacancy(updatedVacancy);
+      }
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {

@@ -66,11 +66,33 @@ class VacancyUpdate(BaseModel):
     ai_summary: Optional[str] = None
     tech_stack: Optional[List[str]] = None
     company_info: Optional[str] = None
+    status_comment: Optional[str] = None
+
+class VacancyHistoryItem(BaseModel):
+    id: int
+    vacancy_id: int
+    from_status: Optional[str] = None
+    to_status: str
+    comment: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class VacancyHistoryUpdate(BaseModel):
+    comment: Optional[str] = None
+
+class VacancyHistoryCreate(BaseModel):
+    to_status: str
+    from_status: Optional[str] = None
+    comment: Optional[str] = None
 
 class VacancyResponse(VacancyBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    history: List[VacancyHistoryItem] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

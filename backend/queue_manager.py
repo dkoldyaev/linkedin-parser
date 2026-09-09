@@ -10,7 +10,7 @@ from dataclasses import dataclass, field, asdict
 import redis.asyncio as aioredis
 
 from .database import SessionLocal
-from .models import Vacancy, AppSetting
+from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import scrape_linkedin_job, extract_job_id
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
@@ -403,6 +403,13 @@ class RedisQueueManager:
                         status="Еще не написан",
                     )
                     db.add(new_v)
+                    db.flush()
+                    db.add(VacancyStatusHistory(
+                        vacancy_id=new_v.id,
+                        from_status=None,
+                        to_status=new_v.status,
+                        created_at=new_v.created_at,
+                    ))
                     db.commit()
                     db.refresh(new_v)
                     saved_vacancy = new_v

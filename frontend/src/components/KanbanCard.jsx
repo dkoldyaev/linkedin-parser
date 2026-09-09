@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  XCircle, RotateCcw
+  XCircle, RotateCcw, History
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -145,9 +145,27 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
       )}
 
       <div className="card-footer">
-        <span className="card-date">
-          {formatDate(vacancy.created_at)}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="card-date">
+            {formatDate(vacancy.created_at)}
+          </span>
+          {vacancy.history && vacancy.history.length > 0 && (
+            <span
+              className="card-history-indicator"
+              title={
+                vacancy.history.some(h => h.comment)
+                  ? t('vacancyModal.history_badge_with_comments', { count: vacancy.history.length })
+                  : t('vacancyModal.history_badge_hint', { count: vacancy.history.length })
+              }
+            >
+              <History size={11} />
+              <span>{vacancy.history.length}</span>
+              {vacancy.history.some(h => h.comment) && (
+                <span className="card-history-comment-dot" />
+              )}
+            </span>
+          )}
+        </div>
 
         {isRejected ? (
           <button

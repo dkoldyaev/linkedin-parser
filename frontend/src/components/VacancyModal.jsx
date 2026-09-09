@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
-  Laptop, Layers, Building, Ban
+  Laptop, Layers, Building, Ban, History, MessageSquare, ArrowRight, Edit3,
+  ChevronDown, ChevronUp, Copy
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -17,12 +18,24 @@ const COLUMNS = [
   "Отказ"
 ];
 
+const STAGE_COLORS = {
+  "Еще не написан": "#6366f1",
+  "Написал": "#0284c7",
+  "Собеседование": "#d97706",
+  "Тестовое": "#9333ea",
+  "Оффер": "#059669",
+  "Отказ": "#ef4444"
+};
+
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
-  const { t, locale } = useTranslation();
+  const { t, locale, formatDate } = useTranslation();
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
   const [notes, setNotes] = useState(vacancy?.notes || "");
+  const [editingHistoryId, setEditingHistoryId] = useState(null);
+  const [historyCommentText, setHistoryCommentText] = useState("");
+  const [savingHistoryId, setSavingHistoryId] = useState(null);
   const [techStack, setTechStack] = useState(vacancy?.tech_stack || []);
   const [newTechInput, setNewTechInput] = useState("");
   
@@ -41,6 +54,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [reparseSuccess, setReparseSuccess] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const [copiedDesc, setCopiedDesc] = useState(false);
 
   useEffect(() => {
     if (vacancy) {
@@ -55,22 +70,107 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setWorkplaceType(vacancy.workplace_type || '');
       setIsClosed(Boolean(vacancy.is_closed));
       setReparsing(false);
+      setEditingHistoryId(null);
+      setHistoryCommentText("");
+      setSavingHistoryId(null);
+      setIsDescExpanded(false);
+      setCopiedDesc(false);
     }
   }, [vacancy]);
+
+  const handleCopyDescription = (e) => {
+    e.stopPropagation();
+    if (vacancy?.description) {
+      navigator.clipboard.writeText(vacancy.description);
+      setCopiedDesc(true);
+      setTimeout(() => setCopiedDesc(false), 2000);
+    }
+  };
 
   if (!isOpen || !vacancy) return null;
 
   const handleStatusChange = async (newStatus) => {
     setStatus(newStatus);
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      onUpdate({ ...vacancy, status: newStatus });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated);
+      } else {
+        onUpdate({ ...vacancy, status: newStatus });
+      }
     } catch (err) {
       console.error('Failed to update status', err);
+    }
+  };
+
+  const handleSaveHistoryComment = async (historyId) => {
+    if (!historyId || historyId === 0) {
+      try {
+        setSavingHistoryId(historyId);
+        const res = await fetch(`/api/vacancies/${vacancy.id}/history`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_status: vacancy.status || 'Еще не написан',
+            comment: historyCommentText.trim() || null
+          })
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          onUpdate(updated);
+        }
+      } catch (err) {
+        console.error('Failed to create history comment', err);
+      } finally {
+        setSavingHistoryId(null);
+        setEditingHistoryId(null);
+        setHistoryCommentText('');
+      }
+      return;
+    }
+
+    try {
+      setSavingHistoryId(historyId);
+      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: historyCommentText.trim() || null })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated);
+      }
+    } catch (err) {
+      console.error('Failed to save history comment', err);
+    } finally {
+      setSavingHistoryId(null);
+      setEditingHistoryId(null);
+      setHistoryCommentText('');
+    }
+  };
+
+  const handleDeleteHistoryComment = async (historyId) => {
+    if (!historyId) return;
+    try {
+      setSavingHistoryId(historyId);
+      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: null })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated);
+      }
+    } catch (err) {
+      console.error('Failed to delete history comment', err);
+    } finally {
+      setSavingHistoryId(null);
     }
   };
 
@@ -724,6 +824,188 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </form>
           </div>
 
+          {/* Stage Movement History */}
+          <div className="form-group stage-history-section">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
+                <History size={15} color="#818cf8" />
+                <span>{t('vacancyModal.history_title')}</span>
+              </label>
+              {vacancy.history && vacancy.history.length > 0 && (
+                <span className="stage-count-badge">
+                  {t('vacancyModal.history_badge_hint', { count: vacancy.history.length })}
+                </span>
+              )}
+            </div>
+
+            {(!vacancy.history || vacancy.history.length === 0) ? (
+              <div className="stage-timeline-empty">
+                <History size={15} />
+                <span>{t('vacancyModal.history_empty')}</span>
+              </div>
+            ) : (
+              <div className="stage-timeline">
+                {vacancy.history.map((item, idx) => {
+                  const isCurrent = idx === vacancy.history.length - 1;
+                  const stageColor = STAGE_COLORS[item.to_status] || '#6366f1';
+                  const isEditingThis = editingHistoryId === item.id;
+                  const isSavingThis = savingHistoryId === item.id;
+                  const isLastItem = idx === vacancy.history.length - 1;
+
+                  return (
+                    <div key={item.id || idx} className={`stage-timeline-item ${isCurrent ? 'is-current' : ''}`}>
+                      {!isLastItem && <div className="stage-timeline-line" />}
+                      <div
+                        className="stage-timeline-dot"
+                        style={{
+                          borderColor: stageColor,
+                          backgroundColor: isCurrent ? stageColor : 'var(--bg-card)',
+                          boxShadow: isCurrent ? `0 0 8px ${stageColor}88` : 'none'
+                        }}
+                      />
+
+                      <div className="stage-timeline-content">
+                        <div className="stage-timeline-header">
+                          <div className="stage-badges-row">
+                            {item.from_status && item.from_status !== item.to_status ? (
+                              <div className="stage-transition-group">
+                                <span className="stage-badge stage-badge-from">
+                                  {t(`kanban.columns.${item.from_status}`)}
+                                </span>
+                                <ArrowRight size={11} className="stage-arrow-icon" />
+                                <span
+                                  className="stage-badge stage-badge-to"
+                                  style={{
+                                    borderColor: `${stageColor}50`,
+                                    color: stageColor,
+                                    backgroundColor: `${stageColor}18`
+                                  }}
+                                >
+                                  {t(`kanban.columns.${item.to_status}`)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span
+                                className="stage-badge stage-badge-to"
+                                style={{
+                                  borderColor: `${stageColor}50`,
+                                  color: stageColor,
+                                  backgroundColor: `${stageColor}18`
+                                }}
+                              >
+                                {t(`kanban.columns.${item.to_status}`)}
+                              </span>
+                            )}
+
+                            {isCurrent && (
+                              <span className="stage-current-pill">
+                                {t('vacancyModal.history_current')}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="stage-time">
+                            {formatDate(item.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {/* Comment section for this stage */}
+                        <div className="stage-comment-area">
+                          {isEditingThis ? (
+                            <div className="stage-comment-form">
+                              <textarea
+                                className="form-textarea stage-comment-input"
+                                rows={2}
+                                placeholder={t('vacancyModal.history_comment_placeholder')}
+                                value={historyCommentText}
+                                onChange={(e) => setHistoryCommentText(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="stage-comment-form-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                  onClick={() => handleSaveHistoryComment(item.id)}
+                                  disabled={isSavingThis}
+                                >
+                                  {isSavingThis ? (
+                                    <>
+                                      <Loader2 size={12} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                                      <span>{t('vacancyModal.history_saving')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={12} />
+                                      <span>{t('vacancyModal.history_save_comment')}</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                                  onClick={() => {
+                                    setEditingHistoryId(null);
+                                    setHistoryCommentText('');
+                                  }}
+                                  disabled={isSavingThis}
+                                >
+                                  <X size={12} />
+                                  <span>{t('vacancyModal.history_cancel')}</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : item.comment ? (
+                            <div className="stage-comment-bubble">
+                              <div className="stage-comment-text">
+                                <MessageSquare size={13} className="stage-comment-icon" />
+                                <span>{item.comment}</span>
+                              </div>
+                              <div className="stage-comment-tools">
+                                <button
+                                  type="button"
+                                  className="stage-tool-btn"
+                                  title={t('vacancyModal.history_edit_comment')}
+                                  onClick={() => {
+                                    setEditingHistoryId(item.id);
+                                    setHistoryCommentText(item.comment || '');
+                                  }}
+                                >
+                                  <Edit3 size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="stage-tool-btn stage-tool-btn-danger"
+                                  title={t('vacancyModal.history_delete_comment')}
+                                  onClick={() => handleDeleteHistoryComment(item.id)}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="stage-add-comment-btn"
+                              onClick={() => {
+                                setEditingHistoryId(item.id);
+                                setHistoryCommentText('');
+                              }}
+                            >
+                              <Plus size={11} />
+                              <span>{t('vacancyModal.history_add_comment')}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Personal Notes */}
           <div className="form-group">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -758,25 +1040,51 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Original Vacancy Description */}
-          <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileText size={14} />
-              <span>{t('vacancyModal.orig_description_title')}</span>
-            </label>
-            <div style={{
-              background: 'var(--bg-main)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '14px',
-              maxHeight: '260px',
-              overflowY: 'auto',
-              fontSize: '0.8125rem',
-              lineHeight: 1.6,
-              color: 'var(--text-secondary)',
-              whiteSpace: 'pre-wrap'
-            }}>
-              {vacancy.description || t('vacancyModal.not_specified')}
-            </div>
+          <div className="form-group orig-desc-section">
+            <button
+              type="button"
+              className={`orig-desc-header ${isDescExpanded ? 'is-expanded' : ''}`}
+              onClick={() => setIsDescExpanded(prev => !prev)}
+              aria-expanded={isDescExpanded}
+            >
+              <div className="orig-desc-header-title">
+                <FileText size={15} />
+                <span>{t('vacancyModal.orig_description_title')}</span>
+              </div>
+              <div className="orig-desc-header-action">
+                <span>{isDescExpanded ? t('vacancyModal.collapse') : t('vacancyModal.show_full')}</span>
+                {isDescExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </div>
+            </button>
+            {isDescExpanded && (
+              <div className="orig-desc-body">
+                {vacancy.description && (
+                  <div className="orig-desc-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary orig-desc-copy-btn"
+                      onClick={handleCopyDescription}
+                      title={t('vacancyModal.copy_description')}
+                    >
+                      {copiedDesc ? (
+                        <>
+                          <Check size={12} color="#10b981" />
+                          <span style={{ color: '#10b981' }}>{t('vacancyModal.copied')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>{t('vacancyModal.copy_description')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+                <div className="orig-desc-text">
+                  {vacancy.description || t('vacancyModal.not_specified')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

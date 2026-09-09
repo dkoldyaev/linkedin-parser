@@ -105,3 +105,27 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 
+    try:
+        with engine.begin() as conn:
+            dialect = engine.dialect.name
+            if dialect == "sqlite":
+                conn.execute(text("""
+                    INSERT INTO vacancy_status_history (vacancy_id, from_status, to_status, comment, created_at, updated_at)
+                    SELECT v.id, NULL, v.status, NULL, COALESCE(v.created_at, datetime('now')), COALESCE(v.created_at, datetime('now'))
+                    FROM vacancies v
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM vacancy_status_history h WHERE h.vacancy_id = v.id
+                    )
+                """))
+            elif dialect == "postgresql":
+                conn.execute(text("""
+                    INSERT INTO vacancy_status_history (vacancy_id, from_status, to_status, comment, created_at, updated_at)
+                    SELECT v.id, NULL, v.status, NULL, COALESCE(v.created_at, NOW()), COALESCE(v.created_at, NOW())
+                    FROM vacancies v
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM vacancy_status_history h WHERE h.vacancy_id = v.id
+                    )
+                """))
+    except Exception as e:
+        logger.warning(f"Backfill vacancy status history check: {e}")
+
