@@ -232,7 +232,7 @@ async def google_callback(
 @app.post("/api/auth/dev-login")
 def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depends(get_db)):
     dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
-    if not dev_enabled and is_google_configured():
+    if not dev_enabled:
         raise HTTPException(status_code=403, detail="Dev login is disabled in production")
     
     user = get_or_create_dev_user(db, email=payload.email or "dev@local.user", name=payload.name or "Dev User")

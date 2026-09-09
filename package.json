@@ -58,6 +58,7 @@
     "test:localization": "PYTHONPATH=. ./.venv/bin/python tests/test_localization.py",
     "test:all": "npm run check:python && npm run test:auth && npm run test:localization && npm run test:workplace && npm run test:salary && npm run test:closed && npm run test:locations && npm run test:backend && npm run frontend:build",
     "git:status": "git status",
+    "commit:oauth:fix": "git add backend/auth.py backend/main.py frontend/src/i18n/translations.js package.json && git commit -m 'fix: dynamic oauth env resolution and clear warning message for missing client secret'",
     "commit:auth": "git add backend/ frontend/ tests/ .env.example docker-compose.yml package.json && git commit -m 'feat: multi-user architecture with Google OAuth and isolated boards'",
     "commit:localization": "git add backend/ frontend/ tests/ package.json && git commit -m 'feat: add UI and LLM localization with Mercure constant events'",
     "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'",

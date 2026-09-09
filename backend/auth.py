@@ -27,8 +27,20 @@ GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
+def get_google_client_id() -> str:
+    return os.getenv("GOOGLE_CLIENT_ID", "").strip()
+
+
+def get_google_client_secret() -> str:
+    return os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+
+
+def get_google_redirect_uri() -> str:
+    return os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+
+
 def is_google_configured() -> bool:
-    return bool(GOOGLE_CLIENT_ID.strip() and GOOGLE_CLIENT_SECRET.strip())
+    return bool(get_google_client_id() and get_google_client_secret())
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -118,7 +130,7 @@ def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Option
 
 def get_google_auth_url(redirect_uri: str, state: str) -> str:
     params = {
-        "client_id": GOOGLE_CLIENT_ID,
+        "client_id": get_google_client_id(),
         "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
@@ -133,8 +145,8 @@ def get_google_auth_url(redirect_uri: str, state: str) -> str:
 async def exchange_google_code(code: str, redirect_uri: str) -> dict:
     data = {
         "code": code,
-        "client_id": GOOGLE_CLIENT_ID,
-        "client_secret": GOOGLE_CLIENT_SECRET,
+        "client_id": get_google_client_id(),
+        "client_secret": get_google_client_secret(),
         "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }

@@ -190,7 +190,7 @@ export const translations = {
       google_login: "Войти через Google",
       dev_login: "Тестовый вход (Dev режим)",
       dev_hint: "Для локальной разработки и тестирования",
-      google_not_configured: "Google OAuth не настроен в .env (GOOGLE_CLIENT_ID). Вы можете использовать Dev-вход.",
+      google_not_configured: "Google OAuth не настроен: укажите GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env.",
       logout: "Выйти",
       logged_in_as: "Вы вошли как",
     }
@@ -386,7 +386,7 @@ export const translations = {
       google_login: "Sign in with Google",
       dev_login: "Quick Dev Login",
       dev_hint: "For local development and testing without Google keys",
-      google_not_configured: "Google OAuth is not configured in .env (GOOGLE_CLIENT_ID). You can use Dev Mode login.",
+      google_not_configured: "Google OAuth is not configured: specify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
       logout: "Log out",
       logged_in_as: "Signed in as",
     }
