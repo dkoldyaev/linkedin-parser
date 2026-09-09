@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
   const { t } = useTranslation();
@@ -33,6 +34,12 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     setError(null);
     setResult(null);
 
+    trackEvent(EVENTS.BATCH_IMPORT_SUBMIT, {
+      urls_count: urls.length,
+      has_tags: defaultTags.length > 0,
+      tags_count: defaultTags.length
+    });
+
     try {
       const res = await fetch('/api/vacancies/batch', {
         method: 'POST',
@@ -48,6 +55,14 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       }
 
       const data = await res.json();
+      trackEvent(EVENTS.BATCH_IMPORT_SUCCESS, {
+        urls_count: urls.length,
+        status: data.status,
+        queued: data.queued,
+        imported: data.imported,
+        total: data.total
+      });
+
       setResult(data);
       setUrlsText('');
       setTagsInput('');
@@ -55,6 +70,9 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         onImportComplete();
       }
     } catch (err) {
+      trackEvent(EVENTS.BATCH_IMPORT_ERROR, {
+        error: err.message || t('common.error')
+      });
       setError(err.message || t('common.error'));
     } finally {
       setLoading(false);

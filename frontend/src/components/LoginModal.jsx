@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, AlertCircle, ArrowRight, User, Sparkles } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 export default function LoginModal({ onLoginSuccess }) {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export default function LoginModal({ onLoginSuccess }) {
   }, []);
 
   const handleGoogleLogin = () => {
+    trackEvent(EVENTS.LOGIN_GOOGLE_CLICK);
     window.location.href = '/api/auth/google/login';
   };
 
@@ -35,10 +37,17 @@ export default function LoginModal({ onLoginSuccess }) {
         throw new Error('Dev login failed');
       }
       const data = await res.json();
+      trackEvent(EVENTS.LOGIN_DEV_SUCCESS, {
+        userName: devName,
+        userEmail: devEmail
+      });
       if (onLoginSuccess) {
         onLoginSuccess(data.user);
       }
     } catch (err) {
+      trackEvent(EVENTS.LOGIN_DEV_ERROR, {
+        error: err.message || 'Login error'
+      });
       setError(err.message || 'Login error');
     } finally {
       setLoading(false);
@@ -67,7 +76,7 @@ export default function LoginModal({ onLoginSuccess }) {
         {/* Google OAuth Button */}
         <div className="login-actions">
           {authConfig.google_configured ? (
-            <button className="btn-google-login" onClick={handleGoogleLogin}>
+            <button className="btn-google-login plausible-event-name=Login+Google" onClick={handleGoogleLogin}>
               <svg width="20" height="20" viewBox="0 0 24 24" className="google-icon">
                 <path
                   fill="#4285F4"
@@ -126,7 +135,7 @@ export default function LoginModal({ onLoginSuccess }) {
 
               <button
                 type="submit"
-                className="btn-dev-login"
+                className="btn-dev-login plausible-event-name=Login+Dev"
                 disabled={loading}
               >
                 <Sparkles size={16} />

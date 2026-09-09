@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Settings, Check, Globe } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 export default function SettingsModal({ isOpen, onClose }) {
   const { t, locale, setLocale } = useTranslation();
@@ -39,6 +40,9 @@ export default function SettingsModal({ isOpen, onClose }) {
       });
 
       if (res.ok) {
+        trackEvent(EVENTS.LANGUAGE_CHANGE, {
+          locale: selectedLocale
+        });
         setLocale(selectedLocale);
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);

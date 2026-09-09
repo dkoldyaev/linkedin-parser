@@ -7,6 +7,7 @@ import {
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 const COLUMNS = [
   "Еще не написан",
@@ -35,15 +36,50 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
   const handleMoveLeft = (e) => {
     e.stopPropagation();
     if (currentIndex > 0) {
-      onStatusChange(vacancy.id, COLUMNS[currentIndex - 1]);
+      const targetStatus = COLUMNS[currentIndex - 1];
+      trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+        vacancy_id: vacancy.id,
+        company: vacancy.company,
+        from_status: vacancy.status,
+        to_status: targetStatus,
+        method: 'quick_arrow'
+      });
+      onStatusChange(vacancy.id, targetStatus);
     }
   };
 
   const handleMoveRight = (e) => {
     e.stopPropagation();
     if (currentIndex < COLUMNS.length - 1) {
-      onStatusChange(vacancy.id, COLUMNS[currentIndex + 1]);
+      const targetStatus = COLUMNS[currentIndex + 1];
+      trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+        vacancy_id: vacancy.id,
+        company: vacancy.company,
+        from_status: vacancy.status,
+        to_status: targetStatus,
+        method: 'quick_arrow'
+      });
+      onStatusChange(vacancy.id, targetStatus);
     }
+  };
+
+  const handleCardClick = () => {
+    trackEvent(EVENTS.VACANCY_CARD_CLICK, {
+      vacancy_id: vacancy.id,
+      company: vacancy.company,
+      status: vacancy.status,
+      is_closed: Boolean(vacancy.is_closed),
+      has_salary: salaryInfo.hasSalary
+    });
+    onClick(vacancy);
+  };
+
+  const handleCompanyLinkClick = (e) => {
+    e.stopPropagation();
+    trackEvent(EVENTS.COMPANY_LINK_CLICK, {
+      vacancy_id: vacancy.id,
+      company: vacancy.company
+    });
   };
 
   return (
@@ -52,7 +88,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onClick={() => onClick(vacancy)}
+      onClick={handleCardClick}
     >
       <div className="card-top">
         <div className="card-company">
@@ -63,7 +99,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
               href={vacancy.company_url} 
               target="_blank" 
               rel="noreferrer" 
-              onClick={e => e.stopPropagation()}
+              onClick={handleCompanyLinkClick}
               title={t('kanban.company_linkedin')}
             >
               <ExternalLink size={10} />
@@ -173,6 +209,12 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
             title={t('kanban.rejected_restore_hint')}
             onClick={(e) => {
               e.stopPropagation();
+              trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
+                vacancy_id: vacancy.id,
+                company: vacancy.company,
+                to_status: 'Еще не написан',
+                method: 'quick_restore_btn'
+              });
               onStatusChange(vacancy.id, 'Еще не написан');
             }}
           >
@@ -194,6 +236,12 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
               title={t('kanban.move_to_rejected')}
               onClick={(e) => {
                 e.stopPropagation();
+                trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
+                  vacancy_id: vacancy.id,
+                  company: vacancy.company,
+                  from_status: vacancy.status,
+                  method: 'quick_reject_btn'
+                });
                 onStatusChange(vacancy.id, 'Отказ');
               }}
             >

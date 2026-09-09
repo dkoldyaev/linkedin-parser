@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import KanbanCard from './KanbanCard';
 import { useTranslation } from '../i18n/I18nContext';
 import { ChevronDown, ChevronUp, Ban } from 'lucide-react';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 const COLUMNS = [
   { id: "Еще не написан", color: "#6366f1" },
@@ -36,7 +37,13 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
     setDragOverColumn(null);
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
-      onStatusChange(parseInt(vacancyId, 10), columnId);
+      const vid = parseInt(vacancyId, 10);
+      trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+        vacancy_id: vid,
+        to_status: columnId,
+        method: 'drag_and_drop'
+      });
+      onStatusChange(vid, columnId);
     }
   };
 
@@ -94,7 +101,10 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
       >
         <div
           className="kanban-rejected-header"
-          onClick={() => setIsRejectedCollapsed(prev => !prev)}
+          onClick={() => {
+            trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
+            setIsRejectedCollapsed(prev => !prev);
+          }}
         >
           <div className="column-title-group">
             <span className="column-dot" style={{ background: '#ef4444' }} />
@@ -112,6 +122,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
             className="rejected-collapse-btn"
             onClick={(e) => {
               e.stopPropagation();
+              trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
               setIsRejectedCollapsed(prev => !prev);
             }}
             title={isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}

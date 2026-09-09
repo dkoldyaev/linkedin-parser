@@ -8,6 +8,7 @@ import {
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 const COLUMNS = [
   "Еще не написан",
@@ -82,6 +83,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     e.stopPropagation();
     if (vacancy?.description) {
       navigator.clipboard.writeText(vacancy.description);
+      trackEvent(EVENTS.DESCRIPTION_COPY, { vacancy_id: vacancy.id });
       setCopiedDesc(true);
       setTimeout(() => setCopiedDesc(false), 2000);
     }
@@ -91,6 +93,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleStatusChange = async (newStatus) => {
     setStatus(newStatus);
+    trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+      vacancy_id: vacancy.id,
+      from_status: vacancy.status,
+      to_status: newStatus,
+      method: 'modal_button'
+    });
+    if (newStatus === 'Отказ') {
+      trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
+        vacancy_id: vacancy.id,
+        method: 'modal_status_button'
+      });
+    }
     try {
       const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
@@ -112,6 +126,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     if (!historyId || historyId === 0) {
       try {
         setSavingHistoryId(historyId);
+        trackEvent(EVENTS.HISTORY_COMMENT_ADD, {
+          vacancy_id: vacancy.id,
+          stage: vacancy.status
+        });
         const res = await fetch(`/api/vacancies/${vacancy.id}/history`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -136,6 +154,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
     try {
       setSavingHistoryId(historyId);
+      trackEvent(EVENTS.HISTORY_COMMENT_EDIT, {
+        vacancy_id: vacancy.id,
+        history_id: historyId
+      });
       const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -158,6 +180,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     if (!historyId) return;
     try {
       setSavingHistoryId(historyId);
+      trackEvent(EVENTS.HISTORY_COMMENT_DELETE, {
+        vacancy_id: vacancy.id,
+        history_id: historyId
+      });
       const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -177,6 +203,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleWorkplaceTypeChange = async (newType) => {
     const val = newType || null;
     setWorkplaceType(val || "");
+    trackEvent(EVENTS.WORKPLACE_CHANGE, {
+      vacancy_id: vacancy.id,
+      workplace_type: val || 'none'
+    });
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
@@ -192,6 +222,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleToggleClosed = async () => {
     const nextVal = !isClosed;
     setIsClosed(nextVal);
+    trackEvent(EVENTS.VACANCY_TOGGLE_CLOSED, {
+      vacancy_id: vacancy.id,
+      is_closed: nextVal
+    });
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
@@ -212,6 +246,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     const updatedTags = [...tags, clean];
     setTags(updatedTags);
     setNewTagInput("");
+    trackEvent(EVENTS.TAG_ADD, {
+      vacancy_id: vacancy.id,
+      tag: clean
+    });
 
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
@@ -228,6 +266,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleRemoveTag = async (tagToRemove) => {
     const updatedTags = tags.filter(t => t !== tagToRemove);
     setTags(updatedTags);
+    trackEvent(EVENTS.TAG_REMOVE, {
+      vacancy_id: vacancy.id,
+      tag: tagToRemove
+    });
 
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
@@ -249,6 +291,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     const updated = [...techStack, clean];
     setTechStack(updated);
     setNewTechInput("");
+    trackEvent(EVENTS.TECH_ADD, {
+      vacancy_id: vacancy.id,
+      tech: clean
+    });
 
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
@@ -265,6 +311,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleRemoveTech = async (techToRemove) => {
     const updated = techStack.filter(t => t !== techToRemove);
     setTechStack(updated);
+    trackEvent(EVENTS.TECH_REMOVE, {
+      vacancy_id: vacancy.id,
+      tech: techToRemove
+    });
 
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
@@ -280,6 +330,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleSaveSalary = async () => {
     setSavingSalary(true);
+    trackEvent(EVENTS.SALARY_SAVE, {
+      vacancy_id: vacancy.id,
+      currency: salaryCurrency || null,
+      period: salaryPeriod || null,
+      has_min: salaryMin !== '',
+      has_max: salaryMax !== ''
+    });
     try {
       const payload = {
         salary_min: salaryMin !== '' ? parseFloat(salaryMin) : null,
@@ -310,6 +367,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleSaveNotes = async () => {
     setSavingNotes(true);
+    trackEvent(EVENTS.NOTES_SAVE, {
+      vacancy_id: vacancy.id,
+      notes_length: notes.length
+    });
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
@@ -328,11 +389,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleResummarize = async () => {
     setResummarizing(true);
+    trackEvent(EVENTS.AI_RESUMMARIZE_CLICK, {
+      vacancy_id: vacancy.id,
+      language: locale
+    });
     try {
       const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
         method: 'POST'
       });
       if (res.ok) {
+        trackEvent(EVENTS.AI_RESUMMARIZE_SUCCESS, {
+          vacancy_id: vacancy.id
+        });
         const updated = await res.json();
         onUpdate(updated);
       }
@@ -348,6 +416,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     setReparsing(true);
     setReparseError(null);
     setReparseSuccess(false);
+    trackEvent(EVENTS.VACANCY_REPARSE_CLICK, {
+      vacancy_id: vacancy.id
+    });
     try {
       const res = await fetch(`/api/vacancies/${vacancy.id}/reparse`, {
         method: 'POST'
@@ -356,10 +427,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || t('common.error'));
       }
+      trackEvent(EVENTS.VACANCY_REPARSE_SUCCESS, {
+        vacancy_id: vacancy.id
+      });
       setReparseSuccess(true);
       setTimeout(() => setReparseSuccess(false), 3000);
     } catch (err) {
       console.error('Failed to reparse vacancy', err);
+      trackEvent(EVENTS.VACANCY_REPARSE_ERROR, {
+        vacancy_id: vacancy.id,
+        error: err.message || t('common.error')
+      });
       setReparseError(err.message || t('common.error'));
       setTimeout(() => setReparseError(null), 6000);
     } finally {
@@ -369,6 +447,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleDelete = async () => {
     if (window.confirm(t('vacancyModal.delete_confirm'))) {
+      trackEvent(EVENTS.VACANCY_DELETE, {
+        vacancy_id: vacancy.id,
+        company: vacancy.company,
+        status: vacancy.status
+      });
       try {
         await fetch(`/api/vacancies/${vacancy.id}`, { method: 'DELETE' });
         onDelete(vacancy.id);
@@ -400,7 +483,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {vacancy.company}
               </span>
               {vacancy.company_url && (
-                <a href={vacancy.company_url} target="_blank" rel="noreferrer" title={t('kanban.company_linkedin')} style={{ color: '#94a3b8' }}>
+                <a
+                  href={vacancy.company_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={t('kanban.company_linkedin')}
+                  style={{ color: '#94a3b8' }}
+                  onClick={() => trackEvent(EVENTS.COMPANY_LINK_CLICK, { vacancy_id: vacancy.id, company: vacancy.company })}
+                >
                   <ExternalLink size={12} />
                 </a>
               )}
@@ -474,6 +564,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               rel="noreferrer"
               className="btn btn-secondary" 
               style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+              onClick={() => trackEvent(EVENTS.VACANCY_LINK_CLICK, { vacancy_id: vacancy.id })}
             >
               <ExternalLink size={14} />
               <span>LinkedIn</span>
@@ -1044,7 +1135,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <button
               type="button"
               className={`orig-desc-header ${isDescExpanded ? 'is-expanded' : ''}`}
-              onClick={() => setIsDescExpanded(prev => !prev)}
+              onClick={() => {
+                trackEvent(EVENTS.DESCRIPTION_EXPAND, {
+                  vacancy_id: vacancy.id,
+                  expanded: !isDescExpanded
+                });
+                setIsDescExpanded(prev => !prev);
+              }}
               aria-expanded={isDescExpanded}
             >
               <div className="orig-desc-header-title">

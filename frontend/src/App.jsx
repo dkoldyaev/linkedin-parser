@@ -10,6 +10,7 @@ import VacancyModal from './components/VacancyModal';
 import SettingsModal from './components/SettingsModal';
 import LoginModal from './components/LoginModal';
 import { useTranslation } from './i18n/I18nContext';
+import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
 export default function App() {
   const { t } = useTranslation();
@@ -22,9 +23,11 @@ export default function App() {
   const [allCities, setAllCities] = useState([]);
   const [search, setSearch] = useState('');
   const onChangeSearch = (event) => {
-    setSearch(event.target.value);
+    const val = event.target.value;
+    setSearch(val);
   };
   const resetSearch = () => {
+    trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
     setSearch('');
   };
   const [selectedTag, setSelectedTag] = useState('');
@@ -56,12 +59,15 @@ export default function App() {
       if (res.ok) {
         const userData = await res.json();
         setUser(userData);
+        setAnalyticsUser(userData);
       } else {
         setUser(null);
+        setAnalyticsUser(null);
       }
     } catch (err) {
       console.debug('Auth check error', err);
       setUser(null);
+      setAnalyticsUser(null);
     } finally {
       setAuthLoading(false);
     }
@@ -72,12 +78,14 @@ export default function App() {
   }, [checkAuth]);
 
   const handleLogout = async () => {
+    trackEvent(EVENTS.LOGOUT);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Logout failed', err);
     }
     setUser(null);
+    setAnalyticsUser(null);
     setVacancies([]);
     setAllTags([]);
     setAllCountries([]);
@@ -147,12 +155,14 @@ export default function App() {
   }, [user]);
 
   const handleCountryChange = (country) => {
+    trackEvent(EVENTS.FILTER_COUNTRY, { country: country || 'all' });
     setSelectedCountry(country);
     setSelectedCity('');
     fetchCities(country);
   };
 
   const resetAllFilters = () => {
+    trackEvent(EVENTS.FILTERS_RESET);
     setSelectedTag('');
     setSelectedCountry('');
     setSelectedCity('');
@@ -378,7 +388,14 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginModal onLoginSuccess={(userData) => setUser(userData)} />;
+    return (
+      <LoginModal
+        onLoginSuccess={(userData) => {
+          setAnalyticsUser(userData);
+          setUser(userData);
+        }}
+      />
+    );
   }
 
   return (
@@ -436,15 +453,35 @@ export default function App() {
             </div>
           )}
 
-          <button className="btn btn-secondary btn-icon" onClick={() => fetchVacancies()} title={t('nav.refresh_btn')}>
+          <button
+            className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
+            onClick={() => {
+              trackEvent(EVENTS.REFRESH_CLICK);
+              fetchVacancies();
+            }}
+            title={t('nav.refresh_btn')}
+          >
             <RefreshCw size={16} />
           </button>
           
-          <button className="btn btn-secondary btn-icon" onClick={() => setIsSettingsOpen(true)} title={t('nav.settings_btn')}>
+          <button
+            className="btn btn-secondary btn-icon plausible-event-name=Settings+Open"
+            onClick={() => {
+              trackEvent(EVENTS.SETTINGS_OPEN);
+              setIsSettingsOpen(true);
+            }}
+            title={t('nav.settings_btn')}
+          >
             <Settings size={16} />
           </button>
 
-          <button className="btn btn-primary" onClick={() => setIsBatchOpen(true)}>
+          <button
+            className="btn btn-primary plausible-event-name=Batch+Import+Open"
+            onClick={() => {
+              trackEvent(EVENTS.BATCH_IMPORT_OPEN);
+              setIsBatchOpen(true);
+            }}
+          >
             <Plus size={16} />
             <span>{t('nav.batch_import_btn')}</span>
           </button>
@@ -500,7 +537,11 @@ export default function App() {
                 <select
                   className={`filter-select ${selectedCity ? 'active' : ''}`}
                   value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
+                  onChange={(e) => {
+                    const city = e.target.value;
+                    trackEvent(EVENTS.FILTER_CITY, { city: city || 'all' });
+                    setSelectedCity(city);
+                  }}
                   title={t('nav.filter_all_cities')}
                 >
                   <option value="">{t('nav.filter_all_cities')} ({allCities.length})</option>
@@ -522,7 +563,11 @@ export default function App() {
               <select
                 className={`filter-select ${selectedWorkplaceType ? 'active' : ''}`}
                 value={selectedWorkplaceType}
-                onChange={(e) => setSelectedWorkplaceType(e.target.value)}
+                onChange={(e) => {
+                  const wp = e.target.value;
+                  trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: wp || 'all' });
+                  setSelectedWorkplaceType(wp);
+                }}
                 title={t('nav.filter_all_workplaces')}
               >
                 <option value="">{t('nav.filter_all_workplaces')}</option>
@@ -548,7 +593,10 @@ export default function App() {
               </div>
               <button
                 className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
-                onClick={() => setSelectedTag('')}
+                onClick={() => {
+                  trackEvent(EVENTS.FILTER_TAG, { tag: 'all' });
+                  setSelectedTag('');
+                }}
               >
                 {t('nav.all_tags')} ({vacancies.length})
               </button>
@@ -556,7 +604,11 @@ export default function App() {
                 <button
                   key={tag}
                   className={`tag-filter-chip ${selectedTag === tag ? 'active' : ''}`}
-                  onClick={() => setSelectedTag(selectedTag === tag ? '' : tag)}
+                  onClick={() => {
+                    const nextTag = selectedTag === tag ? '' : tag;
+                    trackEvent(EVENTS.FILTER_TAG, { tag: nextTag || 'all' });
+                    setSelectedTag(nextTag);
+                  }}
                 >
                   #{tag}
                 </button>
