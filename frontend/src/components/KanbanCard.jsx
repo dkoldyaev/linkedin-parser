@@ -1,5 +1,9 @@
 import React from 'react';
-import { Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban } from 'lucide-react';
+import { 
+  Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, 
+  ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
+  XCircle, RotateCcw
+} from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
@@ -14,6 +18,7 @@ const COLUMNS = [
 
 export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
   const { t, formatDate } = useTranslation();
+  const isRejected = vacancy.status === "Отказ";
   const currentIndex = COLUMNS.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
@@ -43,7 +48,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
   return (
     <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''}`}
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -144,24 +149,48 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
           {formatDate(vacancy.created_at)}
         </span>
 
-        <div className="card-quick-actions">
+        {isRejected ? (
           <button
-            className="quick-move-btn"
-            title={t('kanban.move_left')}
-            disabled={currentIndex <= 0}
-            onClick={handleMoveLeft}
+            className="quick-restore-btn"
+            title={t('kanban.rejected_restore_hint')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onStatusChange(vacancy.id, 'Еще не написан');
+            }}
           >
-            <ChevronLeft size={14} />
+            <RotateCcw size={12} />
+            <span>{t('kanban.rejected_restore')}</span>
           </button>
-          <button
-            className="quick-move-btn"
-            title={t('kanban.move_right')}
-            disabled={currentIndex >= COLUMNS.length - 1}
-            onClick={handleMoveRight}
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
+        ) : (
+          <div className="card-quick-actions">
+            <button
+              className="quick-move-btn"
+              title={t('kanban.move_left')}
+              disabled={currentIndex <= 0}
+              onClick={handleMoveLeft}
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              className="quick-move-btn quick-reject-btn"
+              title={t('kanban.move_to_rejected')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusChange(vacancy.id, 'Отказ');
+              }}
+            >
+              <XCircle size={14} />
+            </button>
+            <button
+              className="quick-move-btn"
+              title={t('kanban.move_right')}
+              disabled={currentIndex >= COLUMNS.length - 1}
+              onClick={handleMoveRight}
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

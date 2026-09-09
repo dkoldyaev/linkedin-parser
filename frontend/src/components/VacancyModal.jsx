@@ -13,7 +13,8 @@ const COLUMNS = [
   "Написал",
   "Собеседование",
   "Тестовое",
-  "Оффер"
+  "Оффер",
+  "Отказ"
 ];
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
@@ -416,26 +417,48 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {t('vacancyModal.status_label')}
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {COLUMNS.map(col => (
-                  <button
-                    key={col}
-                    onClick={() => handleStatusChange(col)}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      borderColor: status === col ? 'var(--primary)' : 'var(--border-subtle)',
-                      background: status === col ? 'var(--primary-light)' : 'transparent',
-                      color: status === col ? '#a5b4fc' : 'var(--text-muted)',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {t(`kanban.columns.${col}`)}
-                  </button>
-                ))}
+                {COLUMNS.map(col => {
+                  const isSelected = status === col;
+                  const isRejectedCol = col === 'Отказ';
+                  let borderColor = 'var(--border-subtle)';
+                  let background = 'transparent';
+                  let color = 'var(--text-muted)';
+
+                  if (isSelected) {
+                    if (isRejectedCol) {
+                      borderColor = '#ef4444';
+                      background = 'rgba(239, 68, 68, 0.15)';
+                      color = '#fca5a5';
+                    } else {
+                      borderColor = 'var(--primary)';
+                      background = 'var(--primary-light)';
+                      color = '#a5b4fc';
+                    }
+                  } else if (isRejectedCol) {
+                    color = 'var(--text-muted)';
+                  }
+
+                  return (
+                    <button
+                      key={col}
+                      onClick={() => handleStatusChange(col)}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: '1px solid',
+                        borderColor,
+                        background,
+                        color,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {t(`kanban.columns.${col}`)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

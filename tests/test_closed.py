@@ -108,5 +108,39 @@ class TestClosedVacancy(unittest.TestCase):
         # Cleanup
         client.delete(f"/api/vacancies/{vid}")
 
+    def test_rejection_status_transition(self):
+        client = TestClient(app)
+        login_res = client.post("/api/auth/dev-login", json={"email": "rejection_test@local.user"})
+        token = login_res.json()["token"]
+        client = TestClient(app, cookies={"access_token": token})
+
+        # Create vacancy
+        res = client.post("/api/vacancies", json={
+            "title": "Full Stack Dev",
+            "company": "Reject Corp",
+            "url": "https://www.linkedin.com/jobs/view/8888888888",
+            "status": "Еще не написан"
+        })
+        self.assertEqual(res.status_code, 200)
+        vid = res.json()["id"]
+
+        # Move to 'Отказ'
+        patch_res = client.patch(f"/api/vacancies/{vid}", json={"status": "Отказ"})
+        self.assertEqual(patch_res.status_code, 200)
+        self.assertEqual(patch_res.json()["status"], "Отказ")
+
+        # Filter by 'Отказ'
+        filter_res = client.get("/api/vacancies?status=Отказ")
+        self.assertEqual(filter_res.status_code, 200)
+        self.assertTrue(any(v["id"] == vid for v in filter_res.json()))
+
+        # Restore to 'Еще не написан'
+        restore_res = client.patch(f"/api/vacancies/{vid}", json={"status": "Еще не написан"})
+        self.assertEqual(restore_res.status_code, 200)
+        self.assertEqual(restore_res.json()["status"], "Еще не написан")
+
+        # Cleanup
+        client.delete(f"/api/vacancies/{vid}")
+
 if __name__ == "__main__":
     unittest.main()
