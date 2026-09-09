@@ -169,5 +169,16 @@ class TestAuthAndIsolation(unittest.TestCase):
         cfg_a = client_a.get("/api/config").json()
         self.assertEqual(cfg_a["mercure_topic"], f"vacancies:{user_a_id}")
 
+    def test_google_auth_url_query_format(self):
+        from backend.auth import get_google_auth_url
+        url = get_google_auth_url(redirect_uri="http://localhost:8000/api/auth/google/callback", state="test_state_123")
+        self.assertIn("https://accounts.google.com/o/oauth2/v2/auth?", url)
+        self.assertIn("response_type=code", url)
+        self.assertIn("state=test_state_123", url)
+        # Ensure no malformed double keys like 'client_id=client_id=' or 'state=state='
+        self.assertNotIn("client_id=client_id=", url)
+        self.assertNotIn("state=state=", url)
+        self.assertNotIn("response_type=response_type=", url)
+
 if __name__ == "__main__":
     unittest.main()

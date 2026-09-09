@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+from urllib.parse import urlencode
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -138,8 +139,7 @@ def get_google_auth_url(redirect_uri: str, state: str) -> str:
         "prompt": "select_account",
         "state": state,
     }
-    encoded = "&".join(f"{k}={httpx.URL('', params={k: v}).query.decode('utf-8')}" for k, v in params.items())
-    return f"{GOOGLE_AUTH_ENDPOINT}?{encoded}"
+    return f"{GOOGLE_AUTH_ENDPOINT}?{urlencode(params)}"
 
 
 async def exchange_google_code(code: str, redirect_uri: str) -> dict:
