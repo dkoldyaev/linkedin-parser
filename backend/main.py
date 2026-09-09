@@ -156,7 +156,7 @@ def health_check():
 
 @app.get("/api/auth/config", response_model=AuthConfigResponse)
 def get_auth_config():
-    dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
     return AuthConfigResponse(
         google_configured=is_google_configured(),
         google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
