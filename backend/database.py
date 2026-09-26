@@ -9,9 +9,11 @@ logger = logging.getLogger("linkedin_tracker.database")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # Support postgres:// URL scheme from some cloud providers
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        
+    if DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
     # If running outside container on host, resolve host.docker.internal to localhost if needed
     if "host.docker.internal" in DATABASE_URL and not os.path.exists("/.dockerenv"):

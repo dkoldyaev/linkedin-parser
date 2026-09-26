@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
-from .scraper import scrape_linkedin_job, extract_job_id
+from .scraper import scrape_linkedin_job, scrape_upwork_job, extract_job_id
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
     publish_mercure_event,
@@ -326,8 +326,11 @@ class RedisQueueManager:
         logger.info(f"[Stage 1 - Scrape] Processing task {task.task_id} for URL: {task.url}")
 
         try:
-            # 1. Scrape LinkedIn publicly
-            scraped = await scrape_linkedin_job(task.url)
+            # 1. Scrape job publicly (LinkedIn or Upwork)
+            if "upwork.com" in task.url.lower():
+                scraped = await scrape_upwork_job(task.url)
+            else:
+                scraped = await scrape_linkedin_job(task.url)
 
             # 2. Save/update initial vacancy in Database immediately
             with SessionLocal() as db:

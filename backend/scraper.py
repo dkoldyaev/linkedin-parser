@@ -45,6 +45,11 @@ def extract_job_id(url: str) -> Optional[str]:
     if match:
         return match.group(1)
 
+    # Pattern 5: Upwork job ID
+    match = re.search(r"(~[a-zA-Z0-9]+)", url)
+    if match:
+        return match.group(1)
+
     return None
 
 
@@ -376,4 +381,102 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "salary_max": salary_data.get("salary_max"),
         "salary_currency": salary_data.get("salary_currency"),
         "salary_period": salary_data.get("salary_period"),
+    }
+
+async def fetch_upwork_html(url: str) -> str:
+    from selenium_driverless import webdriver
+    import asyncio
+
+    options = webdriver.ChromeOptions()
+    # options.headless = True # headless may trigger Cloudflare more easily on some setups, but required for Docker
+    # To run in docker successfully, we need headless and no-sandbox
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    
+    async with webdriver.Chrome(options=options) as driver:
+        await driver.get(url, wait_load=True)
+        # wait a bit for cloudflare challenge to resolve
+        await asyncio.sleep(6)
+        html = await driver.execute_script("return document.documentElement.outerHTML")
+        return html
+
+async def scrape_upwork_job(url: str) -> Dict[str, Any]:
+    url = url.strip()
+    job_id = extract_job_id(url)
+
+    html = await fetch_upwork_html(url)
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Upwork job title is often in h1 or h4 with class m-0
+    title_elem = soup.find("h1") or soup.find("h4")
+    title = title_elem.get_text(strip=True) if title_elem else "Upwork Vacancy"
+
+    company = "Upwork Client"
+    company_url = None
+    company_info = ""
+
+    # Upwork location is usually worldwide or specific regions
+    location = "Worldwide"
+    city = None
+    country = "Worldwide"
+
+    # Job description
+    desc_elem = soup.find("div", {"data-test": "Description"}) or soup.find("div", class_=lambda c: c and "job-description" in c)
+    description = clean_text(desc_elem) if desc_elem else clean_text(soup.body)
+
+    # Skills / Tags
+    skills = []
+    for token in soup.find_all(class_=lambda c: c and "token" in c.lower()):
+        span = token.find("span") or token
+        text = span.get_text(strip=True)
+        if text and text not in skills and len(text) < 40 and not text.startswith("<"):
+            skills.append(text)
+            
+    if skills:
+        description += "\n\n--- Skills ---\n" + ", ".join(skills)
+
+    # Salary Extraction
+    salary_min = None
+    salary_max = None
+    salary_period = "hour"
+    
+    # Check for clock-timelog (Hourly) or fixed-price (Fixed)
+    for li in soup.find_all("li"):
+        icon = li.find(attrs={"data-cy": lambda v: v and v in ["clock-timelog", "fixed-price"]})
+        if icon:
+            text = li.get_text(separator=" ", strip=True)
+            description += f"\n\n--- Budget ---\n{text}"
+            
+            # Extract numbers
+            numbers = re.findall(r"([\d,]+\.?\d*)", text.replace(",", ""))
+            if len(numbers) >= 2:
+                salary_min = float(numbers[0])
+                salary_max = float(numbers[1])
+            elif len(numbers) == 1:
+                salary_min = float(numbers[0])
+                salary_max = float(numbers[0])
+                
+            if "fixed" in text.lower() or "budget" in text.lower():
+                salary_period = "project"
+            break
+
+    return {
+        "job_id": job_id,
+        "url": url,
+        "title": title,
+        "company": company,
+        "company_url": company_url,
+        "company_info": company_info,
+        "location": location,
+        "city": city,
+        "country": country,
+        "description": description,
+        "workplace_type": "remote", # Upwork is almost always remote
+        "is_closed": False,
+        "salary_min": salary_min,
+        "salary_max": salary_max,
+        "salary_currency": "$",
+        "salary_period": salary_period,
     }

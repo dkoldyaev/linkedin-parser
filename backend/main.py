@@ -44,7 +44,7 @@ from .auth import (
     COOKIE_NAME,
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
-from .scraper import scrape_linkedin_job, extract_job_id
+from .scraper import scrape_linkedin_job, scrape_upwork_job, extract_job_id
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import get_mercure_public_url
@@ -559,7 +559,10 @@ async def batch_import_vacancies(
                 ).first()
 
             # Scrape vacancy
-            scraped = await scrape_linkedin_job(url)
+            if "upwork.com" in url.lower():
+                scraped = await scrape_upwork_job(url)
+            else:
+                scraped = await scrape_linkedin_job(url)
             
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
