@@ -24,6 +24,7 @@ from .schemas import (
     BatchImportResponse,
     AsyncBatchImportResponse,
     QueueStatusResponse,
+    TaskInfo,
     ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
