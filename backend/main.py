@@ -44,7 +44,7 @@ from .auth import (
     COOKIE_NAME,
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
-from .scraper import scrape_linkedin_job, scrape_upwork_job, extract_job_id
+from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import get_mercure_public_url
@@ -523,10 +523,51 @@ async def batch_import_vacancies(
             seen.add(u)
             unique_urls.append(u)
 
+    vacancy_ids = []
+    for url in unique_urls:
+        job_id = extract_job_id(url)
+        existing = None
+        if job_id:
+            existing = db.query(Vacancy).filter(
+                Vacancy.job_id == job_id,
+                Vacancy.user_id == current_user.id,
+            ).first()
+        if not existing:
+            existing = db.query(Vacancy).filter(
+                Vacancy.url == url,
+                Vacancy.user_id == current_user.id,
+            ).first()
+
+        if not existing:
+            v = Vacancy(
+                user_id=current_user.id,
+                job_id=job_id,
+                url=url,
+                title=url,
+                company="Upwork" if "upwork.com" in url else "Загрузка...",
+                status="Еще не написан",
+                tags=payload.default_tags,
+            )
+            db.add(v)
+            db.flush()
+            history_entry = VacancyStatusHistory(
+                vacancy_id=v.id,
+                from_status=None,
+                to_status=v.status,
+                comment=None,
+                created_at=v.created_at,
+            )
+            db.add(history_entry)
+            db.commit()
+            db.refresh(v)
+            vacancy_ids.append(v.id)
+        else:
+            vacancy_ids.append(existing.id)
+
     if not wait:
         # Default: Asynchronous queue processing
         batch_id, tasks = await queue_manager.enqueue(
-            unique_urls, payload.default_tags, user_id=current_user.id
+            unique_urls, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
         )
         return AsyncBatchImportResponse(
             status="queued",
@@ -561,8 +602,10 @@ async def batch_import_vacancies(
             # Scrape vacancy
             if "upwork.com" in url.lower():
                 scraped = await scrape_upwork_job(url)
-            else:
+            elif "linkedin.com" in url.lower():
                 scraped = await scrape_linkedin_job(url)
+            else:
+                scraped = await scrape_universal_job(url)
             
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
@@ -641,7 +684,7 @@ async def batch_import_vacancies(
                     company=scraped["company"],
                     company_url=scraped["company_url"],
                     company_info=llm_res.get("company_info") or scraped.get("company_info"),
-                    location=scraped["location"],
+                    location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped["location"],
                     city=scraped.get("city"),
                     country=scraped["country"],
                     description=scraped["description"],
@@ -725,6 +768,10 @@ async def resummarize_vacancy(
         user_id=current_user.id,
     )
 
+    if llm_res.get("title") and (not v.title or v.title.startswith("http") or v.title == "Не удалось загрузить страницу"):
+        v.title = llm_res["title"]
+    if llm_res.get("location") and (not v.location or v.location == "Not specified"):
+        v.location = llm_res["location"]
     if llm_res.get("summary"):
         v.ai_summary = llm_res["summary"]
     if llm_res.get("tech_stack"):
@@ -762,7 +809,7 @@ async def reparse_vacancy(
         raise HTTPException(status_code=400, detail="У вакансии отсутствует ссылка (URL)")
 
     batch_id, tasks = await queue_manager.enqueue(
-        [v.url], default_tags=[], vacancy_id=v.id, user_id=current_user.id
+        [v.url], default_tags=[], vacancy_ids=[v.id], user_id=current_user.id
     )
     return {
         "status": "queued",

@@ -67,6 +67,10 @@
     "commit:salary": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/utils/salary.js frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_salary.py tests/test_integration.py package.json && git commit -m 'feat: extract and calculate monthly salary on vacancy cards'",
     "commit:workplace": "git add backend/database.py backend/llm.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/App.jsx frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/utils/workplace.js frontend/src/index.css tests/test_workplace.py package.json && git commit -m 'feat: add workplace type (remote, hybrid, on-site) and filter'",
     "commit:closed": "git add backend/database.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_closed.py package.json && git commit -m 'feat: add closed vacancy status parsing and card design'",
+    "dokploy:configure-dev": "npx tsx scripts/configure-dokploy-dev.ts",
+    "dokploy:deploy": "node scripts/create-dokploy-env.mjs",
+    "dokploy:destroy": "node scripts/destroy-dokploy-env.mjs",
+    "read:dokploy:logs": "node scripts/read-dokploy-logs.mjs",
     "commit:all": "git add -A && git commit -m 'feat: add closed vacancy status parsing and card design'"
   }
 }

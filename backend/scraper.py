@@ -383,100 +383,95 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
         "salary_period": salary_data.get("salary_period"),
     }
 
-async def fetch_upwork_html(url: str) -> str:
-    from selenium_driverless import webdriver
-    import asyncio
-
-    options = webdriver.ChromeOptions()
-    # options.headless = True # headless may trigger Cloudflare more easily on some setups, but required for Docker
-    # To run in docker successfully, we need headless and no-sandbox
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    
-    async with webdriver.Chrome(options=options) as driver:
-        await driver.get(url, wait_load=True)
-        # wait a bit for cloudflare challenge to resolve
-        await asyncio.sleep(6)
-        html = await driver.execute_script("return document.documentElement.outerHTML")
-        return html
-
 async def scrape_upwork_job(url: str) -> Dict[str, Any]:
     url = url.strip()
     job_id = extract_job_id(url)
 
-    html = await fetch_upwork_html(url)
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Upwork job title is often in h1 or h4 with class m-0
-    title_elem = soup.find("h1") or soup.find("h4")
-    title = title_elem.get_text(strip=True) if title_elem else "Upwork Vacancy"
-
-    company = "Upwork Client"
-    company_url = None
-    company_info = ""
-
-    # Upwork location is usually worldwide or specific regions
-    location = "Worldwide"
-    city = None
-    country = "Worldwide"
-
-    # Job description
-    desc_elem = soup.find("div", {"data-test": "Description"}) or soup.find("div", class_=lambda c: c and "job-description" in c)
-    description = clean_text(desc_elem) if desc_elem else clean_text(soup.body)
-
-    # Skills / Tags
-    skills = []
-    for token in soup.find_all(class_=lambda c: c and "token" in c.lower()):
-        span = token.find("span") or token
-        text = span.get_text(strip=True)
-        if text and text not in skills and len(text) < 40 and not text.startswith("<"):
-            skills.append(text)
-            
-    if skills:
-        description += "\n\n--- Skills ---\n" + ", ".join(skills)
-
-    # Salary Extraction
-    salary_min = None
-    salary_max = None
-    salary_period = "hour"
-    
-    # Check for clock-timelog (Hourly) or fixed-price (Fixed)
-    for li in soup.find_all("li"):
-        icon = li.find(attrs={"data-cy": lambda v: v and v in ["clock-timelog", "fixed-price"]})
-        if icon:
-            text = li.get_text(separator=" ", strip=True)
-            description += f"\n\n--- Budget ---\n{text}"
-            
-            # Extract numbers
-            numbers = re.findall(r"([\d,]+\.?\d*)", text.replace(",", ""))
-            if len(numbers) >= 2:
-                salary_min = float(numbers[0])
-                salary_max = float(numbers[1])
-            elif len(numbers) == 1:
-                salary_min = float(numbers[0])
-                salary_max = float(numbers[0])
-                
-            if "fixed" in text.lower() or "budget" in text.lower():
-                salary_period = "project"
-            break
+    if job_id and job_id.startswith("~"):
+        url = f"https://www.upwork.com/jobs/{job_id}"
 
     return {
         "job_id": job_id,
         "url": url,
-        "title": title,
-        "company": company,
-        "company_url": company_url,
-        "company_info": company_info,
-        "location": location,
-        "city": city,
-        "country": country,
-        "description": description,
-        "workplace_type": "remote", # Upwork is almost always remote
+        "title": url,
+        "company": "Upwork",
+        "company_url": None,
+        "company_info": "",
+        "location": "Worldwide",
+        "city": None,
+        "country": "Worldwide",
+        "description": "скопируйте текст вручную: Cmd+A Cmd+C Cmd+V и нажмите перегенерировать AI",
+        "workplace_type": "remote",
         "is_closed": False,
-        "salary_min": salary_min,
-        "salary_max": salary_max,
+        "salary_min": None,
+        "salary_max": None,
         "salary_currency": "$",
-        "salary_period": salary_period,
+        "salary_period": "hour",
+    }
+
+
+async def scrape_universal_job(url: str) -> Dict[str, Any]:
+    """
+    Universal fallback parser that downloads the page and extracts text for LLM.
+    """
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.replace("www.", "")
+    
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            html = resp.text
+    except Exception as e:
+        logger.warning(f"Failed to fetch {url}: {e}")
+        html = ""
+
+    if not html:
+        return {
+            "url": url,
+            "title": "Не удалось загрузить страницу",
+            "company": domain,
+            "company_url": f"https://{domain}",
+            "location": "Not specified",
+            "city": None,
+            "country": None,
+            "description": "",
+            "is_closed": False,
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "salary_period": None,
+        }
+
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    title = soup.title.string if soup.title else ""
+    title = title.strip() if title else domain
+
+    # Remove noisy tags
+    for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg"]):
+        tag.decompose()
+
+    # Prefer main or article if available
+    content_node = soup.find("main") or soup.find("article") or soup.find("body") or soup
+    
+    # Extract text with newlines
+    lines = (line.strip() for line in content_node.get_text(separator="\n").splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    text = "\n".join(chunk for chunk in chunks if chunk)
+
+    return {
+        "url": url,
+        "title": title[:255],
+        "company": domain,
+        "company_url": f"https://{domain}",
+        "description": text[:15000],  # Limit to avoid huge context
+        "location": "Not specified",
+        "city": None,
+        "country": None,
+        "is_closed": False,
+        "salary_min": None,
+        "salary_max": None,
+        "salary_currency": None,
+        "salary_period": None,
     }

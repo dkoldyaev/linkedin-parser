@@ -54,6 +54,7 @@ class VacancyUpdate(BaseModel):
     location: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
+    description: Optional[str] = None
     workplace_type: Optional[str] = None
     is_closed: Optional[bool] = None
     status: Optional[str] = None

@@ -57,6 +57,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const [copiedDesc, setCopiedDesc] = useState(false);
+  const [description, setDescription] = useState(vacancy?.description || "");
+  const [title, setTitle] = useState(vacancy?.title || "");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [savedTitleSuccess, setSavedTitleSuccess] = useState(false);
+  const [savingDescription, setSavingDescription] = useState(false);
+  const [savedDescriptionSuccess, setSavedDescriptionSuccess] = useState(false);
 
   useEffect(() => {
     if (vacancy) {
@@ -76,6 +82,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSavingHistoryId(null);
       setIsDescExpanded(false);
       setCopiedDesc(false);
+      setDescription(vacancy.description || "");
+      setTitle(vacancy.title || "");
     }
   }, [vacancy]);
 
@@ -283,6 +291,28 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
+  const handleSaveDescription = async () => {
+    try {
+      setSavingDescription(true);
+      trackEvent(EVENTS.DESCRIPTION_EDIT, { vacancy_id: vacancy.id });
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate(updated);
+        setSavedDescriptionSuccess(true);
+        setTimeout(() => setSavedDescriptionSuccess(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save description', err);
+    } finally {
+      setSavingDescription(false);
+    }
+  };
+
   const handleAddTech = async (e) => {
     e.preventDefault();
     const clean = newTechInput.trim();
@@ -362,6 +392,26 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       console.error('Failed to save salary', err);
     } finally {
       setSavingSalary(false);
+    }
+  };
+
+  const handleSaveTitle = async () => {
+    setSavingTitle(true);
+    try {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      if (res.ok) {
+        onUpdate(await res.json());
+        setSavedTitleSuccess(true);
+        setTimeout(() => setSavedTitleSuccess(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save title', err);
+    } finally {
+      setSavingTitle(false);
     }
   };
 
@@ -521,9 +571,20 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               )}
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              {vacancy.title}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <input
+                type="text"
+                className="input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                style={{ fontSize: '1.25rem', fontWeight: 700, padding: '4px 8px', flex: 1, color: 'var(--text-primary)', border: '1px solid transparent', background: 'transparent' }}
+                title="Нажмите, чтобы редактировать"
+              />
+              {savingTitle && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+              {savedTitleSuccess && <Check size={16} color="#10b981" />}
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -567,7 +628,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               onClick={() => trackEvent(EVENTS.VACANCY_LINK_CLICK, { vacancy_id: vacancy.id })}
             >
               <ExternalLink size={14} />
-              <span>LinkedIn</span>
+              <span>{
+                (() => {
+                  if (!vacancy.url) return 'Link';
+                  try {
+                    const hn = new URL(vacancy.url).hostname;
+                    if (hn.includes('linkedin.com')) return 'LinkedIn';
+                    if (hn.includes('upwork.com')) return 'Upwork';
+                    if (hn.includes('hh.ru')) return 'HeadHunter';
+                    return hn.replace(/^www\./, '');
+                  } catch(e) { return 'Link'; }
+                })()
+              }</span>
             </a>
             <button className="btn-icon" onClick={onClose}>
               <X size={18} />
@@ -1155,8 +1227,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </button>
             {isDescExpanded && (
               <div className="orig-desc-body">
-                {vacancy.description && (
-                  <div className="orig-desc-actions">
+                <div className="orig-desc-actions" style={{ justifyContent: 'space-between', display: 'flex', marginBottom: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleSaveDescription}
+                    disabled={savingDescription}
+                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                  >
+                    {savedDescriptionSuccess ? (
+                      <>
+                        <Check size={12} color="#10b981" />
+                        <span style={{ color: '#10b981' }}>Сохранено</span>
+                      </>
+                    ) : (
+                      <span>Сохранить текст</span>
+                    )}
+                  </button>
+                  {vacancy.description && (
                     <button
                       type="button"
                       className="btn btn-secondary orig-desc-copy-btn"
@@ -1175,11 +1263,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         </>
                       )}
                     </button>
-                  </div>
-                )}
-                <div className="orig-desc-text">
-                  {vacancy.description || t('vacancyModal.not_specified')}
+                  )}
                 </div>
+                <textarea
+                  className="form-textarea"
+                  style={{ minHeight: '150px', width: '100%', fontSize: '0.8125rem' }}
+                  placeholder="Вставьте текст вакансии сюда..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                />
               </div>
             )}
           </div>

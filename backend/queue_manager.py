@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
-from .scraper import scrape_linkedin_job, scrape_upwork_job, extract_job_id
+from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
     publish_mercure_event,
@@ -162,7 +162,7 @@ class RedisQueueManager:
         self,
         urls: List[str],
         default_tags: List[str],
-        vacancy_id: Optional[int] = None,
+        vacancy_ids: Optional[List[int]] = None,
         user_id: Optional[int] = None,
     ) -> Tuple[str, List[JobTask]]:
         """Add URLs to Stage 1 (Scraping) queue in Redis. Returns (batch_id, list_of_tasks)."""
@@ -173,12 +173,13 @@ class RedisQueueManager:
         new_tasks = []
 
         async with self.redis.pipeline(transaction=True) as pipe:
-            for url in urls:
+            for i, url in enumerate(urls):
                 clean_url = url.strip()
                 if not clean_url:
                     continue
 
                 task_id = uuid.uuid4().hex[:8]
+                v_id = vacancy_ids[i] if vacancy_ids and i < len(vacancy_ids) else None
                 task = JobTask(
                     task_id=task_id,
                     url=clean_url,
@@ -186,7 +187,7 @@ class RedisQueueManager:
                     batch_id=batch_id,
                     status="pending",
                     stage="scraping",
-                    vacancy_id=vacancy_id,
+                    vacancy_id=v_id,
                     user_id=user_id,
                 )
                 new_tasks.append(task)
@@ -329,8 +330,10 @@ class RedisQueueManager:
             # 1. Scrape job publicly (LinkedIn or Upwork)
             if "upwork.com" in task.url.lower():
                 scraped = await scrape_upwork_job(task.url)
-            else:
+            elif "linkedin.com" in task.url.lower():
                 scraped = await scrape_linkedin_job(task.url)
+            else:
+                scraped = await scrape_universal_job(task.url)
 
             # 2. Save/update initial vacancy in Database immediately
             with SessionLocal() as db:
@@ -445,14 +448,32 @@ class RedisQueueManager:
             )
 
             # 4. Enqueue into Stage 2 (AI Queue)
-            task.stage = "ai_analysis"
-            task.status = "pending"
-            task.updated_at = time.time()
+            if "upwork.com" in task.url.lower():
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    await pipe.execute()
+                
+                total_rem = await self._calculate_total_remaining()
+                if total_rem == 0:
+                    asyncio.create_task(
+                        publish_mercure_event(
+                            event_type=EVENT_QUEUE_IDLE,
+                            data={"message_code": MSG_QUEUE_IDLE, "total_remaining": 0}
+                        )
+                    )
+            else:
+                task.stage = "ai_analysis"
+                task.status = "pending"
+                task.updated_at = time.time()
 
-            async with self.redis.pipeline(transaction=True) as pipe:
-                pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                pipe.rpush(AI_QUEUE_KEY, task_id)
-                await pipe.execute()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.rpush(AI_QUEUE_KEY, task_id)
+                    await pipe.execute()
 
         except Exception as e:
             task.status = "failed"
@@ -559,6 +580,10 @@ class RedisQueueManager:
                 )
 
                 # Update vacancy in DB
+                if llm_res.get("title") and (not vacancy.title or vacancy.title.startswith("http") or vacancy.title == "Не удалось загрузить страницу"):
+                    vacancy.title = llm_res["title"]
+                if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
+                    vacancy.location = llm_res["location"]
                 if llm_res.get("summary"):
                     vacancy.ai_summary = llm_res["summary"]
                 if llm_res.get("tech_stack"):

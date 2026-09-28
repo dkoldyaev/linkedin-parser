@@ -185,6 +185,8 @@ Job Description:
 
 Respond strictly in JSON format with the following fields:
 {{
+  "title": "Exact job title extracted from the description, or use original if not found",
+  "location": "Extract city/country/location from description, if present. Otherwise null.",
   "summary": "Concise and to the point: core tasks without filler phrases (e.g.: 'Develop UI components, optimize rendering performance, and expand the design system').",
   "tech_stack": ["tech 1", "tech 2"],
   "company_info": "1-2 sentences about what the company does / what product it builds.",
@@ -225,6 +227,8 @@ Respond strictly in JSON format with the following fields:
 
 Ответь строго в формате JSON со следующими полями:
 {{
+  "title": "Точное название должности (извлеки из описания, если есть, иначе используй оригинальное)",
+  "location": "Извлеки город/страну/локацию из описания, если указано. Иначе null.",
   "summary": "Кратко и по делу: суть задач без вводных слов и штампов (например: 'Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему').",
   "tech_stack": ["название технологии 1", "технология 2"],
   "company_info": "1-2 предложения о том, чем занимается компания/какой продукт делает (из текста вакансии или контекста).",
@@ -261,6 +265,8 @@ Respond strictly in JSON format with the following fields:
             fallback_comp = f"Компания {company} ({location})" if company else ""
 
         return {
+            "title": None,
+            "location": None,
             "summary": fallback_summary,
             "tech_stack": fallback_stack,
             "company_info": fallback_comp,
@@ -322,6 +328,8 @@ Respond strictly in JSON format with the following fields:
                 clean_period = "day"
 
         return {
+            "title": data.get("title", "").strip() or None,
+            "location": data.get("location", "").strip() or None,
             "summary": data.get("summary", "").strip(),
             "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
             "company_info": data.get("company_info", "").strip(),
@@ -335,6 +343,8 @@ Respond strictly in JSON format with the following fields:
     except Exception as e:
         logger.error(f"Failed to parse LLM JSON output: {raw_response}. Error: {e}")
         return {
+            "title": None,
+            "location": None,
             "summary": raw_response[:300] if raw_response else "",
             "tech_stack": extract_fallback_tech_stack(description),
             "company_info": "",
