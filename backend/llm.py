@@ -250,6 +250,11 @@ Rules for is_closed flag:
 - Analyze the text for phrases indicating that the job is closed, no longer accepting applications, or filled (e.g. "No longer accepting applications", "Role closed", "Position filled", "Не принимает отклики", etc.).
 - Set "is_closed": true if such phrases are found, otherwise false.
 
+Rules for location, city, and country:
+- Always translate "city" and "country" into English (e.g. if the text says "Москва, Россия", output "city": "Moscow", "country": "Russia").
+- The "location", "city", and "country" MUST ALWAYS BE STRICTLY IN ENGLISH, regardless of the target language for the summary.
+
+
 Job Title: {title or "--check the description--"}
 Company: {company or "--check the description--"}
 Location: {location or "--check the description--"}
