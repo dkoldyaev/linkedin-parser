@@ -17,7 +17,7 @@ const COLUMNS = [
   "Оффер"
 ];
 
-export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
+export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelected, onToggleSelect }) {
   const { t, formatDate, salaryDisplayFormat } = useTranslation();
   const isRejected = vacancy.status === "Отказ";
   const currentIndex = COLUMNS.indexOf(vacancy.status);
@@ -84,27 +84,39 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
 
   return (
     <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''}`}
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleCardClick}
     >
       <div className="card-top">
-        <div className="card-company">
-          <Building2 size={12} />
-          <span>{vacancy.company}</span>
-          {vacancy.company_url && (
-            <a 
-              href={vacancy.company_url} 
-              target="_blank" 
-              rel="noreferrer" 
-              onClick={handleCompanyLinkClick}
-              title={t('kanban.company_linkedin')}
-            >
-              <ExternalLink size={10} />
-            </a>
-          )}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <input
+            type="checkbox"
+            checked={isSelected || false}
+            onChange={(e) => {
+              e.stopPropagation();
+              if (onToggleSelect) onToggleSelect(vacancy.id);
+            }}
+            className="card-checkbox"
+            title="Выделить карточку"
+          />
+          <div className="card-company">
+            <Building2 size={12} />
+            <span>{vacancy.company}</span>
+            {vacancy.company_url && (
+              <a 
+                href={vacancy.company_url} 
+                target="_blank" 
+                rel="noreferrer" 
+                onClick={handleCompanyLinkClick}
+                title={t('kanban.company_linkedin')}
+              >
+                <ExternalLink size={10} />
+              </a>
+            )}
+          </div>
         </div>
         {vacancy.is_closed && (
           <div className="card-closed-badge" title={t('kanban.closed_hint')}>

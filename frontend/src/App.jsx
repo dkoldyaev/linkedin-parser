@@ -44,6 +44,14 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
 
+  // Multiselect state
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkTagInput, setBulkTagInput] = useState('');
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
+
   // Toast notifications
   const [toast, setToast] = useState(null);
 
@@ -352,6 +360,27 @@ export default function App() {
     }
   };
 
+  const handleStatusChangeMulti = async (vacancyIds, newStatus) => {
+    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus } : v));
+    try {
+      await Promise.all(vacancyIds.map(vid => 
+        fetch(`/api/vacancies/${vid}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        })
+      ));
+      fetchVacancies();
+      const localizedStatus = t(`kanban.columns.${newStatus}`);
+      showToast(t('nav.moved_to', { status: localizedStatus }));
+      setSelectedIds([]);
+    } catch (err) {
+      console.error('Failed to update status', err);
+      fetchVacancies();
+      showToast(t('nav.update_status_failed'), 'error');
+    }
+  };
+
   const handleVacancyUpdate = (updatedVacancy) => {
     setVacancies(prev => prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v));
     setSelectedVacancy(updatedVacancy);
@@ -458,13 +487,17 @@ export default function App() {
             onClick={async () => {
               trackEvent(EVENTS.REFRESH_CLICK);
               try {
-                await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                if (selectedIds.length > 0) {
+                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
+                } else {
+                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                }
                 fetchVacancies();
               } catch (e) {
                 console.error(e);
               }
             }}
-            title={t('nav.refresh_btn')}
+            title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
             <RefreshCw size={16} />
           </button>
@@ -509,7 +542,58 @@ export default function App() {
       </header>
 
       {/* Filter bar for Country, City, Workplace & Tags */}
-      {(allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedTag) && (
+      {selectedIds.length > 0 ? (
+        <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Выделено карточек: {selectedIds.length}</span>
+            <button className="btn btn-secondary btn-icon" style={{ height: '28px', width: '28px' }} onClick={() => setSelectedIds([])} title="Снять выделение">
+              <X size={14} />
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input 
+              type="text" 
+              placeholder="Тег..."
+              className="search-input"
+              style={{ width: '150px', height: '32px' }}
+              value={bulkTagInput}
+              onChange={e => setBulkTagInput(e.target.value)}
+            />
+            <button className="btn btn-secondary" style={{ height: '32px' }} onClick={async () => {
+              if (!bulkTagInput.trim()) return;
+              try {
+                await Promise.all(selectedIds.map(async id => {
+                  const v = vacancies.find(x => x.id === id);
+                  if (!v) return;
+                  const tags = new Set(v.tags || []);
+                  tags.add(bulkTagInput.trim());
+                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+                }));
+                setBulkTagInput('');
+                fetchVacancies();
+                fetchTags();
+                showToast("Теги добавлены");
+              } catch (e) { console.error(e); }
+            }}>Добавить тег</button>
+            <button className="btn btn-danger" style={{ height: '32px' }} onClick={async () => {
+              if (!bulkTagInput.trim()) return;
+              try {
+                await Promise.all(selectedIds.map(async id => {
+                  const v = vacancies.find(x => x.id === id);
+                  if (!v) return;
+                  const tags = new Set(v.tags || []);
+                  tags.delete(bulkTagInput.trim());
+                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+                }));
+                setBulkTagInput('');
+                fetchVacancies();
+                fetchTags();
+                showToast("Теги удалены");
+              } catch (e) { console.error(e); }
+            }}>Удалить тег</button>
+          </div>
+        </div>
+      ) : (allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedTag) ? (
         <div className="filter-bar">
           {/* Location: Country Filter */}
           {(allCountries.length > 0 || selectedCountry) && (
@@ -633,7 +717,7 @@ export default function App() {
             </button>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Kanban Board */}
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -641,6 +725,9 @@ export default function App() {
           vacancies={vacancies}
           onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
           onStatusChange={handleStatusChange}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onStatusChangeMulti={handleStatusChangeMulti}
         />
       </main>
 

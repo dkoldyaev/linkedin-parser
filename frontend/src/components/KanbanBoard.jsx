@@ -14,7 +14,7 @@ const COLUMNS = [
 
 const REJECTED_STATUS = "Отказ";
 
-export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) {
+export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, selectedIds = [], onToggleSelect, onStatusChangeMulti }) {
   const { t } = useTranslation();
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [isRejectedCollapsed, setIsRejectedCollapsed] = useState(false);
@@ -38,12 +38,23 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
       const vid = parseInt(vacancyId, 10);
-      trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
-        vacancy_id: vid,
-        to_status: columnId,
-        method: 'drag_and_drop'
-      });
-      onStatusChange(vid, columnId);
+      if (selectedIds.includes(vid) && onStatusChangeMulti) {
+        selectedIds.forEach(id => {
+          trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+            vacancy_id: id,
+            to_status: columnId,
+            method: 'drag_and_drop_multi'
+          });
+        });
+        onStatusChangeMulti(selectedIds, columnId);
+      } else {
+        trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+          vacancy_id: vid,
+          to_status: columnId,
+          method: 'drag_and_drop'
+        });
+        onStatusChange(vid, columnId);
+      }
     }
   };
 
@@ -78,6 +89,8 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
                     vacancy={vacancy}
                     onClick={onCardClick}
                     onStatusChange={onStatusChange}
+                    isSelected={selectedIds.includes(vacancy.id)}
+                    onToggleSelect={onToggleSelect}
                   />
                 ))}
 
@@ -147,6 +160,8 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange }) 
                     vacancy={vacancy}
                     onClick={onCardClick}
                     onStatusChange={onStatusChange}
+                    isSelected={selectedIds.includes(vacancy.id)}
+                    onToggleSelect={onToggleSelect}
                   />
                 ))}
               </div>
