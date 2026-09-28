@@ -99,6 +99,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
               e.stopPropagation();
               if (onToggleSelect) onToggleSelect(vacancy.id);
             }}
+            onClick={(e) => e.stopPropagation()}
             className="card-checkbox"
             title="Выделить карточку"
           />

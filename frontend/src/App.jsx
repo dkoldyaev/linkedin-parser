@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -373,7 +373,6 @@ export default function App() {
       fetchVacancies();
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
-      setSelectedIds([]);
     } catch (err) {
       console.error('Failed to update status', err);
       fetchVacancies();
@@ -591,6 +590,19 @@ export default function App() {
                 showToast("Теги удалены");
               } catch (e) { console.error(e); }
             }}>Удалить тег</button>
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 4px' }} />
+            <button className="btn btn-danger btn-icon" style={{ height: '32px' }} onClick={async () => {
+              if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
+              try {
+                await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
+                setSelectedIds([]);
+                fetchVacancies();
+                fetchTags();
+                showToast("Карточки удалены");
+              } catch (e) { console.error(e); }
+            }} title="Удалить выделенные">
+              <Trash2 size={16} />
+            </button>
           </div>
         </div>
       ) : (allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedTag) ? (
