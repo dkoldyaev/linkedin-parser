@@ -71,6 +71,8 @@
     "dokploy:deploy": "node scripts/create-dokploy-env.mjs",
     "dokploy:destroy": "node scripts/destroy-dokploy-env.mjs",
     "read:dokploy:logs": "node scripts/read-dokploy-logs.mjs",
-    "commit:all": "git add -A && git commit -m 'feat: add closed vacancy status parsing and card design'"
+    "commit:all": "git add -A && git commit -m 'feat: add closed vacancy status parsing and card design'",
+    "temp:push": "git add frontend/src/components/KanbanBoard.jsx frontend/src/components/KanbanCard.jsx frontend/src/App.jsx frontend/src/index.css && git commit -m 'feat: add multiselect mode with tag editing and multi-drag' && git push -u origin multiselect",
+    "temp:push:modal": "git add . && git commit -m 'feat: add queue modal with remove tasks functionality' && git push origin multiselect"
   }
 }

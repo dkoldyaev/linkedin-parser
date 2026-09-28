@@ -9,6 +9,7 @@ import BatchImportModal from './components/BatchImportModal';
 import VacancyModal from './components/VacancyModal';
 import SettingsModal from './components/SettingsModal';
 import LoginModal from './components/LoginModal';
+import QueueModal from './components/QueueModal';
 import { useTranslation } from './i18n/I18nContext';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
@@ -42,6 +43,7 @@ export default function App() {
   // Modals state
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
 
   // Multiselect state
@@ -474,7 +476,7 @@ export default function App() {
           {/* Real-time Queue status indicator */}
           {queueRemaining > 0 && (
             <div className="status-indicators">
-              <div className="queue-pill" title={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}>
+              <div className="queue-pill" title={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })} onClick={() => setIsQueueOpen(true)}>
                 <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
                 <span>{t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}</span>
               </div>
@@ -762,6 +764,11 @@ export default function App() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <QueueModal
+        isOpen={isQueueOpen}
+        onClose={() => setIsQueueOpen(false)}
       />
 
       {/* Toast Notifications */}

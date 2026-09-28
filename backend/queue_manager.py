@@ -284,6 +284,80 @@ class RedisQueueManager:
             recent_tasks=recent_tasks,
         )
 
+    async def get_active_tasks(self, user_id: Optional[int] = None) -> List[TaskInfo]:
+        if not self.redis:
+            return []
+            
+        active_ids = []
+        active_ids.extend(await self.redis.lrange(SCRAPE_QUEUE_KEY, 0, -1))
+        active_ids.extend(await self.redis.lrange(AI_QUEUE_KEY, 0, -1))
+        active_ids.extend(await self.redis.smembers(SCRAPE_PROCESSING_SET))
+        active_ids.extend(await self.redis.smembers(AI_PROCESSING_SET))
+        
+        # Deduplicate
+        active_ids = list(set([aid.decode('utf-8') if isinstance(aid, bytes) else aid for aid in active_ids]))
+        
+        tasks = []
+        if active_ids:
+            pipe = self.redis.pipeline()
+            for tid in active_ids:
+                pipe.get(f"{TASK_KEY_PREFIX}{tid}")
+            raw_tasks = await pipe.execute()
+            
+            for raw in raw_tasks:
+                if raw:
+                    try:
+                        task = JobTask.from_dict(json.loads(raw))
+                        if user_id is None or task.user_id == user_id:
+                            tasks.append(task.to_info())
+                    except Exception as e:
+                        logger.warning(f"Error decoding task JSON: {e}")
+                        
+        return tasks
+
+    async def remove_task(self, task_id: str, user_id: Optional[int] = None) -> bool:
+        if not self.redis:
+            return False
+            
+        raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+        if not raw:
+            return False
+            
+        try:
+            task_dict = json.loads(raw)
+            task = JobTask.from_dict(task_dict)
+            if user_id is not None and task.user_id != user_id:
+                return False
+                
+            # Remove from queues (0 means remove all occurrences)
+            await self.redis.lrem(SCRAPE_QUEUE_KEY, 0, task_id)
+            await self.redis.lrem(AI_QUEUE_KEY, 0, task_id)
+            
+            # Note: We cannot easily remove from PROCESSING_SETs because workers are actively working on them.
+            # But we can mark the task as cancelled so if a worker checks it, it could abort (though currently workers might just finish it).
+            # We'll just update its status in DB.
+            task.status = "cancelled"
+            await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            
+            total_remaining = await self._calculate_total_remaining()
+            mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+            
+            from .mercure import publish_mercure_event, EVENT_QUEUE_UPDATED, MSG_QUEUE_UPDATED
+            asyncio.create_task(
+                publish_mercure_event(
+                    event_type=EVENT_QUEUE_UPDATED,
+                    data={
+                        "message_code": MSG_QUEUE_UPDATED,
+                        "total_remaining": total_remaining,
+                    },
+                    topic=mercure_topic,
+                )
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error removing task {task_id}: {e}")
+            return False
+
     # -------------------------------------------------------------------------
     # Stage 1: Scraping Worker Loop
     # -------------------------------------------------------------------------
