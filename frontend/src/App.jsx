@@ -619,7 +619,7 @@ export default function App() {
           {/* Reset all filters */}
           {(selectedCountry || selectedCity || selectedWorkplaceType || selectedTag || search) && (
             <button
-              className="filter-reset-btn"
+              className="filter-reset-btn tag-filter-chip "
               onClick={resetAllFilters}
               title={t('nav.reset_all_filters')}
             >

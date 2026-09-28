@@ -460,11 +460,41 @@ async def scrape_universal_job(url: str) -> Dict[str, Any]:
     chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
     text = "\n".join(chunk for chunk in chunks if chunk)
 
+    # Extract company name and URL
+    company = domain
+    company_url = f"https://{domain}"
+    
+    # 1. hh.ru specific
+    hh_company = soup.find(attrs={"data-qa": "vacancy-company-name"})
+    if hh_company:
+        company = hh_company.get_text(strip=True)
+        if hh_company.name == "a" and hh_company.get("href"):
+            href = hh_company.get("href")
+            company_url = f"https://{domain}{href}" if href.startswith("/") else href
+    else:
+        # 2. Generic JSON-LD fallback
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                data = json.loads(script.get_text())
+                items = data if isinstance(data, list) else [data]
+                for item in items:
+                    if isinstance(item, dict) and item.get("@type") == "JobPosting":
+                        hiring_org = item.get("hiringOrganization")
+                        if isinstance(hiring_org, dict):
+                            org_name = hiring_org.get("name")
+                            if org_name:
+                                company = org_name
+                            org_url = hiring_org.get("sameAs") or hiring_org.get("url")
+                            if org_url:
+                                company_url = org_url
+            except Exception:
+                pass
+
     return {
         "url": url,
         "title": title[:255],
-        "company": domain,
-        "company_url": f"https://{domain}",
+        "company": company,
+        "company_url": company_url,
         "description": text[:15000],  # Limit to avoid huge context
         "location": "Not specified",
         "city": None,

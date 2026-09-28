@@ -18,10 +18,10 @@ const COLUMNS = [
 ];
 
 export default function KanbanCard({ vacancy, onClick, onStatusChange }) {
-  const { t, formatDate } = useTranslation();
+  const { t, formatDate, salaryDisplayFormat } = useTranslation();
   const isRejected = vacancy.status === "Отказ";
   const currentIndex = COLUMNS.indexOf(vacancy.status);
-  const salaryInfo = getSalaryDisplay(vacancy, t);
+  const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
   const handleDragStart = (e) => {

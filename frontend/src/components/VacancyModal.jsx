@@ -29,7 +29,7 @@ const STAGE_COLORS = {
 };
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
-  const { t, locale, formatDate } = useTranslation();
+  const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
@@ -46,6 +46,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
   const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
   const [isClosed, setIsClosed] = useState(vacancy?.is_closed || false);
+  const [hoverToggle, setHoverToggle] = useState(false);
   const [savingSalary, setSavingSalary] = useState(false);
   const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
 
@@ -517,7 +518,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     salary_max: salaryMax !== '' ? salaryMax : vacancy.salary_max,
     salary_currency: salaryCurrency || vacancy.salary_currency,
     salary_period: salaryPeriod || vacancy.salary_period,
-  }, t);
+  }, t, salaryDisplayFormat);
 
   const modalWorkplaceInfo = getWorkplaceInfo(workplaceType || vacancy.workplace_type, t);
 
@@ -525,9 +526,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
         {/* Header */}
-        <div className="modal-header">
-          <div style={{ flex: 1, paddingRight: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+        <div className="modal-header" style={{ display: 'block' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'baseline' }}>
               <span className="card-company">
                 <Building2 size={13} />
                 {vacancy.company}
@@ -551,7 +552,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               )}
               {modalWorkplaceInfo && (
-                <span className={`card-workplace-badge ${modalWorkplaceInfo.className}`} style={{ marginLeft: '6px' }}>
+                <span className={`card-workplace-badge header-badge ${modalWorkplaceInfo.className}`} style={{ marginLeft: '6px' }}>
                   {modalWorkplaceInfo.key === 'remote' && <Laptop size={11} />}
                   {modalWorkplaceInfo.key === 'hybrid' && <Layers size={11} />}
                   {modalWorkplaceInfo.key === 'on-site' && <Building size={11} />}
@@ -565,85 +566,76 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </span>
               )}
               {isClosed && (
-                <span className="card-closed-badge" style={{ marginLeft: '8px' }} title={t('kanban.closed_hint')}>
+                <span className="card-closed-badge header-badge" style={{ marginLeft: '8px' }} title={t('kanban.closed_hint')}>
                   <Ban size={12} />
                   <span>{t('vacancyModal.closed_badge')}</span>
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-              <input
-                type="text"
-                className="input"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={handleSaveTitle}
-                onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-                style={{ fontSize: '1.25rem', fontWeight: 700, padding: '4px 8px', flex: 1, color: 'var(--text-primary)', border: '1px solid transparent', background: 'transparent' }}
-                title="Нажмите, чтобы редактировать"
-              />
-              {savingTitle && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
-              {savedTitleSuccess && <Check size={16} color="#10b981" />}
+            
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary header-action-badge header-badge"
+                onClick={handleReparse}
+                disabled={reparsing || !vacancy.url}
+                title={vacancy.url ? t('vacancyModal.reparse_btn') : undefined}
+                style={{
+                  borderColor: reparseSuccess ? '#10b981' : undefined,
+                  color: reparseSuccess ? '#10b981' : undefined,
+                }}
+              >
+                {reparsing ? (
+                  <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : reparseSuccess ? (
+                  <Check size={12} color="#10b981" />
+                ) : (
+                  <>
+                    <RefreshCw size={12} />
+                    <span>{t('vacancyModal.reparse_short')}</span>
+                  </>
+                )}
+              </button>
+              <a 
+                href={vacancy.url} 
+                target="_blank" 
+                rel="noreferrer"
+                className="btn btn-secondary header-action-badge header-badge"
+                onClick={() => trackEvent(EVENTS.VACANCY_LINK_CLICK, { vacancy_id: vacancy.id })}
+              >
+                <ExternalLink size={12} />
+                <span>{
+                  (() => {
+                    if (!vacancy.url) return 'Link';
+                    try {
+                      const hn = new URL(vacancy.url).hostname;
+                      if (hn.includes('linkedin.com')) return 'LinkedIn';
+                      if (hn.includes('upwork.com')) return 'Upwork';
+                      if (hn.includes('hh.ru')) return 'HH.ru';
+                      return hn.replace(/^www\./, '');
+                    } catch(e) { return 'Link'; }
+                  })()
+                }</span>
+              </a>
+              <button className="btn-icon header-action-badge header-badge" onClick={onClose} title={t('vacancyModal.close_btn')}>
+                <X size={14} />
+              </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleReparse}
-              disabled={reparsing || !vacancy.url}
-              title={vacancy.url ? t('vacancyModal.reparse_btn') : undefined}
-              style={{
-                fontSize: '0.75rem',
-                padding: '6px 12px',
-                borderColor: reparseSuccess ? '#10b981' : undefined,
-                color: reparseSuccess ? '#10b981' : undefined,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {reparsing ? (
-                <>
-                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>{t('vacancyModal.reparsing')}</span>
-                </>
-              ) : reparseSuccess ? (
-                <>
-                  <Check size={14} color="#10b981" />
-                  <span>{t('vacancyModal.saved_salary')}</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw size={14} />
-                  <span>{t('vacancyModal.reparse_btn')}</span>
-                </>
-              )}
-            </button>
-            <a 
-              href={vacancy.url} 
-              target="_blank" 
-              rel="noreferrer"
-              className="btn btn-secondary" 
-              style={{ fontSize: '0.75rem', padding: '6px 12px' }}
-              onClick={() => trackEvent(EVENTS.VACANCY_LINK_CLICK, { vacancy_id: vacancy.id })}
-            >
-              <ExternalLink size={14} />
-              <span>{
-                (() => {
-                  if (!vacancy.url) return 'Link';
-                  try {
-                    const hn = new URL(vacancy.url).hostname;
-                    if (hn.includes('linkedin.com')) return 'LinkedIn';
-                    if (hn.includes('upwork.com')) return 'Upwork';
-                    if (hn.includes('hh.ru')) return 'HeadHunter';
-                    return hn.replace(/^www\./, '');
-                  } catch(e) { return 'Link'; }
-                })()
-              }</span>
-            </a>
-            <button className="btn-icon" onClick={onClose}>
-              <X size={18} />
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+            <input
+              type="text"
+              className="input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+              style={{ fontSize: '1.25rem', fontWeight: 700, padding: '4px 8px', flex: 1, color: 'var(--text-primary)', border: '1px solid transparent', background: 'transparent' }}
+              title="Нажмите, чтобы редактировать"
+            />
+            {savingTitle && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
+            {savedTitleSuccess && <Check size={16} color="#10b981" />}
           </div>
         </div>
 
@@ -746,32 +738,34 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <button
                 type="button"
                 onClick={handleToggleClosed}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  border: '1px solid',
-                  borderColor: isClosed ? 'rgba(244, 63, 94, 0.45)' : 'rgba(16, 185, 129, 0.35)',
-                  background: isClosed ? 'rgba(244, 63, 94, 0.12)' : 'rgba(16, 185, 129, 0.08)',
-                  color: isClosed ? '#fb7185' : '#34d399',
-                  transition: 'all 0.15s ease'
-                }}
+                onMouseEnter={() => setHoverToggle(true)}
+                onMouseLeave={() => setHoverToggle(false)}
+                className={`btn-toggle-closed ${isClosed ? 'is-closed' : 'is-open'}`}
               >
                 {isClosed ? (
-                  <>
-                    <Ban size={12} />
-                    <span>{t('kanban.closed')}</span>
-                  </>
+                  hoverToggle ? (
+                    <>
+                      <Check size={12} />
+                      <span>{t('vacancyModal.open_action')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Ban size={12} />
+                      <span>{t('kanban.closed')}</span>
+                    </>
+                  )
                 ) : (
-                  <>
-                    <Check size={12} />
-                    <span>{t('vacancyModal.closed_badge')}</span>
-                  </>
+                  hoverToggle ? (
+                    <>
+                      <Ban size={12} />
+                      <span>{t('vacancyModal.close_action')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={12} />
+                      <span>{t('vacancyModal.open_badge')}</span>
+                    </>
+                  )
                 )}
               </button>
             </div>

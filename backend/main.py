@@ -870,6 +870,7 @@ def get_settings(
     db: Session = Depends(get_db)
 ):
     locale = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id)
+    salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
 
     return SettingsResponse(
         llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
@@ -878,6 +879,7 @@ def get_settings(
         gemini_api_key_set=bool(os.getenv("GEMINI_API_KEY", "")),
         gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         locale=locale,
+        salary_display_format=salary_display_format,
     )
 
 
@@ -897,7 +899,19 @@ def update_settings(
             db.add(setting)
         else:
             setting.value = payload.locale.strip().lower()
-        db.commit()
+
+    if payload.salary_display_format is not None:
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "salary_display_format"
+        ).first()
+        if not setting:
+            setting = UserSetting(user_id=current_user.id, key="salary_display_format", value=payload.salary_display_format.strip().lower())
+            db.add(setting)
+        else:
+            setting.value = payload.salary_display_format.strip().lower()
+
+    db.commit()
 
     return get_settings(current_user=current_user, db=db)
 

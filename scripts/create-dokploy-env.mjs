@@ -112,13 +112,7 @@ function loadEnv(filePath) {
 const envVars = loadEnv(ENV_FILE_PATH);
 const projectName = envVars['PROJECT_NAME'] || 'linkedin-parser';
 
-const envAdminEmail =
-  envVars['ADMIN_EMAIL'] !== undefined && envVars['ADMIN_EMAIL'] !== '' ? envVars['ADMIN_EMAIL'].trim() : null;
-const adminEmail = cliAdminEmail !== null ? cliAdminEmail.trim() : envAdminEmail;
 
-const envAdminName =
-  envVars['ADMIN_NAME'] !== undefined && envVars['ADMIN_NAME'] !== '' ? envVars['ADMIN_NAME'].trim() : null;
-const adminName = cliAdminName !== null ? cliAdminName.trim() : envAdminName;
 
 function requireEnvVar(name) {
   const value = envVars[name] !== undefined ? envVars[name] : process.env[name];
@@ -190,7 +184,7 @@ function dokployRequest(endpoint, method = 'GET', body = null) {
 
 // 4. Generate Compose environment variables
 function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword }) {
-  const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}?schema=public`;
+  const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
 
@@ -211,7 +205,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `JWT_SECRET=${envVars['JWT_SECRET'] || '!ChangeThisAppJWTSecretKeyForUserSessions!'}`,
     `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
     `PORT=8000`,
-  ].join('\\n');
+  ].join('\n');
 }
 
 async function main() {
@@ -429,17 +423,16 @@ async function main() {
     env: composeEnv,
     createEnvFile: true,
   });
-  console.log(`✅ Repository dkoldyaev/language-card-bot (${gitBranch}), composePath: ./docker-compose.yml`);
+  console.log(`✅ Repository dkoldyaev/${projectName} (${gitBranch}), composePath: ./docker-compose.yml`);
   console.log('✅ Environment variables saved');
-  console.log(`✅ Connected services (app, translator, definer, llm) to isolated network "${envNetName}"`);
+  console.log(`✅ Connected services (app, mercure, browser) to isolated network "${envNetName}"`);
 
   // 7. Setup Traefik Domains
   console.log('\n🌐 Configuring Traefik domain routes...');
   const existingDomains = (await dokployRequest(`/domain.byComposeId?composeId=${composeId}`)) || [];
 
   const requiredDomains = [
-    { host: domainHost, path: '/', port: 5173, serviceName: 'frontend', label: 'Frontend' },
-    { host: domainHost, path: '/api/v1', port: 3001, serviceName: 'app', label: 'Backend API' },
+    { host: domainHost, path: '/', port: 8000, serviceName: 'app', label: 'App (Backend+Frontend)' },
     { host: domainHost, path: '/.well-known/mercure', port: 80, serviceName: 'mercure', label: 'Mercure SSE' },
   ];
 
@@ -477,6 +470,17 @@ async function main() {
         stripPath: false,
       });
       console.log('  ✅ Domain created');
+    }
+  }
+
+  // Delete any obsolete domains that are no longer required
+  for (const existing of existingDomains) {
+    const isRequired = requiredDomains.some(
+      (dom) => dom.host === existing.host && (dom.path === existing.path || (!existing.path && dom.path === '/')) && dom.serviceName === existing.serviceName
+    );
+    if (!isRequired) {
+      console.log(`  🗑️  Deleting obsolete domain https://${existing.host}${existing.path || ''} -> ${existing.serviceName}:${existing.port}...`);
+      await dokployRequest('/domain.delete', 'POST', { domainId: existing.domainId });
     }
   }
 
@@ -535,6 +539,53 @@ async function main() {
     }
   }
 
+  // 10. Wait for app container to start and become ready
+  if (!skipDeploy) {
+    console.log('\n\x1b[34m🔍 Waiting for app container to start up...\x1b[0m');
+    const containerWaitStart = Date.now();
+    let appContainerId = null;
+
+    // 10.1 Find container ID
+    while (Date.now() - containerWaitStart < 120000) {
+      const containers = (await dokployRequest('/docker.getContainers')) || [];
+      const running = containers.find(
+        (c) => c.name && c.name.includes(composeApp.appName) && c.name.includes('-app-') && c.state === 'running'
+      );
+      if (running) {
+        appContainerId = running.containerId;
+        console.log(`  ✅ Found running app container: ${running.name}`);
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+
+    if (!appContainerId) {
+      throw new Error(`Failed to find running app container for compose app "${composeApp.appName}" within 2 minutes.`);
+    }
+
+    // 10.2 Tail logs until startup complete
+    console.log('  ⏳ Waiting for application startup log...');
+    let startupComplete = false;
+    const startupWaitStart = Date.now();
+
+    while (Date.now() - startupWaitStart < 120000) {
+      try {
+        const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
+        if (logs && (logs.includes('Application startup complete') || logs.includes('Uvicorn running on'))) {
+          startupComplete = true;
+          console.log('\n\x1b[32m✅ Application successfully started!\x1b[0m');
+          break;
+        }
+      } catch (err) {
+        // ignore log reading errors
+      }
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+
+    if (!startupComplete) {
+      console.log('\n\x1b[33m⚠️ Application startup log not found within 2 minutes. The app might still be starting, or there might be an error.\x1b[0m');
+    }
+  }
 
   // 11. Optional Health Check
   if (runCheck) {

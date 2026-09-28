@@ -16,6 +16,16 @@ export function I18nProvider({ children }) {
     return 'ru';
   });
 
+  const [salaryDisplayFormat, setSalaryDisplayFormatState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_salary_format');
+      if (saved) return saved;
+    } catch {
+      // ignore
+    }
+    return 'month';
+  });
+
   // Sync with /api/settings on initial mount if authenticated
   useEffect(() => {
     fetch('/api/settings')
@@ -32,8 +42,16 @@ export function I18nProvider({ children }) {
             // ignore
           }
         }
+        if (data && data.salary_display_format) {
+          setSalaryDisplayFormatState(data.salary_display_format);
+          try {
+            localStorage.setItem('app_salary_format', data.salary_display_format);
+          } catch {
+            // ignore
+          }
+        }
       })
-      .catch(err => console.debug('Could not fetch settings locale', err));
+      .catch(err => console.debug('Could not fetch settings', err));
   }, []);
 
   const setLocale = useCallback((newLocale) => {
@@ -41,6 +59,15 @@ export function I18nProvider({ children }) {
     setLocaleState(loc);
     try {
       localStorage.setItem('app_locale', loc);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const setSalaryDisplayFormat = useCallback((format) => {
+    setSalaryDisplayFormatState(format);
+    try {
+      localStorage.setItem('app_salary_format', format);
     } catch {
       // ignore
     }
@@ -99,7 +126,7 @@ export function I18nProvider({ children }) {
   }, [locale]);
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, formatDate }}>
+    <I18nContext.Provider value={{ locale, setLocale, t, formatDate, salaryDisplayFormat, setSalaryDisplayFormat }}>
       {children}
     </I18nContext.Provider>
   );

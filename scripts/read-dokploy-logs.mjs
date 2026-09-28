@@ -84,14 +84,15 @@ async function main() {
   if (!compose) throw new Error(`No compose application found in environment ${envName}`);
 
   const composeId = compose.composeId;
-  const composeAppName = compose.appName; // used in container names by Dokploy
+  const composeAppName = compose.name; // used in container names by Dokploy
 
   console.log(`📦 Fetching logs for Compose ID: ${composeId}`);
   const allContainers = await dokployRequest('/docker.getContainers');
-  
-  const appC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-app-'));
-  const mercureC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-mercure-'));
-  const browserC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-browser-'));
+  console.log('Available containers:', allContainers.map(c => c.name).filter(n => n.includes(composeAppName)));
+
+  const appC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-app-\d+/));
+  const mercureC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-mercure-\d+/));
+  const browserC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-browser-\d+/));
 
   if (appC) {
     const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appC.containerId}&tail=50`);
