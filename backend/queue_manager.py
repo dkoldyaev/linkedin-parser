@@ -584,6 +584,10 @@ class RedisQueueManager:
                     vacancy.title = llm_res["title"]
                 if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
                     vacancy.location = llm_res["location"]
+                if llm_res.get("city") and (not vacancy.city or str(vacancy.city).strip().isdigit()):
+                    vacancy.city = llm_res["city"]
+                if llm_res.get("country") and (not vacancy.country or str(vacancy.country).strip().isdigit()):
+                    vacancy.country = llm_res["country"]
                 if llm_res.get("summary"):
                     vacancy.ai_summary = llm_res["summary"]
                 if llm_res.get("tech_stack"):
@@ -600,6 +604,8 @@ class RedisQueueManager:
                     vacancy.salary_period = llm_res["salary_period"]
                 if llm_res.get("workplace_type") and not vacancy.workplace_type:
                     vacancy.workplace_type = llm_res["workplace_type"]
+                if llm_res.get("is_closed") is not None:
+                    vacancy.is_closed = llm_res["is_closed"]
 
                 db.commit()
                 db.refresh(vacancy)

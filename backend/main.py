@@ -68,10 +68,10 @@ def backfill_missing_locations():
             if v.location:
                 c_city, c_country = parse_location(v.location)
                 changed = False
-                if c_city != (v.city or ""):
+                if not v.city and c_city:
                     v.city = c_city
                     changed = True
-                if c_country and v.country != c_country:
+                if not v.country and c_country:
                     v.country = c_country
                     changed = True
                 if changed:
@@ -819,6 +819,37 @@ async def reparse_vacancy(
     }
 
 
+@app.post("/api/vacancies/reparse_all")
+async def reparse_all_vacancies(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Add all non-upwork vacancies to background processing queue to re-scrape and update DB."""
+    vacancies = db.query(Vacancy).filter(
+        Vacancy.user_id == current_user.id,
+        Vacancy.url != None,
+        Vacancy.url != "",
+        ~Vacancy.url.ilike("%upwork.com%")
+    ).all()
+
+    if not vacancies:
+        return {"message": "Нет вакансий для обновления", "enqueued": 0}
+
+    urls = [v.url for v in vacancies]
+    vacancy_ids = [v.id for v in vacancies]
+
+    batch_id, tasks = await queue_manager.enqueue(
+        urls=urls, default_tags=[], vacancy_ids=vacancy_ids, user_id=current_user.id
+    )
+    
+    return {
+        "status": "queued",
+        "batch_id": batch_id,
+        "enqueued": len(tasks),
+        "message": f"Отправлено на обновление: {len(tasks)} вакансий",
+    }
+
+
 @app.get("/api/tags", response_model=List[str])
 def list_unique_tags(
     current_user: User = Depends(get_current_user),
@@ -845,7 +876,7 @@ def list_countries(
         .distinct()
         .all()
     )
-    countries = {v[0].strip() for v in vacancies if v[0] and v[0].strip()}
+    countries = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
     return sorted(list(countries))
 
 
@@ -860,7 +891,7 @@ def list_cities(
     if country and country.strip():
         query = query.filter(Vacancy.country.ilike(country.strip()))
     vacancies = query.distinct().all()
-    cities = {v[0].strip() for v in vacancies if v[0] and v[0].strip()}
+    cities = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
     return sorted(list(cities))
 
 

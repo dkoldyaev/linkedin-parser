@@ -277,6 +277,8 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
                 if resp.status_code == 200 and len(resp.text) > 1000:
                     html = resp.text
                     target_url = api_url
+                elif resp.status_code == 404:
+                    return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
             except Exception as e:
                 logger.warning(f"Failed to fetch guest API for job {job_id}: {e}")
 
@@ -286,6 +288,8 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     html = resp.text
+                elif resp.status_code == 404:
+                    return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
                 else:
                     raise ValueError(f"HTTP response status {resp.status_code}")
             except Exception as e:
@@ -397,16 +401,16 @@ async def scrape_upwork_job(url: str) -> Dict[str, Any]:
         "company": "Upwork",
         "company_url": None,
         "company_info": "",
-        "location": "Worldwide",
+        "location": "",
         "city": None,
-        "country": "Worldwide",
-        "description": "скопируйте текст вручную: Cmd+A Cmd+C Cmd+V и нажмите перегенерировать AI",
-        "workplace_type": "remote",
+        "country": "",
+        "description": "",
+        "workplace_type": "",
         "is_closed": False,
         "salary_min": None,
         "salary_max": None,
-        "salary_currency": "$",
-        "salary_period": "hour",
+        "salary_currency": None,
+        "salary_period": None,
     }
 
 
@@ -471,7 +475,11 @@ async def scrape_universal_job(url: str) -> Dict[str, Any]:
         if hh_company.name == "a" and hh_company.get("href"):
             href = hh_company.get("href")
             company_url = f"https://{domain}{href}" if href.startswith("/") else href
-    else:
+            
+    hh_location = soup.find(attrs={"data-qa": "vacancy-view-location"}) or soup.find(attrs={"data-qa": "vacancy-view-raw-address"})
+    location = hh_location.get_text(strip=True) if hh_location else "Not specified"
+
+    if not hh_company:
         # 2. Generic JSON-LD fallback
         for script in soup.find_all("script", type="application/ld+json"):
             try:
@@ -496,7 +504,7 @@ async def scrape_universal_job(url: str) -> Dict[str, Any]:
         "company": company,
         "company_url": company_url,
         "description": text[:15000],  # Limit to avoid huge context
-        "location": "Not specified",
+        "location": location,
         "city": None,
         "country": None,
         "is_closed": False,

@@ -98,17 +98,21 @@ async def call_mistral(prompt: str, api_key: str, model: str = "open-mistral-nem
         raise RuntimeError(last_error)
 
 
-async def call_gemini(prompt: str, api_key: str, model: str = "gemini-2.5-flash") -> str:
+async def call_gemini(prompt: str, api_key: str, model: str = "gemini-2.5-flash", response_schema: Optional[Dict[str, Any]] = None) -> str:
     """Call Google Gemini API via official google-genai client."""
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=api_key)
-    # Use generate_content with json response schema or standard json prompt
-    config = types.GenerateContentConfig(
-        temperature=0.2,
-        response_mime_type="application/json",
-    )
+    
+    config_kwargs = {
+        "temperature": 0.2,
+        "response_mime_type": "application/json",
+    }
+    if response_schema:
+        config_kwargs["response_schema"] = response_schema
+        
+    config = types.GenerateContentConfig(**config_kwargs)
     
     # Run in thread pool since genai client is synchronous
     import asyncio
@@ -153,19 +157,86 @@ async def analyze_vacancy_with_llm(
     mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    # Prompt constructing based on language
-    if language.startswith("en"):
-        prompt = f"""Analyze the job vacancy and generate a concise summary in English.
+    # Map language code to full language name for the prompt
+    target_language = "English" if language.startswith("en") else "Russian"
+
+    json_format = {
+        "type": "object",
+        "properties": {
+            "title": {
+                "type": ["string", "null"],
+                "description": "Exact job title extracted from the description, or use original if not found."
+            },
+            "location": {
+                "type": ["string", "null"],
+                "description": "Extract city/country/location from description, if present. Otherwise null."
+            },
+            "city": {
+                "type": ["string", "null"],
+                "description": "City extracted from the location or description (strictly in English). Null if not specified."
+            },
+            "country": {
+                "type": ["string", "null"],
+                "description": "Country extracted from the location or description (strictly in English). Null if not specified."
+            },
+            "is_closed": {
+                "type": "boolean",
+                "description": "True if the job is closed, no longer accepting applications, or filled. Otherwise false."
+            },
+            "summary": {
+                "type": "string",
+                "description": f"Concise and to the point: core tasks without filler phrases (e.g.: 'Develop UI components, optimize rendering performance, and expand the design system'). MUST be in {target_language}."
+            },
+            "tech_stack": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of technologies mentioned in the job description."
+            },
+            "company_info": {
+                "type": "string",
+                "description": f"1-2 sentences about what the company does / what product it builds. MUST be in {target_language}."
+            },
+            "workplace_type": {
+                "type": ["string", "null"],
+                "enum": ["remote", "hybrid", "on-site", None],
+                "description": "Work format. Strictly one of: 'remote', 'hybrid', 'on-site', or null."
+            },
+            "salary_min": {
+                "type": ["number", "null"]
+            },
+            "salary_max": {
+                "type": ["number", "null"]
+            },
+            "salary_currency": {
+                "type": ["string", "null"]
+            },
+            "salary_period": {
+                "type": ["string", "null"],
+                "enum": ["year", "month", "hour", "day", "week", None]
+            }
+        },
+        "required": [
+            "title", "location", "is_closed", "summary", "tech_stack",
+            "company_info", "workplace_type", "salary_min", "salary_max",
+            "salary_currency", "salary_period"
+        ]
+    }
+
+    json_format_str = json.dumps(json_format, indent=2, ensure_ascii=False)
+
+    prompt = f"""Analyze the job vacancy and generate a concise summary.
+CRITICAL INSTRUCTION: The values for "summary" and "company_info" MUST be written in {target_language}.
 
 Rules for the "summary" field:
-- Write extremely concisely and strictly to the point (1-2 crisp sentences).
+- Write extremely concisely and strictly to the point (3-5 crisp sentences).
 - Categorically avoid filler words and template phrases: DO NOT use phrases like "The position involves", "The company is looking for", "Responsibilities include", "The candidate will", "This role requires" or similar.
-- State the core work and tasks directly (e.g.: "Develop UI components, optimize rendering performance, and expand the design system").
+- State the core work and tasks directly.
+- The summary MUST be in {target_language}.
 
 Rules for salary:
 - Extract compensation/salary if specified in the job text or metadata.
 - Return "salary_min" (number or null) and "salary_max" (number or null). If a single rate is given, set it in both salary_min and salary_max or only salary_min. Values must be absolute numbers (e.g. 120000, not "120k").
-- "salary_currency": currency symbol or code ("$", "€", "₽", "£", "USD", "EUR", etc., or null if not specified).
+- "salary_currency": currency code (only "USD", "EUR", "GBP", "CHF", "CAD", or null if not specified).
 - "salary_period": strictly one of: "year", "month", "hour", "day", "week" (or null if salary is not specified). If "a year", "/yr", "annual" -> "year". If "a month", "/mo" -> "month". If "per hour", "/hr" -> "hour".
 
 Rules for workplace_type:
@@ -175,69 +246,20 @@ Rules for workplace_type:
   - "on-site": strictly on-site / in office (On-site, Onsite, In office).
   - null: if format is not mentioned.
 
-Job Title: {title}
-Company: {company}
-Location: {location}
+Rules for is_closed flag:
+- Analyze the text for phrases indicating that the job is closed, no longer accepting applications, or filled (e.g. "No longer accepting applications", "Role closed", "Position filled", "Не принимает отклики", etc.).
+- Set "is_closed": true if such phrases are found, otherwise false.
+
+Job Title: {title or "--check the description--"}
+Company: {company or "--check the description--"}
+Location: {location or "--check the description--"}
 Job Description:
 \"\"\"
-{description[:8000]}
+{description}
 \"\"\"
 
-Respond strictly in JSON format with the following fields:
-{{
-  "title": "Exact job title extracted from the description, or use original if not found",
-  "location": "Extract city/country/location from description, if present. Otherwise null.",
-  "summary": "Concise and to the point: core tasks without filler phrases (e.g.: 'Develop UI components, optimize rendering performance, and expand the design system').",
-  "tech_stack": ["tech 1", "tech 2"],
-  "company_info": "1-2 sentences about what the company does / what product it builds.",
-  "workplace_type": "remote",
-  "salary_min": 120000,
-  "salary_max": 150000,
-  "salary_currency": "$",
-  "salary_period": "year"
-}}
-"""
-    else:
-        prompt = f"""Проанализируй вакансию и сформируй краткое резюме на русском языке.
-
-Правила для поля "summary":
-- Пиши предельно кратко и строго по делу (1-2 емких предложения).
-- Категорически избегай шаблонных фраз и "воды": НЕ используй конструкции вроде "Вакансия предполагает", "Компания ищет специалиста", "В обязанности входит", "Кандидату предстоит", "Данная позиция требует" и подобные.
-- Сразу формулируй суть работы и задач (например: "Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему").
-
-Правила для зарплаты:
-- Извлеки размер зарплаты (компенсации), если она указана в тексте или метаданных вакансии.
-- Верни "salary_min" (число или null) и "salary_max" (число или null). Если указана фиксированная сумма без вилки, укажи ее в salary_min и salary_max одинаковой или только в salary_min. Числа должны быть абсолютными числами (например, 120000, а не "120k").
-- "salary_currency": символ или код валюты ("$", "€", "₽", "£", "USD", "EUR" и т.д., или null если не указано).
-- "salary_period": строго одно из значений: "year", "month", "hour", "day", "week" (или null если зарплата не указана). Если указано "a year", "/yr", "per year", "annual" -> "year". Если "a month", "/mo", "monthly" -> "month". Если "per hour", "/hr", "hourly" -> "hour".
-Правила для формата работы (workplace_type):
-- Извлеки формат работы (строго одно из значений: "remote", "hybrid", "on-site", или null если невозможно определить):
-  - "remote": удаленная работа (Remote, Удаленно, WFH, Work from home, 100% remote).
-  - "hybrid": гибридный формат (Hybrid, Гибрид, гибкий график офис/дом, X дней в неделю в офисе).
-  - "on-site": работа строго в офисе / на месте (On-site, Onsite, В офисе, На территории работодателя).
-  - null: если формат работы не упомянут ни в описании, ни в локации.
-
-Название: {title}
-Компания: {company}
-Локация: {location}
-Описание вакансии:
-\"\"\"
-{description[:8000]}
-\"\"\"
-
-Ответь строго в формате JSON со следующими полями:
-{{
-  "title": "Точное название должности (извлеки из описания, если есть, иначе используй оригинальное)",
-  "location": "Извлеки город/страну/локацию из описания, если указано. Иначе null.",
-  "summary": "Кратко и по делу: суть задач без вводных слов и штампов (например: 'Нужно разрабатывать UI-kit, оптимизировать рендеринг и развивать дизайн-систему').",
-  "tech_stack": ["название технологии 1", "технология 2"],
-  "company_info": "1-2 предложения о том, чем занимается компания/какой продукт делает (из текста вакансии или контекста).",
-  "workplace_type": "remote",
-  "salary_min": 120000,
-  "salary_max": 150000,
-  "salary_currency": "$",
-  "salary_period": "year"
-}}
+Respond strictly in valid JSON matching the following JSON Schema:
+{json_format_str}
 """
 
     raw_response = None
@@ -246,7 +268,7 @@ Respond strictly in JSON format with the following fields:
         if provider == "gemini":
             if not gemini_key:
                 raise ValueError("Gemini API key is not configured")
-            raw_response = await call_gemini(prompt, gemini_key, gemini_model)
+            raw_response = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format)
         elif provider == "mistral":
             if not mistral_key:
                 raise ValueError("Mistral API key is not configured")
@@ -267,6 +289,8 @@ Respond strictly in JSON format with the following fields:
         return {
             "title": None,
             "location": None,
+            "city": None,
+            "country": None,
             "summary": fallback_summary,
             "tech_stack": fallback_stack,
             "company_info": fallback_comp,
@@ -278,13 +302,9 @@ Respond strictly in JSON format with the following fields:
             "ai_error": str(e)
         }
 
-    # Clean and parse JSON response
+    # Parse JSON response directly since APIs guarantee valid JSON
     try:
-        cleaned = raw_response.strip()
-        if cleaned.startswith("```"):
-            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-            cleaned = re.sub(r"\s*```$", "", cleaned)
-        data = json.loads(cleaned)
+        data = json.loads(raw_response)
 
         # Normalize workplace_type
         raw_workplace = str(data.get("workplace_type") or "").strip().lower()
@@ -327,12 +347,24 @@ Respond strictly in JSON format with the following fields:
             elif "day" in raw_period:
                 clean_period = "day"
 
+        def safe_str(val, default=None):
+            if val is None:
+                return default
+            if isinstance(val, str):
+                s = val.strip()
+                if s.lower() in ("null", "none", "n/a", ""):
+                    return default
+                return s
+            return str(val).strip()
+
         return {
-            "title": data.get("title", "").strip() or None,
-            "location": data.get("location", "").strip() or None,
-            "summary": data.get("summary", "").strip(),
+            "title": safe_str(data.get("title")),
+            "location": safe_str(data.get("location")),
+            "city": safe_str(data.get("city")),
+            "country": safe_str(data.get("country")),
+            "summary": safe_str(data.get("summary"), default=""),
             "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
-            "company_info": data.get("company_info", "").strip(),
+            "company_info": safe_str(data.get("company_info"), default=""),
             "workplace_type": clean_workplace,
             "salary_min": clean_min,
             "salary_max": clean_max,
@@ -345,6 +377,8 @@ Respond strictly in JSON format with the following fields:
         return {
             "title": None,
             "location": None,
+            "city": None,
+            "country": None,
             "summary": raw_response[:300] if raw_response else "",
             "tech_stack": extract_fallback_tech_stack(description),
             "company_info": "",

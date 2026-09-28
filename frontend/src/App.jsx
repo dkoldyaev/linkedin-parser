@@ -455,9 +455,14 @@ export default function App() {
 
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
-            onClick={() => {
+            onClick={async () => {
               trackEvent(EVENTS.REFRESH_CLICK);
-              fetchVacancies();
+              try {
+                await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                fetchVacancies();
+              } catch (e) {
+                console.error(e);
+              }
             }}
             title={t('nav.refresh_btn')}
           >
