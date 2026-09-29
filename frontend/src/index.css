@@ -1150,6 +1150,9 @@ body {
   animation: bounceSubtle 2s infinite ease-in-out;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: absolute;
+  left: -7px;
+  top: -7px;
 }
 .queue-pill:hover {
   transform: scale(1.05);
