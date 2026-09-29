@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Trash2, AlertCircle } from 'lucide-react';
+import { X, Loader2, Trash2, AlertCircle, List } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export default function QueueModal({ isOpen, onClose }) {
@@ -46,11 +46,16 @@ export default function QueueModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
         <div className="modal-header">
-          <h2>Очередь обработки</h2>
-          <button className="btn-close" onClick={onClose}><X size={20} /></button>
+          <div className="modal-title">
+            <List size={20} color="#6366f1" />
+            <span>Очередь обработки</span>
+          </div>
+          <button className="btn-icon" onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {loading ? (

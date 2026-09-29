@@ -308,7 +308,7 @@ class RedisQueueManager:
                 if raw:
                     try:
                         task = JobTask.from_dict(json.loads(raw))
-                        if user_id is None or task.user_id == user_id:
+                        if task.status != "cancelled" and (user_id is None or task.user_id == user_id):
                             tasks.append(task.to_info())
                     except Exception as e:
                         logger.warning(f"Error decoding task JSON: {e}")
@@ -333,8 +333,10 @@ class RedisQueueManager:
             await self.redis.lrem(SCRAPE_QUEUE_KEY, 0, task_id)
             await self.redis.lrem(AI_QUEUE_KEY, 0, task_id)
             
-            # Note: We cannot easily remove from PROCESSING_SETs because workers are actively working on them.
-            # But we can mark the task as cancelled so if a worker checks it, it could abort (though currently workers might just finish it).
+            # Remove from processing sets
+            await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
+            await self.redis.srem(AI_PROCESSING_SET, task_id)
+            
             # We'll just update its status in DB.
             task.status = "cancelled"
             await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
