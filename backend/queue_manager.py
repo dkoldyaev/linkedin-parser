@@ -228,11 +228,8 @@ class RedisQueueManager:
     async def _calculate_total_remaining(self) -> int:
         if not self.redis:
             return 0
-        p_scrape = await self.redis.llen(SCRAPE_QUEUE_KEY)
-        p_ai = await self.redis.llen(AI_QUEUE_KEY)
-        pr_scrape = await self.redis.scard(SCRAPE_PROCESSING_SET)
-        pr_ai = await self.redis.scard(AI_PROCESSING_SET)
-        return p_scrape + p_ai + pr_scrape + pr_ai
+        tasks = await self.get_active_tasks(user_id=None)
+        return len(tasks)
 
     async def get_status(self, user_id: Optional[int] = None) -> QueueStatusResponse:
         """Query Redis for queue status of both stages and recent task info."""
@@ -241,14 +238,16 @@ class RedisQueueManager:
                 pending=0, processing=0, total_remaining=0, completed=0, failed=0, recent_tasks=[]
             )
 
-        p_scrape = await self.redis.llen(SCRAPE_QUEUE_KEY)
-        p_ai = await self.redis.llen(AI_QUEUE_KEY)
-        pr_scrape = await self.redis.scard(SCRAPE_PROCESSING_SET)
-        pr_ai = await self.redis.scard(AI_PROCESSING_SET)
+        active_tasks = await self.get_active_tasks(user_id=None)
+        
+        p_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "pending")
+        p_ai = sum(1 for t in active_tasks if t.stage == "ai" and t.status == "pending")
+        pr_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "processing")
+        pr_ai = sum(1 for t in active_tasks if t.stage == "ai" and t.status == "processing")
 
         total_pending = p_scrape + p_ai
         total_processing = pr_scrape + pr_ai
-        total_remaining = total_pending + total_processing
+        total_remaining = len(active_tasks)
 
         stats = await self.redis.hgetall(STATS_KEY)
         completed = int(stats.get("completed", 0))
