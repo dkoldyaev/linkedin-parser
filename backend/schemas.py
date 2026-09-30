@@ -27,6 +27,7 @@ class VacancyBase(BaseModel):
     url: str
     user_id: Optional[int] = None
     job_id: Optional[str] = None
+    source: Optional[str] = None
     company_url: Optional[str] = None
     company_info: Optional[str] = None
     location: Optional[str] = None

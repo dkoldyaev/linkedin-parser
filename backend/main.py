@@ -50,10 +50,28 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+from .parsers import registry as parser_registry
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
-from .mercure import get_mercure_public_url
-from .queue_manager import queue_manager, JobTask
+import asyncio
+from .mercure import (
+    get_mercure_public_url,
+    publish_mercure_event,
+    EVENT_VACANCY_CREATED,
+    EVENT_VACANCY_UPDATED,
+    EVENT_QUEUE_UPDATED,
+    MSG_VACANCY_CREATED,
+    MSG_VACANCY_UPDATED,
+    MSG_QUEUE_UPDATED,
+)
+from .queue_manager import (
+    queue_manager,
+    JobTask,
+    TASK_KEY_PREFIX,
+    AI_QUEUE_KEY,
+    TASK_TTL,
+    RECENT_LIST,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("linkedin_tracker")
@@ -617,13 +635,8 @@ async def batch_import_vacancies(
                     Vacancy.user_id == current_user.id,
                 ).first()
 
-            # Scrape vacancy
-            if "upwork.com" in url.lower():
-                scraped = await scrape_upwork_job(url)
-            elif "linkedin.com" in url.lower():
-                scraped = await scrape_linkedin_job(url)
-            else:
-                scraped = await scrape_universal_job(url)
+            # Scrape vacancy via parser registry
+            scraped = await parser_registry.parse(url)
             
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
@@ -667,6 +680,7 @@ async def batch_import_vacancies(
                 if s_per is not None: existing.salary_period = s_per
                 if w_type: existing.workplace_type = w_type
                 if "is_closed" in scraped: existing.is_closed = scraped["is_closed"]
+                if scraped.get("source"): existing.source = scraped["source"]
 
                 # Merge tags without duplicating
                 current_tags = set(existing.tags or [])
@@ -697,6 +711,7 @@ async def batch_import_vacancies(
                 new_v = Vacancy(
                     user_id=current_user.id,
                     job_id=scraped.get("job_id"),
+                    source=scraped.get("source"),
                     url=url,
                     title=scraped["title"],
                     company=scraped["company"],
@@ -995,7 +1010,7 @@ async def submit_extension_task_result(
     # Verify task belongs to user before processing
     redis = queue_manager.redis
     if redis:
-        raw = await redis.get(f"queue:task:{task_id}")
+        raw = await redis.get(f"{TASK_KEY_PREFIX}{task_id}")
         if raw:
             t = JobTask.from_dict(json.loads(raw))
             if t.user_id != current_user.id:
@@ -1005,25 +1020,21 @@ async def submit_extension_task_result(
 
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
-    import uuid
+    from .parsers import registry as parser_registry  # noqa: PLC0415
     url = payload.url
-    if "upwork.com" in url.lower():
-        scraped = await scrape_upwork_job(url, html=payload.html)
-    elif "linkedin.com" in url.lower():
-        scraped = await scrape_linkedin_job(url, html=payload.html)
-    else:
-        scraped = await scrape_universal_job(url, html=payload.html)
+    scraped = await parser_registry.parse(url, html=payload.html)
     
-    job_id = extract_job_id(url)
+    job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None
     if job_id:
         existing = db.query(Vacancy).filter(Vacancy.job_id == job_id, Vacancy.user_id == current_user.id).first()
     if not existing:
         existing = db.query(Vacancy).filter(Vacancy.url == url, Vacancy.user_id == current_user.id).first()
         
+    is_new = False
     if existing:
         if scraped.get("job_id"): existing.job_id = scraped["job_id"]
+        if scraped.get("source"): existing.source = scraped["source"]
         existing.title = scraped["title"]
         existing.company = scraped["company"]
         existing.company_url = scraped.get("company_url")
@@ -1039,12 +1050,15 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
         existing.salary_period = scraped.get("salary_period")
         existing.is_closed = scraped.get("is_closed", False)
         db.commit()
+        db.refresh(existing)
         vacancy = existing
     else:
+        is_new = True
         vacancy = Vacancy(
             user_id=current_user.id,
             url=url,
             job_id=scraped.get("job_id"),
+            source=scraped.get("source"),
             title=scraped.get("title", "Untitled"),
             company=scraped.get("company", "Unknown"),
             company_url=scraped.get("company_url"),
@@ -1062,12 +1076,19 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
             status="Еще не написан"
         )
         db.add(vacancy)
+        db.flush()
+        db.add(VacancyStatusHistory(
+            vacancy_id=vacancy.id,
+            from_status=None,
+            to_status=vacancy.status,
+            created_at=vacancy.created_at,
+        ))
         db.commit()
         db.refresh(vacancy)
         
     # Queue for AI processing directly (skip scraping)
-    task_id = str(uuid.uuid4())
-    batch_id = str(uuid.uuid4())
+    task_id = uuid.uuid4().hex[:8]
+    batch_id = uuid.uuid4().hex[:8]
     task = JobTask(
         task_id=task_id,
         batch_id=batch_id,
@@ -1075,16 +1096,53 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
         default_tags=[],
         vacancy_id=vacancy.id,
         user_id=current_user.id,
+        title=vacancy.title,
+        company=vacancy.company,
         status="pending",
         stage="ai_analysis",
         created_at=time.time(),
         updated_at=time.time()
     )
     
-    await queue_manager.redis.set(f"queue:task:{task_id}", json.dumps(task.to_dict()), ex=86400)
-    await queue_manager.redis.rpush("queue:ai", task_id)
+    if queue_manager.redis:
+        async with queue_manager.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            pipe.rpush(AI_QUEUE_KEY, task_id)
+            pipe.lpush(RECENT_LIST, task_id)
+            pipe.ltrim(RECENT_LIST, 0, 99)
+            await pipe.execute()
+            
+        total_remaining = await queue_manager._calculate_total_remaining()
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+        asyncio.create_task(
+            publish_mercure_event(
+                event_type=EVENT_VACANCY_CREATED if is_new else EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_CREATED if is_new else MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                    "task_id": task_id,
+                    "batch_id": batch_id,
+                    "url": url,
+                    "total_remaining": total_remaining,
+                },
+                topic=mercure_topic,
+            )
+        )
+        asyncio.create_task(
+            publish_mercure_event(
+                event_type=EVENT_QUEUE_UPDATED,
+                data={
+                    "message_code": MSG_QUEUE_UPDATED,
+                    "batch_id": batch_id,
+                    "queued_count": 1,
+                    "total_remaining": total_remaining,
+                },
+                topic=mercure_topic,
+            )
+        )
     
-    return {"status": "queued_for_ai", "vacancy_id": vacancy.id}
+    return {"status": "queued_for_ai", "vacancy_id": vacancy.id, "task_id": task_id}
 
 
 # Static files mount for built React frontend

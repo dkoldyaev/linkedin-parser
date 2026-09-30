@@ -13,6 +13,7 @@ from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+from .parsers import registry as parser_registry
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
     publish_mercure_event,
@@ -241,9 +242,9 @@ class RedisQueueManager:
         active_tasks = await self.get_active_tasks(user_id=None)
         
         p_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "pending")
-        p_ai = sum(1 for t in active_tasks if t.stage == "ai" and t.status == "pending")
+        p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis") and t.status == "pending")
         pr_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "processing")
-        pr_ai = sum(1 for t in active_tasks if t.stage == "ai" and t.status == "processing")
+        pr_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis") and t.status == "processing")
 
         total_pending = p_scrape + p_ai
         total_processing = pr_scrape + pr_ai
@@ -402,16 +403,15 @@ class RedisQueueManager:
         logger.info(f"[Stage 1 - Scrape] Processing task {task.task_id} for URL: {task.url}")
 
         try:
-            # 1. Scrape job publicly (LinkedIn or Upwork)
+            # 1. Scrape job publicly via parser registry
             needs_extension = False
             scraped = {}
-            if "upwork.com" in task.url.lower():
+            parser = parser_registry.find(task.url)
+            if parser and parser.needs_extension:
                 needs_extension = True
-            elif "linkedin.com" in task.url.lower():
-                scraped = await scrape_linkedin_job(task.url)
             else:
-                scraped = await scrape_universal_job(task.url)
-                
+                scraped = await parser_registry.parse(task.url)
+
             if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
                 needs_extension = True
 
@@ -449,7 +449,7 @@ class RedisQueueManager:
 
             # 2. Save/update initial vacancy in Database immediately
             with SessionLocal() as db:
-                job_id = extract_job_id(task.url)
+                job_id = scraped.get("job_id") or extract_job_id(task.url)
                 existing = None
                 if task.vacancy_id:
                     existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
@@ -489,6 +489,8 @@ class RedisQueueManager:
                         existing.workplace_type = scraped["workplace_type"]
                     if "is_closed" in scraped:
                         existing.is_closed = scraped["is_closed"]
+                    if scraped.get("source"):
+                        existing.source = scraped["source"]
 
                     if not existing.user_id and task.user_id:
                         existing.user_id = task.user_id
@@ -500,6 +502,7 @@ class RedisQueueManager:
                     new_v = Vacancy(
                         user_id=task.user_id,
                         job_id=scraped.get("job_id"),
+                        source=scraped.get("source"),
                         url=task.url,
                         title=scraped["title"],
                         company=scraped["company"],
@@ -795,15 +798,10 @@ class RedisQueueManager:
         
         # Reprocess with html
         try:
-            if "upwork.com" in task.url.lower():
-                scraped = await scrape_upwork_job(task.url, html=html)
-            elif "linkedin.com" in task.url.lower():
-                scraped = await scrape_linkedin_job(task.url, html=html)
-            else:
-                scraped = await scrape_universal_job(task.url, html=html)
+            scraped = await parser_registry.parse(task.url, html=html)
                 
             with SessionLocal() as db:
-                job_id = extract_job_id(task.url)
+                job_id = scraped.get("job_id") or extract_job_id(task.url)
                 existing = None
                 if task.vacancy_id:
                     existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
@@ -843,6 +841,8 @@ class RedisQueueManager:
                         existing.workplace_type = scraped["workplace_type"]
                     if scraped.get("is_closed") is not None:
                         existing.is_closed = scraped["is_closed"]
+                    if scraped.get("source"):
+                        existing.source = scraped["source"]
 
                     db.commit()
                     db.refresh(existing)
@@ -852,6 +852,7 @@ class RedisQueueManager:
                         user_id=task.user_id,
                         url=task.url,
                         job_id=scraped.get("job_id"),
+                        source=scraped.get("source"),
                         title=scraped.get("title", "Untitled Vacancy"),
                         company=scraped.get("company", "Unknown Company"),
                         company_url=scraped.get("company_url"),
@@ -870,6 +871,13 @@ class RedisQueueManager:
                         status="Еще не написан"
                     )
                     db.add(new_vacancy)
+                    db.flush()
+                    db.add(VacancyStatusHistory(
+                        vacancy_id=new_vacancy.id,
+                        from_status=None,
+                        to_status=new_vacancy.status,
+                        created_at=new_vacancy.created_at,
+                    ))
                     db.commit()
                     db.refresh(new_vacancy)
                     task.vacancy_id = new_vacancy.id

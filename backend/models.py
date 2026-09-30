@@ -54,6 +54,7 @@ class Vacancy(Base):
     company = Column(String(256), nullable=False, default="Unknown Company")
     company_url = Column(String(1024), nullable=True)
     company_info = Column(Text, nullable=True)
+    source = Column(String(64), nullable=True)  # Name of job board/source e.g. "Avito", "Habr Career"
     location = Column(String(256), nullable=True)
     city = Column(String(128), nullable=True)
     country = Column(String(128), nullable=True)

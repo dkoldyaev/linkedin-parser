@@ -34,6 +34,17 @@ COUNTRY_ALIASES = {
     "holland": "Netherlands",
     "españa": "Spain",
     "deutschland": "Germany",
+    "ru": "Russia",
+    "rf": "Russia",
+    "россия": "Russia",
+    "рф": "Russia",
+    "сша": "United States",
+    "германия": "Germany",
+    "испания": "Spain",
+    "норвегия": "Norway",
+    "польша": "Poland",
+    "франция": "France",
+    "великобритания": "United Kingdom",
 }
 
 # Known countries set (lowercased for matching)
@@ -231,6 +242,12 @@ def parse_location(raw_location: Optional[str]) -> Tuple[str, str]:
         if raw_country.upper() in CA_PROVINCES:
             country = "Canada"
             city = clean_city_name(raw_city)
+            return city, country
+
+        # Check if first part is a known country and last part is a city (e.g. 'Россия, Москва')
+        if (raw_city.lower() in KNOWN_COUNTRIES or raw_city.lower() in COUNTRY_ALIASES) and not (raw_country.lower() in KNOWN_COUNTRIES or raw_country.lower() in COUNTRY_ALIASES):
+            country = normalize_country(raw_city)
+            city = clean_city_name(raw_country)
             return city, country
 
         country = normalize_country(raw_country)

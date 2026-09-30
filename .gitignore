@@ -12,5 +12,4 @@ node_modules
 docker-compose.override.yml
 
 #tmp
-avito-test_files
-avito-test.html
+examples/
