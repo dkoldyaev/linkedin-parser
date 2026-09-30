@@ -257,7 +257,7 @@ def extract_is_closed_from_soup(soup: BeautifulSoup, html: Optional[str] = None)
     return False
 
 
-async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
+async def scrape_linkedin_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
     """
     Fetch and parse LinkedIn job vacancy page.
     Returns dictionary with parsed fields.
@@ -265,36 +265,36 @@ async def scrape_linkedin_job(url: str) -> Dict[str, Any]:
     url = url.strip()
     job_id = extract_job_id(url)
     
-    html = None
     target_url = url
 
-    async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True, timeout=20.0) as client:
-        # First attempt: if job_id is found, use LinkedIn Guest API endpoint
-        if job_id:
-            api_url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
-            try:
-                resp = await client.get(api_url)
-                if resp.status_code == 200 and len(resp.text) > 1000:
-                    html = resp.text
-                    target_url = api_url
-                elif resp.status_code == 404:
-                    return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
-            except Exception as e:
-                logger.warning(f"Failed to fetch guest API for job {job_id}: {e}")
-
-        # Fallback: fetch original URL directly if guest API was not successful
-        if not html:
-            try:
-                resp = await client.get(url)
-                if resp.status_code == 200:
-                    html = resp.text
-                elif resp.status_code == 404:
-                    return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
-                else:
-                    raise ValueError(f"HTTP response status {resp.status_code}")
-            except Exception as e:
-                logger.error(f"Failed to fetch job URL {url}: {e}")
-                raise RuntimeError(f"Could not load job page: {e}")
+    if not html:
+        async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True, timeout=20.0) as client:
+            # First attempt: if job_id is found, use LinkedIn Guest API endpoint
+            if job_id:
+                api_url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
+                try:
+                    resp = await client.get(api_url)
+                    if resp.status_code == 200 and len(resp.text) > 1000:
+                        html = resp.text
+                        target_url = api_url
+                    elif resp.status_code == 404:
+                        return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                except Exception as e:
+                    logger.warning(f"Failed to fetch guest API for job {job_id}: {e}")
+    
+            # Fallback: fetch original URL directly if guest API was not successful
+            if not html:
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        html = resp.text
+                    elif resp.status_code == 404:
+                        return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                    else:
+                        raise ValueError(f"HTTP response status {resp.status_code}")
+                except Exception as e:
+                    logger.error(f"Failed to fetch job URL {url}: {e}")
+                    raise RuntimeError(f"Could not load job page: {e}")
 
     # Parse HTML with BeautifulSoup
     soup = BeautifulSoup(html, "html.parser")
@@ -414,21 +414,23 @@ async def scrape_upwork_job(url: str) -> Dict[str, Any]:
     }
 
 
-async def scrape_universal_job(url: str) -> Dict[str, Any]:
+async def scrape_universal_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
     """
-    Universal fallback parser that downloads the page and extracts text for LLM.
+    Universal fallback parser. Strips noise from HTML and passes all remaining
+    text to the LLM — no field pre-extraction logic.
     """
     from urllib.parse import urlparse
     domain = urlparse(url).netloc.replace("www.", "")
-    
-    try:
-        async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            html = resp.text
-    except Exception as e:
-        logger.warning(f"Failed to fetch {url}: {e}")
-        html = ""
+
+    if not html:
+        try:
+            async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                html = resp.text
+        except Exception as e:
+            logger.warning(f"Failed to fetch {url}: {e}")
+            html = ""
 
     if not html:
         return {
@@ -448,63 +450,25 @@ async def scrape_universal_job(url: str) -> Dict[str, Any]:
         }
 
     soup = BeautifulSoup(html, 'html.parser')
-    
-    title = soup.title.string if soup.title else ""
-    title = title.strip() if title else domain
 
-    # Remove noisy tags
-    for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg"]):
+    # Use <title> as a temporary placeholder; LLM will extract the real title
+    title = soup.title.string.strip() if soup.title and soup.title.string else domain
+
+    # Strip non-content tags
+    for tag in soup(["script", "style", "noscript", "svg", "iframe"]):
         tag.decompose()
 
-    # Prefer main or article if available
-    content_node = soup.find("main") or soup.find("article") or soup.find("body") or soup
-    
-    # Extract text with newlines
-    lines = (line.strip() for line in content_node.get_text(separator="\n").splitlines())
-    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    text = "\n".join(chunk for chunk in chunks if chunk)
-
-    # Extract company name and URL
-    company = domain
-    company_url = f"https://{domain}"
-    
-    # 1. hh.ru specific
-    hh_company = soup.find(attrs={"data-qa": "vacancy-company-name"})
-    if hh_company:
-        company = hh_company.get_text(strip=True)
-        if hh_company.name == "a" and hh_company.get("href"):
-            href = hh_company.get("href")
-            company_url = f"https://{domain}{href}" if href.startswith("/") else href
-            
-    hh_location = soup.find(attrs={"data-qa": "vacancy-view-location"}) or soup.find(attrs={"data-qa": "vacancy-view-raw-address"})
-    location = hh_location.get_text(strip=True) if hh_location else "Not specified"
-
-    if not hh_company:
-        # 2. Generic JSON-LD fallback
-        for script in soup.find_all("script", type="application/ld+json"):
-            try:
-                data = json.loads(script.get_text())
-                items = data if isinstance(data, list) else [data]
-                for item in items:
-                    if isinstance(item, dict) and item.get("@type") == "JobPosting":
-                        hiring_org = item.get("hiringOrganization")
-                        if isinstance(hiring_org, dict):
-                            org_name = hiring_org.get("name")
-                            if org_name:
-                                company = org_name
-                            org_url = hiring_org.get("sameAs") or hiring_org.get("url")
-                            if org_url:
-                                company_url = org_url
-            except Exception:
-                pass
+    # Dump all remaining text
+    lines = (line.strip() for line in soup.get_text(separator="\n").splitlines())
+    text = "\n".join(line for line in lines if line)
 
     return {
         "url": url,
         "title": title[:255],
-        "company": company,
-        "company_url": company_url,
-        "description": text[:15000],  # Limit to avoid huge context
-        "location": location,
+        "company": domain,
+        "company_url": f"https://{domain}",
+        "description": text[:15000],
+        "location": "Not specified",
         "city": None,
         "country": None,
         "is_closed": False,
@@ -513,3 +477,4 @@ async def scrape_universal_job(url: str) -> Dict[str, Any]:
         "salary_currency": None,
         "salary_period": None,
     }
+

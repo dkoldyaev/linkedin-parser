@@ -165,3 +165,11 @@ class SettingsUpdateRequest(BaseModel):
     gemini_model: Optional[str] = None
     locale: Optional[str] = None
     salary_display_format: Optional[str] = None
+
+class ExtensionParseRequest(BaseModel):
+    url: str
+    html: str
+
+class ExtensionTaskResponse(BaseModel):
+    task_id: str
+    url: str

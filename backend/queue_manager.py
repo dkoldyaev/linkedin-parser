@@ -403,12 +403,49 @@ class RedisQueueManager:
 
         try:
             # 1. Scrape job publicly (LinkedIn or Upwork)
+            needs_extension = False
+            scraped = {}
             if "upwork.com" in task.url.lower():
-                scraped = await scrape_upwork_job(task.url)
+                needs_extension = True
             elif "linkedin.com" in task.url.lower():
                 scraped = await scrape_linkedin_job(task.url)
             else:
                 scraped = await scrape_universal_job(task.url)
+                
+            if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
+                needs_extension = True
+
+            if needs_extension:
+                task.status = "pending_extension"
+                task.updated_at = time.time()
+                await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                await self.redis.rpush("queue:extension", task_id)
+                
+                total_rem = await self._calculate_total_remaining()
+                mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+                
+                from .mercure import EVENT_EXTENSION_TASK, MSG_EXTENSION_TASK
+                
+                await publish_mercure_event(
+                    event_type=EVENT_QUEUE_UPDATED,
+                    data={
+                        "message_code": MSG_QUEUE_UPDATED,
+                        "total_remaining": total_rem,
+                    },
+                    topic=mercure_topic,
+                )
+                
+                await publish_mercure_event(
+                    event_type=EVENT_EXTENSION_TASK,
+                    data={
+                        "message_code": MSG_EXTENSION_TASK,
+                        "task_id": task_id,
+                        "url": task.url
+                    },
+                    topic=mercure_topic,
+                )
+                logger.info(f"[Stage 1 - Scrape] Task {task.task_id} marked as pending_extension")
+                return
 
             # 2. Save/update initial vacancy in Database immediately
             with SessionLocal() as db:
@@ -743,6 +780,118 @@ class RedisQueueManager:
                 },
                 topic=mercure_topic,
             )
+
+
+    async def process_extension_result(self, task_id: str, html: str) -> dict:
+        raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+        if not raw:
+            return {"status": "error", "message": "Task not found"}
+            
+        task = JobTask.from_dict(json.loads(raw))
+        if task.status != "pending_extension":
+            return {"status": "already_processed"}
+            
+        await self.redis.lrem("queue:extension", 0, task_id)
+        
+        # Reprocess with html
+        try:
+            if "upwork.com" in task.url.lower():
+                scraped = await scrape_upwork_job(task.url, html=html)
+            elif "linkedin.com" in task.url.lower():
+                scraped = await scrape_linkedin_job(task.url, html=html)
+            else:
+                scraped = await scrape_universal_job(task.url, html=html)
+                
+            with SessionLocal() as db:
+                job_id = extract_job_id(task.url)
+                existing = None
+                if task.vacancy_id:
+                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
+                if not existing and job_id:
+                    existing = db.query(Vacancy).filter(Vacancy.job_id == job_id).first()
+                if not existing:
+                    existing = db.query(Vacancy).filter(Vacancy.url == task.url).first()
+
+                initial_tags = list(task.default_tags)
+                if existing:
+                    if scraped.get("job_id"):
+                        existing.job_id = scraped["job_id"]
+                    existing.title = scraped["title"]
+                    existing.company = scraped["company"]
+                    existing.company_url = scraped["company_url"]
+                    existing.location = scraped["location"]
+                    existing.city = scraped.get("city")
+                    existing.country = scraped["country"]
+                    existing.description = scraped["description"]
+                    if scraped.get("company_info"):
+                        existing.company_info = scraped["company_info"]
+
+                    current_tags = set(existing.tags or [])
+                    for t in initial_tags:
+                        current_tags.add(t)
+                    existing.tags = list(current_tags)
+
+                    if scraped.get("salary_min") is not None:
+                        existing.salary_min = scraped["salary_min"]
+                    if scraped.get("salary_max") is not None:
+                        existing.salary_max = scraped["salary_max"]
+                    if scraped.get("salary_currency") is not None:
+                        existing.salary_currency = scraped["salary_currency"]
+                    if scraped.get("salary_period") is not None:
+                        existing.salary_period = scraped["salary_period"]
+                    if scraped.get("workplace_type"):
+                        existing.workplace_type = scraped["workplace_type"]
+                    if scraped.get("is_closed") is not None:
+                        existing.is_closed = scraped["is_closed"]
+
+                    db.commit()
+                    db.refresh(existing)
+                    vacancy_data = VacancyResponse.model_validate(existing).model_dump(mode="json")
+                else:
+                    new_vacancy = Vacancy(
+                        user_id=task.user_id,
+                        url=task.url,
+                        job_id=scraped.get("job_id"),
+                        title=scraped.get("title", "Untitled Vacancy"),
+                        company=scraped.get("company", "Unknown Company"),
+                        company_url=scraped.get("company_url"),
+                        company_info=scraped.get("company_info"),
+                        location=scraped.get("location"),
+                        city=scraped.get("city"),
+                        country=scraped.get("country"),
+                        description=scraped.get("description"),
+                        salary_min=scraped.get("salary_min"),
+                        salary_max=scraped.get("salary_max"),
+                        salary_currency=scraped.get("salary_currency"),
+                        salary_period=scraped.get("salary_period"),
+                        workplace_type=scraped.get("workplace_type"),
+                        is_closed=scraped.get("is_closed", False),
+                        tags=initial_tags,
+                        status="Еще не написан"
+                    )
+                    db.add(new_vacancy)
+                    db.commit()
+                    db.refresh(new_vacancy)
+                    task.vacancy_id = new_vacancy.id
+                    vacancy_data = VacancyResponse.model_validate(new_vacancy).model_dump(mode="json")
+            
+            task.stage = "ai_analysis"
+            task.status = "pending"
+            task.updated_at = time.time()
+            
+            async with self.redis.pipeline(transaction=True) as pipe:
+                pipe.set(f"{TASK_KEY_PREFIX}{task.task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                pipe.rpush(AI_QUEUE_KEY, task.task_id)
+                await pipe.execute()
+                
+            return {"status": "success", "vacancy_id": task.vacancy_id}
+            
+        except Exception as e:
+            task.status = "failed"
+            task.error = str(e)
+            task.updated_at = time.time()
+            await self.redis.set(f"{TASK_KEY_PREFIX}{task.task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            return {"status": "error", "message": str(e)}
 
 
 # Global singleton instance with 1 scrape worker and 1 AI worker

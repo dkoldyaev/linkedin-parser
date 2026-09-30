@@ -1,5 +1,7 @@
 import os
 import uuid
+import time
+import json
 import logging
 import datetime
 from contextlib import asynccontextmanager
@@ -31,6 +33,8 @@ from .schemas import (
     UserResponse,
     AuthConfigResponse,
     DevLoginRequest,
+    ExtensionTaskResponse,
+    ExtensionParseRequest,
 )
 from .auth import (
     get_current_user,
@@ -49,7 +53,7 @@ from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_jo
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import get_mercure_public_url
-from .queue_manager import queue_manager
+from .queue_manager import queue_manager, JobTask
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("linkedin_tracker")
@@ -959,6 +963,128 @@ def update_settings(
     db.commit()
 
     return get_settings(current_user=current_user, db=db)
+
+
+@app.get("/api/extension/tasks", response_model=List[ExtensionTaskResponse])
+async def get_extension_tasks(current_user: User = Depends(get_current_user)):
+    redis = queue_manager.redis
+    if not redis: return []
+    task_ids = await redis.lrange("queue:extension", 0, -1)
+    tasks = []
+    for tid in task_ids:
+        raw = await redis.get(f"queue:task:{tid.decode()}")
+        if raw:
+            t = JobTask.from_dict(json.loads(raw))
+            if t.status == "pending_extension" and t.user_id == current_user.id:
+                tasks.append(ExtensionTaskResponse(task_id=t.task_id, url=t.url))
+    return tasks
+
+@app.get("/api/extension/mercure_config")
+async def get_extension_mercure_config(current_user: User = Depends(get_current_user)):
+    return {
+        "mercure_hub_url": os.getenv("MERCURE_PUBLIC_URL", "http://localhost:3000/.well-known/mercure"),
+        "topic": f"vacancies:{current_user.id}"
+    }
+
+@app.post("/api/extension/tasks/{task_id}/result")
+async def submit_extension_task_result(
+    task_id: str, 
+    payload: ExtensionParseRequest,
+    current_user: User = Depends(get_current_user)
+):
+    # Verify task belongs to user before processing
+    redis = queue_manager.redis
+    if redis:
+        raw = await redis.get(f"queue:task:{task_id}")
+        if raw:
+            t = JobTask.from_dict(json.loads(raw))
+            if t.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not your task")
+                
+    return await queue_manager.process_extension_result(task_id, payload.html)
+
+@app.post("/api/extension/parse_and_add")
+async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+    import uuid
+    url = payload.url
+    if "upwork.com" in url.lower():
+        scraped = await scrape_upwork_job(url, html=payload.html)
+    elif "linkedin.com" in url.lower():
+        scraped = await scrape_linkedin_job(url, html=payload.html)
+    else:
+        scraped = await scrape_universal_job(url, html=payload.html)
+    
+    job_id = extract_job_id(url)
+    existing = None
+    if job_id:
+        existing = db.query(Vacancy).filter(Vacancy.job_id == job_id, Vacancy.user_id == current_user.id).first()
+    if not existing:
+        existing = db.query(Vacancy).filter(Vacancy.url == url, Vacancy.user_id == current_user.id).first()
+        
+    if existing:
+        if scraped.get("job_id"): existing.job_id = scraped["job_id"]
+        existing.title = scraped["title"]
+        existing.company = scraped["company"]
+        existing.company_url = scraped.get("company_url")
+        existing.location = scraped.get("location")
+        existing.city = scraped.get("city")
+        existing.country = scraped.get("country")
+        existing.description = scraped.get("description")
+        existing.company_info = scraped.get("company_info")
+        existing.workplace_type = scraped.get("workplace_type")
+        existing.salary_min = scraped.get("salary_min")
+        existing.salary_max = scraped.get("salary_max")
+        existing.salary_currency = scraped.get("salary_currency")
+        existing.salary_period = scraped.get("salary_period")
+        existing.is_closed = scraped.get("is_closed", False)
+        db.commit()
+        vacancy = existing
+    else:
+        vacancy = Vacancy(
+            user_id=current_user.id,
+            url=url,
+            job_id=scraped.get("job_id"),
+            title=scraped.get("title", "Untitled"),
+            company=scraped.get("company", "Unknown"),
+            company_url=scraped.get("company_url"),
+            location=scraped.get("location"),
+            country=scraped.get("country"),
+            city=scraped.get("city"),
+            description=scraped.get("description"),
+            company_info=scraped.get("company_info"),
+            salary_min=scraped.get("salary_min"),
+            salary_max=scraped.get("salary_max"),
+            salary_currency=scraped.get("salary_currency"),
+            salary_period=scraped.get("salary_period"),
+            workplace_type=scraped.get("workplace_type"),
+            is_closed=scraped.get("is_closed", False),
+            status="Еще не написан"
+        )
+        db.add(vacancy)
+        db.commit()
+        db.refresh(vacancy)
+        
+    # Queue for AI processing directly (skip scraping)
+    task_id = str(uuid.uuid4())
+    batch_id = str(uuid.uuid4())
+    task = JobTask(
+        task_id=task_id,
+        batch_id=batch_id,
+        url=url,
+        default_tags=[],
+        vacancy_id=vacancy.id,
+        user_id=current_user.id,
+        status="pending",
+        stage="ai_analysis",
+        created_at=time.time(),
+        updated_at=time.time()
+    )
+    
+    await queue_manager.redis.set(f"queue:task:{task_id}", json.dumps(task.to_dict()), ex=86400)
+    await queue_manager.redis.rpush("queue:ai", task_id)
+    
+    return {"status": "queued_for_ai", "vacancy_id": vacancy.id}
 
 
 # Static files mount for built React frontend

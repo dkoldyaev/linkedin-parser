@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Job Tracker Extractor",
+  "version": "1.0.0",
+  "description": "Parse job vacancies and sync with Job Tracker.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Add to Job Tracker"
+  }
+}
