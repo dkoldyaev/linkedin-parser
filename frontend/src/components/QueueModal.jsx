@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Loader2, Trash2, AlertCircle, List } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
-export default function QueueModal({ isOpen, onClose }) {
+export default function QueueModal({ isOpen, onClose, queueRemaining }) {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function QueueModal({ isOpen, onClose }) {
       setTasks([]);
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, queueRemaining]);
 
   const fetchTasks = async () => {
     setLoading(true);

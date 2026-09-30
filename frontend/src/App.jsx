@@ -769,6 +769,7 @@ export default function App() {
       <QueueModal
         isOpen={isQueueOpen}
         onClose={() => setIsQueueOpen(false)}
+        queueRemaining={queueRemaining}
       />
 
       {/* Toast Notifications */}
