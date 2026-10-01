@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
-from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+from .scraper import extract_job_id
 from .parsers import registry as parser_registry
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (

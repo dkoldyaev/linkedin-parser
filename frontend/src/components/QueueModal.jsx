@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Trash2, AlertCircle, List } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 
 export default function QueueModal({ isOpen, onClose, queueRemaining }) {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [parent] = useAutoAnimate();
 
   useEffect(() => {
     if (isOpen) {
+      if (tasks.length === 0) {
+        setLoading(true);
+      }
       fetchTasks();
     } else {
       setTasks([]);
       setError('');
+      setLoading(false);
     }
   }, [isOpen, queueRemaining]);
 
   const fetchTasks = async () => {
-    setLoading(true);
-    setError('');
     try {
       const res = await fetch('/api/queue/tasks');
       if (!res.ok) throw new Error('Failed to fetch queue tasks');
       const data = await res.json();
       setTasks(data);
+      setError('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -34,12 +39,14 @@ export default function QueueModal({ isOpen, onClose, queueRemaining }) {
 
   const handleCancelTask = async (taskId) => {
     try {
+      // Remove from list visually immediately for responsive UI
+      setTasks((prev) => prev.filter(t => t.task_id !== taskId));
       const res = await fetch(`/api/queue/tasks/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel task');
-      // Remove from list visually
-      setTasks((prev) => prev.filter(t => t.task_id !== taskId));
     } catch (err) {
       alert('Error cancelling task: ' + err.message);
+      // Optional: rollback tasks state if it failed
+      fetchTasks();
     }
   };
 
@@ -71,7 +78,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining }) {
                Очередь пуста
              </div>
           ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <ul ref={parent} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {tasks.map(task => (
                 <li key={task.task_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ overflow: 'hidden', marginRight: '16px' }}>

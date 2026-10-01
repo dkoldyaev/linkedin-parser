@@ -75,11 +75,11 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
               onDrop={(e) => handleDrop(e, col.id)}
             >
               <div className="column-header">
+                <span className="column-badge">{columnVacancies.length}</span>
                 <div className="column-title-group">
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name">{columnName}</span>
                 </div>
-                <span className="column-badge">{columnVacancies.length}</span>
               </div>
 
               <div className="column-cards">
@@ -122,13 +122,14 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
           <div className="column-title-group">
             <span className="column-dot" style={{ background: '#ef4444' }} />
             <span className="column-name">{t('kanban.rejected_title')}</span>
-            <span
-              className="column-badge"
-              style={rejectedVacancies.length > 0 ? { color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}
-            >
-              {rejectedVacancies.length}
-            </span>
           </div>
+
+          <span
+            className="column-badge"
+            style={rejectedVacancies.length > 0 ? { color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}
+          >
+            {rejectedVacancies.length}
+          </span>
 
           <button
             type="button"

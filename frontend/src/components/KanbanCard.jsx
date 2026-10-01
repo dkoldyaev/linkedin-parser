@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Building2, MapPin, Sparkles, ChevronLeft, ChevronRight, 
+  MapPin, Sparkles, ChevronLeft, ChevronRight, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
   XCircle, RotateCcw, History
 } from 'lucide-react';
@@ -103,21 +103,21 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
             className="card-checkbox"
             title="Выделить карточку"
           />
-          <div className="card-company">
-            <Building2 size={12} />
-            <span>{vacancy.company}</span>
-            {vacancy.company_url && (
-              <a 
-                href={vacancy.company_url} 
-                target="_blank" 
-                rel="noreferrer" 
-                onClick={handleCompanyLinkClick}
-                title={t('kanban.company_linkedin')}
-              >
-                <ExternalLink size={10} />
-              </a>
-            )}
-          </div>
+          
+          <h3 className="card-title">
+            <a 
+              href={vacancy.url} 
+              target="_blank" 
+              rel="noreferrer" 
+              onClick={handleCompanyLinkClick}
+              title={vacancy.source || ''}
+            >
+              {vacancy.source && <span>{vacancy.source}</span>}
+              <ExternalLink size={10} />
+            </a>
+            {vacancy.title}
+          </h3>
+
         </div>
         {vacancy.is_closed && (
           <div className="card-closed-badge" title={t('kanban.closed_hint')}>
@@ -126,8 +126,6 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
           </div>
         )}
       </div>
-
-      <h3 className="card-title">{vacancy.title}</h3>
 
       {(vacancy.location || salaryInfo.hasSalary || workplaceInfo) && (
         <div className="card-meta">
