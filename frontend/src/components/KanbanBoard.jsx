@@ -75,11 +75,11 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
               onDrop={(e) => handleDrop(e, col.id)}
             >
               <div className="column-header">
-                <span className="column-badge">{columnVacancies.length}</span>
                 <div className="column-title-group">
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name">{columnName}</span>
                 </div>
+                <span className="column-badge">{columnVacancies.length}</span>
               </div>
 
               <div className="column-cards">

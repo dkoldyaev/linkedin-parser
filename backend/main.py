@@ -320,6 +320,7 @@ def list_vacancies(
     country: Optional[str] = None,
     city: Optional[str] = None,
     workplace_type: Optional[str] = None,
+    source: Optional[str] = None,
     is_closed: Optional[bool] = None,
     search: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -339,6 +340,9 @@ def list_vacancies(
     if workplace_type and workplace_type.strip():
         query = query.filter(Vacancy.workplace_type.ilike(workplace_type.strip()))
 
+    if source and source.strip():
+        query = query.filter(Vacancy.source.ilike(source.strip()))
+
     if is_closed is not None:
         query = query.filter(Vacancy.is_closed == is_closed)
 
@@ -353,6 +357,7 @@ def list_vacancies(
                 Vacancy.country.ilike(search_fmt),
                 Vacancy.description.ilike(search_fmt),
                 Vacancy.ai_summary.ilike(search_fmt),
+                Vacancy.source.ilike(search_fmt),
             )
         )
 
@@ -926,6 +931,22 @@ def list_cities(
     vacancies = query.distinct().all()
     cities = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
     return sorted(list(cities))
+
+
+@app.get("/api/sources", response_model=List[str])
+def list_sources(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Return distinct sources present in current user's vacancies."""
+    vacancies = (
+        db.query(Vacancy.source)
+        .filter(Vacancy.user_id == current_user.id, Vacancy.source.isnot(None))
+        .distinct()
+        .all()
+    )
+    sources = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
+    return sorted(list(sources))
 
 
 @app.get("/api/settings", response_model=SettingsResponse)

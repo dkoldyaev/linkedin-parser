@@ -111,6 +111,7 @@ export const EVENTS = {
   FILTER_COUNTRY: 'Filter Country Change',
   FILTER_CITY: 'Filter City Change',
   FILTER_WORKPLACE: 'Filter Workplace Change',
+  FILTER_SOURCE: 'Filter Source Change',
   FILTER_TAG: 'Filter Tag Change',
   FILTERS_RESET: 'Filters Reset All',
   REFRESH_CLICK: 'Refresh Click',

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -22,6 +22,7 @@ export default function App() {
   const [allTags, setAllTags] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
   const [allCities, setAllCities] = useState([]);
+  const [allSources, setAllSources] = useState([]);
   const [search, setSearch] = useState('');
   const onChangeSearch = (event) => {
     const val = event.target.value;
@@ -35,6 +36,7 @@ export default function App() {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedWorkplaceType, setSelectedWorkplaceType] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
@@ -100,6 +102,8 @@ export default function App() {
     setAllTags([]);
     setAllCountries([]);
     setAllCities([]);
+    setAllSources([]);
+    setSelectedSource('');
   };
 
   const fetchVacancies = useCallback(async () => {
@@ -112,6 +116,7 @@ export default function App() {
       if (selectedCountry) params.append('country', selectedCountry);
       if (selectedCity) params.append('city', selectedCity);
       if (selectedWorkplaceType) params.append('workplace_type', selectedWorkplaceType);
+      if (selectedSource) params.append('source', selectedSource);
       if (params.toString()) url += `?${params.toString()}`;
 
       const res = await fetch(url);
@@ -122,7 +127,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType]);
+  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource]);
 
   const fetchTags = useCallback(async () => {
     if (!user) return;
@@ -171,12 +176,26 @@ export default function App() {
     fetchCities(country);
   };
 
+  const fetchSources = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/sources');
+      if (res.ok) {
+        const data = await res.json();
+        setAllSources(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sources', err);
+    }
+  }, [user]);
+
   const resetAllFilters = () => {
     trackEvent(EVENTS.FILTERS_RESET);
     setSelectedTag('');
     setSelectedCountry('');
     setSelectedCity('');
     setSelectedWorkplaceType('');
+    setSelectedSource('');
     setSearch('');
     fetchCities('');
   };
@@ -202,8 +221,9 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
+    fetchSources();
     fetchQueueStatus();
-  }, [user, fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
@@ -211,6 +231,7 @@ export default function App() {
     fetchVacancies,
     fetchCountries,
     fetchCities,
+    fetchSources,
     selectedCountry,
     showToast,
     t
@@ -268,6 +289,7 @@ export default function App() {
               fetchVacancies: currentFetchVacancies,
               fetchCountries: currentFetchCountries,
               fetchCities: currentFetchCities,
+              fetchSources: currentFetchSources,
               selectedCountry: currentSelectedCountry,
               showToast: currentShowToast,
               t: currentT
@@ -289,6 +311,7 @@ export default function App() {
               currentFetchTags();
               currentFetchCountries();
               currentFetchCities(currentSelectedCountry);
+              currentFetchSources();
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
@@ -296,6 +319,7 @@ export default function App() {
               currentFetchTags();
               currentFetchCountries();
               currentFetchCities(currentSelectedCountry);
+              currentFetchSources();
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
               currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');
@@ -310,6 +334,7 @@ export default function App() {
               currentFetchTags();
               currentFetchCountries();
               currentFetchCities(currentSelectedCountry);
+              currentFetchSources();
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -388,6 +413,7 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
+    fetchSources();
   };
 
   const handleVacancyDelete = (deletedId) => {
@@ -396,6 +422,7 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
+    fetchSources();
     showToast(t('nav.vacancy_deleted'));
   };
 
@@ -404,6 +431,7 @@ export default function App() {
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
+    fetchSources();
     showToast(t('nav.batch_import_completed'));
   };
 
@@ -600,6 +628,7 @@ export default function App() {
                 setSelectedIds([]);
                 fetchVacancies();
                 fetchTags();
+                fetchSources();
                 showToast("Карточки удалены");
               } catch (e) { console.error(e); }
             }} title="Удалить выделенные">
@@ -607,7 +636,7 @@ export default function App() {
             </button>
           </div>
         </div>
-      ) : (allCountries.length > 0 || allCities.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedTag) ? (
+      ) : (allCountries.length > 0 || allCities.length > 0 || allSources.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedTag) ? (
         <div className="filter-bar">
           {/* Location: Country Filter */}
           {(allCountries.length > 0 || selectedCountry) && (
@@ -682,6 +711,33 @@ export default function App() {
             </div>
           </div>
 
+          {/* Source Filter */}
+          {(allSources.length > 0 || selectedSource) && (
+            <div className="filter-group">
+              <div className="filter-select-wrapper">
+                <ExternalLink size={13} className="filter-select-icon" />
+                <select
+                  className={`filter-select ${selectedSource ? 'active' : ''}`}
+                  value={selectedSource}
+                  onChange={(e) => {
+                    const src = e.target.value;
+                    trackEvent(EVENTS.FILTER_SOURCE, { source: src || 'all' });
+                    setSelectedSource(src);
+                  }}
+                  title={t('nav.filter_all_sources')}
+                >
+                  <option value="">{t('nav.filter_all_sources')} ({allSources.length})</option>
+                  {allSources.map((src) => (
+                    <option key={src} value={src}>
+                      {src}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="filter-select-chevron" />
+              </div>
+            </div>
+          )}
+
           {/* Divider if we have both dropdowns and tags */}
           {allTags.length > 0 && (
             <div className="filter-divider" />
@@ -720,7 +776,7 @@ export default function App() {
           )}
 
           {/* Reset all filters */}
-          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedTag || search) && (
+          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedTag || search) && (
             <button
               className="filter-reset-btn tag-filter-chip "
               onClick={resetAllFilters}

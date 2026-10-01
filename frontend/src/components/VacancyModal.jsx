@@ -605,7 +605,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               >
                 <ExternalLink size={12} />
                 <span>{
-                  (() => {
+                  vacancy.source || (() => {
                     if (!vacancy.url) return 'Link';
                     try {
                       const hn = new URL(vacancy.url).hostname;
