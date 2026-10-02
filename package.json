@@ -7,6 +7,8 @@
     "pip:list": "./.venv/bin/pip list",
     "check:python": "./.venv/bin/python -m py_compile backend/models.py backend/database.py backend/schemas.py backend/auth.py backend/scraper.py backend/llm.py backend/queue_manager.py backend/main.py backend/location_parser.py backend/parsers/types.py backend/parsers/helpers.py backend/parsers/registry.py backend/parsers/linkedin.py backend/parsers/upwork.py backend/parsers/universal.py backend/parsers/avito.py backend/parsers/habr.py backend/parsers/fl_ru.py backend/parsers/geekjob.py backend/parsers/glassdoor.py backend/parsers/layboard.py backend/parsers/rabota_ru.py backend/parsers/superjob.py",
     "check:parsers": "PYTHONPATH=. ./.venv/bin/python -c \"from backend.parsers import registry; registry._auto_discover(); [print(f'[{p.priority:+d}] {p.name} needs_extension={p.needs_extension}') for p in registry.all_parsers]; print('OK')\"",
+    "test:curl:access": "PYTHONPATH=. ./.venv/bin/python scripts/test_curl_access.py",
+    "test:curl:missing": "PYTHONPATH=. ./.venv/bin/python scripts/test_curl_missing.py",
     "inspect:examples": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_examples.py",
     "inspect:section": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_section.py",
     "inspect:avito": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_avito.py",

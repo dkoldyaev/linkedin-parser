@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -37,6 +37,7 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState('');
   const [selectedWorkplaceType, setSelectedWorkplaceType] = useState('');
   const [selectedSource, setSelectedSource] = useState('');
+  const [selectedClosed, setSelectedClosed] = useState('');
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
@@ -51,6 +52,7 @@ export default function App() {
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkTagInput, setBulkTagInput] = useState('');
+  const [isMovingAllRejected, setIsMovingAllRejected] = useState(false);
 
   const toggleSelect = useCallback((id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -104,6 +106,7 @@ export default function App() {
     setAllCities([]);
     setAllSources([]);
     setSelectedSource('');
+    setSelectedClosed('');
   };
 
   const fetchVacancies = useCallback(async () => {
@@ -117,6 +120,7 @@ export default function App() {
       if (selectedCity) params.append('city', selectedCity);
       if (selectedWorkplaceType) params.append('workplace_type', selectedWorkplaceType);
       if (selectedSource) params.append('source', selectedSource);
+      if (selectedClosed !== '') params.append('is_closed', selectedClosed);
       if (params.toString()) url += `?${params.toString()}`;
 
       const res = await fetch(url);
@@ -127,7 +131,7 @@ export default function App() {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource]);
+  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
 
   const fetchTags = useCallback(async () => {
     if (!user) return;
@@ -196,6 +200,7 @@ export default function App() {
     setSelectedCity('');
     setSelectedWorkplaceType('');
     setSelectedSource('');
+    setSelectedClosed('');
     setSearch('');
     fetchCities('');
   };
@@ -233,6 +238,7 @@ export default function App() {
     fetchCities,
     fetchSources,
     selectedCountry,
+    selectedClosed,
     showToast,
     t
   };
@@ -291,6 +297,7 @@ export default function App() {
               fetchCities: currentFetchCities,
               fetchSources: currentFetchSources,
               selectedCountry: currentSelectedCountry,
+              selectedClosed: currentSelectedClosed,
               showToast: currentShowToast,
               t: currentT
             } = callbacksRef.current;
@@ -301,6 +308,8 @@ export default function App() {
 
             if (type === 'vacancy_created' && vacancy) {
               setVacancies(prev => {
+                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
+                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
                   return prev.map(v => v.id === vacancy.id ? vacancy : v);
@@ -313,7 +322,11 @@ export default function App() {
               currentFetchCities(currentSelectedCountry);
               currentFetchSources();
             } else if (type === 'vacancy_updated' && vacancy) {
-              setVacancies(prev => prev.map(v => v.id === vacancy.id ? vacancy : v));
+              setVacancies(prev => {
+                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
+                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
+                return prev.map(v => v.id === vacancy.id ? vacancy : v);
+              });
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
               currentFetchTags();
@@ -407,8 +420,45 @@ export default function App() {
     }
   };
 
+  const handleMoveAllClosedToRejected = async () => {
+    const targets = vacancies.filter(v => v.status !== 'Отказ');
+    if (targets.length === 0) return;
+    const confirmMsg = t('nav.move_all_to_rejected_confirm', { count: targets.length });
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsMovingAllRejected(true);
+    trackEvent(EVENTS.MOVE_ALL_CLOSED_REJECTED, { count: targets.length });
+    try {
+      const ids = targets.map(v => v.id);
+      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
+      await Promise.all(ids.map(vid => 
+        fetch(`/api/vacancies/${vid}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Отказ' })
+        })
+      ));
+      fetchVacancies();
+      showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
+    } catch (err) {
+      console.error('Failed to move all to rejected', err);
+      fetchVacancies();
+      showToast(t('nav.update_status_failed'), 'error');
+    } finally {
+      setIsMovingAllRejected(false);
+    }
+  };
+
   const handleVacancyUpdate = (updatedVacancy) => {
-    setVacancies(prev => prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v));
+    setVacancies(prev => {
+      if (selectedClosed === 'false' && updatedVacancy.is_closed) {
+        return prev.filter(v => v.id !== updatedVacancy.id);
+      }
+      if (selectedClosed === 'true' && !updatedVacancy.is_closed) {
+        return prev.filter(v => v.id !== updatedVacancy.id);
+      }
+      return prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v);
+    });
     setSelectedVacancy(updatedVacancy);
     fetchTags();
     fetchCountries();
@@ -636,7 +686,7 @@ export default function App() {
             </button>
           </div>
         </div>
-      ) : (allCountries.length > 0 || allCities.length > 0 || allSources.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedTag) ? (
+      ) : (allCountries.length > 0 || allCities.length > 0 || allSources.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag) ? (
         <div className="filter-bar">
           {/* Location: Country Filter */}
           {(allCountries.length > 0 || selectedCountry) && (
@@ -738,6 +788,50 @@ export default function App() {
             </div>
           )}
 
+          {/* Closed Status Filter */}
+          <div className="filter-group">
+            <div className="filter-select-wrapper">
+              <Ban size={13} className="filter-select-icon" />
+              <select
+                className={`filter-select ${selectedClosed !== '' ? 'active' : ''}`}
+                value={selectedClosed}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val || 'all' });
+                  setSelectedClosed(val);
+                }}
+                title={t('nav.filter_all_closed')}
+              >
+                <option value="">{t('nav.filter_all_closed')}</option>
+                <option value="false">{t('nav.filter_open')}</option>
+                <option value="true">{t('nav.filter_closed')}</option>
+              </select>
+              <ChevronDown size={11} className="filter-select-chevron" />
+            </div>
+          </div>
+
+          {/* Move all closed to Rejected button */}
+          {selectedClosed === 'true' && (() => {
+            const nonRejectedClosedCount = vacancies.filter(v => v.status !== 'Отказ').length;
+            return (
+              <button
+                className="filter-reject-all-btn tag-filter-chip"
+                onClick={handleMoveAllClosedToRejected}
+                disabled={nonRejectedClosedCount === 0 || isMovingAllRejected}
+                title={nonRejectedClosedCount === 0 ? t('nav.all_already_rejected') : t('nav.move_all_to_rejected_confirm', { count: nonRejectedClosedCount })}
+              >
+                {isMovingAllRejected ? (
+                  <Loader2 size={12} className="spin" />
+                ) : (
+                  <XCircle size={12} />
+                )}
+                <span>
+                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` (${nonRejectedClosedCount})` : ''}
+                </span>
+              </button>
+            );
+          })()}
+
           {/* Divider if we have both dropdowns and tags */}
           {allTags.length > 0 && (
             <div className="filter-divider" />
@@ -776,7 +870,7 @@ export default function App() {
           )}
 
           {/* Reset all filters */}
-          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedTag || search) && (
+          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag || search) && (
             <button
               className="filter-reset-btn tag-filter-chip "
               onClick={resetAllFilters}

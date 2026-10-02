@@ -2,21 +2,295 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="light dark">
   <style>
-    body { font-family: sans-serif; width: 250px; padding: 10px; margin: 0; }
-    h3 { margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #333; }
-    button { width: 100%; padding: 12px; margin-bottom: 10px; background: #0a66c2; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-    button:hover { background: #004182; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    #status { font-size: 13px; color: #555; text-align: center; min-height: 20px; }
-    .success { color: #0f8b4d !important; }
-    .error { color: #d11124 !important; }
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 340px;
+      padding: 12px;
+      background: Canvas;
+      color: CanvasText;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid ButtonBorder;
+    }
+
+    .logo {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .header-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: CanvasText;
+    }
+
+    .header-text .subtitle {
+      font-size: 11px;
+      color: GrayText;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 250px;
+    }
+
+    /* ── Primary button ──────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      padding: 7px 12px;
+      background: AccentColor;
+      color: AccentColorText;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: filter 0.15s;
+    }
+
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-primary:active { filter: brightness(0.95); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+
+    /* ── Status line ─────────────────────────────────────────── */
+    #status {
+      min-height: 16px;
+      margin-top: 7px;
+      text-align: center;
+      font-size: 12px;
+      color: GrayText;
+    }
+
+    #status.success { color: green; }
+    #status.error   { color: red; }
+
+    /* ── Queue section ───────────────────────────────────────── */
+    .section {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid ButtonBorder;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: GrayText;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      padding: 1px 7px;
+      border-radius: 999px;
+      border: 1px solid AccentColor;
+      color: AccentColor;
+      font-weight: 600;
+      background: transparent;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: GrayText;
+      font-size: 13px;
+      line-height: 1;
+      transition: background 0.1s;
+    }
+    .btn-icon:hover { background: ButtonFace; }
+    .btn-icon.spinning { animation: spin 0.8s linear infinite; display: inline-block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Queue items ─────────────────────────────────────────── */
+    .queue-empty {
+      color: GrayText;
+      font-size: 12px;
+      padding: 8px 0;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .queue-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      max-height: 210px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: ButtonBorder transparent;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 7px;
+      border-radius: 5px;
+      border: 1px solid ButtonBorder;
+      background: ButtonFace;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-wait     { background: orange; }
+    .dot-active   { background: AccentColor; animation: blink 1s ease-in-out infinite; }
+    .dot-ext      { background: hotpink; }
+
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    .item-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .item-sub {
+      font-size: 10px;
+      color: GrayText;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stage-pill {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid currentColor;
+      flex-shrink: 0;
+    }
+
+    .pill-scr { color: orange; }
+    .pill-ai  { color: AccentColor; }
+    .pill-ext { color: hotpink; }
+    /* ── Blocked-tabs section ────────────────────────────────────── */
+    .attention-item {
+      padding: 7px 8px;
+      border-radius: 6px;
+      border: 1px solid orange;
+      background: ButtonFace;
+      margin-bottom: 4px;
+    }
+
+    .attention-title {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 5px;
+    }
+
+    .attention-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .btn-small {
+      flex: 1;
+      padding: 4px 6px;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid ButtonBorder;
+      background: ButtonFace;
+      color: CanvasText;
+      transition: filter 0.1s;
+    }
+
+    .btn-small:hover { filter: brightness(0.92); }
+    .btn-small.primary { background: AccentColor; color: AccentColorText; border-color: transparent; }
+    .btn-small.danger  { color: red; border-color: red; }
   </style>
 </head>
 <body>
-  <h3>Add to Job Tracker</h3>
-  <button id="add-btn">Add This Vacancy</button>
+
+  <div class="header">
+    <span class="logo">💼</span>
+    <div class="header-text">
+      <h1>Job Tracker</h1>
+      <div class="subtitle" id="current-url">—</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="add-btn">
+    <span>＋</span>
+    <span>Add This Vacancy</span>
+  </button>
+
   <div id="status"></div>
+
+  <!-- ── Blocked tabs (captcha / block screens) ── -->
+  <div class="section" id="attention-section" style="display:none">
+    <div class="section-header">
+      <span class="section-title" style="color:orange">⚠ Needs attention</span>
+      <span class="badge" id="attention-count" style="border-color:orange;color:orange">0</span>
+    </div>
+    <div id="attention-list"></div>
+  </div>
+
+  <!-- ── Queue ── -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">Queue</span>
+      <span style="display:flex;align-items:center;gap:5px;">
+        <span class="badge" id="queue-count">0</span>
+        <button class="btn-icon" id="refresh-btn" title="Refresh">↻</button>
+      </span>
+    </div>
+    <ul class="queue-list" id="queue-list">
+      <li class="queue-empty">Queue is empty</li>
+    </ul>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
