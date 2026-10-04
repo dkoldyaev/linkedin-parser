@@ -862,12 +862,11 @@ async def reparse_all_vacancies(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add all non-upwork vacancies to background processing queue to re-scrape and update DB."""
+    """Add all vacancies with valid URLs to background processing queue to re-scrape and update DB."""
     vacancies = db.query(Vacancy).filter(
         Vacancy.user_id == current_user.id,
         Vacancy.url != None,
         Vacancy.url != "",
-        ~Vacancy.url.ilike("%upwork.com%")
     ).all()
 
     if not vacancies:
@@ -1022,6 +1021,21 @@ async def get_extension_mercure_config(current_user: User = Depends(get_current_
         "topic": f"vacancies:{current_user.id}"
     }
 
+@app.post("/api/extension/ping")
+async def extension_ping(current_user: User = Depends(get_current_user)):
+    redis = queue_manager.redis
+    if redis:
+        await redis.set(f"extension:active:{current_user.id}", str(time.time()), ex=180)
+    return {"status": "ok"}
+
+@app.get("/api/extension/status")
+async def extension_status(current_user: User = Depends(get_current_user)):
+    redis = queue_manager.redis
+    if not redis:
+        return {"active": False}
+    val = await redis.get(f"extension:active:{current_user.id}")
+    return {"active": bool(val)}
+
 @app.post("/api/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(
     task_id: str, 
@@ -1107,6 +1121,15 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
         db.commit()
         db.refresh(vacancy)
         
+    # If link requires browser extension to scrape and no HTML was supplied (e.g. context menu on a link),
+    # enqueue into scrape pipeline so extension will open tab and extract DOM.
+    parser = parser_registry.find(url)
+    if not payload.html and parser and parser.needs_extension:
+        batch_id, tasks = await queue_manager.enqueue(
+            [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
+        )
+        return {"status": "queued", "vacancy_id": vacancy.id, "batch_id": batch_id}
+
     # Queue for AI processing directly (skip scraping)
     task_id = uuid.uuid4().hex[:8]
     batch_id = uuid.uuid4().hex[:8]

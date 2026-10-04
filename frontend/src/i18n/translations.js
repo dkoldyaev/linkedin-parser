@@ -233,6 +233,22 @@ export const translations = {
       google_not_configured: "Google OAuth не настроен: укажите GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env.",
       logout: "Выйти",
       logged_in_as: "Вы вошли как",
+    },
+    extensionModal: {
+      title: "Рекомендуется установить расширение",
+      subtitle: "Для парсинга сайтов с защитой от ботов",
+      desc_intro: "Для стабильного сбора вакансий с сайтов со сложной защитой (например, Upwork, Cloudflare) необходимо браузерное расширение.",
+      feature_tabs_title: "Открытие вкладок по одной",
+      feature_tabs_desc: "Расширение безопасно открывает защищенные страницы в фоновых вкладках браузера по одной и с таймаутом.",
+      feature_captcha_title: "Прохождение проверок (CAPTCHA)",
+      feature_captcha_desc: "Если сайт требует проверку на робота, расширение уведомит вас и откроет вкладку для подтверждения.",
+      install_title: "Как установить расширение:",
+      install_step1: "Откройте страницу управления расширениями chrome://extensions/",
+      install_step2: "Включите «Режим разработчика» в верхнем правом углу",
+      install_step3: "Нажмите «Загрузить распакованное» и выберите папку extension из проекта",
+      proceed_anyway: "Продолжить без расширения",
+      dont_show_again: "Больше не напоминать",
+      close: "Закрыть",
     }
   },
   en: {
@@ -469,6 +485,22 @@ export const translations = {
       google_not_configured: "Google OAuth is not configured: specify GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
       logout: "Log out",
       logged_in_as: "Signed in as",
+    },
+    extensionModal: {
+      title: "Browser Extension Recommended",
+      subtitle: "For parsing sites with anti-bot protection",
+      desc_intro: "To reliably parse vacancies from protected or dynamic sites (such as Upwork, Cloudflare), the Job Tracker browser extension is required.",
+      feature_tabs_title: "Sequential single-tab loading",
+      feature_tabs_desc: "The extension safely opens protected job pages in background browser tabs one by one with a timeout.",
+      feature_captcha_title: "CAPTCHA solving assistance",
+      feature_captcha_desc: "If a site shows a bot challenge, the extension notifies you and opens the tab to solve it.",
+      install_title: "How to install the extension:",
+      install_step1: "Open the extensions page at chrome://extensions/",
+      install_step2: "Enable 'Developer mode' in the top right corner",
+      install_step3: "Click 'Load unpacked' and select the 'extension' directory from the project",
+      proceed_anyway: "Proceed without extension",
+      dont_show_again: "Don't show again",
+      close: "Close",
     }
   }
 };

@@ -211,11 +211,20 @@
     .pill-ext { color: hotpink; }
     /* ── Blocked-tabs section ────────────────────────────────────── */
     .attention-item {
-      padding: 7px 8px;
+      padding: 9px 10px;
       border-radius: 6px;
-      border: 1px solid orange;
-      background: ButtonFace;
-      margin-bottom: 4px;
+      border: 2px solid #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .attention-item:hover {
+      background: rgba(239, 68, 68, 0.15);
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.45);
+      transform: translateY(-1px);
     }
 
     .attention-title {

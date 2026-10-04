@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import { shouldShowExtensionPrompt } from '../utils/extension';
+import ExtensionPromptModal from './ExtensionPromptModal';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
   const { t } = useTranslation();
@@ -10,26 +12,11 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [showExtModal, setShowExtModal] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const urls = urlsText
-      .split('\n')
-      .map(u => u.trim())
-      .filter(u => u.length > 0);
-
-    if (urls.length === 0) {
-      setError(t('batchModal.error_empty_urls'));
-      return;
-    }
-
-    const defaultTags = tagsInput
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
-
+  const performSubmit = async (urls, defaultTags) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -76,6 +63,31 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       setError(err.message || t('common.error'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const urls = urlsText
+      .split('\n')
+      .map(u => u.trim())
+      .filter(u => u.length > 0);
+
+    if (urls.length === 0) {
+      setError(t('batchModal.error_empty_urls'));
+      return;
+    }
+
+    const defaultTags = tagsInput
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+
+    const needsPrompt = await shouldShowExtensionPrompt();
+    if (needsPrompt) {
+      setShowExtModal(true);
+    } else {
+      await performSubmit(urls, defaultTags);
     }
   };
 
@@ -185,6 +197,22 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
           </div>
         </form>
       </div>
+
+      <ExtensionPromptModal
+        isOpen={showExtModal}
+        onClose={() => setShowExtModal(false)}
+        onProceed={() => {
+          const urls = urlsText
+            .split('\n')
+            .map(u => u.trim())
+            .filter(u => u.length > 0);
+          const defaultTags = tagsInput
+            .split(',')
+            .map(t => t.trim())
+            .filter(t => t.length > 0);
+          performSubmit(urls, defaultTags);
+        }}
+      />
     </div>
   );
 }

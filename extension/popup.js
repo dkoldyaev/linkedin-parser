@@ -140,9 +140,20 @@ function renderBlockedTabs(map) {
     `;
   }).join("");
 
-  // Bind buttons
+  // Click anywhere on card switches to the tab requiring attention
+  listEl.querySelectorAll(".attention-item").forEach(item => {
+    item.addEventListener("click", async (e) => {
+      if (e.target.closest("button")) return;
+      const tabId = parseInt(item.dataset.tab, 10);
+      await chrome.runtime.sendMessage({ type: "FOCUS_BLOCKED_TAB", tabId });
+      window.close();
+    });
+  });
+
+  // Bind buttons inside card
   listEl.querySelectorAll("button[data-action]").forEach(btn => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       const action = btn.dataset.action;
       const tabId = parseInt(btn.dataset.tab, 10);
 

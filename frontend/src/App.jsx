@@ -10,8 +10,10 @@ import VacancyModal from './components/VacancyModal';
 import SettingsModal from './components/SettingsModal';
 import LoginModal from './components/LoginModal';
 import QueueModal from './components/QueueModal';
+import ExtensionPromptModal from './components/ExtensionPromptModal';
 import { useTranslation } from './i18n/I18nContext';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
+import { shouldShowExtensionPrompt } from './utils/extension';
 
 export default function App() {
   const { t } = useTranslation();
@@ -51,6 +53,8 @@ export default function App() {
 
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
+  const [extensionOnProceed, setExtensionOnProceed] = useState(null);
   const [bulkTagInput, setBulkTagInput] = useState('');
   const [isMovingAllRejected, setIsMovingAllRejected] = useState(false);
 
@@ -563,18 +567,29 @@ export default function App() {
 
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
-            onClick={async () => {
+            onClick={() => {
               trackEvent(EVENTS.REFRESH_CLICK);
-              try {
-                if (selectedIds.length > 0) {
-                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
-                } else {
-                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+              const doRefresh = async () => {
+                try {
+                  if (selectedIds.length > 0) {
+                    await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
+                  } else {
+                    await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                  }
+                  fetchVacancies();
+                } catch (e) {
+                  console.error(e);
                 }
-                fetchVacancies();
-              } catch (e) {
-                console.error(e);
-              }
+              };
+
+              shouldShowExtensionPrompt().then((needsPrompt) => {
+                if (needsPrompt) {
+                  setExtensionOnProceed(() => doRefresh);
+                  setIsExtensionModalOpen(true);
+                } else {
+                  doRefresh();
+                }
+              });
             }}
             title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
@@ -920,6 +935,19 @@ export default function App() {
         isOpen={isQueueOpen}
         onClose={() => setIsQueueOpen(false)}
         queueRemaining={queueRemaining}
+      />
+
+      <ExtensionPromptModal
+        isOpen={isExtensionModalOpen}
+        onClose={() => {
+          setIsExtensionModalOpen(false);
+          setExtensionOnProceed(null);
+        }}
+        onProceed={() => {
+          if (extensionOnProceed) extensionOnProceed();
+          setIsExtensionModalOpen(false);
+          setExtensionOnProceed(null);
+        }}
       />
 
       {/* Toast Notifications */}

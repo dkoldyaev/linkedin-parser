@@ -63,16 +63,29 @@ async function setBlockedTabs(map) {
   await chrome.storage.session.set({ blockedTabs: map });
 }
 
+async function updateActionBadge(count) {
+  try {
+    if (count > 0) {
+      await chrome.action.setBadgeText({ text: String(count) });
+      await chrome.action.setBadgeBackgroundColor({ color: "#EF4444" });
+    } else {
+      await chrome.action.setBadgeText({ text: "" });
+    }
+  } catch {}
+}
+
 async function addBlockedTab(tabId, entry) {
   const map = await getBlockedTabs();
   map[tabId] = entry;
   await setBlockedTabs(map);
+  await updateActionBadge(Object.keys(map).length);
 }
 
 async function removeBlockedTab(tabId) {
   const map = await getBlockedTabs();
   delete map[tabId];
   await setBlockedTabs(map);
+  await updateActionBadge(Object.keys(map).length);
 }
 
 // ─── Tab-completion watcher ───────────────────────────────────────────────
@@ -101,6 +114,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   // Captcha is solved — extract and submit
   console.log(`Tab ${tabId} looks unblocked — extracting HTML`);
   await extractAndSubmit(tabId, entry);
+});
+
+// Clean up blockedTabs registry if the user closes the blocked tab manually
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const map = await getBlockedTabs();
+  if (tabId in map) {
+    console.log(`Blocked tab ${tabId} was closed manually`);
+    await removeBlockedTab(tabId);
+  }
 });
 
 // ─── Core helpers ─────────────────────────────────────────────────────────
@@ -142,17 +164,18 @@ function setupContextMenu() {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: "add-link-vacancy",
-      title: "➕ Add to Job Tracker",
+      title: "Add this vacancy",
       contexts: ["link"],
     });
     chrome.contextMenus.create({
       id: "add-page-vacancy",
-      title: "➕ Add current page to Job Tracker",
+      title: "Add this vacancy (current page)",
       contexts: ["page"],
     });
   });
 }
 
+setupContextMenu();
 chrome.runtime.onInstalled.addListener(setupContextMenu);
 chrome.runtime.onStartup.addListener(setupContextMenu);
 
@@ -169,6 +192,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       });
       if (res.ok) {
         notify("Job Tracker", `Added: ${url.slice(0, 70)}`);
+      } else if (res.status === 401) {
+        notify("Job Tracker — Error", "Пожалуйста, авторизуйтесь в Job Tracker (Please log in)");
       } else {
         const err = await res.text().catch(() => String(res.status));
         notify("Job Tracker — Error", err.slice(0, 120));
@@ -204,18 +229,41 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-function notify(title, message) {
+const notifTabMap = {};
+
+function notify(title, message, tabId = null) {
   try {
-    chrome.notifications.create({
+    const notifId = "jt_notif_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+    if (tabId) {
+      notifTabMap[notifId] = tabId;
+    }
+    chrome.notifications.create(notifId, {
       type: "basic",
       iconUrl: "icon.png",
       title,
       message,
+      priority: 2,
+      requireInteraction: true,
     });
   } catch {
     console.log(title, message);
   }
 }
+
+chrome.notifications.onClicked.addListener(async (notifId) => {
+  const tabId = notifTabMap[notifId];
+  if (tabId) {
+    try {
+      await chrome.tabs.update(tabId, { active: true });
+      const tab = await chrome.tabs.get(tabId);
+      if (tab?.windowId) {
+        await chrome.windows.update(tab.windowId, { focused: true });
+      }
+    } catch (e) {
+      console.error("Failed to focus tab on notification click:", e);
+    }
+  }
+});
 
 // ─── Message handler (from popup) ─────────────────────────────────────────
 
@@ -293,60 +341,173 @@ async function submitTaskResult(taskId, html) {
   }
 }
 
-async function processTask(task) {
-  console.log("Processing task:", task);
-  const tab = await chrome.tabs.create({ url: task.url, active: false });
+// ─── Sequential Task Queue (1 tab at a time with timeouts) ───────────────────
 
-  // Wait for page to load
-  await new Promise((resolve) => setTimeout(resolve, 8000));
+const TAB_TIMEOUT_MS = 30000;          // Max time allowed for a single tab to load and extract
+const PAGE_RENDER_DELAY_MS = 4000;     // Extra wait time for client-side JS/SPA hydration
+const COOLDOWN_BETWEEN_TABS_MS = 2000; // Cooldown delay before opening the next tab
+
+const taskQueue = [];
+const activeTaskIds = new Set();
+let isProcessingQueue = false;
+
+function waitForTabLoad(tabId, maxWaitMs = 15000) {
+  return new Promise((resolve) => {
+    let timer = null;
+    const updateListener = (tid, changeInfo) => {
+      if (tid === tabId && changeInfo.status === "complete") {
+        cleanup();
+        resolve();
+      }
+    };
+    const removeListener = (tid) => {
+      if (tid === tabId) {
+        cleanup();
+        resolve();
+      }
+    };
+    const cleanup = () => {
+      chrome.tabs.onUpdated.removeListener(updateListener);
+      chrome.tabs.onRemoved.removeListener(removeListener);
+      if (timer) clearTimeout(timer);
+    };
+    timer = setTimeout(() => {
+      cleanup();
+      resolve(); // Proceed on timeout even if complete event was missed
+    }, maxWaitMs);
+
+    chrome.tabs.onUpdated.addListener(updateListener);
+    chrome.tabs.onRemoved.addListener(removeListener);
+  });
+}
+
+async function processTabExecution(tabId, task) {
+  // Wait for tab navigation to report 'complete' (up to 15s)
+  await waitForTabLoad(tabId, 15000);
+  // Wait additional delay for client-side rendering (e.g. Upwork JS framework)
+  await new Promise((resolve) => setTimeout(resolve, PAGE_RENDER_DELAY_MS));
+
+  // 1. Check for captcha / block screen
+  const isCaptcha = await checkTabForCaptcha(tabId);
+
+  if (isCaptcha) {
+    console.log(`Captcha detected on tab ${tabId} for ${task.url}`);
+    // Store in blocked registry — tab stays open
+    await addBlockedTab(tabId, {
+      task_id: task.task_id,
+      url: task.url,
+      title: task.title || task.url,
+      detected_at: Date.now(),
+    });
+    // Notify user via system notification with tabId attached
+    notify(
+      "⚠️ Job Tracker — Action Required",
+      `CAPTCHA or block detected for:\n${(task.title || task.url).slice(0, 70)}\nClick to switch to this tab.`,
+      tabId
+    );
+
+    // Prompt user: automatically open popup if browser allows it
+    try {
+      await chrome.action.openPopup();
+    } catch (popupErr) {
+      console.debug("chrome.action.openPopup() call:", popupErr);
+    }
+
+    // Tab stays open; user will handle it via popup or system notification
+    return;
+  }
+
+  // 2. No captcha — extract and submit
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => document.documentElement.outerHTML,
+  });
+
+  if (results?.[0]?.result) {
+    await submitTaskResult(task.task_id, results[0].result);
+  }
+}
+
+async function processSingleTaskWithTimeout(task) {
+  console.log("Processing task (one tab at a time):", task);
+  let tabId = null;
+  let timeoutTimer = null;
 
   try {
-    // 1. Check for captcha / block screen
-    const isCaptcha = await checkTabForCaptcha(tab.id);
+    const tab = await chrome.tabs.create({ url: task.url, active: false });
+    tabId = tab.id;
 
-    if (isCaptcha) {
-      console.log(`Captcha detected on tab ${tab.id} for ${task.url}`);
-      // Store in blocked registry — tab stays open
-      await addBlockedTab(tab.id, {
-        task_id: task.task_id,
-        url: task.url,
-        title: task.title || task.url,
-        detected_at: Date.now(),
-      });
-      // Notify user via system notification
-      notify(
-        "⚠️ Job Tracker — Action Required",
-        `CAPTCHA or block detected:\n${task.url.slice(0, 80)}`
-      );
-      // Tab stays open; user will handle it via popup or system notification
-      return;
+    await Promise.race([
+      processTabExecution(tabId, task),
+      new Promise((_, reject) => {
+        timeoutTimer = setTimeout(() => {
+          reject(new Error(`Timeout (${TAB_TIMEOUT_MS / 1000}s) exceeded for ${task.url}`));
+        }, TAB_TIMEOUT_MS);
+      }),
+    ]);
+  } catch (err) {
+    console.error(`Task ${task.task_id} execution error:`, err);
+  } finally {
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    if (tabId) {
+      const map = await getBlockedTabs();
+      if (!(tabId in map)) {
+        try {
+          await chrome.tabs.remove(tabId);
+        } catch {}
+      }
     }
+  }
+}
 
-    // 2. No captcha — extract and submit
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => document.documentElement.outerHTML,
-    });
+async function processQueue() {
+  if (isProcessingQueue) return;
+  isProcessingQueue = true;
 
-    if (results?.[0]?.result) {
-      await submitTaskResult(task.task_id, results[0].result);
+  try {
+    while (taskQueue.length > 0) {
+      // If there are blocked tabs (waiting for CAPTCHA), wait until resolved or closed
+      while (true) {
+        const blocked = await getBlockedTabs();
+        if (Object.keys(blocked).length === 0) break;
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+
+      const task = taskQueue.shift();
+      if (!task) continue;
+
+      try {
+        await processSingleTaskWithTimeout(task);
+      } catch (err) {
+        console.error("Error processing task:", task.task_id, err);
+      } finally {
+        activeTaskIds.delete(task.task_id);
+      }
+
+      // Pause/cooldown between tabs to prevent rapid tab bursts and rate-limiting
+      if (taskQueue.length > 0) {
+        await new Promise((r) => setTimeout(r, COOLDOWN_BETWEEN_TABS_MS));
+      }
     }
-  } catch (e) {
-    console.error("Failed to process tab", e);
+  } finally {
+    isProcessingQueue = false;
   }
+}
 
-  // Only close if NOT in blocked registry
-  const map = await getBlockedTabs();
-  if (!(tab.id in map)) {
-    try { await chrome.tabs.remove(tab.id); } catch {}
+function enqueueTask(task) {
+  if (!task || !task.task_id || activeTaskIds.has(task.task_id)) {
+    return;
   }
+  activeTaskIds.add(task.task_id);
+  taskQueue.push(task);
+  processQueue();
 }
 
 async function processAllPendingTasks() {
   const tasks = await fetchTasks();
   if (!tasks || tasks.length === 0) return;
   for (const task of tasks) {
-    await processTask(task);
+    enqueueTask(task);
   }
 }
 
@@ -372,7 +533,7 @@ async function connectMercure() {
     try {
       const data = JSON.parse(e.data);
       if (data.type === "extension_task") {
-        processTask({ task_id: data.task_id, url: data.url, title: data.title });
+        enqueueTask({ task_id: data.task_id, url: data.url, title: data.title });
       }
     } catch (err) {
       console.error("Error parsing Mercure message", err);
@@ -386,19 +547,32 @@ async function connectMercure() {
   };
 }
 
+async function sendHeartbeat() {
+  try {
+    await fetch(`${API_BASE}/api/extension/ping`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {}
+}
+
 // Initial connection
 connectMercure();
+sendHeartbeat();
 
 chrome.runtime.onStartup.addListener(() => {
   connectMercure();
+  sendHeartbeat();
   setupContextMenu();
 });
 
 chrome.alarms.create("keepAlive", { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "keepAlive") {
+    sendHeartbeat();
     if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
       connectMercure();
     }
   }
 });
+
