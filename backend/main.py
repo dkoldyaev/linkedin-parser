@@ -50,7 +50,7 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
-from .parsers import registry as parser_registry
+from .scraper import scrape_job
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 import asyncio
@@ -641,7 +641,7 @@ async def batch_import_vacancies(
                 ).first()
 
             # Scrape vacancy via parser registry
-            scraped = await parser_registry.parse(url)
+            scraped = await scrape_job(url)
             
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
@@ -1057,9 +1057,9 @@ async def submit_extension_task_result(
 
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    from .parsers import registry as parser_registry  # noqa: PLC0415
+    from .scraper import scrape_job  # noqa: PLC0415
     url = payload.url
-    scraped = await parser_registry.parse(url, html=payload.html)
+    scraped = await scrape_job(url, html=payload.html)
     
     job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None

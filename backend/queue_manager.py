@@ -13,7 +13,7 @@ from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id
-from .parsers import registry as parser_registry
+from .scraper import scrape_job
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
     publish_mercure_event,
@@ -410,7 +410,7 @@ class RedisQueueManager:
             if parser and parser.needs_extension:
                 needs_extension = True
             else:
-                scraped = await parser_registry.parse(task.url)
+                scraped = await scrape_job(task.url)
 
             if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
                 needs_extension = True
@@ -798,7 +798,7 @@ class RedisQueueManager:
         
         # Reprocess with html
         try:
-            scraped = await parser_registry.parse(task.url, html=html)
+            scraped = await scrape_job(task.url, html=html)
                 
             with SessionLocal() as db:
                 job_id = scraped.get("job_id") or extract_job_id(task.url)
