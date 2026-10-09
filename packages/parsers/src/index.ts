@@ -12,6 +12,9 @@ import { HabrParser } from './parsers/habr';
 import { AvitoParser } from './parsers/avito';
 import { RabotaRuParser } from './parsers/rabotaru';
 import { FLRuParser } from './parsers/flru';
+import { LinkedInParser } from './parsers/linkedin';
+import { UpworkParser } from './parsers/upwork';
+import { SuperJobParser } from './parsers/superjob';
 
 registry.register(new GlassdoorParser());
 registry.register(new GeekJobParser());
@@ -20,3 +23,6 @@ registry.register(new HabrParser());
 registry.register(new AvitoParser());
 registry.register(new RabotaRuParser());
 registry.register(new FLRuParser());
+registry.register(new LinkedInParser());
+registry.register(new UpworkParser());
+registry.register(new SuperJobParser());

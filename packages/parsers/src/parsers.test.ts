@@ -89,4 +89,40 @@ describe('Parsers Batch 1', () => {
       expect(data.title).toBeTruthy();
     }
   });
+
+  it('should parse linkedin examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('linkedin'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://www.linkedin.com/jobs/view/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('LinkedIn');
+      expect(data.title).toBeTruthy();
+    }
+  });
+
+  it('should parse upwork examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('upwork'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://www.upwork.com/jobs/~${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('Upwork');
+      expect(data.title).toBeTruthy();
+    }
+  });
+
+  it('should parse superjob examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('superjob'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://superjob.ru/vakansii/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('SuperJob');
+      expect(data.title).toBeTruthy();
+    }
+  });
 });
