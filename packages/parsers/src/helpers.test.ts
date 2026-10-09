@@ -1,0 +1,86 @@
+import { describe, it, expect } from 'vitest';
+import * as cheerio from 'cheerio';
+import {
+  cleanText,
+  findJsonLd,
+  parseJsonLdSalary,
+  normalizeCurrency,
+  normalizePeriod,
+  parseSalaryString,
+  normalizeWorkplace
+} from './helpers';
+
+describe('helpers', () => {
+  it('cleanText should format HTML correctly', () => {
+    const html = '<div>Hello<br>World<p>Paragraph</p><ul><li>Item 1</li><li>Item 2</li></ul></div>';
+    const $ = cheerio.load(html);
+    const text = cleanText($('div').first());
+    expect(text).toContain('Hello\nWorld\nParagraph\nItem 1\nItem 2');
+  });
+
+  it('findJsonLd should find JobPosting', () => {
+    const html = `
+      <html>
+        <head>
+          <script type="application/ld+json">
+            {
+              "@context": "http://schema.org",
+              "@type": "JobPosting",
+              "title": "Software Engineer"
+            }
+          </script>
+        </head>
+      </html>
+    `;
+    const data = findJsonLd(html);
+    expect(data).toBeDefined();
+    expect(data['@type']).toBe('JobPosting');
+    expect(data.title).toBe('Software Engineer');
+  });
+
+  it('parseJsonLdSalary should parse salary object', () => {
+    const data = {
+      baseSalary: {
+        currency: 'USD',
+        value: {
+          unitText: 'YEAR',
+          minValue: 100000,
+          maxValue: 150000
+        }
+      }
+    };
+    const parsed = parseJsonLdSalary(data);
+    expect(parsed.salary_min).toBe(100000);
+    expect(parsed.salary_max).toBe(150000);
+    expect(parsed.salary_currency).toBe('USD');
+    expect(parsed.salary_period).toBe('year');
+  });
+
+  it('parseSalaryString should handle unstructured salaries', () => {
+    expect(parseSalaryString('от 100 000 ₽ на руки')).toEqual({
+      salary_min: 100000,
+      salary_currency: 'RUB',
+      salary_period: 'month'
+    });
+    
+    expect(parseSalaryString('$25 - $50 / hr')).toEqual({
+      salary_min: 25,
+      salary_max: 50,
+      salary_currency: 'USD',
+      salary_period: 'hour'
+    });
+
+    expect(parseSalaryString('261 900 — 371 000 руб.')).toEqual({
+      salary_min: 261900,
+      salary_max: 371000,
+      salary_currency: 'RUB',
+      salary_period: 'month'
+    });
+  });
+
+  it('normalizeWorkplace should detect remote, hybrid, on-site', () => {
+    expect(normalizeWorkplace('Удаленная работа')).toBe('remote');
+    expect(normalizeWorkplace('Гибридный формат')).toBe('hybrid');
+    expect(normalizeWorkplace('В офисе')).toBe('on-site');
+  });
+});
