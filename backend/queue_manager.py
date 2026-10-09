@@ -785,7 +785,7 @@ class RedisQueueManager:
             )
 
 
-    async def process_extension_result(self, task_id: str, html: str) -> dict:
+    async def process_extension_result(self, task_id: str, scraped: dict) -> dict:
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
         if not raw:
             return {"status": "error", "message": "Task not found"}
@@ -796,9 +796,7 @@ class RedisQueueManager:
             
         await self.redis.lrem("queue:extension", 0, task_id)
         
-        # Reprocess with html
         try:
-            scraped = await scrape_job(task.url, html=html)
                 
             with SessionLocal() as db:
                 job_id = scraped.get("job_id") or extract_job_id(task.url)

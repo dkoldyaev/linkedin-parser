@@ -54,6 +54,10 @@ fs.writeFileSync(
     `export const API_BASE = ${JSON.stringify(config.apiBase)};\n`,
 )
 
+// 3.5 Offscreen Document
+fs.copyFileSync(path.join(EXTENSION_DIR, 'offscreen.html'), path.join(DIST_DIR, 'offscreen.html'))
+run('npx', ['esbuild', 'offscreen.js', '--bundle', '--outfile=dist/offscreen-bundle.js'], { cwd: EXTENSION_DIR })
+
 // 4. Manifest
 const manifest = buildManifest(config)
 fs.writeFileSync(path.join(DIST_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')

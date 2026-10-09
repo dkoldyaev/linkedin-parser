@@ -149,7 +149,7 @@ async function extractAndSubmit(tabId, entry) {
 
     const html = results?.[0]?.result;
     if (html) {
-      await submitTaskResult(entry.task_id, html);
+      await submitTaskResult(entry.task_id, entry.url, html);
     }
   } catch (e) {
     console.error("Failed to extract HTML after captcha solve:", e);
@@ -185,11 +185,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const url = info.linkUrl;
     if (!url) return;
     try {
+      await getOffscreenDocument();
+      const result = await chrome.runtime.sendMessage({
+        type: 'PARSE_HTML',
+        url,
+        html: null
+      });
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to parse');
+      }
+
       const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, html: null }),
+        body: JSON.stringify(result.data),
       });
       if (res.ok) {
         notify("Job Tracker", `Added: ${url.slice(0, 70)}`);
@@ -212,11 +223,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         func: () => document.documentElement.outerHTML,
       });
       const html = results?.[0]?.result ?? null;
+
+      await getOffscreenDocument();
+      const result = await chrome.runtime.sendMessage({
+        type: 'PARSE_HTML',
+        url: tab.url,
+        html
+      });
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to parse');
+      }
+
       const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: tab.url, html }),
+        body: JSON.stringify(result.data),
       });
       if (res.ok) {
         notify("Job Tracker", `Added: ${tab.title?.slice(0, 60) || tab.url.slice(0, 60)}`);
@@ -338,13 +361,39 @@ async function fetchTasks() {
   }
 }
 
-async function submitTaskResult(taskId, html) {
+async function getOffscreenDocument() {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+  });
+  if (existingContexts.length > 0) return;
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['DOM_PARSER'],
+    justification: 'Parsing HTML of job boards locally',
+  });
+}
+
+async function submitTaskResult(taskId, url, html) {
   try {
+    await getOffscreenDocument();
+    const result = await chrome.runtime.sendMessage({
+      type: 'PARSE_HTML',
+      url,
+      html
+    });
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'Failed to parse');
+    }
+
+    const vacancyData = result.data;
+
+    // Send parsed JSON back to backend API instead of raw HTML
     await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: "", html }),
+      body: JSON.stringify(vacancyData), // We send the structured data back
     });
   } catch (err) {
     console.error("Failed to submit result:", err);
@@ -434,7 +483,7 @@ async function processTabExecution(tabId, task) {
   });
 
   if (results?.[0]?.result) {
-    await submitTaskResult(task.task_id, results[0].result);
+    await submitTaskResult(task.task_id, task.url, results[0].result);
   }
 }
 

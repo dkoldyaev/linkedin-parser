@@ -34,6 +34,7 @@ export function buildManifest(config) {
       'contextMenus',
       'notifications',
       'storage',
+      'offscreen',
     ],
     host_permissions: [
       // API origin: lets the service worker call the backend with cookies, bypassing CORS.

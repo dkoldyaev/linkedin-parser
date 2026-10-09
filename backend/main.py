@@ -1041,7 +1041,7 @@ async def extension_status(current_user: User = Depends(get_current_user)):
 @app.post("/api/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(
     task_id: str, 
-    payload: ExtensionParseRequest,
+    payload: Dict[str, Any],
     current_user: User = Depends(get_current_user)
 ):
     # Verify task belongs to user before processing
@@ -1053,13 +1053,12 @@ async def submit_extension_task_result(
             if t.user_id != current_user.id:
                 raise HTTPException(status_code=403, detail="Not your task")
                 
-    return await queue_manager.process_extension_result(task_id, payload.html)
+    return await queue_manager.process_extension_result(task_id, payload)
 
 @app.post("/api/extension/parse_and_add")
-async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    from .scraper import scrape_job  # noqa: PLC0415
-    url = payload.url
-    scraped = await scrape_job(url, html=payload.html)
+async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    url = payload.get("url")
+    scraped = payload
     
     job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None
