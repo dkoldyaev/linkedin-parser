@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
     "check:python": "./.venv/bin/python -m py_compile backend/models.py backend/database.py backend/schemas.py backend/auth.py backend/scraper.py backend/llm.py backend/queue_manager.py backend/main.py backend/location_parser.py backend/parsers/types.py backend/parsers/helpers.py backend/parsers/registry.py backend/parsers/linkedin.py backend/parsers/upwork.py backend/parsers/universal.py backend/parsers/avito.py backend/parsers/habr.py backend/parsers/fl_ru.py backend/parsers/geekjob.py backend/parsers/glassdoor.py backend/parsers/layboard.py backend/parsers/rabota_ru.py backend/parsers/superjob.py",
