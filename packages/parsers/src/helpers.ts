@@ -1,15 +1,15 @@
-import * as cheerio from 'cheerio';
+import { createDocument } from './dom';
 
-export function cleanText(htmlElem: cheerio.Cheerio<any> | string | undefined | null): string {
+export function cleanText(htmlElem: any | string | undefined | null): string {
   if (!htmlElem) return "";
-  if (typeof htmlElem === 'string') return htmlElem.trim();
+  let text = "";
+  if (typeof htmlElem === 'string') {
+    text = htmlElem;
+  } else {
+    // Attempt to use innerText if available (browsers), fallback to textContent
+    text = htmlElem.innerText || htmlElem.textContent || "";
+  }
 
-  const html = htmlElem.html() || "";
-  const withNewlines = html
-    .replace(/<(br|p|div|li|tr)[^>]*>/gi, '\n');
-
-  const $ = cheerio.load(withNewlines);
-  const text = $.text();
   const lines = text.split(/\r?\n/).map(line => line.trim());
   const cleanLines: string[] = [];
   let prevEmpty = false;
@@ -30,21 +30,22 @@ export function cleanText(htmlElem: cheerio.Cheerio<any> | string | undefined | 
 
 export function findJsonLd(html: string, targetType: string = "JobPosting"): any {
   const targetLower = targetType.toLowerCase();
-  const $ = cheerio.load(html);
+  const doc = createDocument(html);
   
   let result: any = null;
 
-  $('script[type="application/ld+json"]').each((_, el) => {
-    if (result) return;
+  const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+  for (let i = 0; i < scripts.length; i++) {
+    if (result) return result;
     
-    const raw = $(el).html();
-    if (!raw) return;
+    const raw = scripts[i].textContent || scripts[i].innerHTML;
+    if (!raw) continue;
     
     let data;
     try {
       data = JSON.parse(raw);
     } catch (e) {
-      return;
+      continue;
     }
 
     const items = Array.isArray(data) ? data : [data];
@@ -53,7 +54,7 @@ export function findJsonLd(html: string, targetType: string = "JobPosting"): any
       const itemType = String(item['@type'] || '').toLowerCase();
       if (itemType === targetLower) {
         result = item;
-        return;
+        return result;
       }
       
       const graph = item['@graph'];
@@ -61,12 +62,12 @@ export function findJsonLd(html: string, targetType: string = "JobPosting"): any
         for (const g of graph) {
           if (typeof g === 'object' && g !== null && String(g['@type'] || '').toLowerCase() === targetLower) {
             result = g;
-            return;
+            return result;
           }
         }
       }
     }
-  });
+  }
   
   return result;
 }

@@ -11,9 +11,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "cheerio": "^1.0.0-rc.12"
+    "cheerio": "^1.0.0-rc.12",
+    "jsdom": "^29.1.1"
   },
   "devDependencies": {
+    "@types/jsdom": "^30.0.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2"

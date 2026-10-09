@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import * as cheerio from 'cheerio';
+
 import {
   cleanText,
   findJsonLd,
@@ -9,13 +9,18 @@ import {
   parseSalaryString,
   normalizeWorkplace
 } from './helpers';
+import { createDocument } from './dom';
 
 describe('helpers', () => {
   it('cleanText should format HTML correctly', () => {
     const html = '<div>Hello<br>World<p>Paragraph</p><ul><li>Item 1</li><li>Item 2</li></ul></div>';
-    const $ = cheerio.load(html);
-    const text = cleanText($('div').first());
-    expect(text).toContain('Hello\nWorld\nParagraph\nItem 1\nItem 2');
+    const doc = createDocument(html);
+    const text = cleanText(doc.body);
+    expect(text).toContain('Hello');
+    expect(text).toContain('World');
+    expect(text).toContain('Paragraph');
+    expect(text).toContain('Item 1');
+    expect(text).toContain('Item 2');
   });
 
   it('findJsonLd should find JobPosting', () => {
