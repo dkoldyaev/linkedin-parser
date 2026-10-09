@@ -11,10 +11,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "cheerio": "^1.0.0-rc.12",
+    "isomorphic-dompurify": "^3.19.0",
     "jsdom": "^29.1.1"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@types/jsdom": "^30.0.0",
     "tsup": "^8.0.2",
     "typescript": "^5.3.3",

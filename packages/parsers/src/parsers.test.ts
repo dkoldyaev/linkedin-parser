@@ -125,4 +125,13 @@ describe('Parsers Batch 1', () => {
       expect(data.title).toBeTruthy();
     }
   });
+
+  it('should parse universal examples', async () => {
+    const html = `<html><head><title>Test Universal</title></head><body><h1>Software Engineer</h1><p>We are looking for an engineer.</p></body></html>`;
+    const data = await registry.parse('https://example.com/job/123', html);
+    expect(data).toBeDefined();
+    expect(data.source).toBe('Universal');
+    expect(data.title).toBe('Test Universal');
+    expect(data.description).toContain('We are looking for an engineer');
+  });
 });
