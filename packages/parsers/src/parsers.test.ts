@@ -41,4 +41,52 @@ describe('Parsers Batch 1', () => {
       expect(data.title).toBeTruthy();
     }
   });
+
+  it('should parse habr examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('habr'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://career.habr.com/vacancies/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('Habr Career');
+      expect(data.title).toBeTruthy();
+    }
+  });
+
+  it('should parse avito examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('avito'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://www.avito.ru/moskva/vakansii/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('Avito');
+      expect(data.title).toBeTruthy();
+    }
+  });
+
+  it('should parse rabotaru examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('rabotaru') || f.startsWith('rabota_ru'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://www.rabota.ru/vacancy/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('Rabota.ru');
+      expect(data.title).toBeTruthy();
+    }
+  });
+
+  it('should parse flru examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('fl_ru') || f.startsWith('flru'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://www.fl.ru/projects/${file}`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('FL.ru');
+      expect(data.title).toBeTruthy();
+    }
+  });
 });
