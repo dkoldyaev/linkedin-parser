@@ -14,7 +14,7 @@ import json
 import time
 import httpx
 
-BASE_URL = os.getenv("APP_URL", "http://localhost:8000")
+BASE_URL = os.getenv("APP_URL", "http://localhost:8000").rstrip("/")
 DEV_LOGIN_URL = f"{BASE_URL}/api/auth/dev-login"
 PARSE_AND_ADD_URL = f"{BASE_URL}/api/extension/parse_and_add"
 QUEUE_TASKS_URL = f"{BASE_URL}/api/queue/tasks"

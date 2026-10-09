@@ -1030,11 +1030,13 @@ async def extension_ping(current_user: User = Depends(get_current_user)):
 
 @app.get("/api/extension/status")
 async def extension_status(current_user: User = Depends(get_current_user)):
+    # extension_id lets the web app ping the extension via externally_connectable
+    extension_id = os.getenv("EXTENSION_ID") or None
     redis = queue_manager.redis
     if not redis:
-        return {"active": False}
+        return {"active": False, "extension_id": extension_id}
     val = await redis.get(f"extension:active:{current_user.id}")
-    return {"active": bool(val)}
+    return {"active": bool(val), "extension_id": extension_id}
 
 @app.post("/api/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(

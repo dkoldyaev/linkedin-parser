@@ -81,6 +81,24 @@
 - `npm run backend:dev` — запуск FastAPI с live-reload на порту 8000.
 - `npm run frontend:dev` — запуск Vite dev-сервера на порту 5173.
 - `npm run frontend:build` — сборка production фронтенда в `frontend/dist`.
+- `npm run extension:build` — dev-сборка расширения в `extension/dist` (API из `APP_URL` в `.env`).
+- `npm run extension:build:prod` — сборка для Chrome Web Store + zip (нужен https `APP_URL` в `.env.production` или в окружении).
+
+---
+
+## Chrome-расширение
+
+Исходники: `extension/background.js`, `extension/popup-src/`. Манифест генерируется из
+`extension/build/manifest.mjs` — `extension/dist/` не редактировать.
+
+1. `npm run extension:build`
+2. `chrome://extensions` → Developer mode → **Load unpacked** → папка `extension/dist`
+3. Скопировать выведенный ID в `.env` как `EXTENSION_ID=…` и перезапустить backend —
+   по нему веб-приложение проверяет, установлено ли расширение (`externally_connectable`).
+
+Для публикации: `APP_URL=https://your-domain npm run extension:build:prod` → загрузить
+`extension/job-tracker-extension-<version>.zip` в Developer Dashboard. Версия берётся из
+`extension/popup-src/package.json`.
 
 ---
 

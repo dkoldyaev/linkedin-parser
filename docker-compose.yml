@@ -24,6 +24,7 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - JWT_SECRET=${JWT_SECRET:-!ChangeThisAppJWTSecretKeyForUserSessions!}
       - DEV_AUTH=${DEV_AUTH:-false}
+      - EXTENSION_ID=${EXTENSION_ID:-}
     depends_on:
       - mercure
     healthcheck:
