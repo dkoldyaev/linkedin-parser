@@ -56,7 +56,18 @@ fs.writeFileSync(
 
 // 3.5 Offscreen Document
 fs.copyFileSync(path.join(EXTENSION_DIR, 'offscreen.html'), path.join(DIST_DIR, 'offscreen.html'))
-run('npx', ['esbuild', 'offscreen.js', '--bundle', '--outfile=dist/offscreen-bundle.js'], { cwd: EXTENSION_DIR })
+run('npx', [
+  'esbuild', 'offscreen.js', 
+  '--bundle', 
+  '--outfile=dist/offscreen-bundle.js',
+  '--external:jsdom',
+  '--external:path',
+  '--external:url',
+  '--external:fs',
+  '--external:vm',
+  '--external:stream',
+  '--external:crypto'
+], { cwd: EXTENSION_DIR })
 
 // 4. Manifest
 const manifest = buildManifest(config)

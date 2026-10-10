@@ -33,6 +33,10 @@ export class Registry {
     }
     return null;
   }
+
+  allParsers(): BaseParser[] {
+    return this.parsers;
+  }
 }
 
 export const registry = new Registry();

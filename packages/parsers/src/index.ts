@@ -2,7 +2,7 @@ export * from './types';
 export * from './BaseParser';
 export * from './helpers';
 export * from './locationParser';
-export * from './registry';
+export { registry, Registry } from './registry';
 
 import { registry } from './registry';
 import { GlassdoorParser } from './parsers/glassdoor';

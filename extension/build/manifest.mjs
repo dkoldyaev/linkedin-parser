@@ -5,6 +5,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { EXTENSION_DIR } from './config.mjs'
 
+import { registry } from '../../packages/parsers/src/index.ts'
+
 const { version } = JSON.parse(
   fs.readFileSync(path.join(EXTENSION_DIR, 'popup-src', 'package.json'), 'utf8'),
 )
@@ -18,6 +20,19 @@ function webAppMatches({ mode, apiBase }) {
     return ['http://localhost/*', 'http://127.0.0.1/*']
   }
   return [`${apiBase}/*`]
+}
+
+function getParserPermissions() {
+  const permissions = new Set()
+  for (const parser of registry.allParsers()) {
+    if (parser.domains) {
+      for (const domain of parser.domains) {
+        permissions.add(`*://*.${domain}/*`)
+        permissions.add(`*://${domain}/*`)
+      }
+    }
+  }
+  return Array.from(permissions)
 }
 
 export function buildManifest(config) {
@@ -39,9 +54,8 @@ export function buildManifest(config) {
     host_permissions: [
       // API origin: lets the service worker call the backend with cookies, bypassing CORS.
       `${config.apiBase}/*`,
-      // TODO(store): replace with an explicit list of job sites + optional_host_permissions.
-      // Needed today because background tasks open/scrape arbitrary vacancy URLs.
-      '<all_urls>',
+      // Dynamically generated parser permissions
+      ...getParserPermissions()
     ],
     background: {
       service_worker: 'background.js',
