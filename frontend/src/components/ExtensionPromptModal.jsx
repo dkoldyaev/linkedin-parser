@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Puzzle, X, ShieldAlert, Layers, ExternalLink, 
-  HelpCircle, ArrowRight, CheckCircle2 
+  HelpCircle, ArrowRight, CheckCircle2, Download 
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { dismissExtensionPrompt } from '../utils/extension';
@@ -128,9 +128,14 @@ export default function ExtensionPromptModal({ isOpen, onClose, onProceed }) {
             padding: '14px',
             fontSize: '0.8125rem'
           }}>
-            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <HelpCircle size={15} color="#818cf8" />
-              <span>{t('extensionModal.install_title')}</span>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <HelpCircle size={15} color="#818cf8" />
+                <span>{t('extensionModal.install_title')}</span>
+              </div>
+              <a href="/extension.zip" download className="btn btn-secondary btn-icon" style={{ padding: '4px 10px', height: '24px', fontSize: '0.75rem', borderRadius: '4px' }} title="Скачать ZIP">
+                <Download size={12} style={{ marginRight: '4px' }}/> ZIP
+              </a>
             </div>
             <ol style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: 1.4 }}>
               <li>{t('extensionModal.install_step1')}</li>

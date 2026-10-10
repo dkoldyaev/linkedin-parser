@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Briefcase, Plus, Search, Filter, Settings, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink, Ban, XCircle
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink, Ban, XCircle, Download
 } from 'lucide-react';
 import KanbanBoard from './components/KanbanBoard';
 import BatchImportModal from './components/BatchImportModal';
@@ -596,6 +596,15 @@ export default function App() {
             <RefreshCw size={16} />
           </button>
           
+          <a
+            href="/extension.zip"
+            download
+            className="btn btn-secondary btn-icon plausible-event-name=Download+Extension"
+            title="Скачать расширение (ZIP)"
+          >
+            <Download size={16} />
+          </a>
+
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Settings+Open"
             onClick={() => {
