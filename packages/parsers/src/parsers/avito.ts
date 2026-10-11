@@ -8,6 +8,7 @@ export class AvitoParser extends BaseParser {
   source = "Avito";
   priority = 10;
   needs_extension = false;
+  domains = ["avito.ru"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('avito.ru');

@@ -8,6 +8,7 @@ export class GeekJobParser extends BaseParser {
   source = "GeekJob";
   priority = 10;
   needs_extension = false;
+  domains = ["geekjob.ru"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('geekjob.ru');

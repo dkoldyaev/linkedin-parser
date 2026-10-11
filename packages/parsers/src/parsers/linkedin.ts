@@ -8,6 +8,7 @@ export class LinkedInParser extends BaseParser {
   source = "LinkedIn";
   priority = 20;
   needs_extension = false;
+  domains = ["linkedin.com"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('linkedin.com/jobs');

@@ -8,6 +8,7 @@ export class FLRuParser extends BaseParser {
   source = "FL.ru";
   priority = 10;
   needs_extension = false;
+  domains = ["fl.ru"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('fl.ru');

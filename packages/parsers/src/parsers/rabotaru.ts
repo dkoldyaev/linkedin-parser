@@ -8,6 +8,7 @@ export class RabotaRuParser extends BaseParser {
   source = "Rabota.ru";
   priority = 10;
   needs_extension = false;
+  domains = ["rabota.ru"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('rabota.ru');

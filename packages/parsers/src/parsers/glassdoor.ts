@@ -9,6 +9,7 @@ export class GlassdoorParser extends BaseParser {
   source = "Glassdoor";
   priority = 10;
   needs_extension = false;
+  domains = ["glassdoor.com"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('glassdoor');

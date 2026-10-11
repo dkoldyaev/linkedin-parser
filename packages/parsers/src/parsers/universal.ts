@@ -10,6 +10,7 @@ export class UniversalParser extends BaseParser {
   source = "Universal";
   priority = 0; // Lowest priority, acts as a fallback
   needs_extension = false;
+  domains: string[] = [];
 
   matches(url: string): boolean {
     return true; // Matches any URL

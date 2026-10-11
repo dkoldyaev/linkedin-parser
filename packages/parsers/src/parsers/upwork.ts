@@ -8,6 +8,7 @@ export class UpworkParser extends BaseParser {
   source = "Upwork";
   priority = 20;
   needs_extension = true;
+  domains = ["upwork.com"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('upwork.com');

@@ -8,6 +8,7 @@ export class SuperJobParser extends BaseParser {
   source = "SuperJob";
   priority = 10;
   needs_extension = false;
+  domains = ["superjob.ru"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('superjob.ru');

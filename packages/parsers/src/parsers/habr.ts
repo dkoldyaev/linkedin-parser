@@ -8,6 +8,7 @@ export class HabrParser extends BaseParser {
   source = "Habr Career";
   priority = 10;
   needs_extension = false;
+  domains = ["career.habr.com", "habr.com"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('career.habr.com');

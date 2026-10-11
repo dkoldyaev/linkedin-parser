@@ -9,6 +9,7 @@ export class LayboardParser extends BaseParser {
   source = "Layboard";
   priority = 10;
   needs_extension = false;
+  domains = ["layboard.com"];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('layboard.com');
