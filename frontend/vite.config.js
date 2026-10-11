@@ -8,13 +8,17 @@ export default defineConfig(({ mode }) => {
   // Prefix '' loads all vars — safe here, they are only used in Node, not exposed to the client.
   const env = loadEnv(mode, path.resolve(import.meta.dirname, '..'), '')
 
+  if (!env.APP_URL) {
+    throw new Error('Strict Configuration Error: APP_URL is not set in .env')
+  }
+
   return {
     plugins: [react()],
     server: {
       port: 5173,
       proxy: {
         '/api': {
-          target: env.APP_URL || 'http://localhost:8000',
+          target: env.APP_URL,
           changeOrigin: true,
         },
       },

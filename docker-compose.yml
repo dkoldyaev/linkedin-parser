@@ -4,11 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - APP_URL=${APP_URL:-http://localhost:8000}
+        - APP_URL=${APP_URL}
     restart: unless-stopped
     volumes:
       - ./data:/app/data
     environment:
+      - APP_URL=${APP_URL}
       - DATA_DIR=/app/data
       - DATABASE_URL=${DATABASE_URL:-}
       - BROKER_URL=${BROKER_URL}

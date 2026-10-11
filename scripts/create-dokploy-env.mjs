@@ -187,8 +187,10 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
   const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
+  const appUrl = requireEnvVar('APP_URL');
 
   return [
+    `APP_URL=${appUrl}`,
     `DATABASE_URL=${postgresUrl}`,
     `BROKER_URL=${redisUrl}`,
     `LLM_PROVIDER=${envVars['LLM_PROVIDER'] || 'mistral'}`,
@@ -618,6 +620,7 @@ async function main() {
   console.log(`💻 Frontend:           https://${domainHost}`);
   console.log(`🔗 Backend API:        https://${domainHost}/api/health`);
   console.log(`📡 Mercure SSE:        https://${domainHost}/.well-known/mercure`);
+  console.log(`📱 App URL (from .env): ${requireEnvVar('APP_URL')}`);
   console.log(`🐘 Postgres AppName:   ${pgService.appName}`);
   console.log(`🔴 Redis AppName:      ${redisService.appName}`);
   console.log(`🌿 Git Branch:         ${gitBranch}\n`);

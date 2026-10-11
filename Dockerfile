@@ -17,7 +17,7 @@ COPY package*.json ./
 COPY packages/ ./packages/
 RUN npm install
 COPY extension/ ./extension/
-ARG APP_URL=http://localhost:8000
+ARG APP_URL
 ENV APP_URL=${APP_URL}
 RUN npm run extension:build
 RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *

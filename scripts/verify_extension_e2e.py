@@ -13,8 +13,14 @@ import os
 import json
 import time
 import httpx
+from dotenv import load_dotenv
 
-BASE_URL = os.getenv("APP_URL", "http://localhost:8000").rstrip("/")
+load_dotenv()
+
+app_url = os.getenv("APP_URL")
+if not app_url:
+    raise ValueError("Strict Configuration Error: APP_URL is not set in .env")
+BASE_URL = app_url.rstrip("/")
 DEV_LOGIN_URL = f"{BASE_URL}/api/auth/dev-login"
 PARSE_AND_ADD_URL = f"{BASE_URL}/api/extension/parse_and_add"
 QUEUE_TASKS_URL = f"{BASE_URL}/api/queue/tasks"
