@@ -293,7 +293,7 @@ export default function App() {
           if (!isSubscribed) return;
           try {
             const data = JSON.parse(event.data);
-            const { type, error_code, vacancy, total_remaining, url } = data;
+            const { type, error_code, vacancy, vacancy_id, title, total_remaining, url } = data;
             const {
               fetchTags: currentFetchTags,
               fetchVacancies: currentFetchVacancies,
@@ -329,7 +329,11 @@ export default function App() {
               setVacancies(prev => {
                 if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
                 if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
-                return prev.map(v => v.id === vacancy.id ? vacancy : v);
+                const exists = prev.some(v => v.id === vacancy.id);
+                if (exists) {
+                  return prev.map(v => v.id === vacancy.id ? vacancy : v);
+                }
+                return [vacancy, ...prev];
               });
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
@@ -337,6 +341,21 @@ export default function App() {
               currentFetchCountries();
               currentFetchCities(currentSelectedCountry);
               currentFetchSources();
+            } else if (type === 'vacancy_deleted') {
+              const delId = vacancy_id || (vacancy && vacancy.id);
+              if (delId) {
+                setVacancies(prev => prev.filter(v => v.id !== delId));
+                setSelectedVacancy(prev => (prev && prev.id === delId ? null : prev));
+                setSelectedIds(prev => prev.filter(id => id !== delId));
+                const delTitle = title || (vacancy && vacancy.title);
+                if (delTitle) {
+                  currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
+                }
+                currentFetchTags();
+                currentFetchCountries();
+                currentFetchCities(currentSelectedCountry);
+                currentFetchSources();
+              }
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
               currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');

@@ -846,6 +846,8 @@ class RedisQueueManager:
                     db.commit()
                     db.refresh(existing)
                     vacancy_data = VacancyResponse.model_validate(existing).model_dump(mode="json")
+                    event_type = EVENT_VACANCY_UPDATED
+                    msg_code = MSG_VACANCY_UPDATED
                 else:
                     new_vacancy = Vacancy(
                         user_id=task.user_id,
@@ -881,6 +883,23 @@ class RedisQueueManager:
                     db.refresh(new_vacancy)
                     task.vacancy_id = new_vacancy.id
                     vacancy_data = VacancyResponse.model_validate(new_vacancy).model_dump(mode="json")
+                    event_type = EVENT_VACANCY_CREATED
+                    msg_code = MSG_VACANCY_CREATED
+
+            total_rem = await self._calculate_total_remaining()
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+            await publish_mercure_event(
+                event_type=event_type,
+                data={
+                    "message_code": msg_code,
+                    "vacancy": vacancy_data,
+                    "task_id": task.task_id,
+                    "batch_id": task.batch_id,
+                    "url": task.url,
+                    "total_remaining": total_rem,
+                },
+                topic=mercure_topic,
+            )
             
             task.stage = "ai_analysis"
             task.status = "pending"

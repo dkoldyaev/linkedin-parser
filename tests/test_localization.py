@@ -5,11 +5,13 @@ from backend.schemas import SettingsResponse, SettingsUpdateRequest
 from backend.mercure import (
     EVENT_VACANCY_CREATED,
     EVENT_VACANCY_UPDATED,
+    EVENT_VACANCY_DELETED,
     EVENT_TASK_FAILED,
     EVENT_QUEUE_UPDATED,
     EVENT_QUEUE_IDLE,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
+    MSG_VACANCY_DELETED,
     MSG_TASK_FAILED,
     MSG_QUEUE_UPDATED,
     MSG_QUEUE_IDLE,
@@ -115,12 +117,14 @@ def test_mercure_constants():
     """Test that Mercure constants are properly defined and no raw text is required."""
     assert EVENT_VACANCY_CREATED == "vacancy_created"
     assert EVENT_VACANCY_UPDATED == "vacancy_updated"
+    assert EVENT_VACANCY_DELETED == "vacancy_deleted"
     assert EVENT_TASK_FAILED == "task_failed"
     assert EVENT_QUEUE_UPDATED == "queue_updated"
     assert EVENT_QUEUE_IDLE == "queue_idle"
 
     assert MSG_VACANCY_CREATED == "VACANCY_CREATED"
     assert MSG_VACANCY_UPDATED == "VACANCY_UPDATED"
+    assert MSG_VACANCY_DELETED == "VACANCY_DELETED"
     assert MSG_TASK_FAILED == "TASK_FAILED"
     assert MSG_QUEUE_UPDATED == "QUEUE_UPDATED"
     assert MSG_QUEUE_IDLE == "QUEUE_IDLE"

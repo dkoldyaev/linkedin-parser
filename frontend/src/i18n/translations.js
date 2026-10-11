@@ -214,6 +214,7 @@ export const translations = {
     mercure: {
       vacancy_created: "✨ Новая вакансия: {title} ({company})",
       vacancy_updated: "Обновлена вакансия: {title}",
+      vacancy_deleted: "Удалена вакансия: {title}",
       queue_idle: "Все вакансии из очереди обработаны!",
       task_failed: "Ошибка обработки ссылки ({url}): {error}",
       errors: {
@@ -466,6 +467,7 @@ export const translations = {
     mercure: {
       vacancy_created: "✨ New vacancy: {title} ({company})",
       vacancy_updated: "Vacancy updated: {title}",
+      vacancy_deleted: "🗑️ Vacancy deleted: {title}",
       queue_idle: "All vacancies from the queue have been processed!",
       task_failed: "Failed processing link ({url}): {error}",
       errors: {
