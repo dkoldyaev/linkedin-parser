@@ -17,7 +17,9 @@ COPY package*.json ./
 COPY packages/ ./packages/
 RUN npm install
 COPY extension/ ./extension/
-RUN npm run extension:build:prod
+ARG APP_URL=http://localhost:8000
+ENV APP_URL=${APP_URL}
+RUN npm run extension:build
 RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *
 
 # Stage 2: Python Backend Runtime

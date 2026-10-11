@@ -1,8 +1,7 @@
 import unittest
 from bs4 import BeautifulSoup
 from backend.scraper import extract_is_closed_from_soup
-from backend.database import ensure_db_schema, SessionLocal
-from backend.models import Vacancy
+from backend.database import ensure_db_schema
 from backend.main import app
 from fastapi.testclient import TestClient
 

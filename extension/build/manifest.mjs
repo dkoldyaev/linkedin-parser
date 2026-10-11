@@ -17,7 +17,16 @@ const { version } = JSON.parse(
 // so "http://localhost/*" covers both Vite (5173) and the backend (8000).
 function webAppMatches({ mode, apiBase }) {
   if (mode === 'development') {
-    return ['http://localhost/*', 'http://127.0.0.1/*']
+    const matches = ['http://localhost/*', 'http://127.0.0.1/*']
+    if (apiBase) {
+      try {
+        const u = new URL(apiBase)
+        if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
+          matches.push(`${u.protocol}//${u.hostname}/*`)
+        }
+      } catch {}
+    }
+    return matches
   }
   return [`${apiBase}/*`]
 }

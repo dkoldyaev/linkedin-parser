@@ -5,7 +5,7 @@ import json
 import logging
 import datetime
 from contextlib import asynccontextmanager
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -51,6 +51,7 @@ from .auth import (
 )
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
 from .scraper import scrape_job
+from .parsers import registry as parser_registry
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 import asyncio
@@ -1058,7 +1059,11 @@ async def submit_extension_task_result(
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     url = payload.get("url")
-    scraped = payload
+    html = payload.get("html")
+    if "title" in payload:
+        scraped = payload
+    else:
+        scraped = await scrape_job(url, html=html)
     
     job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None
@@ -1125,7 +1130,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     # If link requires browser extension to scrape and no HTML was supplied (e.g. context menu on a link),
     # enqueue into scrape pipeline so extension will open tab and extract DOM.
     parser = parser_registry.find(url)
-    if not payload.html and parser and parser.needs_extension:
+    if not payload.get("html") and parser and parser.needs_extension:
         batch_id, tasks = await queue_manager.enqueue(
             [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
         )

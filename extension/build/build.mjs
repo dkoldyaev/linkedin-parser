@@ -42,7 +42,7 @@ fs.mkdirSync(DIST_DIR, { recursive: true })
 
 // 2. Popup (Vite reads the same config via EXT_MODE, see popup-src/vite.config.js)
 if (!fs.existsSync(path.join(POPUP_SRC, 'node_modules'))) {
-  run('npm', ['ci'], { cwd: POPUP_SRC })
+  run('npm', ['install'], { cwd: POPUP_SRC })
 }
 run('npm', ['run', 'build'], { cwd: POPUP_SRC, env: { ...process.env, EXT_MODE: config.mode } })
 
