@@ -2,6 +2,9 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
+ARG APP_URL
+ENV APP_URL=${APP_URL}
+
 RUN apk add --no-cache zip
 
 # Build frontend
@@ -17,8 +20,6 @@ COPY package*.json ./
 COPY packages/ ./packages/
 RUN npm install
 COPY extension/ ./extension/
-ARG APP_URL
-ENV APP_URL=${APP_URL}
 RUN npm run extension:build
 RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *
 
