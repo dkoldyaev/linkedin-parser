@@ -1348,6 +1348,51 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     return {"status": "queued_for_ai", "vacancy_id": vacancy.id, "task_id": task_id}
 
 
+@app.get("/api/stats")
+def get_stats(
+    tz_offset: int = Query(0, description="Client offset in minutes, as JS Date.getTimezoneOffset()"),
+    days: int = Query(365, ge=7, le=730),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Per-day activity: vacancies added and status changes ("marked"), in the client's timezone."""
+    delta = datetime.timedelta(minutes=-tz_offset)
+
+    def local_day(dt: datetime.datetime) -> str:
+        return (dt + delta).date().isoformat()
+
+    vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
+    daily: Dict[str, Dict[str, int]] = {}
+
+    def bucket(day: str) -> Dict[str, int]:
+        return daily.setdefault(day, {"added": 0, "marked": 0})
+
+    status_counts: Dict[str, int] = {}
+    for v in vacancies:
+        status_counts[v.status] = status_counts.get(v.status, 0) + 1
+        if v.created_at:
+            bucket(local_day(v.created_at))["added"] += 1
+        for h in v.history:
+            # Entries without from_status are the initial record created together with the vacancy.
+            if h.from_status is not None and h.created_at:
+                bucket(local_day(h.created_at))["marked"] += 1
+
+    today = (datetime.datetime.utcnow() + delta).date()
+    cutoff = (today - datetime.timedelta(days=days - 1)).isoformat()
+    series = [
+        {"date": d, **counts}
+        for d, counts in sorted(daily.items())
+        if d >= cutoff
+    ]
+
+    return {
+        "today": today.isoformat(),
+        "total": len(vacancies),
+        "by_status": status_counts,
+        "daily": series,
+    }
+
+
 # Static files mount for built React frontend
 STATIC_DIR = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))
 if os.path.exists(STATIC_DIR):
