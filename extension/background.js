@@ -292,6 +292,11 @@ chrome.notifications.onClicked.addListener(async (notifId) => {
 // ─── Message handler (from popup) ─────────────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "ENSURE_OFFSCREEN") {
+    getOffscreenDocument().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
   if (msg.type === "GET_BLOCKED_TABS") {
     getBlockedTabs().then(sendResponse);
     return true; // async
@@ -373,6 +378,19 @@ async function getOffscreenDocument() {
   });
 }
 
+async function reportTaskError(taskId, message) {
+  try {
+    await fetch(`${API_BASE}/api/extension/tasks/${taskId}/error`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: String(message || "Unknown extension error").slice(0, 500) }),
+    });
+  } catch (e) {
+    console.error("Failed to report task error:", e);
+  }
+}
+
 async function submitTaskResult(taskId, url, html) {
   try {
     await getOffscreenDocument();
@@ -387,16 +405,24 @@ async function submitTaskResult(taskId, url, html) {
     }
 
     const vacancyData = result.data;
+    if (!vacancyData?.url || !vacancyData?.source) {
+      throw new Error('Parser returned no url/source');
+    }
 
     // Send parsed JSON back to backend API instead of raw HTML
-    await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
+    const res = await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(vacancyData), // We send the structured data back
     });
+    if (!res.ok) {
+      throw new Error(`Backend rejected result: HTTP ${res.status}`);
+    }
   } catch (err) {
     console.error("Failed to submit result:", err);
+    // Backend marks the task failed and schedules a retry with growing delay
+    await reportTaskError(taskId, err.message);
   }
 }
 
@@ -484,6 +510,8 @@ async function processTabExecution(tabId, task) {
 
   if (results?.[0]?.result) {
     await submitTaskResult(task.task_id, task.url, results[0].result);
+  } else {
+    await reportTaskError(task.task_id, "Empty page HTML");
   }
 }
 
@@ -506,6 +534,7 @@ async function processSingleTaskWithTimeout(task) {
     ]);
   } catch (err) {
     console.error(`Task ${task.task_id} execution error:`, err);
+    await reportTaskError(task.task_id, err.message);
   } finally {
     if (timeoutTimer) clearTimeout(timeoutTimer);
     if (tabId) {

@@ -1,5 +1,5 @@
 import express from 'express';
-// import { registry } from '@parser-as-service/parsers'; // Will use this once registry is implemented
+import { registry } from '@parser-as-service/parsers';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,9 +17,7 @@ app.post('/api/parse', async (req, res) => {
       return res.status(400).json({ error: 'Missing url or html' });
     }
 
-    // TODO: use registry to parse
-    // const data = await registry.parse(url, html);
-    const data = { url, source: 'dummy_for_now' }; 
+    const data = await registry.parse(url, html);
 
     res.json(data);
   } catch (error: any) {

@@ -745,10 +745,10 @@ async def batch_import_vacancies(
 
             # Run LLM summarization
             llm_res = await analyze_vacancy_with_llm(
-                title=scraped["title"],
-                company=scraped["company"],
-                location=scraped["location"],
-                description=scraped["description"],
+                title=scraped.get("title") or "Untitled",
+                company=scraped.get("company") or "Unknown",
+                location=scraped.get("location"),
+                description=scraped.get("description"),
                 provider=llm_provider,
                 language=language,
                 db=db,
@@ -760,14 +760,14 @@ async def batch_import_vacancies(
 
             if existing:
                 # Update existing vacancy
-                existing.title = scraped["title"]
-                existing.company = scraped["company"]
-                existing.company_url = scraped["company_url"]
+                existing.title = scraped.get("title") or existing.title
+                existing.company = scraped.get("company") or existing.company
+                existing.company_url = scraped.get("company_url") or existing.company_url
                 existing.company_info = llm_res.get("company_info") or scraped.get("company_info")
-                existing.location = scraped["location"]
+                existing.location = scraped.get("location") or existing.location
                 existing.city = scraped.get("city")
-                existing.country = scraped["country"]
-                existing.description = scraped["description"]
+                existing.country = scraped.get("country") or existing.country
+                existing.description = scraped.get("description") or existing.description
                 existing.ai_summary = llm_res.get("summary")
                 existing.tech_stack = llm_res.get("tech_stack", [])
                 
@@ -815,14 +815,14 @@ async def batch_import_vacancies(
                     job_id=scraped.get("job_id"),
                     source=scraped.get("source"),
                     url=url,
-                    title=scraped["title"],
-                    company=scraped["company"],
-                    company_url=scraped["company_url"],
+                    title=scraped.get("title") or "Untitled",
+                    company=scraped.get("company") or "Unknown",
+                    company_url=scraped.get("company_url"),
                     company_info=llm_res.get("company_info") or scraped.get("company_info"),
-                    location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped["location"],
+                    location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped.get("location"),
                     city=scraped.get("city"),
-                    country=scraped["country"],
-                    description=scraped["description"],
+                    country=scraped.get("country"),
+                    description=scraped.get("description"),
                     workplace_type=w_type,
                     is_closed=scraped.get("is_closed", False),
                     salary_min=s_min,
@@ -1179,15 +1179,31 @@ async def submit_extension_task_result(
                 
     return await queue_manager.process_extension_result(task_id, payload)
 
+@app.post("/api/extension/tasks/{task_id}/error")
+async def submit_extension_task_error(
+    task_id: str,
+    payload: Dict[str, Any],
+    current_user: User = Depends(get_current_user)
+):
+    """The extension failed to open/parse the page: mark failed and schedule a retry with backoff."""
+    redis = queue_manager.redis
+    if redis:
+        raw = await redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+        if raw:
+            t = JobTask.from_dict(json.loads(raw))
+            if t.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not your task")
+
+    return await queue_manager.report_extension_failure(task_id, str(payload.get("error") or "")[:500])
+
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     url = payload.get("url")
     html = payload.get("html")
-    if "title" in payload:
+    if "source" in payload:
         scraped = payload
     else:
         scraped = await scrape_job(url, html=html)
-    
     job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None
     if job_id:
@@ -1199,20 +1215,20 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     if existing:
         if scraped.get("job_id"): existing.job_id = scraped["job_id"]
         if scraped.get("source"): existing.source = scraped["source"]
-        existing.title = scraped["title"]
-        existing.company = scraped["company"]
-        existing.company_url = scraped.get("company_url")
-        existing.location = scraped.get("location")
-        existing.city = scraped.get("city")
-        existing.country = scraped.get("country")
-        existing.description = scraped.get("description")
-        existing.company_info = scraped.get("company_info")
-        existing.workplace_type = scraped.get("workplace_type")
-        existing.salary_min = scraped.get("salary_min")
-        existing.salary_max = scraped.get("salary_max")
-        existing.salary_currency = scraped.get("salary_currency")
-        existing.salary_period = scraped.get("salary_period")
-        existing.is_closed = scraped.get("is_closed", False)
+        existing.title = scraped.get("title", None) or existing.title 
+        existing.company = scraped.get("company", None) or existing.company
+        existing.company_url = scraped.get("company_url", None) or existing.company_url
+        existing.location = scraped.get("location", None) or existing.location
+        existing.city = scraped.get("city", None) or existing.city
+        existing.country = scraped.get("country", None) or existing.country
+        existing.description = scraped.get("description", None) or existing.description
+        existing.company_info = scraped.get("company_info", None) or existing.company_info
+        existing.workplace_type = scraped.get("workplace_type", None) or existing.workplace_type
+        existing.salary_min = scraped.get("salary_min", None) or existing.salary_min
+        existing.salary_max = scraped.get("salary_max", None) or existing.salary_max
+        existing.salary_currency = scraped.get("salary_currency", None) or existing.salary_currency
+        existing.salary_period = scraped.get("salary_period", None) or existing.salary_period
+        if scraped.get("is_closed") is not None: existing.is_closed = scraped["is_closed"]
         db.commit()
         db.refresh(existing)
         vacancy = existing

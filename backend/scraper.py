@@ -54,7 +54,9 @@ async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
                 async with session.post(f"{PARSER_API_URL}/api/parse", json=payload) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        return data
+                        if data.get("source"):
+                            return data
+                        logger.warning("Parser API returned no source (stub?), falling back to local registry")
                     else:
                         text = await resp.text()
                         logger.warning(f"Parser API returned {resp.status}: {text}")

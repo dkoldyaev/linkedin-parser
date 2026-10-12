@@ -42,6 +42,9 @@ RECENT_LIST = "linkedin:recent"
 STATS_KEY = "linkedin:stats"
 TASK_KEY_PREFIX = "linkedin:task:"
 TASK_TTL = 86400 * 7  # 7 days
+RETRY_ZSET = "linkedin:retry_zset"  # task_id -> unix time when it may be retried
+MAX_TASK_ATTEMPTS = int(os.getenv("TASK_MAX_ATTEMPTS", "4"))  # total tries incl. the first one
+RETRY_BASE_DELAY = int(os.getenv("TASK_RETRY_BASE_DELAY", "30"))  # seconds; doubles each attempt (30, 60, 120...)
 
 
 @dataclass
@@ -59,6 +62,8 @@ class JobTask:
     title: Optional[str] = None
     company: Optional[str] = None
     error: Optional[str] = None
+    attempts: int = 0
+    next_retry_at: Optional[float] = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -79,6 +84,8 @@ class JobTask:
             title=data.get("title"),
             company=data.get("company"),
             error=data.get("error"),
+            attempts=data.get("attempts", 0),
+            next_retry_at=data.get("next_retry_at"),
         )
 
     def to_info(self) -> TaskInfo:
@@ -140,6 +147,11 @@ class RedisQueueManager:
         for i in range(self.ai_concurrency):
             t = asyncio.create_task(self._ai_worker_loop(i), name=f"ai-worker-{i}")
             self._worker_tasks.append(t)
+
+        # Promotes tasks whose retry delay has elapsed back into the scrape queue
+        self._worker_tasks.append(
+            asyncio.create_task(self._retry_promoter_loop(), name="retry-promoter")
+        )
 
         logger.info(
             f"RedisQueueManager started with {self.scrape_concurrency} scrape worker(s) "
@@ -294,6 +306,7 @@ class RedisQueueManager:
         active_ids.extend(await self.redis.lrange(AI_QUEUE_KEY, 0, -1))
         active_ids.extend(await self.redis.smembers(SCRAPE_PROCESSING_SET))
         active_ids.extend(await self.redis.smembers(AI_PROCESSING_SET))
+        active_ids.extend(await self.redis.zrange(RETRY_ZSET, 0, -1))
         
         # Deduplicate
         active_ids = list(set([aid.decode('utf-8') if isinstance(aid, bytes) else aid for aid in active_ids]))
@@ -333,6 +346,7 @@ class RedisQueueManager:
             # Remove from queues (0 means remove all occurrences)
             await self.redis.lrem(SCRAPE_QUEUE_KEY, 0, task_id)
             await self.redis.lrem(AI_QUEUE_KEY, 0, task_id)
+            await self.redis.zrem(RETRY_ZSET, task_id)
             
             # Remove from processing sets
             await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
@@ -499,13 +513,13 @@ class RedisQueueManager:
                 if existing:
                     if scraped.get("job_id"):
                         existing.job_id = scraped["job_id"]
-                    existing.title = scraped["title"]
-                    existing.company = scraped["company"]
-                    existing.company_url = scraped["company_url"]
-                    existing.location = scraped["location"]
+                    existing.title = scraped.get("title") or existing.title
+                    existing.company = scraped.get("company") or existing.company
+                    existing.company_url = scraped.get("company_url") or existing.company_url
+                    existing.location = scraped.get("location") or existing.location
                     existing.city = scraped.get("city")
-                    existing.country = scraped["country"]
-                    existing.description = scraped["description"]
+                    existing.country = scraped.get("country") or existing.country
+                    existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):
                         existing.company_info = scraped["company_info"]
 
@@ -541,14 +555,14 @@ class RedisQueueManager:
                         job_id=scraped.get("job_id"),
                         source=scraped.get("source"),
                         url=task.url,
-                        title=scraped["title"],
-                        company=scraped["company"],
-                        company_url=scraped["company_url"],
+                        title=scraped.get("title") or "Untitled Vacancy",
+                        company=scraped.get("company") or "Unknown Company",
+                        company_url=scraped.get("company_url"),
                         company_info=scraped.get("company_info"),
-                        location=scraped["location"],
+                        location=scraped.get("location"),
                         city=scraped.get("city"),
-                        country=scraped["country"],
-                        description=scraped["description"],
+                        country=scraped.get("country"),
+                        description=scraped.get("description"),
                         workplace_type=scraped.get("workplace_type"),
                         is_closed=scraped.get("is_closed", False),
                         salary_min=scraped.get("salary_min"),
@@ -635,33 +649,106 @@ class RedisQueueManager:
                     await pipe.execute()
 
         except Exception as e:
-            task.status = "failed"
-            task.stage = "scraping"
-            task.error = str(e)
-            task.updated_at = time.time()
+            await self._fail_or_retry(task, e)
 
+    # -------------------------------------------------------------------------
+    # Retry policy (exponential backoff)
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def _retry_delay(attempts: int) -> int:
+        return RETRY_BASE_DELAY * (2 ** max(attempts - 1, 0))
+
+    async def _fail_or_retry(self, task: JobTask, error, error_code: str = ERR_SCRAPE_FAILED) -> bool:
+        """Handle a failure of the scraping stage.
+
+        Schedules a retry with growing delay until MAX_TASK_ATTEMPTS is reached,
+        then marks the task as permanently failed. Returns True if the task failed for good.
+        """
+        task_id = task.task_id
+        now = time.time()
+        task.attempts += 1
+        task.stage = "scraping"
+        task.error = str(error)
+        task.updated_at = now
+
+        if task.attempts < MAX_TASK_ATTEMPTS:
+            delay = self._retry_delay(task.attempts)
+            task.status = "pending"
+            task.next_retry_at = now + delay
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                pipe.hincrby(STATS_KEY, "failed", 1)
+                pipe.zadd(RETRY_ZSET, {task_id: task.next_retry_at})
+                pipe.lrem("queue:extension", 0, task_id)
                 pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                 await pipe.execute()
-
-            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
-            logger.error(f"[Stage 1 - Scrape] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
-
-            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
-            await publish_mercure_event(
-                event_type=EVENT_TASK_FAILED,
-                data={
-                    "message_code": MSG_TASK_FAILED,
-                    "error_code": ERR_SCRAPE_FAILED,
-                    "task_id": task.task_id,
-                    "batch_id": task.batch_id,
-                    "url": task.url,
-                    "total_remaining": total_rem,
-                },
-                topic=mercure_topic,
+            logger.warning(
+                f"[Stage 1 - Scrape] Task {task_id} failed for {task.url} "
+                f"(attempt {task.attempts}/{MAX_TASK_ATTEMPTS}): {error}. Retrying in {delay}s"
             )
+            return False
+
+        task.status = "failed"
+        task.next_retry_at = None
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            pipe.hincrby(STATS_KEY, "failed", 1)
+            pipe.zrem(RETRY_ZSET, task_id)
+            pipe.lrem("queue:extension", 0, task_id)
+            pipe.srem(SCRAPE_PROCESSING_SET, task_id)
+            await pipe.execute()
+
+        total_rem = await self._calculate_total_remaining(user_id=task.user_id)
+        logger.error(
+            f"[Stage 1 - Scrape] Task {task_id} failed permanently for {task.url} "
+            f"after {task.attempts} attempts: {error}"
+        )
+
+        mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+        await publish_mercure_event(
+            event_type=EVENT_TASK_FAILED,
+            data={
+                "message_code": MSG_TASK_FAILED,
+                "error_code": error_code,
+                "task_id": task_id,
+                "batch_id": task.batch_id,
+                "url": task.url,
+                "total_remaining": total_rem,
+            },
+            topic=mercure_topic,
+        )
+        return True
+
+    async def _retry_promoter_loop(self):
+        """Moves tasks whose backoff delay has elapsed back to the scrape queue."""
+        while self._running:
+            try:
+                due = await self.redis.zrangebyscore(RETRY_ZSET, "-inf", time.time())
+                for task_id in due:
+                    # zrem returns 1 only for the caller that actually removed it
+                    if await self.redis.zrem(RETRY_ZSET, task_id):
+                        await self.redis.rpush(SCRAPE_QUEUE_KEY, task_id)
+                        logger.info(f"[Retry] Task {task_id} re-queued for scraping")
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                if self._running:
+                    logger.error(f"Retry promoter error: {e}")
+                    await asyncio.sleep(2)
+
+    async def report_extension_failure(self, task_id: str, error: str) -> dict:
+        """Called when the browser extension could not open/parse the page."""
+        raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+        if not raw:
+            return {"status": "error", "message": "Task not found"}
+
+        task = JobTask.from_dict(json.loads(raw))
+        if task.status != "pending_extension":
+            return {"status": "already_processed"}
+
+        failed_for_good = await self._fail_or_retry(task, error or "Extension failed to parse page")
+        return {"status": "failed" if failed_for_good else "retry_scheduled", "attempts": task.attempts}
+
 
     # -------------------------------------------------------------------------
     # Stage 2: AI Summarization Worker Loop
@@ -883,13 +970,13 @@ class RedisQueueManager:
                 if existing:
                     if scraped.get("job_id"):
                         existing.job_id = scraped["job_id"]
-                    existing.title = scraped["title"]
-                    existing.company = scraped["company"]
-                    existing.company_url = scraped["company_url"]
-                    existing.location = scraped["location"]
+                    existing.title = scraped.get("title") or existing.title
+                    existing.company = scraped.get("company") or existing.company
+                    existing.company_url = scraped.get("company_url") or existing.company_url
+                    existing.location = scraped.get("location") or existing.location
                     existing.city = scraped.get("city")
-                    existing.country = scraped["country"]
-                    existing.description = scraped["description"]
+                    existing.country = scraped.get("country") or existing.country
+                    existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):
                         existing.company_info = scraped["company_info"]
 
@@ -983,10 +1070,8 @@ class RedisQueueManager:
             return {"status": "success", "vacancy_id": task.vacancy_id}
             
         except Exception as e:
-            task.status = "failed"
-            task.error = str(e)
-            task.updated_at = time.time()
-            await self.redis.set(f"{TASK_KEY_PREFIX}{task.task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            logger.error(f"process_extension_result failed for task {task_id}: {e}", exc_info=True)
+            await self._fail_or_retry(task, e)
             return {"status": "error", "message": str(e)}
 
 

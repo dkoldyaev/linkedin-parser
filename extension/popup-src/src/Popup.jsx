@@ -357,12 +357,17 @@ export default function Popup() {
       const html = results?.[0]?.result
       if (!html) throw new Error('Failed to extract page')
 
+      setAddMsg('Parsing…')
+      await chrome.runtime.sendMessage({ type: 'ENSURE_OFFSCREEN' })
+      const parsed = await chrome.runtime.sendMessage({ type: 'PARSE_HTML', url: currentUrl, html })
+      if (!parsed?.success) throw new Error(parsed?.error || 'Failed to parse')
+
       setAddMsg('Sending to server…')
       const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: currentUrl, html }),
+        body: JSON.stringify(parsed.data),
       })
 
       if (!res.ok) {
