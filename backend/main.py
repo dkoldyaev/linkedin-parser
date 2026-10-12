@@ -1299,7 +1299,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
             pipe.ltrim(RECENT_LIST, 0, 99)
             await pipe.execute()
             
-        total_remaining = await queue_manager._calculate_total_remaining()
+        total_remaining = await queue_manager._calculate_total_remaining(user_id=current_user.id)
         mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
         asyncio.create_task(

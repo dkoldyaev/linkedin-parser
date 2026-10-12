@@ -963,6 +963,7 @@ export default function App() {
         isOpen={isQueueOpen}
         onClose={() => setIsQueueOpen(false)}
         queueRemaining={queueRemaining}
+        onRefreshQueue={fetchQueueStatus}
       />
 
       <ExtensionPromptModal

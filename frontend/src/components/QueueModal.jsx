@@ -3,7 +3,7 @@ import { X, Loader2, Trash2, AlertCircle, List } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 
-export default function QueueModal({ isOpen, onClose, queueRemaining }) {
+export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQueue }) {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining }) {
         setLoading(true);
       }
       fetchTasks();
+      onRefreshQueue?.();
     } else {
       setTasks([]);
       setError('');
@@ -29,6 +30,9 @@ export default function QueueModal({ isOpen, onClose, queueRemaining }) {
       if (!res.ok) throw new Error('Failed to fetch queue tasks');
       const data = await res.json();
       setTasks(data);
+      if (data.length === 0 && queueRemaining > 0) {
+        onRefreshQueue?.();
+      }
       setError('');
     } catch (err) {
       setError(err.message);
@@ -43,6 +47,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining }) {
       setTasks((prev) => prev.filter(t => t.task_id !== taskId));
       const res = await fetch(`/api/queue/tasks/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel task');
+      onRefreshQueue?.();
     } catch (err) {
       alert('Error cancelling task: ' + err.message);
       // Optional: rollback tasks state if it failed
