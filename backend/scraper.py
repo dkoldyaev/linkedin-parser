@@ -1,32 +1,17 @@
-"""
-scraper.py — backward-compatible shim.
-
-All parsing logic has been moved to backend/parsers/.
-This module re-exports the public API so that existing imports keep working
-without any changes.
-
-    from .scraper import scrape_linkedin_job, scrape_upwork_job,
-                         scrape_universal_job, extract_job_id
-"""
-
+import logging
+import os
 import re
+import aiohttp
 from typing import Any, Dict, Optional
 
 from .parsers import registry
-from .parsers.linkedin import (
-    _extract_is_closed as extract_is_closed_from_soup,
-    _extract_salary as extract_salary_from_soup,
-    _extract_workplace as extract_workplace_type_from_soup,
-    _normalize_workplace as normalize_workplace_type,
-)
 
-# ---------------------------------------------------------------------------
-# Public helpers (kept here for backward compatibility)
-# ---------------------------------------------------------------------------
+logger = logging.getLogger(__name__)
 
+PARSER_API_URL = os.environ.get("PARSER_API_URL", "http://parser-api:4000")
 
 def extract_job_id(url: str) -> Optional[str]:
-    """Extract a numeric, alphanumeric, or Upwork-style job ID from any supported URL."""
+    """Extract a job ID using regex (synchronous)."""
     if not url:
         return None
 
@@ -34,7 +19,7 @@ def extract_job_id(url: str) -> Optional[str]:
     jid = registry.extract_job_id(url)
     if jid:
         return jid
-
+    
     # LinkedIn patterns fallback
     for pattern in [
         r"currentJobId=(\d+)",
@@ -51,44 +36,47 @@ def extract_job_id(url: str) -> Optional[str]:
     if m:
         return m.group(1)
 
+    # Generic numeric fallback for other sites
+    m = re.search(r"/(\d+)(?:[/?&#]|$)", url)
+    if m:
+        return m.group(1)
+
     return None
 
+async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
+    """Parse a job posting using parser-api, with fallback to local parser registry."""
+    if PARSER_API_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {"url": url}
+                if html:
+                    payload["html"] = html
+                async with session.post(f"{PARSER_API_URL}/api/parse", json=payload) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data
+                    else:
+                        text = await resp.text()
+                        logger.warning(f"Parser API returned {resp.status}: {text}")
+        except Exception as e:
+            logger.warning(f"Parser API unavailable ({e}), falling back to local registry")
 
-# ---------------------------------------------------------------------------
-# Per-site convenience wrappers
-# ---------------------------------------------------------------------------
+    return await registry.parse(url, html=html)
 
-
+# Provide shims for backwards compatibility
 async def scrape_linkedin_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
-    """Fetch and parse a LinkedIn job posting."""
-    from .parsers.linkedin import LinkedInParser  # noqa: PLC0415
-
-    return await LinkedInParser().parse(url, html=html)
-
+    return await scrape_job(url, html)
 
 async def scrape_upwork_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
-    """Return a skeletal Upwork vacancy record (real data comes via extension)."""
-    from .parsers.upwork import UpworkParser  # noqa: PLC0415
-
-    return await UpworkParser().parse(url, html=html)
-
+    return await scrape_job(url, html)
 
 async def scrape_universal_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
-    """Fetch any page and dump its text for LLM extraction."""
-    from .parsers.universal import UniversalParser  # noqa: PLC0415
+    return await scrape_job(url, html)
 
-    return await UniversalParser().parse(url, html=html)
-
-
-# ---------------------------------------------------------------------------
-# Generic dispatcher — preferred for new code
-# ---------------------------------------------------------------------------
-
-
-async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Dispatch to the best available parser for *url*.
-
-    Prefer this over the per-site helpers in new code.
-    """
-    return await registry.parse(url, html=html)
+# Backward-compatible helper re-exports
+from .parsers.linkedin import (
+    _extract_is_closed as extract_is_closed_from_soup,
+    _extract_salary as extract_salary_from_soup,
+    _extract_workplace as extract_workplace_type_from_soup,
+    _normalize_workplace as normalize_workplace_type,
+)

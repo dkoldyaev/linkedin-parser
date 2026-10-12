@@ -3,10 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - APP_URL=${APP_URL}
     restart: unless-stopped
     volumes:
       - ./data:/app/data
     environment:
+      - APP_URL=${APP_URL}
       - DATA_DIR=/app/data
       - DATABASE_URL=${DATABASE_URL:-}
       - BROKER_URL=${BROKER_URL}
@@ -24,6 +27,8 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - JWT_SECRET=${JWT_SECRET:-!ChangeThisAppJWTSecretKeyForUserSessions!}
       - DEV_AUTH=${DEV_AUTH:-false}
+      - EXTENSION_ID=${EXTENSION_ID:-}
+      - PARSER_API_URL=${PARSER_API_URL:-http://parser-api:4000}
     depends_on:
       - mercure
     healthcheck:
@@ -43,3 +48,15 @@ services:
         cors_origins *
         anonymous
 
+  parser-api:
+    build:
+      context: .
+      dockerfile: services/parser-api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

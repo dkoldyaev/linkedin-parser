@@ -1,0 +1,26 @@
+{
+  "name": "@parser-as-service/parsers",
+  "version": "1.0.0",
+  "description": "Parser library for job postings",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "isomorphic-dompurify": "^3.19.0",
+    "jsdom": "^29.1.1"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/jsdom": "^30.0.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.2"
+  }
+}

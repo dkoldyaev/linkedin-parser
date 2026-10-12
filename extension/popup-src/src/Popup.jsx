@@ -18,7 +18,9 @@ const chrome = window.chrome ?? {
   runtime: { sendMessage: async () => ({}) },
 }
 
-const API_BASE = 'http://localhost:8000'
+// Injected at build time from APP_URL (see extension/build/config.mjs)
+// eslint-disable-next-line no-undef
+const API_BASE = __API_BASE__
 
 function buildTheme(mode) {
   const dark = mode === 'dark'

@@ -5,7 +5,7 @@ import json
 import logging
 import datetime
 from contextlib import asynccontextmanager
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -50,6 +50,7 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+from .scraper import scrape_job
 from .parsers import registry as parser_registry
 from .location_parser import parse_location
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
@@ -59,9 +60,11 @@ from .mercure import (
     publish_mercure_event,
     EVENT_VACANCY_CREATED,
     EVENT_VACANCY_UPDATED,
+    EVENT_VACANCY_DELETED,
     EVENT_QUEUE_UPDATED,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
+    MSG_VACANCY_DELETED,
     MSG_QUEUE_UPDATED,
 )
 from .queue_manager import (
@@ -386,7 +389,7 @@ def get_vacancy(
 
 
 @app.post("/api/vacancies", response_model=VacancyResponse)
-def create_vacancy(
+async def create_vacancy(
     payload: VacancyCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -408,11 +411,24 @@ def create_vacancy(
     db.add(history_entry)
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_CREATED,
+            data={
+                "message_code": MSG_VACANCY_CREATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
 @app.patch("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
-def update_vacancy(
+async def update_vacancy(
     vacancy_id: int,
     payload: VacancyUpdate,
     current_user: User = Depends(get_current_user),
@@ -447,11 +463,24 @@ def update_vacancy(
 
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={
+                "message_code": MSG_VACANCY_UPDATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
 @app.patch("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
-def update_vacancy_history_comment(
+async def update_vacancy_history_comment(
     vacancy_id: int,
     history_id: int,
     payload: VacancyHistoryUpdate,
@@ -473,11 +502,24 @@ def update_vacancy_history_comment(
     history_item.updated_at = datetime.datetime.utcnow()
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={
+                "message_code": MSG_VACANCY_UPDATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
 @app.post("/api/vacancies/{vacancy_id}/history", response_model=VacancyResponse)
-def add_vacancy_history_entry(
+async def add_vacancy_history_entry(
     vacancy_id: int,
     payload: VacancyHistoryCreate,
     current_user: User = Depends(get_current_user),
@@ -504,11 +546,24 @@ def add_vacancy_history_entry(
     db.add(history_entry)
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={
+                "message_code": MSG_VACANCY_UPDATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
 @app.delete("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
-def delete_vacancy_history_entry(
+async def delete_vacancy_history_entry(
     vacancy_id: int,
     history_id: int,
     current_user: User = Depends(get_current_user),
@@ -528,11 +583,24 @@ def delete_vacancy_history_entry(
     db.delete(history_item)
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={
+                "message_code": MSG_VACANCY_UPDATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
 @app.delete("/api/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_vacancy(
+async def delete_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -540,8 +608,23 @@ def delete_vacancy(
     v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
+    
+    title = v.title
     db.delete(v)
     db.commit()
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_DELETED,
+            data={
+                "message_code": MSG_VACANCY_DELETED,
+                "vacancy_id": vacancy_id,
+                "title": title,
+            },
+            topic=mercure_topic,
+        )
+    )
     return None
 
 
@@ -602,6 +685,20 @@ async def batch_import_vacancies(
             db.commit()
             db.refresh(v)
             vacancy_ids.append(v.id)
+
+            mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            asyncio.create_task(
+                publish_mercure_event(
+                    event_type=EVENT_VACANCY_CREATED,
+                    data={
+                        "message_code": MSG_VACANCY_CREATED,
+                        "vacancy": vacancy_data,
+                        "url": url,
+                    },
+                    topic=mercure_topic,
+                )
+            )
         else:
             vacancy_ids.append(existing.id)
 
@@ -641,7 +738,7 @@ async def batch_import_vacancies(
                 ).first()
 
             # Scrape vacancy via parser registry
-            scraped = await parser_registry.parse(url)
+            scraped = await scrape_job(url)
             
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
@@ -748,6 +845,20 @@ async def batch_import_vacancies(
                 db.commit()
                 db.refresh(new_v)
 
+                mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+                vacancy_data = VacancyResponse.model_validate(new_v).model_dump(mode="json")
+                asyncio.create_task(
+                    publish_mercure_event(
+                        event_type=EVENT_VACANCY_CREATED,
+                        data={
+                            "message_code": MSG_VACANCY_CREATED,
+                            "vacancy": vacancy_data,
+                            "url": url,
+                        },
+                        topic=mercure_topic,
+                    )
+                )
+
                 results.append(ImportItemResult(
                     url=url,
                     job_id=job_id,
@@ -829,6 +940,19 @@ async def resummarize_vacancy(
 
     db.commit()
     db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={
+                "message_code": MSG_VACANCY_UPDATED,
+                "vacancy": vacancy_data,
+            },
+            topic=mercure_topic,
+        )
+    )
     return v
 
 
@@ -1030,16 +1154,18 @@ async def extension_ping(current_user: User = Depends(get_current_user)):
 
 @app.get("/api/extension/status")
 async def extension_status(current_user: User = Depends(get_current_user)):
+    # extension_id lets the web app ping the extension via externally_connectable
+    extension_id = os.getenv("EXTENSION_ID") or None
     redis = queue_manager.redis
     if not redis:
-        return {"active": False}
+        return {"active": False, "extension_id": extension_id}
     val = await redis.get(f"extension:active:{current_user.id}")
-    return {"active": bool(val)}
+    return {"active": bool(val), "extension_id": extension_id}
 
 @app.post("/api/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(
     task_id: str, 
-    payload: ExtensionParseRequest,
+    payload: Dict[str, Any],
     current_user: User = Depends(get_current_user)
 ):
     # Verify task belongs to user before processing
@@ -1051,13 +1177,16 @@ async def submit_extension_task_result(
             if t.user_id != current_user.id:
                 raise HTTPException(status_code=403, detail="Not your task")
                 
-    return await queue_manager.process_extension_result(task_id, payload.html)
+    return await queue_manager.process_extension_result(task_id, payload)
 
 @app.post("/api/extension/parse_and_add")
-async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    from .parsers import registry as parser_registry  # noqa: PLC0415
-    url = payload.url
-    scraped = await parser_registry.parse(url, html=payload.html)
+async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    url = payload.get("url")
+    html = payload.get("html")
+    if "title" in payload:
+        scraped = payload
+    else:
+        scraped = await scrape_job(url, html=html)
     
     job_id = scraped.get("job_id") or extract_job_id(url)
     existing = None
@@ -1120,11 +1249,25 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
         ))
         db.commit()
         db.refresh(vacancy)
+
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+        asyncio.create_task(
+            publish_mercure_event(
+                event_type=EVENT_VACANCY_CREATED,
+                data={
+                    "message_code": MSG_VACANCY_CREATED,
+                    "vacancy": vacancy_data,
+                    "url": url,
+                },
+                topic=mercure_topic,
+            )
+        )
         
     # If link requires browser extension to scrape and no HTML was supplied (e.g. context menu on a link),
     # enqueue into scrape pipeline so extension will open tab and extract DOM.
     parser = parser_registry.find(url)
-    if not payload.html and parser and parser.needs_extension:
+    if not payload.get("html") and parser and parser.needs_extension:
         batch_id, tasks = await queue_manager.enqueue(
             [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
         )
@@ -1156,14 +1299,14 @@ async def extension_parse_and_add(payload: ExtensionParseRequest, current_user: 
             pipe.ltrim(RECENT_LIST, 0, 99)
             await pipe.execute()
             
-        total_remaining = await queue_manager._calculate_total_remaining()
+        total_remaining = await queue_manager._calculate_total_remaining(user_id=current_user.id)
         mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
         asyncio.create_task(
             publish_mercure_event(
-                event_type=EVENT_VACANCY_CREATED if is_new else EVENT_VACANCY_UPDATED,
+                event_type=EVENT_VACANCY_UPDATED,
                 data={
-                    "message_code": MSG_VACANCY_CREATED if is_new else MSG_VACANCY_UPDATED,
+                    "message_code": MSG_VACANCY_UPDATED,
                     "vacancy": vacancy_data,
                     "task_id": task_id,
                     "batch_id": batch_id,

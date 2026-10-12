@@ -1,12 +1,27 @@
 # Stage 1: Build Frontend Assets
 FROM node:20-alpine AS frontend-builder
-WORKDIR /app/frontend
+WORKDIR /app
 
+ARG APP_URL
+ENV APP_URL=${APP_URL}
+
+RUN apk add --no-cache zip
+
+# Build frontend
+WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm install
-
 COPY frontend/ ./
 RUN npm run build
+
+# Build extension
+WORKDIR /app
+COPY package*.json ./
+COPY packages/ ./packages/
+RUN npm install
+COPY extension/ ./extension/
+RUN npm run extension:build
+RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *
 
 # Stage 2: Python Backend Runtime
 FROM python:3.11-slim

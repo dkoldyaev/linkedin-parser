@@ -13,6 +13,7 @@ from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id
+from .scraper import scrape_job
 from .parsers import registry as parser_registry
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
 from .mercure import (
@@ -203,7 +204,7 @@ class RedisQueueManager:
 
             await pipe.execute()
 
-        total_remaining = await self._calculate_total_remaining()
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
 
         # Notify Mercure about newly enqueued items (user topic and global topic)
         mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
@@ -226,10 +227,10 @@ class RedisQueueManager:
         )
         return batch_id, new_tasks
 
-    async def _calculate_total_remaining(self) -> int:
+    async def _calculate_total_remaining(self, user_id: Optional[int] = None) -> int:
         if not self.redis:
             return 0
-        tasks = await self.get_active_tasks(user_id=None)
+        tasks = await self.get_active_tasks(user_id=user_id)
         return len(tasks)
 
     async def get_status(self, user_id: Optional[int] = None) -> QueueStatusResponse:
@@ -239,7 +240,7 @@ class RedisQueueManager:
                 pending=0, processing=0, total_remaining=0, completed=0, failed=0, recent_tasks=[]
             )
 
-        active_tasks = await self.get_active_tasks(user_id=None)
+        active_tasks = await self.get_active_tasks(user_id=user_id)
         
         p_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "pending")
         p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis") and t.status == "pending")
@@ -308,7 +309,7 @@ class RedisQueueManager:
                 if raw:
                     try:
                         task = JobTask.from_dict(json.loads(raw))
-                        if task.status != "cancelled" and (user_id is None or task.user_id == user_id):
+                        if task.status not in ("completed", "failed", "cancelled") and (user_id is None or task.user_id == user_id):
                             tasks.append(task.to_info())
                     except Exception as e:
                         logger.warning(f"Error decoding task JSON: {e}")
@@ -341,7 +342,7 @@ class RedisQueueManager:
             task.status = "cancelled"
             await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
             
-            total_remaining = await self._calculate_total_remaining()
+            total_remaining = await self._calculate_total_remaining(user_id=user_id)
             mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
             
             from .mercure import publish_mercure_event, EVENT_QUEUE_UPDATED, MSG_QUEUE_UPDATED
@@ -381,12 +382,47 @@ class RedisQueueManager:
                 continue
 
             await self.redis.sadd(SCRAPE_PROCESSING_SET, task_id)
+            task_user_id = None
             try:
+                raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+                if raw:
+                    try:
+                        t = JobTask.from_dict(json.loads(raw))
+                        task_user_id = t.user_id
+                    except Exception:
+                        pass
                 await self._process_scrape_task(task_id)
             except Exception as e:
                 logger.error(f"Scrape worker {worker_id} uncaught error on task {task_id}: {e}", exc_info=True)
             finally:
                 await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
+
+                if task_user_id:
+                    user_rem = await self._calculate_total_remaining(user_id=task_user_id)
+                    if user_rem == 0:
+                        asyncio.create_task(
+                            publish_mercure_event(
+                                event_type=EVENT_QUEUE_IDLE,
+                                data={
+                                    "message_code": MSG_QUEUE_IDLE,
+                                    "total_remaining": 0,
+                                },
+                                topic=f"vacancies:{task_user_id}",
+                            )
+                        )
+
+                total_rem = await self._calculate_total_remaining(user_id=None)
+                if total_rem == 0:
+                    asyncio.create_task(
+                        publish_mercure_event(
+                            event_type=EVENT_QUEUE_IDLE,
+                            data={
+                                "message_code": MSG_QUEUE_IDLE,
+                                "total_remaining": 0,
+                            },
+                            topic="vacancies",
+                        )
+                    )
 
     async def _process_scrape_task(self, task_id: str):
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
@@ -410,7 +446,7 @@ class RedisQueueManager:
             if parser and parser.needs_extension:
                 needs_extension = True
             else:
-                scraped = await parser_registry.parse(task.url)
+                scraped = await scrape_job(task.url)
 
             if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
                 needs_extension = True
@@ -420,8 +456,9 @@ class RedisQueueManager:
                 task.updated_at = time.time()
                 await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 await self.redis.rpush("queue:extension", task_id)
+                await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
                 
-                total_rem = await self._calculate_total_remaining()
+                total_rem = await self._calculate_total_remaining(user_id=task.user_id)
                 mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
                 
                 from .mercure import EVENT_EXTENSION_TASK, MSG_EXTENSION_TASK
@@ -542,7 +579,7 @@ class RedisQueueManager:
                 vacancy_data = VacancyResponse.model_validate(saved_vacancy).model_dump(mode="json")
 
             # 3. Publish Mercure SSE: vacancy card appears on Kanban immediately!
-            total_rem = await self._calculate_total_remaining()
+            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.info(
                 f"[Stage 1 - Scrape] Saved vacancy {saved_vacancy.id}: '{saved_vacancy.title}' "
                 f"({saved_vacancy.company}) for user {task.user_id}. Pushing to Stage 2 (AI queue)..."
@@ -570,16 +607,22 @@ class RedisQueueManager:
                 async with self.redis.pipeline(transaction=True) as pipe:
                     pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                     pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                     await pipe.execute()
                 
-                total_rem = await self._calculate_total_remaining()
+                total_rem = await self._calculate_total_remaining(user_id=task.user_id)
                 if total_rem == 0:
-                    asyncio.create_task(
-                        publish_mercure_event(
-                            event_type=EVENT_QUEUE_IDLE,
-                            data={"message_code": MSG_QUEUE_IDLE, "total_remaining": 0}
+                    topics = ["vacancies"]
+                    if task.user_id:
+                        topics.append(f"vacancies:{task.user_id}")
+                    for top in topics:
+                        asyncio.create_task(
+                            publish_mercure_event(
+                                event_type=EVENT_QUEUE_IDLE,
+                                data={"message_code": MSG_QUEUE_IDLE, "total_remaining": 0},
+                                topic=top,
+                            )
                         )
-                    )
             else:
                 task.stage = "ai_analysis"
                 task.status = "pending"
@@ -588,6 +631,7 @@ class RedisQueueManager:
                 async with self.redis.pipeline(transaction=True) as pipe:
                     pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                     pipe.rpush(AI_QUEUE_KEY, task_id)
+                    pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                     await pipe.execute()
 
         except Exception as e:
@@ -599,9 +643,10 @@ class RedisQueueManager:
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "failed", 1)
+                pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                 await pipe.execute()
 
-            total_rem = await self._calculate_total_remaining()
+            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.error(f"[Stage 1 - Scrape] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
 
             mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
@@ -639,15 +684,38 @@ class RedisQueueManager:
                 continue
 
             await self.redis.sadd(AI_PROCESSING_SET, task_id)
+            task_user_id = None
             try:
+                raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+                if raw:
+                    try:
+                        t = JobTask.from_dict(json.loads(raw))
+                        task_user_id = t.user_id
+                    except Exception:
+                        pass
                 await self._process_ai_task(task_id)
             except Exception as e:
                 logger.error(f"AI worker {worker_id} uncaught error on task {task_id}: {e}", exc_info=True)
             finally:
                 await self.redis.srem(AI_PROCESSING_SET, task_id)
 
-                # Check if all queues and workers are idle
-                total_rem = await self._calculate_total_remaining()
+                # Check if all queues and workers are idle for this user
+                if task_user_id:
+                    user_rem = await self._calculate_total_remaining(user_id=task_user_id)
+                    if user_rem == 0:
+                        asyncio.create_task(
+                            publish_mercure_event(
+                                event_type=EVENT_QUEUE_IDLE,
+                                data={
+                                    "message_code": MSG_QUEUE_IDLE,
+                                    "total_remaining": 0,
+                                },
+                                topic=f"vacancies:{task_user_id}",
+                            )
+                        )
+
+                # Check if all queues and workers are idle globally
+                total_rem = await self._calculate_total_remaining(user_id=None)
                 if total_rem == 0:
                     asyncio.create_task(
                         publish_mercure_event(
@@ -655,7 +723,8 @@ class RedisQueueManager:
                             data={
                                 "message_code": MSG_QUEUE_IDLE,
                                 "total_remaining": 0,
-                            }
+                            },
+                            topic="vacancies",
                         )
                     )
 
@@ -733,9 +802,10 @@ class RedisQueueManager:
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "completed", 1)
+                pipe.srem(AI_PROCESSING_SET, task_id)
                 await pipe.execute()
 
-            total_rem = await self._calculate_total_remaining()
+            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.info(
                 f"[Stage 2 - AI] Task {task.task_id} AI completed for '{vacancy.title}'. "
                 f"Remaining tasks in pipeline: {total_rem}"
@@ -765,9 +835,10 @@ class RedisQueueManager:
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "failed", 1)
+                pipe.srem(AI_PROCESSING_SET, task_id)
                 await pipe.execute()
 
-            total_rem = await self._calculate_total_remaining()
+            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.error(f"[Stage 2 - AI] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
 
             mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
@@ -785,7 +856,7 @@ class RedisQueueManager:
             )
 
 
-    async def process_extension_result(self, task_id: str, html: str) -> dict:
+    async def process_extension_result(self, task_id: str, scraped: dict) -> dict:
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
         if not raw:
             return {"status": "error", "message": "Task not found"}
@@ -796,9 +867,7 @@ class RedisQueueManager:
             
         await self.redis.lrem("queue:extension", 0, task_id)
         
-        # Reprocess with html
         try:
-            scraped = await parser_registry.parse(task.url, html=html)
                 
             with SessionLocal() as db:
                 job_id = scraped.get("job_id") or extract_job_id(task.url)
@@ -847,6 +916,8 @@ class RedisQueueManager:
                     db.commit()
                     db.refresh(existing)
                     vacancy_data = VacancyResponse.model_validate(existing).model_dump(mode="json")
+                    event_type = EVENT_VACANCY_UPDATED
+                    msg_code = MSG_VACANCY_UPDATED
                 else:
                     new_vacancy = Vacancy(
                         user_id=task.user_id,
@@ -882,6 +953,23 @@ class RedisQueueManager:
                     db.refresh(new_vacancy)
                     task.vacancy_id = new_vacancy.id
                     vacancy_data = VacancyResponse.model_validate(new_vacancy).model_dump(mode="json")
+                    event_type = EVENT_VACANCY_CREATED
+                    msg_code = MSG_VACANCY_CREATED
+
+            total_rem = await self._calculate_total_remaining(user_id=task.user_id)
+            mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+            await publish_mercure_event(
+                event_type=event_type,
+                data={
+                    "message_code": msg_code,
+                    "vacancy": vacancy_data,
+                    "task_id": task.task_id,
+                    "batch_id": task.batch_id,
+                    "url": task.url,
+                    "total_remaining": total_rem,
+                },
+                topic=mercure_topic,
+            )
             
             task.stage = "ai_analysis"
             task.status = "pending"

@@ -2,6 +2,11 @@
 __pycache__
 *.pyc
 .env
+.env.*
+!.env.example
+extension/dist
+extension/popup-dist
+extension/*.zip
 data/*.db
 data/*.db-wal
 data/*.db-shm

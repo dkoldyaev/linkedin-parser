@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = process.env.APP_URL;
 
 // --- Queue fetching ---
 async function fetchQueue() {
