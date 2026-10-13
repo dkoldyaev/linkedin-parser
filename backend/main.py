@@ -474,6 +474,7 @@ async def reorder_vacancies(
             ))
             v.status = payload.status
         v.sort_order = float(position)
+        v.lane = max(0, payload.lane)
         changed.append(v)
 
     db.commit()
@@ -529,6 +530,7 @@ async def update_vacancy(
         # Moved to another column: drop manual position so the card lands on top
         if "sort_order" not in update_data:
             v.sort_order = None
+            v.lane = 0
 
     for field, val in update_data.items():
         setattr(v, field, val)
