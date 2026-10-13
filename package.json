@@ -77,6 +77,8 @@
     "check:api:dev-login": "curl -c /tmp/cookies.txt -s -X POST http://localhost:8000/api/auth/dev-login -H 'Content-Type: application/json' -d '{\"email\":\"test@example.com\",\"name\":\"Test User\"}' | python3 -m json.tool && echo '' && curl -b /tmp/cookies.txt -s http://localhost:8000/api/auth/me | python3 -m json.tool && echo '' && curl -b /tmp/cookies.txt -s http://localhost:8000/api/vacancies | python3 -m json.tool && rm -f /tmp/cookies.txt",
     "check:api:isolation": "curl -c /tmp/cookies_b.txt -s -X POST http://localhost:8000/api/auth/dev-login -H 'Content-Type: application/json' -d '{\"email\":\"user_b@example.com\",\"name\":\"User B\"}' | python3 -m json.tool && echo '--- USER B VACANCIES ---' && curl -b /tmp/cookies_b.txt -s http://localhost:8000/api/vacancies | python3 -m json.tool && rm -f /tmp/cookies_b.txt",
     "test:localization": "PYTHONPATH=. ./.venv/bin/python tests/test_localization.py",
+    "mock:generate": "PYTHONPATH=. ./.venv/bin/python -m backend.mock_data",
+    "mock:generate:docker": "docker compose exec app python -m backend.mock_data",
     "test:all": "npm run check:python && npm run test:auth && npm run test:localization && npm run test:mercure && npm run test:workplace && npm run test:salary && npm run test:closed && npm run test:locations && npm run test:history && npm run test:backend && npm run frontend:build",
     "git:status": "git status",
     "git:log": "git log -n 5 --oneline",

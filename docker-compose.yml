@@ -27,6 +27,7 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - JWT_SECRET=${JWT_SECRET:-!ChangeThisAppJWTSecretKeyForUserSessions!}
       - DEV_AUTH=${DEV_AUTH:-false}
+      - CREATE_MOCK_DATA=${CREATE_MOCK_DATA:-false}
       - EXTENSION_ID=${EXTENSION_ID:-}
       - PARSER_API_URL=${PARSER_API_URL:-http://parser-api:4000}
     depends_on:
