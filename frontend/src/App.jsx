@@ -1,22 +1,36 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import LoginModal from './components/LoginModal';
-import NavBar from './components/NavBar';
+import NavDrawer from './components/NavDrawer';
+import PageHeader from './components/PageHeader';
+import { MenuContext } from './components/menuContext';
 import HomePage from './pages/HomePage';
 import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
-function Layout({ user }) {
+function Layout({ user, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const menu = useMemo(
+    () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
+    [open]
+  );
+  // The board ("/") renders its own header with search; other pages use the shared one.
+  const showPageHeader = pathname !== '/';
+
   return (
-    <div className="app-shell">
-      <NavBar user={user} />
-      <div className="app-shell-content">
-        <Outlet />
+    <MenuContext.Provider value={menu}>
+      <div className="app-shell">
+        {showPageHeader && <PageHeader user={user} onLogout={onLogout} />}
+        <div className="app-shell-content">
+          <Outlet />
+        </div>
+        <NavDrawer user={user} />
       </div>
-    </div>
+    </MenuContext.Provider>
   );
 }
 
@@ -79,7 +93,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route element={<Layout user={user} />}>
+      <Route element={<Layout user={user} onLogout={handleLogout} />}>
         <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/howtouse" element={<HowToUsePage />} />

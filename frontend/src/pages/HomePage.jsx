@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Briefcase, Plus, Search, Filter, Settings, 
+  Briefcase, Plus, Search, Filter, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
-  Globe, MapPin, RotateCcw, ChevronDown, Laptop, LogOut, Trash2, ExternalLink, Ban, XCircle, Download
+  Globe, MapPin, RotateCcw, ChevronDown, Laptop, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
 import KanbanBoard from '../components/KanbanBoard';
 import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
-import SettingsModal from '../components/SettingsModal';
+import HeaderControls from '../components/HeaderControls';
 import QueueModal from '../components/QueueModal';
 import ExtensionPromptModal from '../components/ExtensionPromptModal';
 import { useTranslation } from '../i18n/I18nContext';
@@ -44,7 +44,6 @@ export default function HomePage({ user, onLogout }) {
 
   // Modals state
   const [isBatchOpen, setIsBatchOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
 
@@ -510,7 +509,7 @@ export default function HomePage({ user, onLogout }) {
           </div>
         </div>
 
-        <div className="header-actions">
+        <HeaderControls user={user} onLogout={handleLogout}>
           {/* Real-time Queue status indicator */}
           {queueRemaining > 0 && (
             <div className="status-indicators">
@@ -520,6 +519,17 @@ export default function HomePage({ user, onLogout }) {
               </div>
             </div>
           )}
+
+          <button
+            className="btn btn-primary plausible-event-name=Batch+Import+Open"
+            onClick={() => {
+              trackEvent(EVENTS.BATCH_IMPORT_OPEN);
+              setIsBatchOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            <span>{t('nav.batch_import_btn')}</span>
+          </button>
 
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
@@ -551,53 +561,7 @@ export default function HomePage({ user, onLogout }) {
           >
             <RefreshCw size={16} />
           </button>
-          
-          <a
-            href="/extension.zip"
-            download
-            className="btn btn-secondary btn-icon plausible-event-name=Download+Extension"
-            title="Скачать расширение (ZIP)"
-          >
-            <Download size={16} />
-          </a>
-
-          <button
-            className="btn btn-secondary btn-icon plausible-event-name=Settings+Open"
-            onClick={() => {
-              trackEvent(EVENTS.SETTINGS_OPEN);
-              setIsSettingsOpen(true);
-            }}
-            title={t('nav.settings_btn')}
-          >
-            <Settings size={16} />
-          </button>
-
-          <button
-            className="btn btn-primary plausible-event-name=Batch+Import+Open"
-            onClick={() => {
-              trackEvent(EVENTS.BATCH_IMPORT_OPEN);
-              setIsBatchOpen(true);
-            }}
-          >
-            <Plus size={16} />
-            <span>{t('nav.batch_import_btn')}</span>
-          </button>
-
-          {/* User Profile Badge & Logout */}
-          <div className="user-profile-badge">
-            {user.picture ? (
-              <img src={user.picture} alt={user.name} className="user-avatar" />
-            ) : (
-              <div className="user-avatar-placeholder">
-                {(user.name || user.email || 'U')[0].toUpperCase()}
-              </div>
-            )}
-            <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
-            <button className="btn-logout" onClick={handleLogout} title={t('auth.logout')}>
-              <LogOut size={15} />
-            </button>
-          </div>
-        </div>
+        </HeaderControls>
       </header>
 
       {/* Filter bar for Country, City, Workplace & Tags */}
@@ -889,11 +853,6 @@ export default function HomePage({ user, onLogout }) {
         onClose={() => setSelectedVacancy(null)}
         onUpdate={handleVacancyUpdate}
         onDelete={handleVacancyDelete}
-      />
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
       />
 
       <QueueModal
