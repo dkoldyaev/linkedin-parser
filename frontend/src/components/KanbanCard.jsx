@@ -119,12 +119,19 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
           </h3>
 
         </div>
-        {vacancy.is_closed && (
-          <div className="card-closed-badge" title={t('kanban.closed_hint')}>
-            <Ban size={10} />
-            <span>{t('kanban.closed')}</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', top: '8px', right: '-10px', top: '-10px' }}>
+          {(vacancy.status === "Собеседование" || vacancy.status === "Тестовое") && (vacancy.lane != null) && (
+            <span className="card-lane-badge" title={`Этап ${(vacancy.lane || 0) + 1}`}>
+              Этап {(vacancy.lane || 0) + 1}
+            </span>
+          )}
+          {vacancy.is_closed && (
+            <div className="card-closed-badge" title={t('kanban.closed_hint')}>
+              <Ban size={10} />
+              <span>{t('kanban.closed')}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {(vacancy.location || salaryInfo.hasSalary || workplaceInfo) && (

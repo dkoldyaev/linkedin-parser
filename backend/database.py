@@ -99,6 +99,8 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN source VARCHAR(64)"))
                     if "sort_order" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN sort_order REAL"))
+                    if "lane" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -110,6 +112,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS source VARCHAR(64)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

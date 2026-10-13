@@ -379,15 +379,15 @@ export default function HomePage({ user, onLogout }) {
   };
 
   // Handle manual reorder of cards inside a column (also covers moving into a column at a position)
-  const handleReorder = async (status, ids) => {
+  const handleReorder = async (status, ids, lane = 0) => {
     const positions = new Map(ids.map((id, i) => [id, i]));
-    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, sort_order: positions.get(v.id) } : v));
+    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, lane, sort_order: positions.get(v.id) } : v));
 
     try {
       const res = await fetch('/api/vacancies/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, ids })
+        body: JSON.stringify({ status, ids, lane })
       });
       if (!res.ok) throw new Error('Reorder failed');
       const updated = await res.json();
