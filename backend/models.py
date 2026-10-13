@@ -76,6 +76,7 @@ class Vacancy(Base):
     status = Column(String(64), nullable=False, default="Еще не написан")
     tags = Column(JSON, default=list)  # list of string labels
     notes = Column(Text, nullable=True)
+    sort_order = Column(Float, nullable=True)  # manual position within a Kanban column (NULL = not ordered, shown on top)
     
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

@@ -19,6 +19,7 @@ from .schemas import (
     VacancyResponse,
     VacancyCreate,
     VacancyUpdate,
+    VacancyReorderRequest,
     VacancyHistoryItem,
     VacancyHistoryUpdate,
     VacancyHistoryCreate,
@@ -427,6 +428,61 @@ async def create_vacancy(
     return v
 
 
+@app.post("/api/vacancies/reorder")
+async def reorder_vacancies(
+    payload: VacancyReorderRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Set the manual order of cards in a column (and move cards into it if needed)."""
+    if payload.status not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+        )
+
+    vacancies = db.query(Vacancy).filter(
+        Vacancy.id.in_(payload.ids), Vacancy.user_id == current_user.id
+    ).all()
+    by_id = {v.id: v for v in vacancies}
+
+    changed = []
+    for position, vid in enumerate(payload.ids):
+        v = by_id.get(vid)
+        if not v:
+            continue
+        if v.status != payload.status:
+            db.add(VacancyStatusHistory(
+                vacancy_id=v.id,
+                from_status=v.status,
+                to_status=payload.status,
+                comment=None,
+                created_at=datetime.datetime.utcnow(),
+            ))
+            v.status = payload.status
+        v.sort_order = float(position)
+        changed.append(v)
+
+    db.commit()
+    for v in changed:
+        db.refresh(v)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    for v in changed:
+        vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+        asyncio.create_task(
+            publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                },
+                topic=mercure_topic,
+            )
+        )
+    return [VacancyResponse.model_validate(v) for v in changed]
+
+
 @app.patch("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
 async def update_vacancy(
     vacancy_id: int,
@@ -457,6 +513,9 @@ async def update_vacancy(
             created_at=datetime.datetime.utcnow(),
         )
         db.add(history_entry)
+        # Moved to another column: drop manual position so the card lands on top
+        if "sort_order" not in update_data:
+            v.sort_order = None
 
     for field, val in update_data.items():
         setattr(v, field, val)

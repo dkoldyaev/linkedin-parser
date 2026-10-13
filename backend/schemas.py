@@ -91,10 +91,15 @@ class VacancyHistoryCreate(BaseModel):
     from_status: Optional[str] = None
     comment: Optional[str] = None
 
+class VacancyReorderRequest(BaseModel):
+    status: str
+    ids: List[int]
+
 class VacancyResponse(VacancyBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    sort_order: Optional[float] = None
     history: List[VacancyHistoryItem] = Field(default_factory=list)
 
     class Config:

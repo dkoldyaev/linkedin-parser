@@ -626,6 +626,26 @@ body {
   transform: scale(0.98);
 }
 
+/* Drop position marker: zero net layout height so card midpoints don't shift while dragging */
+.drop-indicator {
+  position: relative;
+  height: 0;
+  margin: -6px 0;
+  pointer-events: none;
+}
+
+.drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
+}
+
 /* Closed Vacancy State */
 .kanban-card.is-closed {
   border-color: rgba(244, 63, 94, 0.28);

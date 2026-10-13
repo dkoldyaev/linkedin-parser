@@ -378,6 +378,31 @@ export default function HomePage({ user, onLogout }) {
     }
   };
 
+  // Handle manual reorder of cards inside a column (also covers moving into a column at a position)
+  const handleReorder = async (status, ids) => {
+    const positions = new Map(ids.map((id, i) => [id, i]));
+    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, sort_order: positions.get(v.id) } : v));
+
+    try {
+      const res = await fetch('/api/vacancies/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, ids })
+      });
+      if (!res.ok) throw new Error('Reorder failed');
+      const updated = await res.json();
+      const byId = new Map(updated.map(v => [v.id, v]));
+      setVacancies(prev => prev.map(v => byId.get(v.id) || v));
+      if (selectedVacancy && byId.has(selectedVacancy.id)) {
+        setSelectedVacancy(byId.get(selectedVacancy.id));
+      }
+    } catch (err) {
+      console.error('Failed to reorder vacancies', err);
+      fetchVacancies();
+      showToast(t('nav.update_status_failed'), 'error');
+    }
+  };
+
   const handleStatusChangeMulti = async (vacancyIds, newStatus) => {
     setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus } : v));
     try {
@@ -836,6 +861,7 @@ export default function HomePage({ user, onLogout }) {
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onStatusChangeMulti={handleStatusChangeMulti}
+          onReorder={handleReorder}
         />
       </main>
 

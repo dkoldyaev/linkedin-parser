@@ -14,31 +14,62 @@ const COLUMNS = [
 
 const REJECTED_STATUS = "Отказ";
 
-export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, selectedIds = [], onToggleSelect, onStatusChangeMulti }) {
+// Cards without a manual position stay on top (in the order the API returned them),
+// manually positioned cards follow, ordered by sort_order.
+const sortByManualOrder = (list) => {
+  const unordered = list.filter(v => v.sort_order == null);
+  const ordered = list
+    .filter(v => v.sort_order != null)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  return [...unordered, ...ordered];
+};
+
+export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, selectedIds = [], onToggleSelect, onStatusChangeMulti, onReorder }) {
   const { t } = useTranslation();
   const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [dropIndex, setDropIndex] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
   const [isRejectedCollapsed, setIsRejectedCollapsed] = useState(false);
 
-  const rejectedVacancies = vacancies.filter(v => v.status === REJECTED_STATUS);
+  const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
+
+  // Index at which the dragged card would be inserted, based on cursor Y vs. card midpoints
+  const computeDropIndex = (e) => {
+    const cards = Array.from(e.currentTarget.querySelectorAll('.column-cards > .kanban-card:not(.is-dragging)'));
+    let index = 0;
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      if (e.clientY > rect.top + rect.height / 2) index += 1;
+    }
+    return index;
+  };
 
   const handleDragOver = (e, columnId) => {
     e.preventDefault();
     setDragOverColumn(columnId);
+    if (columnId !== REJECTED_STATUS) {
+      const idx = computeDropIndex(e);
+      setDropIndex(prev => (prev === idx ? prev : idx));
+    }
   };
 
   const handleDragLeave = (e, columnId) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
     if (dragOverColumn === columnId) {
       setDragOverColumn(null);
+      setDropIndex(null);
     }
   };
 
   const handleDrop = (e, columnId) => {
     e.preventDefault();
+    const targetIndex = columnId !== REJECTED_STATUS ? computeDropIndex(e) : null;
     setDragOverColumn(null);
+    setDropIndex(null);
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
       const vid = parseInt(vacancyId, 10);
-      if (selectedIds.includes(vid) && onStatusChangeMulti) {
+      if (selectedIds.includes(vid) && selectedIds.length > 1 && onStatusChangeMulti) {
         selectedIds.forEach(id => {
           trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
             vacancy_id: id,
@@ -47,6 +78,19 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
           });
         });
         onStatusChangeMulti(selectedIds, columnId);
+      } else if (targetIndex !== null && onReorder) {
+        const dragged = vacancies.find(v => v.id === vid);
+        if (!dragged) return;
+        const ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
+          .map(v => v.id)
+          .filter(id => id !== vid);
+        ids.splice(Math.min(targetIndex, ids.length), 0, vid);
+        trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
+          vacancy_id: vid,
+          to_status: columnId,
+          method: dragged.status === columnId ? 'drag_reorder' : 'drag_and_drop'
+        });
+        onReorder(columnId, ids);
       } else {
         trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
           vacancy_id: vid,
@@ -61,10 +105,41 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
   return (
     <div className="kanban-wrapper">
       {/* Funnel Columns */}
-      <div className="kanban-board">
+      <div
+        className="kanban-board"
+        onDragStart={(e) => {
+          const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          setDraggingId(Number.isNaN(id) ? null : id);
+        }}
+        onDragEnd={() => {
+          setDraggingId(null);
+          setDragOverColumn(null);
+          setDropIndex(null);
+        }}
+      >
         {COLUMNS.map(col => {
-          const columnVacancies = vacancies.filter(v => v.status === col.id);
+          const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
           const columnName = t(`kanban.columns.${col.id}`);
+          const showIndicator = dragOverColumn === col.id && dropIndex !== null;
+          const cardsWithIndicator = [];
+          let visibleIndex = 0; // position among cards excluding the one being dragged
+          const pushIndicator = () => cardsWithIndicator.push(<div key="drop-indicator" className="drop-indicator" />);
+          columnVacancies.forEach((vacancy) => {
+            const isDragged = vacancy.id === draggingId;
+            if (showIndicator && !isDragged && dropIndex === visibleIndex) pushIndicator();
+            cardsWithIndicator.push(
+              <KanbanCard
+                key={vacancy.id}
+                vacancy={vacancy}
+                onClick={onCardClick}
+                onStatusChange={onStatusChange}
+                isSelected={selectedIds.includes(vacancy.id)}
+                onToggleSelect={onToggleSelect}
+              />
+            );
+            if (!isDragged) visibleIndex += 1;
+          });
+          if (showIndicator && dropIndex >= visibleIndex) pushIndicator();
 
           return (
             <div
@@ -83,16 +158,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
               </div>
 
               <div className="column-cards">
-                {columnVacancies.map(vacancy => (
-                  <KanbanCard
-                    key={vacancy.id}
-                    vacancy={vacancy}
-                    onClick={onCardClick}
-                    onStatusChange={onStatusChange}
-                    isSelected={selectedIds.includes(vacancy.id)}
-                    onToggleSelect={onToggleSelect}
-                  />
-                ))}
+                {cardsWithIndicator}
 
                 {columnVacancies.length === 0 && (
                   <div className="empty-column">
