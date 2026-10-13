@@ -156,6 +156,19 @@ def backfill_missing_workplace_types():
 backfill_missing_workplace_types()
 
 
+def seed_mock_data_if_enabled():
+    """Generate fake vacancies on startup when CREATE_MOCK_DATA=true (idempotent)."""
+    from .mock_data import is_mock_data_enabled, seed_mock_data
+    if not is_mock_data_enabled():
+        return
+    try:
+        seed_mock_data()
+    except Exception as e:
+        logger.warning(f"Could not create mock data: {e}")
+
+seed_mock_data_if_enabled()
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -1050,6 +1063,7 @@ async def reparse_all_vacancies(
         Vacancy.user_id == current_user.id,
         Vacancy.url != None,
         Vacancy.url != "",
+        Vacancy.status != "Отказ",
     ).all()
 
     if not vacancies:
