@@ -43,8 +43,35 @@ def extract_job_id(url: str) -> Optional[str]:
 
     return None
 
+async def normalize_url_async(url: str, html: Optional[str] = None) -> str:
+    """Normalize a URL to its canonical form via parser-api or local registry."""
+    if not url:
+        return ""
+    if PARSER_API_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {"url": url}
+                if html:
+                    payload["html"] = html
+                async with session.post(f"{PARSER_API_URL}/api/normalize", json=payload, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if data.get("url"):
+                            return data["url"]
+        except Exception as e:
+            logger.debug(f"Parser API normalize unavailable ({e}), falling back to local registry")
+    return registry.normalize_url(url, html=html)
+
+def normalize_url(url: str, html: Optional[str] = None) -> str:
+    """Synchronous normalization using local registry."""
+    if not url:
+        return ""
+    return registry.normalize_url(url, html=html)
+
 async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
     """Parse a job posting using parser-api, with fallback to local parser registry."""
+    # Ensure URL is canonicalized
+    url = normalize_url(url, html=html)
     if PARSER_API_URL:
         try:
             async with aiohttp.ClientSession() as session:
@@ -55,6 +82,8 @@ async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
                     if resp.status == 200:
                         data = await resp.json()
                         if data.get("source"):
+                            if not data.get("url"):
+                                data["url"] = url
                             return data
                         logger.warning("Parser API returned no source (stub?), falling back to local registry")
                     else:

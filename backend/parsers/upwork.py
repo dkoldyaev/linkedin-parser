@@ -34,15 +34,25 @@ class UpworkParser(BaseParser):
     def matches(self, url: str) -> bool:
         return "upwork.com" in url.lower()
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        jid = self._extract_job_id(url)
+        if jid:
+            cipher = jid.lstrip("~")
+            return f"https://www.upwork.com/jobs/~{cipher}/"
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
-        url = url.strip()
+        url = self.normalize_url(url, html)
         job_id = self._extract_job_id(url)
 
         if not html:
             # When called without HTML from the extension, return a skeletal
             # record so the rest of the pipeline knows to wait for the extension.
-            if job_id and job_id.startswith("~"):
-                url = f"https://www.upwork.com/jobs/{job_id}"
             return VacancyData(
                 url=url,
                 source=self.source,

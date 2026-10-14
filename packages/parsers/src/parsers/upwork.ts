@@ -1,6 +1,6 @@
 import { BaseParser } from '../BaseParser';
 import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace, parseSalaryString } from '../helpers';
+import { cleanText, normalizeWorkplace, parseSalaryString, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
 
 export class UpworkParser extends BaseParser {
@@ -15,12 +15,24 @@ export class UpworkParser extends BaseParser {
   }
 
   extractJobId(url: string): string | null {
-    const match = url.match(/~(.*?)(?:\/|\?|$)/);
+    const match = url.match(/~(0[a-f0-9]+|[a-f0-9]+)(?:\/|\?|$)/i);
     return match ? match[1] : null;
   }
 
+  normalizeUrl(url: string, html?: string): string {
+    if (html) {
+      const canonical = extractCanonicalUrl(html);
+      if (canonical) return cleanUrlParams(canonical);
+    }
+    const jid = this.extractJobId(url);
+    if (jid) {
+      return `https://www.upwork.com/jobs/~${jid}/`;
+    }
+    return cleanUrlParams(url);
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
+    url = this.normalizeUrl(url, html);
     const job_id = this.extractJobId(url) || undefined;
     if (!html) return { url, source: this.source, job_id, is_closed: false };
 

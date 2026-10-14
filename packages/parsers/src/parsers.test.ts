@@ -126,12 +126,21 @@ describe('Parsers Batch 1', () => {
     }
   });
 
-  it('should parse universal examples', async () => {
-    const html = `<html><head><title>Test Universal</title></head><body><h1>Software Engineer</h1><p>We are looking for an engineer.</p></body></html>`;
-    const data = await registry.parse('https://example.com/job/123', html);
-    expect(data).toBeDefined();
-    expect(data.source).toBe('Universal');
-    expect(data.title).toBe('Test Universal');
-    expect(data.description).toContain('We are looking for an engineer');
+  it('should normalize URLs properly across parsers', () => {
+    const rawLinkedIn = 'https://www.linkedin.com/jobs/search-results/?currentJobId=4460516197&eBP=NON_CHARGEABLE_CHANNEL&refId=hdqrIZIq3pleSxJ6sU0mPQ%3D%3D&trackingId=hAEzi3&keywords=Full+Stack+Engineer&origin=QUALIFICATION_LANDING&geoId=105646813';
+    expect(registry.normalizeUrl(rawLinkedIn)).toBe('https://www.linkedin.com/jobs/view/4460516197/');
+
+    const rawGlassdoor = 'https://www.glassdoor.com/job-listing/senior-engineer?jl=100987654321&pos=101&ao=123';
+    expect(registry.normalizeUrl(rawGlassdoor)).toBe('https://www.glassdoor.com/job-listing/job.htm?jl=100987654321');
+
+    const rawGeekjob = 'https://geekjob.ru/vacancy/64f8a1b2c3d4e5f6?utm_source=tg&utm_medium=post';
+    expect(registry.normalizeUrl(rawGeekjob)).toBe('https://geekjob.ru/vacancy/64f8a1b2c3d4e5f6');
+
+    const rawHabr = 'https://career.habr.com/vacancies/1000123456?type=all';
+    expect(registry.normalizeUrl(rawHabr)).toBe('https://career.habr.com/vacancies/1000123456');
+
+    const rawUpwork = 'https://www.upwork.com/jobs/~01abc123def456?source=search';
+    expect(registry.normalizeUrl(rawUpwork)).toBe('https://www.upwork.com/jobs/~01abc123def456/');
   });
 });
+

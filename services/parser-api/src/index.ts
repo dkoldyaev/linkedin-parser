@@ -10,6 +10,19 @@ app.get('/health', (req, res) => {
   res.send('OK');
 });
 
+app.post('/api/normalize', (req, res) => {
+  try {
+    const { url, html } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'Missing url' });
+    }
+    const normalized = registry.normalizeUrl(url, html);
+    res.json({ url: normalized });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/parse', async (req, res) => {
   try {
     const { url, html } = req.body;

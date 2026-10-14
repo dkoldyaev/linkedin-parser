@@ -203,8 +203,19 @@ class LinkedInParser(BaseParser):
     def matches(self, url: str) -> bool:
         return "linkedin.com" in url.lower()
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        job_id = self._extract_job_id(url)
+        if job_id:
+            return f"https://www.linkedin.com/jobs/view/{job_id}/"
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
-        url = url.strip()
+        url = self.normalize_url(url, html)
         job_id = self._extract_job_id(url)
 
         if not html:

@@ -3,7 +3,7 @@ import { VacancyData } from '../types';
 import { createDocument } from '../dom';
 import { Readability } from '@mozilla/readability';
 import DOMPurify from 'isomorphic-dompurify';
-import { cleanText } from '../helpers';
+import { cleanText, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 
 export class UniversalParser extends BaseParser {
   name = "universal";
@@ -16,8 +16,16 @@ export class UniversalParser extends BaseParser {
     return true; // Matches any URL
   }
 
+  normalizeUrl(url: string, html?: string): string {
+    if (html) {
+      const canonical = extractCanonicalUrl(html);
+      if (canonical) return cleanUrlParams(canonical);
+    }
+    return cleanUrlParams(url);
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
+    url = this.normalizeUrl(url, html);
     if (!html) return { url, source: this.source };
 
     const doc = createDocument(html);

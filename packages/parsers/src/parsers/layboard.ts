@@ -1,6 +1,6 @@
 import { BaseParser } from '../BaseParser';
 import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace } from '../helpers';
+import { cleanText, normalizeWorkplace, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
 import { normalizeCountry, parseLocation } from '../locationParser';
 
@@ -15,9 +15,30 @@ export class LayboardParser extends BaseParser {
     return url.toLowerCase().includes('layboard.com');
   }
 
+  extractJobId(url: string): string | null {
+    const m = url.match(/vakansiya\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  normalizeUrl(url: string, html?: string): string {
+    if (html) {
+      const canonical = extractCanonicalUrl(html);
+      if (canonical) return cleanUrlParams(canonical);
+    }
+    const jid = this.extractJobId(url);
+    if (jid) {
+      // keep basic path without tracking query params
+      const clean = cleanUrlParams(url);
+      const match = clean.match(/https?:\/\/[^\/]+\/vakansiya\/\d+-[^\/?#]+/);
+      if (match) return match[0];
+    }
+    return cleanUrlParams(url);
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
-    if (!html) return { url, source: this.source };
+    url = this.normalizeUrl(url, html);
+    const job_id = this.extractJobId(url) || undefined;
+    if (!html) return { url, source: this.source, job_id };
 
     const doc = createDocument(html);
     

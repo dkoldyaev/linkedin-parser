@@ -264,3 +264,49 @@ async def fetch_html(url: str, timeout: float = 15.0, headers: Optional[Dict[str
     except Exception as exc:
         logger.warning("Failed to fetch %s: %s", url, exc)
         return None
+
+
+def extract_canonical_url(soup_or_html: Any) -> Optional[str]:
+    """Extract canonical URL from link[rel=canonical] or meta[property='og:url']."""
+    if not soup_or_html:
+        return None
+    if isinstance(soup_or_html, str):
+        soup = BeautifulSoup(soup_or_html, "html.parser")
+    else:
+        soup = soup_or_html
+
+    link = soup.find("link", rel=lambda val: val and "canonical" in val.lower())
+    if link and link.get("href"):
+        href = link.get("href").strip()
+        if href.startswith("http"):
+            return href
+
+    meta = soup.find("meta", property="og:url") or soup.find("meta", attrs={"name": "og:url"})
+    if meta and meta.get("content"):
+        content = meta.get("content").strip()
+        if content.startswith("http"):
+            return content
+
+    return None
+
+
+def clean_url_params(url: str) -> str:
+    """Remove tracking/session query parameters and fragments from URL."""
+    if not url:
+        return ""
+    from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+    try:
+        parsed = urlparse(url.strip())
+        drop_prefixes = ("utm_", "trk", "tracking", "ref", "ebp", "lipi", "origin", "fbclid", "gclid")
+        keep = []
+        for k, v in parse_qsl(parsed.query, keep_blank_values=True):
+            kl = k.lower()
+            if any(kl.startswith(p) for p in drop_prefixes) or kl in ("currentjobid", "position", "pagenum", "sid"):
+                continue
+            keep.append((k, v))
+
+        query = urlencode(keep) if keep else ""
+        return urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, query, ""))
+    except Exception:
+        return url.strip()
+

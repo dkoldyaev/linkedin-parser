@@ -9,5 +9,6 @@ export abstract class BaseParser {
   abstract matches(url: string): boolean;
   abstract parse(url: string, html: string): Promise<VacancyData> | VacancyData;
   extractJobId?(url: string): string | null;
+  normalizeUrl?(url: string, html?: string): string;
 }
 

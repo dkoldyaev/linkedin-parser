@@ -39,8 +39,16 @@ class UniversalParser(BaseParser):
     def matches(self, url: str) -> bool:  # noqa: D401
         return True  # matches everything
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
-        url = url.strip()
+        url = self.normalize_url(url, html)
         # Derive source from the domain — the only parser allowed to do this.
         domain = urlparse(url).netloc.replace("www.", "")
         source = domain or "Unknown"
