@@ -157,6 +157,28 @@ class AsyncBatchImportResponse(BaseModel):
     message: str
     tasks: List[TaskInfo] = Field(default_factory=list)
 
+class ColumnItem(BaseModel):
+    id: str
+    color: str = "#6366f1"
+    has_lanes: bool = False
+    is_base: bool = False
+
+class ColumnCreateRequest(BaseModel):
+    name: str
+    color: Optional[str] = "#6366f1"
+    has_lanes: bool = False
+
+class ColumnUpdateRequest(BaseModel):
+    new_name: Optional[str] = None
+    color: Optional[str] = None
+    has_lanes: Optional[bool] = None
+
+class ColumnDeleteRequest(BaseModel):
+    migrate_to_status: Optional[str] = "Еще не написан"
+
+class ColumnsOrderRequest(BaseModel):
+    columns: List[ColumnItem]
+
 class SettingsResponse(BaseModel):
     llm_provider: str
     mistral_api_key_set: bool
@@ -165,6 +187,7 @@ class SettingsResponse(BaseModel):
     gemini_model: str
     locale: str = "ru"
     salary_display_format: str = "month"
+    columns: List[ColumnItem] = Field(default_factory=list)
 
 class SettingsUpdateRequest(BaseModel):
     llm_provider: Optional[str] = None
@@ -174,6 +197,7 @@ class SettingsUpdateRequest(BaseModel):
     gemini_model: Optional[str] = None
     locale: Optional[str] = None
     salary_display_format: Optional[str] = None
+    columns: Optional[List[ColumnItem]] = None
 
 class ExtensionParseRequest(BaseModel):
     url: str

@@ -104,6 +104,9 @@ export function I18nProvider({ children }) {
     }
 
     if (!found || typeof current !== 'string') {
+      if (path.startsWith('kanban.columns.')) {
+        return path.replace('kanban.columns.', '');
+      }
       return path;
     }
 

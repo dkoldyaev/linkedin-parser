@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import KanbanCard from './KanbanCard';
 import { useTranslation } from '../i18n/I18nContext';
-import { ChevronDown, ChevronUp, Ban } from 'lucide-react';
+import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import { trackEvent, EVENTS } from '../utils/analytics';
-
-const COLUMNS = [
-  { id: "Еще не написан", color: "#6366f1" },
-  { id: "Написал", color: "#0284c7" },
-  { id: "Собеседование", color: "#d97706" },
-  { id: "Тестовое", color: "#9333ea" },
-  { id: "Оффер", color: "#059669" },
-];
+import ColumnCreateModal from './ColumnCreateModal';
+import ColumnEditModal from './ColumnEditModal';
+import ColumnDeleteModal from './ColumnDeleteModal';
 
 const REJECTED_STATUS = "Отказ";
 
-// Columns split vertically into unlimited sections (lanes), Jira-style
-const LANE_COLUMNS = new Set(["Собеседование", "Тестовое"]);
+const DEFAULT_BOARD_COLUMNS = [
+  { id: "Еще не написан", color: "#6366f1", has_lanes: false, is_base: true },
+  { id: "Написал", color: "#0284c7", has_lanes: false, is_base: false },
+  { id: "Собеседование", color: "#d97706", has_lanes: true, is_base: false },
+  { id: "Тестовое", color: "#9333ea", has_lanes: true, is_base: false },
+  { id: "Оффер", color: "#059669", has_lanes: false, is_base: false },
+  { id: "Отказ", color: "#ef4444", has_lanes: false, is_base: true },
+];
 
-// Cards without a manual position stay on top (in the order the API returned them),
-// manually positioned cards follow, ordered by sort_order.
 const sortByManualOrder = (list) => {
   const unordered = list.filter(v => v.sort_order == null);
   const ordered = list
@@ -27,7 +26,17 @@ const sortByManualOrder = (list) => {
   return [...unordered, ...ordered];
 };
 
-export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, selectedIds = [], onToggleSelect, onStatusChangeMulti, onReorder }) {
+export default function KanbanBoard({
+  vacancies,
+  columns = DEFAULT_BOARD_COLUMNS,
+  onColumnsChange,
+  onCardClick,
+  onStatusChange,
+  selectedIds = [],
+  onToggleSelect,
+  onStatusChangeMulti,
+  onReorder
+}) {
   const { t } = useTranslation();
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
@@ -35,9 +44,25 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
   const [draggingId, setDraggingId] = useState(null);
   const [isRejectedCollapsed, setIsRejectedCollapsed] = useState(false);
 
+  // Column management modal states
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingColumn, setEditingColumn] = useState(null);
+  const [deletingColumn, setDeletingColumn] = useState(null);
+  const [activeMenuColId, setActiveMenuColId] = useState(null);
+
+  // Close column menu when clicking outside
+  useEffect(() => {
+    const handleDocumentClick = () => setActiveMenuColId(null);
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, []);
+
+  const boardColumns = Array.isArray(columns) && columns.length > 0 ? columns : DEFAULT_BOARD_COLUMNS;
+  const funnelColumns = boardColumns.filter(c => c.id !== REJECTED_STATUS);
+  const laneColumnIds = new Set(boardColumns.filter(c => c.has_lanes).map(c => c.id));
+
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
 
-  // Index at which the dragged card would be inserted, based on cursor Y vs. card midpoints
   const computeDropIndex = (e) => {
     const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging)'));
     let index = 0;
@@ -51,7 +76,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
   const handleDragOver = (e, columnId) => {
     e.preventDefault();
     setDragOverColumn(columnId);
-    if (columnId !== REJECTED_STATUS && !LANE_COLUMNS.has(columnId)) {
+    if (columnId !== REJECTED_STATUS && !laneColumnIds.has(columnId)) {
       const idx = computeDropIndex(e);
       setDropIndex(prev => (prev === idx ? prev : idx));
     }
@@ -75,8 +100,8 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
 
   const handleDrop = (e, columnId, forcedLane = null) => {
     e.preventDefault();
-    const lane = forcedLane !== null ? forcedLane : (LANE_COLUMNS.has(columnId) ? dragOverLane : 0);
-    const targetIndex = (columnId !== REJECTED_STATUS && !LANE_COLUMNS.has(columnId)) ? computeDropIndex(e) : null;
+    const lane = forcedLane !== null ? forcedLane : (laneColumnIds.has(columnId) ? dragOverLane : 0);
+    const targetIndex = (columnId !== REJECTED_STATUS && !laneColumnIds.has(columnId)) ? computeDropIndex(e) : null;
     setDragOverColumn(null);
     setDropIndex(null);
     setDragOverLane(0);
@@ -97,12 +122,11 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
         if (!dragged) return;
 
         let ids;
-        if (LANE_COLUMNS.has(columnId)) {
-          // If dropping into a lane column, place it in the target lane and preserve column order
+        if (laneColumnIds.has(columnId)) {
           ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
             .filter(id => id !== vid);
-          ids.push(vid); // append to column
+          ids.push(vid);
         } else {
           ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
@@ -131,6 +155,46 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
     }
   };
 
+  const handleCreateColumn = async (newColData) => {
+    const res = await fetch('/api/columns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newColData)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to create column');
+    }
+    const updated = await res.json();
+    if (onColumnsChange) onColumnsChange(updated);
+  };
+
+  const handleSaveColumn = async (colId, updateData) => {
+    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to update column');
+    }
+    const updated = await res.json();
+    if (onColumnsChange) onColumnsChange(updated);
+  };
+
+  const handleDeleteColumn = async (colId, migrateTo) => {
+    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to delete column');
+    }
+    const updated = await res.json();
+    if (onColumnsChange) onColumnsChange(updated);
+  };
+
   return (
     <div className="kanban-wrapper">
       {/* Funnel Columns */}
@@ -147,14 +211,13 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
           setDragOverLane(0);
         }}
       >
-        {COLUMNS.map(col => {
+        {funnelColumns.map(col => {
           const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
           const columnName = t(`kanban.columns.${col.id}`);
-          const isLaneColumn = LANE_COLUMNS.has(col.id);
+          const isLaneColumn = laneColumnIds.has(col.id);
           const isDragging = draggingId !== null;
+          const isBase = col.id === 'Еще не написан' || col.id === 'Отказ';
 
-          // Compute number of active lanes for this column:
-          // laneCount is at least the highest lane index + 1
           const maxLaneInCol = columnVacancies.reduce((m, v) => Math.max(m, (v.lane || 0)), 0);
           const laneCount = Math.max(1, maxLaneInCol + 1);
           const laneOptions = Array.from({ length: laneCount }, (_, i) => i);
@@ -176,11 +239,15 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
                 onStatusChange={onStatusChange}
                 isSelected={selectedIds.includes(vacancy.id)}
                 onToggleSelect={onToggleSelect}
+                columns={boardColumns}
+                laneColumns={laneColumnIds}
               />
             );
             if (!isDragged) visibleIndex += 1;
           });
           if (showIndicator && dropIndex >= visibleIndex) pushIndicator();
+
+          const isMenuOpen = activeMenuColId === col.id;
 
           return (
             <div
@@ -194,9 +261,55 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
               <div className="column-header">
                 <div className="column-title-group">
                   <span className="column-dot" style={{ background: col.color }} />
-                  <span className="column-name">{columnName}</span>
+                  <span className="column-name" title={columnName}>{columnName}</span>
                 </div>
-                <span className="column-badge">{columnVacancies.length}</span>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="column-badge">{columnVacancies.length}</span>
+
+                  <button
+                    type="button"
+                    className="column-actions-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuColId(prev => prev === col.id ? null : col.id);
+                    }}
+                    title={t('kanban.edit_column')}
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                </div>
+
+                {/* Column Action Menu */}
+                {isMenuOpen && (
+                  <div className="column-menu-dropdown" onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="column-menu-item"
+                      onClick={() => {
+                        setActiveMenuColId(null);
+                        setEditingColumn(col);
+                      }}
+                    >
+                      <Edit2 size={13} color="#6366f1" />
+                      <span>{t('kanban.edit_column')}</span>
+                    </button>
+
+                    {!isBase && (
+                      <button
+                        type="button"
+                        className="column-menu-item danger"
+                        onClick={() => {
+                          setActiveMenuColId(null);
+                          setDeletingColumn(col);
+                        }}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t('kanban.delete_column')}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="column-cards">
@@ -227,7 +340,7 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
                       >
                         <span className="lane-dropzone-badge">{isPlus ? '+' : l + 1}</span>
                         <span className="lane-dropzone-text">
-                          {isPlus ? 'Новый этап' : `Этап ${l + 1}`}
+                          {isPlus ? t('kanban.new_stage') : t('kanban.stage_n', { n: l + 1 })}
                         </span>
                       </div>
                     );
@@ -237,6 +350,18 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
             </div>
           );
         })}
+
+        {/* Add column quick button at the end of board */}
+        <div className="kanban-add-column">
+          <button
+            type="button"
+            className="kanban-add-column-btn"
+            onClick={() => setIsCreateOpen(true)}
+          >
+            <Plus size={16} />
+            <span>{t('kanban.add_column')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Bottom Rejection Block */}
@@ -297,6 +422,8 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
                     onStatusChange={onStatusChange}
                     isSelected={selectedIds.includes(vacancy.id)}
                     onToggleSelect={onToggleSelect}
+                    columns={boardColumns}
+                    laneColumns={laneColumnIds}
                   />
                 ))}
               </div>
@@ -304,6 +431,29 @@ export default function KanbanBoard({ vacancies, onCardClick, onStatusChange, se
           </div>
         )}
       </div>
+
+      {/* Column Modals */}
+      <ColumnCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={handleCreateColumn}
+      />
+
+      <ColumnEditModal
+        isOpen={Boolean(editingColumn)}
+        column={editingColumn}
+        onClose={() => setEditingColumn(null)}
+        onSave={handleSaveColumn}
+      />
+
+      <ColumnDeleteModal
+        isOpen={Boolean(deletingColumn)}
+        column={deletingColumn}
+        availableColumns={funnelColumns}
+        vacanciesCount={deletingColumn ? vacancies.filter(v => v.status === deletingColumn.id).length : 0}
+        onClose={() => setDeletingColumn(null)}
+        onConfirm={handleDeleteColumn}
+      />
     </div>
   );
 }

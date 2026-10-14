@@ -12,27 +12,27 @@ import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
-const COLUMNS = [
-  "Еще не написан",
-  "Написал",
-  "Собеседование",
-  "Тестовое",
-  "Оффер",
-  "Отказ"
+const DEFAULT_COLUMNS = [
+  { id: "Еще не написан", color: "#6366f1" },
+  { id: "Написал", color: "#0284c7" },
+  { id: "Собеседование", color: "#d97706" },
+  { id: "Тестовое", color: "#9333ea" },
+  { id: "Оффер", color: "#059669" },
+  { id: "Отказ", color: "#ef4444" }
 ];
 
-const STAGE_COLORS = {
-  "Еще не написан": "#6366f1",
-  "Написал": "#0284c7",
-  "Собеседование": "#d97706",
-  "Тестовое": "#9333ea",
-  "Оффер": "#059669",
-  "Отказ": "#ef4444"
-};
-
-export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete }) {
+export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
+
+  const modalColumns = Array.isArray(columns) && columns.length > 0
+    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#6366f1' } : c)
+    : DEFAULT_COLUMNS;
+
+  const stageColorMap = modalColumns.reduce((acc, col) => {
+    acc[col.id] = col.color;
+    return acc;
+  }, { "Отказ": "#ef4444", "Еще не написан": "#6366f1" });
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
   const [notes, setNotes] = useState(vacancy?.notes || "");
@@ -685,7 +685,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {t('vacancyModal.status_label')}
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
-                {COLUMNS.map(col => {
+                {modalColumns.map(colItem => {
+                  const col = colItem.id;
                   const isSelected = status === col;
                   const isRejectedCol = col === 'Отказ';
                   let borderColor = 'var(--border-subtle)';
@@ -698,9 +699,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       background = 'rgba(239, 68, 68, 0.15)';
                       color = '#fca5a5';
                     } else {
-                      borderColor = 'var(--primary)';
-                      background = 'var(--primary-light)';
-                      color = '#a5b4fc';
+                      borderColor = colItem.color || 'var(--primary)';
+                      background = `${colItem.color || 'var(--primary)'}22`;
+                      color = '#fff';
                     }
                   } else if (isRejectedCol) {
                     color = 'var(--text-muted)';
@@ -1017,7 +1018,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div className="stage-timeline">
                 {vacancy.history.map((item, idx) => {
                   const isCurrent = idx === vacancy.history.length - 1;
-                  const stageColor = STAGE_COLORS[item.to_status] || '#6366f1';
+                  const stageColor = stageColorMap[item.to_status] || '#6366f1';
                   const isEditingThis = editingHistoryId === item.id;
                   const isSavingThis = savingHistoryId === item.id;
                   const isLastItem = idx === vacancy.history.length - 1;

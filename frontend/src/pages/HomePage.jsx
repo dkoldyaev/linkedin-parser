@@ -18,6 +18,7 @@ export default function HomePage({ user, onLogout }) {
   const { t } = useTranslation();
 
   const [vacancies, setVacancies] = useState([]);
+  const [columns, setColumns] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
   const [allCities, setAllCities] = useState([]);
@@ -152,6 +153,19 @@ export default function HomePage({ user, onLogout }) {
     }
   }, [user]);
 
+  const fetchColumns = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/columns');
+      if (res.ok) {
+        const data = await res.json();
+        setColumns(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch columns', err);
+    }
+  }, [user]);
+
   const resetAllFilters = () => {
     trackEvent(EVENTS.FILTERS_RESET);
     setSelectedTag('');
@@ -182,17 +196,19 @@ export default function HomePage({ user, onLogout }) {
   useEffect(() => {
     if (!user) return;
     fetchVacancies();
+    fetchColumns();
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
     fetchSources();
     fetchQueueStatus();
-  }, [user, fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchVacancies, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
     fetchTags,
     fetchVacancies,
+    fetchColumns,
     fetchCountries,
     fetchCities,
     fetchSources,
@@ -534,7 +550,15 @@ export default function HomePage({ user, onLogout }) {
           </div>
         </div>
 
-        <HeaderControls user={user} onLogout={handleLogout}>
+        <HeaderControls
+          user={user}
+          onLogout={handleLogout}
+          vacancies={vacancies}
+          onColumnsUpdated={(newCols) => {
+            setColumns(newCols);
+            fetchVacancies();
+          }}
+        >
           {/* Real-time Queue status indicator */}
           {queueRemaining > 0 && (
             <div className="status-indicators">
@@ -856,6 +880,11 @@ export default function HomePage({ user, onLogout }) {
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <KanbanBoard
           vacancies={vacancies}
+          columns={columns}
+          onColumnsChange={(newCols) => {
+            setColumns(newCols);
+            fetchVacancies();
+          }}
           onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
           onStatusChange={handleStatusChange}
           selectedIds={selectedIds}
@@ -876,6 +905,7 @@ export default function HomePage({ user, onLogout }) {
       <VacancyModal
         vacancy={selectedVacancy}
         isOpen={Boolean(selectedVacancy)}
+        columns={columns}
         onClose={() => setSelectedVacancy(null)}
         onUpdate={handleVacancyUpdate}
         onDelete={handleVacancyDelete}
