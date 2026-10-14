@@ -13,8 +13,18 @@ from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
+import json
 from .database import engine, Base, get_db, ensure_db_schema
-from .models import Vacancy, VacancyStatusHistory, AppSetting, User, UserSetting, VALID_STATUSES
+from .models import (
+    Vacancy,
+    VacancyStatusHistory,
+    AppSetting,
+    User,
+    UserSetting,
+    VALID_STATUSES,
+    DEFAULT_COLUMNS,
+    BASE_STATUSES,
+)
 from .schemas import (
     VacancyResponse,
     VacancyCreate,
@@ -31,6 +41,11 @@ from .schemas import (
     ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
+    ColumnItem,
+    ColumnCreateRequest,
+    ColumnUpdateRequest,
+    ColumnDeleteRequest,
+    ColumnsOrderRequest,
     UserResponse,
     AuthConfigResponse,
     DevLoginRequest,
@@ -154,6 +169,55 @@ def backfill_missing_workplace_types():
         db.close()
 
 backfill_missing_workplace_types()
+
+
+def get_user_columns(db: Session, user_id: int) -> List[dict]:
+    """Retrieve custom columns for user, fallback to DEFAULT_COLUMNS."""
+    setting = db.query(UserSetting).filter(
+        UserSetting.user_id == user_id,
+        UserSetting.key == "kanban_columns"
+    ).first()
+    if setting and setting.value:
+        try:
+            data = json.loads(setting.value)
+            if isinstance(data, list) and len(data) > 0:
+                # Ensure base statuses are properly flagged
+                for col in data:
+                    if col.get("id") in BASE_STATUSES:
+                        col["is_base"] = True
+                return data
+        except Exception as e:
+            logger.warning(f"Failed to parse user kanban_columns for user {user_id}: {e}")
+    # Return deep copy of DEFAULT_COLUMNS
+    return [dict(col) for col in DEFAULT_COLUMNS]
+
+
+def save_user_columns(db: Session, user_id: int, columns: List[dict]):
+    """Persist user columns in user_settings table."""
+    setting = db.query(UserSetting).filter(
+        UserSetting.user_id == user_id,
+        UserSetting.key == "kanban_columns"
+    ).first()
+    if not setting:
+        setting = UserSetting(
+            user_id=user_id,
+            key="kanban_columns",
+            value=json.dumps(columns, ensure_ascii=False)
+        )
+        db.add(setting)
+    else:
+        setting.value = json.dumps(columns, ensure_ascii=False)
+    db.commit()
+
+
+def get_user_valid_statuses(db: Session, user_id: int) -> List[str]:
+    """Get list of valid status IDs for the user."""
+    cols = get_user_columns(db, user_id)
+    statuses = [c["id"] for c in cols]
+    for b in BASE_STATUSES:
+        if b not in statuses:
+            statuses.append(b)
+    return statuses
 
 
 def seed_mock_data_if_enabled():
@@ -345,7 +409,8 @@ def list_vacancies(
 ):
     query = db.query(Vacancy).filter(Vacancy.user_id == current_user.id)
 
-    if status_filter and status_filter in VALID_STATUSES:
+    valid_statuses = get_user_valid_statuses(db, current_user.id)
+    if status_filter and (status_filter in valid_statuses or status_filter in VALID_STATUSES):
         query = query.filter(Vacancy.status == status_filter)
 
     if country and country.strip():
@@ -410,6 +475,12 @@ async def create_vacancy(
 ):
     data = payload.model_dump()
     data["user_id"] = current_user.id
+    valid_statuses = get_user_valid_statuses(db, current_user.id)
+    if data.get("status") and data["status"] not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
     v = Vacancy(**data)
     db.add(v)
     db.flush()
@@ -448,10 +519,11 @@ async def reorder_vacancies(
     db: Session = Depends(get_db),
 ):
     """Set the manual order of cards in a column (and move cards into it if needed)."""
-    if payload.status not in VALID_STATUSES:
+    valid_statuses = get_user_valid_statuses(db, current_user.id)
+    if payload.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
     vacancies = db.query(Vacancy).filter(
@@ -509,10 +581,11 @@ async def update_vacancy(
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
     update_data = payload.model_dump(exclude_unset=True)
-    if "status" in update_data and update_data["status"] not in VALID_STATUSES:
+    valid_statuses = get_user_valid_statuses(db, current_user.id)
+    if "status" in update_data and update_data["status"] not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
     status_comment = update_data.pop("status_comment", None)
@@ -603,10 +676,11 @@ async def add_vacancy_history_entry(
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
-    if payload.to_status not in VALID_STATUSES:
+    valid_statuses = get_user_valid_statuses(db, current_user.id)
+    if payload.to_status not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}"
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
     history_entry = VacancyStatusHistory(
@@ -741,7 +815,7 @@ async def batch_import_vacancies(
                 user_id=current_user.id,
                 job_id=job_id,
                 url=url,
-                title=url,
+                title=url[:255],
                 company="Upwork" if "upwork.com" in url else "Загрузка...",
                 status="Еще не написан",
                 tags=payload.default_tags,
@@ -1154,6 +1228,8 @@ def get_settings(
 ):
     locale = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id)
     salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
+    columns_raw = get_user_columns(db, current_user.id)
+    columns = [ColumnItem(**c) for c in columns_raw]
 
     return SettingsResponse(
         llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
@@ -1163,6 +1239,7 @@ def get_settings(
         gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         locale=locale,
         salary_display_format=salary_display_format,
+        columns=columns,
     )
 
 
@@ -1194,9 +1271,177 @@ def update_settings(
         else:
             setting.value = payload.salary_display_format.strip().lower()
 
+    if payload.columns is not None:
+        cols_data = [c.model_dump() for c in payload.columns]
+        # Validate that BASE_STATUSES are preserved
+        col_ids = [c["id"] for c in cols_data]
+        for b in BASE_STATUSES:
+            if b not in col_ids:
+                raise HTTPException(status_code=400, detail=f"Base column '{b}' cannot be removed")
+        save_user_columns(db, current_user.id, cols_data)
+
     db.commit()
 
     return get_settings(current_user=current_user, db=db)
+
+
+@app.get("/api/columns", response_model=List[ColumnItem])
+def list_columns(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's Kanban columns list."""
+    cols = get_user_columns(db, current_user.id)
+    return [ColumnItem(**c) for c in cols]
+
+
+@app.post("/api/columns", response_model=List[ColumnItem])
+def create_column(
+    payload: ColumnCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Add a new custom column."""
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Column name cannot be empty")
+
+    cols = get_user_columns(db, current_user.id)
+    if any(c["id"].lower() == name.lower() for c in cols):
+        raise HTTPException(status_code=400, detail=f"Column with name '{name}' already exists")
+
+    new_col = {
+        "id": name,
+        "color": payload.color or "#6366f1",
+        "has_lanes": bool(payload.has_lanes),
+        "is_base": False,
+    }
+    # Insert before the last column if the last column is "Отказ", otherwise append
+    if cols and cols[-1].get("id") == "Отказ":
+        cols.insert(len(cols) - 1, new_col)
+    else:
+        cols.append(new_col)
+
+    save_user_columns(db, current_user.id, cols)
+    return [ColumnItem(**c) for c in cols]
+
+
+@app.patch("/api/columns/{column_id}", response_model=List[ColumnItem])
+def update_column(
+    column_id: str,
+    payload: ColumnUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Rename or update properties (color, has_lanes) of a column."""
+    cols = get_user_columns(db, current_user.id)
+    target_idx = next((i for i, c in enumerate(cols) if c["id"] == column_id), None)
+    if target_idx is None:
+        raise HTTPException(status_code=404, detail="Column not found")
+
+    target = cols[target_idx]
+
+    if payload.new_name is not None:
+        new_name = payload.new_name.strip()
+        if not new_name:
+            raise HTTPException(status_code=400, detail="Column name cannot be empty")
+        if column_id in BASE_STATUSES and new_name != column_id:
+            raise HTTPException(status_code=400, detail="Base columns cannot be renamed")
+        if new_name != column_id and any(c["id"].lower() == new_name.lower() for c in cols):
+            raise HTTPException(status_code=400, detail=f"Column with name '{new_name}' already exists")
+
+        if new_name != column_id:
+            # Update all vacancies belonging to current user that have this status
+            db.query(Vacancy).filter(
+                Vacancy.user_id == current_user.id,
+                Vacancy.status == column_id
+            ).update({"status": new_name}, synchronize_session="fetch")
+
+            # Also update status history
+            db.query(VacancyStatusHistory).filter(
+                VacancyStatusHistory.vacancy_id.in_(
+                    db.query(Vacancy.id).filter(Vacancy.user_id == current_user.id)
+                ),
+                VacancyStatusHistory.to_status == column_id
+            ).update({"to_status": new_name}, synchronize_session="fetch")
+
+            db.query(VacancyStatusHistory).filter(
+                VacancyStatusHistory.vacancy_id.in_(
+                    db.query(Vacancy.id).filter(Vacancy.user_id == current_user.id)
+                ),
+                VacancyStatusHistory.from_status == column_id
+            ).update({"from_status": new_name}, synchronize_session="fetch")
+
+            target["id"] = new_name
+
+    if payload.color is not None:
+        target["color"] = payload.color.strip()
+
+    if payload.has_lanes is not None:
+        target["has_lanes"] = bool(payload.has_lanes)
+
+    save_user_columns(db, current_user.id, cols)
+    return [ColumnItem(**c) for c in cols]
+
+
+@app.delete("/api/columns/{column_id}", response_model=List[ColumnItem])
+def delete_column(
+    column_id: str,
+    migrate_to: Optional[str] = Query("Еще не написан", alias="migrate_to"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a column and migrate any existing vacancies in it to migrate_to column."""
+    if column_id in BASE_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Base column '{column_id}' cannot be deleted")
+
+    cols = get_user_columns(db, current_user.id)
+    if not any(c["id"] == column_id for c in cols):
+        raise HTTPException(status_code=404, detail="Column not found")
+
+    target_migrate = migrate_to.strip() if migrate_to else "Еще не написан"
+    # Ensure target_migrate exists in remaining columns or BASE_STATUSES
+    remaining_cols = [c for c in cols if c["id"] != column_id]
+    if not any(c["id"] == target_migrate for c in remaining_cols) and target_migrate not in BASE_STATUSES:
+        target_migrate = "Еще не написан"
+
+    # Migrate vacancies in deleted column
+    vacancies_to_migrate = db.query(Vacancy).filter(
+        Vacancy.user_id == current_user.id,
+        Vacancy.status == column_id
+    ).all()
+
+    for v in vacancies_to_migrate:
+        history_entry = VacancyStatusHistory(
+            vacancy_id=v.id,
+            from_status=v.status,
+            to_status=target_migrate,
+            comment=f"Column '{column_id}' deleted; migrated",
+            created_at=datetime.datetime.utcnow(),
+        )
+        db.add(history_entry)
+        v.status = target_migrate
+        v.sort_order = None
+        v.lane = 0
+
+    save_user_columns(db, current_user.id, remaining_cols)
+    return [ColumnItem(**c) for c in remaining_cols]
+
+
+@app.put("/api/columns/order", response_model=List[ColumnItem])
+def reorder_columns(
+    payload: ColumnsOrderRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reorder columns list."""
+    cols_data = [c.model_dump() for c in payload.columns]
+    col_ids = [c["id"] for c in cols_data]
+    for b in BASE_STATUSES:
+        if b not in col_ids:
+            raise HTTPException(status_code=400, detail=f"Base column '{b}' cannot be missing")
+    save_user_columns(db, current_user.id, cols_data)
+    return [ColumnItem(**c) for c in cols_data]
 
 
 @app.get("/api/extension/tasks", response_model=List[ExtensionTaskResponse])

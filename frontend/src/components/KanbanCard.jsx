@@ -9,7 +9,7 @@ import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 
-const COLUMNS = [
+const DEFAULT_COLUMNS = [
   "Еще не написан",
   "Написал",
   "Собеседование",
@@ -17,10 +17,22 @@ const COLUMNS = [
   "Оффер"
 ];
 
-export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelected, onToggleSelect }) {
+export default function KanbanCard({
+  vacancy,
+  onClick,
+  onStatusChange,
+  isSelected,
+  onToggleSelect,
+  columns = DEFAULT_COLUMNS,
+  laneColumns = new Set(["Собеседование", "Тестовое"])
+}) {
   const { t, formatDate, salaryDisplayFormat } = useTranslation();
   const isRejected = vacancy.status === "Отказ";
-  const currentIndex = COLUMNS.indexOf(vacancy.status);
+  // Filter out Отказ from linear column navigation
+  const linearColumns = (Array.isArray(columns) && columns.length > 0)
+    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== "Отказ")
+    : DEFAULT_COLUMNS;
+  const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
@@ -36,7 +48,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
   const handleMoveLeft = (e) => {
     e.stopPropagation();
     if (currentIndex > 0) {
-      const targetStatus = COLUMNS[currentIndex - 1];
+      const targetStatus = linearColumns[currentIndex - 1];
       trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
         vacancy_id: vacancy.id,
         company: vacancy.company,
@@ -50,8 +62,8 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
 
   const handleMoveRight = (e) => {
     e.stopPropagation();
-    if (currentIndex < COLUMNS.length - 1) {
-      const targetStatus = COLUMNS[currentIndex + 1];
+    if (currentIndex < linearColumns.length - 1) {
+      const targetStatus = linearColumns[currentIndex + 1];
       trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
         vacancy_id: vacancy.id,
         company: vacancy.company,
@@ -119,10 +131,10 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
           </h3>
 
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', top: '8px', right: '-10px', top: '-10px' }}>
-          {(vacancy.status === "Собеседование" || vacancy.status === "Тестовое") && (vacancy.lane != null) && (
-            <span className="card-lane-badge" title={`этап ${(vacancy.lane || 0) + 1}`}>
-              этап {(vacancy.lane || 0) + 1}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', right: '-10px', top: '-10px' }}>
+          {(laneColumns.has(vacancy.status)) && (vacancy.lane != null) && (
+            <span className="card-lane-badge" title={t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}>
+              {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
             </span>
           )}
           {vacancy.is_closed && (
@@ -268,7 +280,7 @@ export default function KanbanCard({ vacancy, onClick, onStatusChange, isSelecte
             <button
               className="quick-move-btn"
               title={t('kanban.move_right')}
-              disabled={currentIndex >= COLUMNS.length - 1}
+              disabled={currentIndex >= linearColumns.length - 1}
               onClick={handleMoveRight}
             >
               <ChevronRight size={14} />

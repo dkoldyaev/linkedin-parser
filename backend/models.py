@@ -3,14 +3,18 @@ from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boo
 from sqlalchemy.orm import relationship
 from .database import Base
 
-VALID_STATUSES = [
-    "Еще не написан",
-    "Написал",
-    "Собеседование",
-    "Тестовое",
-    "Оффер",
-    "Отказ",
+DEFAULT_COLUMNS = [
+    {"id": "Еще не написан", "color": "#6366f1", "has_lanes": False, "is_base": True},
+    {"id": "Написал", "color": "#0284c7", "has_lanes": False, "is_base": False},
+    {"id": "Собеседование", "color": "#d97706", "has_lanes": True, "is_base": False},
+    {"id": "Тестовое", "color": "#9333ea", "has_lanes": True, "is_base": False},
+    {"id": "Оффер", "color": "#059669", "has_lanes": False, "is_base": False},
+    {"id": "Отказ", "color": "#ef4444", "has_lanes": False, "is_base": True},
 ]
+
+BASE_STATUSES = ["Еще не написан", "Отказ"]
+
+VALID_STATUSES = [col["id"] for col in DEFAULT_COLUMNS]
 
 class User(Base):
     __tablename__ = "users"
