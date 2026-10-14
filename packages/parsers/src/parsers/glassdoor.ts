@@ -1,6 +1,6 @@
 import { BaseParser } from '../BaseParser';
 import { VacancyData } from '../types';
-import { cleanText, findJsonLd, normalizeWorkplace } from '../helpers';
+import { cleanText, findJsonLd, normalizeWorkplace, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
 import { normalizeCountry, parseLocation } from '../locationParser';
 
@@ -15,10 +15,28 @@ export class GlassdoorParser extends BaseParser {
     return url.toLowerCase().includes('glassdoor');
   }
 
+  extractJobId(url: string): string | null {
+    const m = url.match(/jobListingId=(\d+)/) || url.match(/jl=(\d+)/) || url.match(/-(\d{8,12})\.htm/);
+    return m ? m[1] : null;
+  }
+
+  normalizeUrl(url: string, html?: string): string {
+    if (html) {
+      const canonical = extractCanonicalUrl(html);
+      if (canonical) return cleanUrlParams(canonical);
+    }
+    const jid = this.extractJobId(url);
+    if (jid) {
+      return `https://www.glassdoor.com/job-listing/job.htm?jl=${jid}`;
+    }
+    return cleanUrlParams(url);
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
+    url = this.normalizeUrl(url, html);
+    const job_id = this.extractJobId(url) || undefined;
     if (!html) {
-      return { url, source: this.source };
+      return { url, source: this.source, job_id };
     }
 
     const doc = createDocument(html);

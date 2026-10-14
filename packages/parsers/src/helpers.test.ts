@@ -7,7 +7,9 @@ import {
   normalizeCurrency,
   normalizePeriod,
   parseSalaryString,
-  normalizeWorkplace
+  normalizeWorkplace,
+  cleanUrlParams,
+  extractCanonicalUrl
 } from './helpers';
 import { createDocument } from './dom';
 
@@ -88,4 +90,11 @@ describe('helpers', () => {
     expect(normalizeWorkplace('Гибридный формат')).toBe('hybrid');
     expect(normalizeWorkplace('В офисе')).toBe('on-site');
   });
+
+  it('cleanUrlParams and extractCanonicalUrl work as expected', () => {
+    expect(cleanUrlParams('https://www.example.com/jobs/123?utm_source=test&ref=abc#section')).toBe('https://www.example.com/jobs/123');
+    const htmlWithCanonical = '<html><head><link rel="canonical" href="https://example.com/canonical/job/456"></head></html>';
+    expect(extractCanonicalUrl(htmlWithCanonical)).toBe('https://example.com/canonical/job/456');
+  });
 });
+

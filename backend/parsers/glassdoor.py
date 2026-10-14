@@ -35,8 +35,19 @@ class GlassdoorParser(BaseParser):
         u = url.lower()
         return "glassdoor.com" in u or "glassdoor." in u
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        jid = self._extract_job_id(url)
+        if jid:
+            return f"https://www.glassdoor.com/job-listing/job.htm?jl={jid}"
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
-        url = url.strip()
+        url = self.normalize_url(url, html)
 
         if not html:
             fetched = await fetch_html(url)

@@ -1,6 +1,6 @@
 import { BaseParser } from '../BaseParser';
 import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace, parseSalaryString } from '../helpers';
+import { cleanText, normalizeWorkplace, parseSalaryString, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
 
 export class RabotaRuParser extends BaseParser {
@@ -14,9 +14,27 @@ export class RabotaRuParser extends BaseParser {
     return url.toLowerCase().includes('rabota.ru');
   }
 
+  extractJobId(url: string): string | null {
+    const m = url.match(/\/vacancy\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  normalizeUrl(url: string, html?: string): string {
+    if (html) {
+      const canonical = extractCanonicalUrl(html);
+      if (canonical) return cleanUrlParams(canonical);
+    }
+    const jid = this.extractJobId(url);
+    if (jid) {
+      return `https://www.rabota.ru/vacancy/${jid}/`;
+    }
+    return cleanUrlParams(url);
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
-    if (!html) return { url, source: this.source };
+    url = this.normalizeUrl(url, html);
+    const job_id = this.extractJobId(url) || undefined;
+    if (!html) return { url, source: this.source, job_id };
 
     const doc = createDocument(html);
     

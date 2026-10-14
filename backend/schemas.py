@@ -111,6 +111,22 @@ class BatchImportRequest(BaseModel):
     urls: List[str]
     default_tags: List[str] = Field(default_factory=list)
 
+class DuplicateVacancyInfo(BaseModel):
+    id: int
+    url: str
+    input_url: str
+    job_id: Optional[str] = None
+    title: Optional[str] = None
+    company: Optional[str] = None
+    status: Optional[str] = None
+
+class CheckDuplicatesRequest(BaseModel):
+    urls: List[str]
+
+class CheckDuplicatesResponse(BaseModel):
+    has_duplicates: bool
+    duplicates: List[DuplicateVacancyInfo]
+
 class ImportItemResult(BaseModel):
     url: str
     job_id: Optional[str] = None

@@ -200,3 +200,29 @@ export function normalizeWorkplace(text: string | null | undefined): string | nu
   if (['on-site', 'onsite', 'on site', 'в офисе', 'очно', 'на месте'].some(k => t.includes(k))) return "on-site";
   return null;
 }
+
+export function extractCanonicalUrl(html: string): string | null {
+  if (!html) return null;
+  const doc = createDocument(html);
+  const linkCanonical = doc.querySelector('link[rel="canonical"]');
+  if (linkCanonical) {
+    const href = linkCanonical.getAttribute('href');
+    if (href && href.trim()) return href.trim();
+  }
+  const ogUrl = doc.querySelector('meta[property="og:url"], meta[name="og:url"]');
+  if (ogUrl) {
+    const content = ogUrl.getAttribute('content');
+    if (content && content.trim()) return content.trim();
+  }
+  return null;
+}
+
+export function cleanUrlParams(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return url.split('?')[0].split('#')[0];
+  }
+}
+

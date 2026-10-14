@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
-from .scraper import extract_job_id
+from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
 from .llm import analyze_vacancy_with_llm, get_setting_or_env
@@ -188,7 +188,7 @@ class RedisQueueManager:
 
         async with self.redis.pipeline(transaction=True) as pipe:
             for i, url in enumerate(urls):
-                clean_url = url.strip()
+                clean_url = normalize_url(url.strip()) if url else ""
                 if not clean_url:
                     continue
 
@@ -511,9 +511,10 @@ class RedisQueueManager:
 
                 initial_tags = list(task.default_tags)
                 if existing:
+                    existing.url = task.url
                     if scraped.get("job_id"):
                         existing.job_id = scraped["job_id"]
-                    existing.title = scraped.get("title") or existing.title
+                    existing.title = (scraped.get("title") or existing.title or "")[:1000]
                     existing.company = scraped.get("company") or existing.company
                     existing.company_url = scraped.get("company_url") or existing.company_url
                     existing.location = scraped.get("location") or existing.location
@@ -555,7 +556,7 @@ class RedisQueueManager:
                         job_id=scraped.get("job_id"),
                         source=scraped.get("source"),
                         url=task.url,
-                        title=scraped.get("title") or "Untitled Vacancy",
+                        title=(scraped.get("title") or "Untitled Vacancy")[:1000],
                         company=scraped.get("company") or "Unknown Company",
                         company_url=scraped.get("company_url"),
                         company_info=scraped.get("company_info"),

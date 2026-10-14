@@ -36,6 +36,9 @@ from .schemas import (
     BatchImportRequest,
     BatchImportResponse,
     AsyncBatchImportResponse,
+    CheckDuplicatesRequest,
+    CheckDuplicatesResponse,
+    DuplicateVacancyInfo,
     QueueStatusResponse,
     TaskInfo,
     ImportItemResult,
@@ -65,7 +68,7 @@ from .auth import (
     COOKIE_NAME,
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
-from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id
+from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
 from .location_parser import parse_location
@@ -776,6 +779,58 @@ async def delete_vacancy(
     return None
 
 
+@app.post("/api/vacancies/check-duplicates", response_model=CheckDuplicatesResponse)
+async def check_duplicates(
+    payload: CheckDuplicatesRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Check if any of the incoming URLs already exist as vacancies for current_user.
+    All URLs are normalized first.
+    """
+    duplicates: List[DuplicateVacancyInfo] = []
+    seen_ids = set()
+
+    for raw_url in payload.urls:
+        u = raw_url.strip()
+        if not u:
+            continue
+        canonical_url = normalize_url(u) or u
+        job_id = extract_job_id(canonical_url) or extract_job_id(u)
+
+        existing = None
+        if job_id:
+            existing = db.query(Vacancy).filter(
+                Vacancy.job_id == job_id,
+                Vacancy.user_id == current_user.id,
+            ).first()
+        if not existing:
+            existing = db.query(Vacancy).filter(
+                (Vacancy.url == canonical_url) | (Vacancy.url == u),
+                Vacancy.user_id == current_user.id,
+            ).first()
+
+        if existing and existing.id not in seen_ids:
+            seen_ids.add(existing.id)
+            duplicates.append(
+                DuplicateVacancyInfo(
+                    id=existing.id,
+                    url=existing.url,
+                    input_url=u,
+                    job_id=existing.job_id,
+                    title=existing.title,
+                    company=existing.company,
+                    status=existing.status,
+                )
+            )
+
+    return CheckDuplicatesResponse(
+        has_duplicates=len(duplicates) > 0,
+        duplicates=duplicates,
+    )
+
+
 @app.post("/api/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse])
 async def batch_import_vacancies(
     payload: BatchImportRequest,
@@ -786,14 +841,16 @@ async def batch_import_vacancies(
     """
     Enqueue a list of LinkedIn URLs to background queue, or optionally process synchronously.
     """
-    # Filter out blank lines and duplicates
+    # Filter out blank lines, normalize URLs, and deduplicate
     unique_urls = []
     seen = set()
     for raw_url in payload.urls:
         u = raw_url.strip()
-        if u and u not in seen:
-            seen.add(u)
-            unique_urls.append(u)
+        if u:
+            canonical_u = normalize_url(u)
+            if canonical_u and canonical_u not in seen:
+                seen.add(canonical_u)
+                unique_urls.append(canonical_u)
 
     vacancy_ids = []
     for url in unique_urls:
@@ -1518,10 +1575,12 @@ async def submit_extension_task_error(
 
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    url = payload.get("url")
+    raw_url = payload.get("url", "")
     html = payload.get("html")
+    url = normalize_url(raw_url, html=html) or raw_url
     if "source" in payload:
         scraped = payload
+        scraped["url"] = url
     else:
         scraped = await scrape_job(url, html=html)
     job_id = scraped.get("job_id") or extract_job_id(url)

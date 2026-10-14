@@ -15,12 +15,20 @@ export class LinkedInParser extends BaseParser {
   }
 
   extractJobId(url: string): string | null {
-    const match = url.match(/view\/(\d+)/) || url.match(/currentJobId=(\d+)/);
+    const match = url.match(/view\/(\d+)/) || url.match(/currentJobId=(\d+)/) || url.match(/jobPosting:(\d+)/);
     return match ? match[1] : null;
   }
 
+  normalizeUrl(url: string, html?: string): string {
+    const jobId = this.extractJobId(url);
+    if (jobId) {
+      return `https://www.linkedin.com/jobs/view/${jobId}/`;
+    }
+    return url.trim();
+  }
+
   async parse(url: string, html?: string): Promise<VacancyData> {
-    url = url.trim();
+    url = this.normalizeUrl(url, html);
     const job_id = this.extractJobId(url) || undefined;
     if (!html) return { url, source: this.source, job_id };
 

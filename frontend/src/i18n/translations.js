@@ -197,6 +197,10 @@ export const translations = {
       submitting_btn: "Добавление...",
       error_empty_urls: "Пожалуйста, введите хотя бы одну ссылку на вакансию.",
       error_server: "Ошибка сервера: {status}",
+      duplicate_warning_title: "Внимание: найдены существующие вакансии",
+      duplicate_warning_desc: "Следующие вакансии уже добавлены в систему. При повторном импорте их данные будут заменены новыми:",
+      duplicate_warning_proceed: "Заменить и продолжить",
+      duplicate_warning_cancel: "Вернуться назад",
     },
     settingsModal: {
       title: "Настройки приложения",
@@ -541,6 +545,10 @@ export const translations = {
       submitting_btn: "Adding...",
       error_empty_urls: "Please enter at least one vacancy URL.",
       error_server: "Server error: {status}",
+      duplicate_warning_title: "Warning: existing vacancies found",
+      duplicate_warning_desc: "The following vacancies are already in the system. Re-importing will replace their existing data:",
+      duplicate_warning_proceed: "Replace and proceed",
+      duplicate_warning_cancel: "Go back",
     },
     settingsModal: {
       title: "Application Settings",

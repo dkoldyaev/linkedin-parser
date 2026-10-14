@@ -73,6 +73,15 @@ class BaseParser(ABC):
                 return None
         return None
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        """Normalize URL to its canonical form."""
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
         """
         Fetch and parse *url* (with optional pre-fetched *html*).
@@ -140,6 +149,22 @@ class _ParserRegistry:
                 return parser
         return None
 
+    def normalize_url(self, url: str, html: Optional[str] = None) -> str:
+        """Ask the matching parser to normalize *url* to canonical form."""
+        self._auto_discover()
+        parser = self.find(url)
+        if parser:
+            try:
+                return parser.normalize_url(url, html=html)
+            except Exception:
+                pass
+        from .helpers import clean_url_params, extract_canonical_url
+        if html:
+            canonical = extract_canonical_url(html)
+            if canonical:
+                return clean_url_params(canonical)
+        return clean_url_params(url)
+
     async def parse(self, url: str, html: Optional[str] = None) -> VacancyData:
         """
         Find the right parser and return the scraped vacancy dict.
@@ -152,7 +177,7 @@ class _ParserRegistry:
         if parser is None:
             domain = urlparse(url).netloc.replace("www.", "")
             logger.error("No parser found for URL: %s", url)
-            return VacancyData(url=url, source=domain)
+            return VacancyData(url=self.normalize_url(url, html), source=domain)
         logger.info("Using parser '%s' for: %s", parser.name, url)
         return await parser.parse(url, html=html)
 
@@ -175,3 +200,4 @@ class _ParserRegistry:
 
 # Singleton used across the application
 registry = _ParserRegistry()
+

@@ -34,6 +34,14 @@ export class Registry {
     return null;
   }
 
+  normalizeUrl(url: string, html?: string): string {
+    const parser = this.find(url);
+    if (parser && parser.normalizeUrl) {
+      return parser.normalizeUrl(url, html);
+    }
+    return url.trim();
+  }
+
   allParsers(): BaseParser[] {
     return this.parsers;
   }
