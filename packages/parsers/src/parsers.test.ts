@@ -126,6 +126,32 @@ describe('Parsers Batch 1', () => {
     }
   });
 
+  it('should parse indeed examples', async () => {
+    const files = fs.readdirSync(examplesDir).filter(f => f.startsWith('indeed') && f.endsWith('.html'));
+    for (const file of files) {
+      const html = fs.readFileSync(path.join(examplesDir, file), 'utf-8');
+      const url = `https://de.indeed.com/viewjob?jk=dummy`;
+      const data = await registry.parse(url, html);
+      expect(data).toBeDefined();
+      expect(data.source).toBe('Indeed');
+      expect(data.title).toBeTruthy();
+      expect(data.company).toBeTruthy();
+      expect(data.city).toBe('Berlin');
+      expect(data.country).toBe('Germany');
+    }
+
+    // Specific check for indeed.com.html with salary
+    const htmlSalary = fs.readFileSync(path.join(examplesDir, 'indeed.com.html'), 'utf-8');
+    const dataSalary = await registry.parse('https://de.indeed.com/viewjob?jk=baeede3fdb6f9f89', htmlSalary);
+    expect(dataSalary.title).toBe('Senior Product Engineer (TS/NodeJS/Vue)');
+    expect(dataSalary.company).toBe('n8n');
+    expect(dataSalary.salary_min).toBe(72800);
+    expect(dataSalary.salary_max).toBe(144400);
+    expect(dataSalary.salary_currency).toBe('EUR');
+    expect(dataSalary.salary_period).toBe('year');
+    expect(dataSalary.url).toBe('https://de.indeed.com/viewjob?jk=baeede3fdb6f9f89');
+  });
+
   it('should normalize URLs properly across parsers', () => {
     const rawLinkedIn = 'https://www.linkedin.com/jobs/search-results/?currentJobId=4460516197&eBP=NON_CHARGEABLE_CHANNEL&refId=hdqrIZIq3pleSxJ6sU0mPQ%3D%3D&trackingId=hAEzi3&keywords=Full+Stack+Engineer&origin=QUALIFICATION_LANDING&geoId=105646813';
     expect(registry.normalizeUrl(rawLinkedIn)).toBe('https://www.linkedin.com/jobs/view/4460516197/');
@@ -141,6 +167,12 @@ describe('Parsers Batch 1', () => {
 
     const rawUpwork = 'https://www.upwork.com/jobs/~01abc123def456?source=search';
     expect(registry.normalizeUrl(rawUpwork)).toBe('https://www.upwork.com/jobs/~01abc123def456/');
+
+    const rawIndeed = 'https://de.indeed.com/viewjob?jk=294318deae1b3655&from=hp.jobsForYou&tk=123&vjs=3';
+    expect(registry.normalizeUrl(rawIndeed)).toBe('https://de.indeed.com/viewjob?jk=294318deae1b3655');
+
+    const rawIndeedSearch = 'https://de.indeed.com/jobs?q=engineer&l=berlin&vjk=baeede3fdb6f9f89';
+    expect(registry.normalizeUrl(rawIndeedSearch)).toBe('https://de.indeed.com/viewjob?jk=baeede3fdb6f9f89');
   });
 });
 

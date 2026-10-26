@@ -39,5 +39,19 @@ class TestUrlNormalization(unittest.TestCase):
             "https://www.fl.ru/projects/987654/"
         )
 
+    def test_indeed_url_normalization(self):
+        self.assertEqual(
+            normalize_url("https://de.indeed.com/viewjob?jk=294318deae1b3655&from=hp.jobsForYou&tk=123&vjs=3"),
+            "https://de.indeed.com/viewjob?jk=294318deae1b3655"
+        )
+        self.assertEqual(
+            normalize_url("https://de.indeed.com/jobs?q=engineer&l=berlin&vjk=baeede3fdb6f9f89"),
+            "https://de.indeed.com/viewjob?jk=baeede3fdb6f9f89"
+        )
+        self.assertEqual(
+            normalize_url("https://www.indeed.com/rc/clk?jk=baeede3fdb6f9f89&atk=xyz"),
+            "https://www.indeed.com/viewjob?jk=baeede3fdb6f9f89"
+        )
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,7 @@ import { FLRuParser } from './parsers/flru';
 import { LinkedInParser } from './parsers/linkedin';
 import { UpworkParser } from './parsers/upwork';
 import { SuperJobParser } from './parsers/superjob';
+import { IndeedParser } from './parsers/indeed';
 import { UniversalParser } from './parsers/universal';
 
 registry.register(new GlassdoorParser());
@@ -27,4 +28,5 @@ registry.register(new FLRuParser());
 registry.register(new LinkedInParser());
 registry.register(new UpworkParser());
 registry.register(new SuperJobParser());
+registry.register(new IndeedParser());
 registry.register(new UniversalParser());

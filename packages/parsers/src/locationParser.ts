@@ -28,7 +28,25 @@ export const COUNTRY_ALIASES: Record<string, string> = {
   "италия": "Italy",
   "турция": "Turkey",
   "оаэ": "UAE",
-  "израиль": "Israel"
+  "израиль": "Israel",
+  "de": "Germany",
+  "fr": "France",
+  "es": "Spain",
+  "it": "Italy",
+  "pl": "Poland",
+  "at": "Austria",
+  "ch": "Switzerland",
+  "nl": "Netherlands",
+  "se": "Sweden",
+  "no": "Norway",
+  "fi": "Finland",
+  "dk": "Denmark",
+  "ie": "Ireland",
+  "ca": "Canada",
+  "au": "Australia",
+  "cz": "Czechia",
+  "pt": "Portugal",
+  "be": "Belgium"
 };
 
 export function normalizeCountry(country: string): string {

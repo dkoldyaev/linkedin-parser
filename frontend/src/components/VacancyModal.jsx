@@ -624,6 +624,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       const hn = new URL(vacancy.url).hostname;
                       if (hn.includes('linkedin.com')) return 'LinkedIn';
                       if (hn.includes('upwork.com')) return 'Upwork';
+                      if (hn.includes('indeed.')) return 'Indeed';
                       if (hn.includes('hh.ru')) return 'HH.ru';
                       return hn.replace(/^www\./, '');
                     } catch(e) { return 'Link'; }

@@ -36,11 +36,12 @@ EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), "../examples")
 SAMPLE_FILES_BY_PARSER = {
     "avito": ("https://www.avito.ru/arzamas/vakansii/inzhener_programmist_8086146184", "avito.ru-3.html", "8086146184"),
     "habr": ("https://career.habr.com/vacancies/1000168669", "career.habr.com-2.html", "1000168669"),
-    "fl_ru": ("https://www.fl.ru/projects/5494957/dorabotka-sajta-na-modx.html", "fl.ru.html", "5494957"),
-    "geekjob": ("https://geekjob.ru/vacancy/6909fa0f3ec18d844005aa32", "geekjob.ru.html", "6909fa0f3ec18d844005aa32"),
+    "fl_ru": ("https://www.fl.ru/projects/5523901/avtor-kartochek-kotoryie-prodayut--senior.html", "fl.ru.html", "5523901"),
+    "geekjob": ("https://geekjob.ru/vacancy/691aef77ce60ad56c3046275", "geekjob.ru.html", "691aef77ce60ad56c3046275"),
     "glassdoor": ("https://www.glassdoor.com/job-listing/senior-backend-engineer-python-gopuff-JV_IC1147401_KO0,23_KE24,30.htm?jl=1009581177659", "glassdoor.com-2.html", "1009581177659"),
+    "indeed": ("https://de.indeed.com/viewjob?jk=294318deae1b3655", "indeed.com-2.html", "294318deae1b3655"),
     "layboard": ("https://layboard.com/vakansiya/2392607/menedzer-pekarni", "layboard.com-2.html", "2392607"),
-    "rabota_ru": ("https://www.rabota.ru/vacancy/51528654/", "rabota.ru.html", "51528654"),
+    "rabota_ru": ("https://www.rabota.ru/vacancy/54211993/", "rabota.ru.html", "54211993"),
     "superjob": ("https://www.superjob.ru/vakansii/redaktor-52236624.html", "superjob.ru.html", "52236624"),
     "upwork": ("https://www.upwork.com/jobs/~022104418223352040840", "upwork.com.html", "~022104418223352040840"),
 }
@@ -64,7 +65,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
         names = {p.name for p in parser_registry.all_parsers}
         expected_parsers = {
             "avito", "fl_ru", "geekjob", "glassdoor", "habr",
-            "layboard", "linkedin", "rabota_ru", "superjob", "upwork", "universal"
+            "indeed", "layboard", "linkedin", "rabota_ru", "superjob", "upwork", "universal"
         }
         missing = expected_parsers - names
         self.assertEqual(len(missing), 0, f"Missing parsers in registry: {missing}")
