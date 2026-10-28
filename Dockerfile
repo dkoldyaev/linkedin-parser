@@ -10,7 +10,7 @@ RUN apk add --no-cache zip
 # Build frontend
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN rm -f package-lock.json && npm install
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
