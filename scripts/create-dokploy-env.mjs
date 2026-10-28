@@ -331,7 +331,12 @@ async function main() {
   composeApp = await dokployRequest(`/compose.one?composeId=${composeId}`);
 
   // 6. Generate and save environment variables
-  const domainHost = `${envName}.${projectName.replace(/[^a-zA-Z0-9]/g, '')}.194-163-164-255.sslip.io`;
+  const DOKPLOY_BASE_DOMAIN = envVars['DOKPLOY_BASE_DOMAIN'] || process.env.DOKPLOY_BASE_DOMAIN || '.linkedinparser.build.dkoldyaev.com';
+  const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
+  const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
+  const domainHost = normalizedBase.includes(projectSlug)
+    ? `${envName}${normalizedBase}`
+    : `${envName}.${projectSlug}${normalizedBase}`;
   const composeEnv = generateComposeEnv({
     domainHost,
     pgAppName: pgService.appName,
