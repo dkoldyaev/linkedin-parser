@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
@@ -67,6 +67,25 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savedTitleSuccess, setSavedTitleSuccess] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [savedDescriptionSuccess, setSavedDescriptionSuccess] = useState(false);
+  const titleTextareaRef = useRef(null);
+
+  const adjustTitleHeight = () => {
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = 'auto';
+      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustTitleHeight();
+    const timer = setTimeout(adjustTitleHeight, 50);
+    return () => clearTimeout(timer);
+  }, [title, isOpen]);
+
+  useEffect(() => {
+    window.addEventListener('resize', adjustTitleHeight);
+    return () => window.removeEventListener('resize', adjustTitleHeight);
+  }, []);
 
   useEffect(() => {
     if (vacancy) {
@@ -539,12 +558,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
         {/* Header */}
-        <div className="modal-header" style={{ display: 'block' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'baseline' }}>
+        <div className="modal-header modal-header-custom" style={{ display: 'block' }}>
+          <div className="modal-header-top">
+            <div className="modal-company-title">
               <span className="card-company">
                 <Building2 size={13} />
-                {vacancy.company}
+                <span>{vacancy.company}</span>
               </span>
               {vacancy.company_url && (
                 <a
@@ -552,41 +571,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   target="_blank"
                   rel="noreferrer"
                   title={t('kanban.company_linkedin')}
-                  style={{ color: '#94a3b8' }}
+                  className="modal-company-link"
                   onClick={() => trackEvent(EVENTS.COMPANY_LINK_CLICK, { vacancy_id: vacancy.id, company: vacancy.company })}
                 >
                   <ExternalLink size={12} />
                 </a>
               )}
-              {vacancy.location && (
-                <span className="card-location" style={{ marginLeft: '6px' }}>
-                  <MapPin size={12} />
-                  {vacancy.location}
-                </span>
-              )}
-              {modalWorkplaceInfo && (
-                <span className={`card-workplace-badge header-badge ${modalWorkplaceInfo.className}`} style={{ marginLeft: '6px' }}>
-                  {modalWorkplaceInfo.key === 'remote' && <Laptop size={11} />}
-                  {modalWorkplaceInfo.key === 'hybrid' && <Layers size={11} />}
-                  {modalWorkplaceInfo.key === 'on-site' && <Building size={11} />}
-                  <span>{modalWorkplaceInfo.label}</span>
-                </span>
-              )}
-              {currentSalaryInfo.hasSalary && (
-                <span className="card-salary-badge" style={{ marginLeft: '8px' }} title={currentSalaryInfo.original || currentSalaryInfo.formatted}>
-                  <Banknote size={13} />
-                  <span>{currentSalaryInfo.formatted}</span>
-                </span>
-              )}
-              {isClosed && (
-                <span className="card-closed-badge header-badge" style={{ marginLeft: '8px' }} title={t('kanban.closed_hint')}>
-                  <Ban size={12} />
-                  <span>{t('vacancyModal.closed_badge')}</span>
-                </span>
-              )}
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+            <div className="modal-header-actions">
               <button 
                 type="button"
                 className="btn btn-secondary header-action-badge header-badge"
@@ -637,19 +630,60 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-            <input
-              type="text"
-              className="input"
+          <div className="modal-header-badges">
+            {vacancy.location && (
+              <span className="card-location">
+                <MapPin size={12} />
+                <span>{vacancy.location}</span>
+              </span>
+            )}
+            {modalWorkplaceInfo && (
+              <span className={`card-workplace-badge header-badge ${modalWorkplaceInfo.className}`}>
+                {modalWorkplaceInfo.key === 'remote' && <Laptop size={11} />}
+                {modalWorkplaceInfo.key === 'hybrid' && <Layers size={11} />}
+                {modalWorkplaceInfo.key === 'on-site' && <Building size={11} />}
+                <span>{modalWorkplaceInfo.label}</span>
+              </span>
+            )}
+            {currentSalaryInfo.hasSalary && (
+              <span className="card-salary-badge" title={currentSalaryInfo.original || currentSalaryInfo.formatted}>
+                <Banknote size={13} />
+                <span>{currentSalaryInfo.formatted}</span>
+              </span>
+            )}
+            {isClosed && (
+              <span className="card-closed-badge header-badge" title={t('kanban.closed_hint')}>
+                <Ban size={12} />
+                <span>{t('vacancyModal.closed_badge')}</span>
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', marginTop: '4px' }}>
+            <textarea
+              ref={titleTextareaRef}
+              rows={1}
+              className="modal-title-input"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                adjustTitleHeight();
+              }}
               onBlur={handleSaveTitle}
-              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
-              style={{ fontSize: '1.25rem', fontWeight: 700, padding: '4px 8px', flex: 1, color: 'var(--text-primary)', border: '1px solid transparent', background: 'transparent' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  e.target.blur();
+                }
+              }}
               title="Нажмите, чтобы редактировать"
             />
-            {savingTitle && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
-            {savedTitleSuccess && <Check size={16} color="#10b981" />}
+            {savingTitle && (
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', marginTop: '6px', flexShrink: 0 }} />
+            )}
+            {savedTitleSuccess && (
+              <Check size={16} color="#10b981" style={{ marginTop: '6px', flexShrink: 0 }} />
+            )}
           </div>
         </div>
 
@@ -680,12 +714,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         {/* Body */}
         <div className="modal-body">
           {/* Status & Workplace Format Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <div className="modal-meta-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="modal-status-group">
+              <span className="modal-status-label">
                 {t('vacancyModal.status_label')}
               </span>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div className="modal-status-buttons">
                 {modalColumns.map(colItem => {
                   const col = colItem.id;
                   const isSelected = status === col;
@@ -722,7 +756,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         borderColor,
                         background,
                         color,
-                        transition: 'all 0.15s ease'
+                        transition: 'all 0.15s ease',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       {t(`kanban.columns.${col}`)}
@@ -730,15 +765,26 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   );
                 })}
               </div>
+              <select
+                className="form-input modal-status-select"
+                value={status}
+                onChange={e => handleStatusChange(e.target.value)}
+              >
+                {modalColumns.map(colItem => (
+                  <option key={colItem.id} value={colItem.id}>
+                    {t(`kanban.columns.${colItem.id}`)}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
                 {t('vacancyModal.workplace_label')}
               </span>
               <select
                 className="form-input"
-                style={{ fontSize: '0.75rem', padding: '5px 10px', cursor: 'pointer', minWidth: '135px' }}
+                style={{ fontSize: '0.75rem', padding: '5px 10px', cursor: 'pointer', minWidth: '135px', maxWidth: '100%' }}
                 value={workplaceType}
                 onChange={e => handleWorkplaceTypeChange(e.target.value)}
               >
@@ -749,7 +795,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={handleToggleClosed}
@@ -788,7 +834,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
           {/* Salary Section */}
           <div className="form-group" style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Banknote size={15} color="#34d399" />
                 <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
@@ -817,34 +863,31 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </button>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.min')}</span>
+            <div className="salary-fields-grid">
+              <div className="salary-field-item">
+                <span className="salary-field-label">{t('vacancyModal.min')}</span>
                 <input
                   type="number"
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
+                  className="form-input salary-field-input"
                   placeholder={t('vacancyModal.min_placeholder')}
                   value={salaryMin}
                   onChange={e => setSalaryMin(e.target.value)}
                 />
               </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.max')}</span>
+              <div className="salary-field-item">
+                <span className="salary-field-label">{t('vacancyModal.max')}</span>
                 <input
                   type="number"
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem', padding: '6px 10px' }}
+                  className="form-input salary-field-input"
                   placeholder={t('vacancyModal.max_placeholder')}
                   value={salaryMax}
                   onChange={e => setSalaryMax(e.target.value)}
                 />
               </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.currency')}</span>
+              <div className="salary-field-item">
+                <span className="salary-field-label">{t('vacancyModal.currency')}</span>
                 <select
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
+                  className="form-input salary-field-input"
                   value={salaryCurrency}
                   onChange={e => setSalaryCurrency(e.target.value)}
                 >
@@ -856,11 +899,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   <option value="CAD">CAD</option>
                 </select>
               </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{t('vacancyModal.period')}</span>
+              <div className="salary-field-item">
+                <span className="salary-field-label">{t('vacancyModal.period')}</span>
                 <select
-                  className="form-input"
-                  style={{ fontSize: '0.8125rem', padding: '6px 8px', cursor: 'pointer' }}
+                  className="form-input salary-field-input"
                   value={salaryPeriod}
                   onChange={e => setSalaryPeriod(e.target.value)}
                 >
