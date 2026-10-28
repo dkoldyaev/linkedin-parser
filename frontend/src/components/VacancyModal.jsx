@@ -783,8 +783,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {t('vacancyModal.workplace_label')}
               </span>
               <select
-                className="form-input"
-                style={{ fontSize: '0.75rem', padding: '5px 10px', cursor: 'pointer', minWidth: '135px', maxWidth: '100%' }}
+                className="form-input modal-workplace-select"
+                style={{ fontSize: '0.75rem', cursor: 'pointer', minWidth: '135px', maxWidth: '100%' }}
                 value={workplaceType}
                 onChange={e => handleWorkplaceTypeChange(e.target.value)}
               >

@@ -62,8 +62,12 @@ if (!DOKPLOY_API_KEY) {
   process.exit(1);
 }
 
+const DOKPLOY_BASE_DOMAIN = process.env.DOKPLOY_BASE_DOMAIN;
+if (!DOKPLOY_BASE_DOMAIN) {
+  console.error('❌ DOKPLOY_BASE_DOMAIN is not set in .env or environment variables.');
+  process.exit(1);
+}
 const projectName = process.env.PROJECT_NAME || 'linkedin-parser';
-const DOKPLOY_BASE_DOMAIN = process.env.DOKPLOY_BASE_DOMAIN || '.linkedinparser.build.dkoldyaev.com';
 const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
 const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
 const DEV_DOMAIN = normalizedBase.includes(projectSlug)

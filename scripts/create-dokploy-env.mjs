@@ -331,7 +331,7 @@ async function main() {
   composeApp = await dokployRequest(`/compose.one?composeId=${composeId}`);
 
   // 6. Generate and save environment variables
-  const DOKPLOY_BASE_DOMAIN = envVars['DOKPLOY_BASE_DOMAIN'] || process.env.DOKPLOY_BASE_DOMAIN || '.linkedinparser.build.dkoldyaev.com';
+  const DOKPLOY_BASE_DOMAIN = requireEnvVar('DOKPLOY_BASE_DOMAIN');
   const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
   const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
   const domainHost = normalizedBase.includes(projectSlug)
