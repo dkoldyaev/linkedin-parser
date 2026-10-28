@@ -107,6 +107,119 @@ body {
   align-items: center;
   gap: 12px;
 }
+@media all and (max-width: 960px) {
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .brand {
+    transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease,
+                margin 0.25s ease,
+                transform 0.2s ease;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .header-actions {
+    transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease,
+                transform 0.2s ease,
+                margin 0.25s ease,
+                gap 0.25s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 450px;
+    flex-shrink: 0;
+  }
+
+  .header-actions .btn-primary {
+    padding: 0 10px;
+  }
+
+  .header-actions .btn-primary span {
+    display: none;
+  }
+
+  .user-profile-badge .user-profile-name {
+    display: none;
+  }
+
+  .app-header:not(.search-focused) .search-clear-btn {
+    display: none !important;
+  }
+
+  .header-center {
+    margin: 0 10px 0 0;
+    min-width: 0;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* When search is focused on mobile: expands across the entire header */
+  .app-header.search-focused .brand,
+  .app-header:has(.search-input:focus) .brand {
+    max-width: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.92);
+  }
+
+  .app-header.search-focused .header-actions,
+  .app-header:has(.search-input:focus) .header-actions {
+    max-width: 0 !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    pointer-events: none !important;
+    transform: scale(0.92);
+  }
+
+  .app-header.search-focused .header-center,
+  .app-header:has(.search-input:focus) .header-center {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    flex: 1 !important;
+  }
+
+  .app-header.search-focused .search-bar,
+  .app-header:has(.search-input:focus) .search-bar {
+    width: 100%;
+  }
+
+  .app-header.search-focused .search-input,
+  .app-header:has(.search-input:focus) .search-input {
+    width: 100%;
+    background: rgba(30, 41, 59, 0.85);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media all and (max-width: 700px) {
+  .app-header {
+    padding: 0 12px;
+  }
+  .app-header .brand {
+    display: none;
+  }
+  .app-header .header-center {
+    margin: 0 10px;
+  }
+  .app-header .header-actions .add-button {
+    padding: 0;
+    width: 38px;
+  }
+  .app-header .header-actions .add-button span {
+    display: none;
+  }
+  .app-header .user-profile-badge .user-profile-name {
+    display: none;
+  }
+}
 
 .brand-icon {
   width: 38px;
@@ -141,6 +254,7 @@ body {
   gap: 12px;
   flex: 1;
   max-width: 580px;
+  min-width: 38px;
   margin: 0 24px;
 }
 
@@ -155,17 +269,29 @@ body {
   background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 0 12px 0 36px;
+  padding: 0 0 0 36px;
   font-size: 0.875rem;
   color: var(--text-primary);
   outline: none;
   transition: all var(--transition-fast);
+}
+.search-input.has-value {
+  padding: 0 32px 0 36px;
 }
 
 .search-input:focus {
   border-color: var(--border-focus);
   background: rgba(255, 255, 255, 0.06);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.search-clear-btn {
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.search-clear-btn:hover {
+  color: var(--text-primary) !important;
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
 .search-icon {
@@ -537,6 +663,9 @@ body {
   overflow: hidden;
   transition: border-color var(--transition-fast), background var(--transition-fast);
 }
+@media all and (max-width: 480px) {
+  .kanban-column {min-width: 93%;}
+}
 
 .kanban-column.drag-over {
   border-color: var(--primary);
@@ -672,16 +801,16 @@ body {
 
 /* Add Column button in Kanban board */
 .kanban-add-column {
-  min-width: 220px;
   max-width: 240px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  writing-mode: vertical-rl;
 }
 
 .kanban-add-column-btn {
   width: 100%;
-  height: 48px;
+  padding: 0 12px;
   border-radius: var(--radius-lg);
   border: 1px dashed var(--border-subtle);
   background: rgba(255, 255, 255, 0.015);

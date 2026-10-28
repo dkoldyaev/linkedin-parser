@@ -24,13 +24,22 @@ export default function HomePage({ user, onLogout }) {
   const [allCities, setAllCities] = useState([]);
   const [allSources, setAllSources] = useState([]);
   const [search, setSearch] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchInputRef = useRef(null);
   const onChangeSearch = (event) => {
     const val = event.target.value;
     setSearch(val);
   };
-  const resetSearch = () => {
+  const resetSearch = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
     setSearch('');
+    if (isSearchFocused) {
+      searchInputRef.current?.focus();
+    }
   };
   const [selectedTag, setSelectedTag] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
@@ -509,7 +518,7 @@ export default function HomePage({ user, onLogout }) {
   return (
     <div className="app-container">
       {/* Header */}
-      <header className="app-header">
+      <header className={`app-header ${isSearchFocused ? 'search-focused' : ''}`}>
         <div className="brand">
           <div className="brand-icon">
             <Briefcase size={20} />
@@ -524,15 +533,28 @@ export default function HomePage({ user, onLogout }) {
           <div className="search-bar">
             <Search className="search-icon" size={16} />
             <input
+              ref={searchInputRef}
               type="text"
-              className="search-input"
+              className={`search-input ${search ? 'has-value' : ''}`}
               placeholder={t('nav.search_placeholder')}
               value={search}
               onChange={onChangeSearch}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.target.blur();
+                }
+              }}
             />
             {search && (
               <button
+                type="button"
                 onClick={resetSearch}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                className="search-clear-btn"
+                aria-label="Clear search"
                 style={{
                   position: 'absolute',
                   right: '10px',
@@ -541,7 +563,11 @@ export default function HomePage({ user, onLogout }) {
                   background: 'none',
                   border: 'none',
                   color: 'var(--text-muted)',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
                 }}
               >
                 <X size={14} />
@@ -570,7 +596,7 @@ export default function HomePage({ user, onLogout }) {
           )}
 
           <button
-            className="btn btn-primary plausible-event-name=Batch+Import+Open"
+            className="btn btn-primary add-button plausible-event-name=Batch+Import+Open"
             onClick={() => {
               trackEvent(EVENTS.BATCH_IMPORT_OPEN);
               setIsBatchOpen(true);
