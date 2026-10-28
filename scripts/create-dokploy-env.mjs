@@ -257,7 +257,25 @@ async function main() {
   const environmentId = env.environmentId;
   const envDetails = await dokployRequest(`/environment.one?environmentId=${environmentId}`);
 
-  // 3. Find or Create PostgreSQL Database
+  // 3. Setup Isolated Environment Overlay Network
+  console.log(`\n🌐 Checking isolated network for environment "${envName}"...`);
+  const envNetName = `${envName}-net`;
+  const allNetworks = (await dokployRequest('/network.all')) || [];
+  let envNet = allNetworks.find((n) => n.name === envNetName);
+
+  if (!envNet) {
+    console.log(`🚀 Creating isolated overlay network "${envNetName}"...`);
+    envNet = await dokployRequest('/network.create', 'POST', {
+      name: envNetName,
+      driver: 'overlay',
+      attachable: true,
+    });
+    console.log(`✅ Network created (ID: ${envNet.networkId})`);
+  } else {
+    console.log(`ℹ️  Network "${envNetName}" already exists (ID: ${envNet.networkId})`);
+  }
+
+  // 4. Find or Create PostgreSQL Database
   console.log('\n🐘 Checking PostgreSQL database service...');
   const existingPgList = envDetails.postgres || [];
   let pgService = existingPgList.find((p) => p.name === 'db') || existingPgList[0];
@@ -273,7 +291,12 @@ async function main() {
       dockerImage: 'postgres:15',
       environmentId: environmentId,
     });
-    console.log(`✅ PostgreSQL created (ID: ${createdPg.postgresId}). Deploying...`);
+    console.log(`✅ PostgreSQL created (ID: ${createdPg.postgresId}). Attaching to ${envNetName}...`);
+    await dokployRequest('/postgres.update', 'POST', {
+      postgresId: createdPg.postgresId,
+      networkIds: [envNet.networkId],
+      detachDokployNetwork: true,
+    });
     await dokployRequest('/postgres.deploy', 'POST', {
       postgresId: createdPg.postgresId,
     });
@@ -281,10 +304,22 @@ async function main() {
     console.log(`✅ PostgreSQL deployed: ${pgService.appName}`);
   } else {
     pgService = await dokployRequest(`/postgres.one?postgresId=${pgService.postgresId}`);
+    if (!pgService.networkIds?.includes(envNet.networkId) || !pgService.detachDokployNetwork) {
+      console.log(`🔄 Updating PostgreSQL to attach to ${envNetName} and detach from dokploy-network...`);
+      await dokployRequest('/postgres.update', 'POST', {
+        postgresId: pgService.postgresId,
+        networkIds: [envNet.networkId],
+        detachDokployNetwork: true,
+      });
+      await dokployRequest('/postgres.deploy', 'POST', {
+        postgresId: pgService.postgresId,
+      });
+      pgService = await dokployRequest(`/postgres.one?postgresId=${pgService.postgresId}`);
+    }
     console.log(`ℹ️  PostgreSQL ready: ${pgService.appName}`);
   }
 
-  // 4. Find or Create Redis Service
+  // 5. Find or Create Redis Service
   console.log('\n🔴 Checking Redis service...');
   const existingRedisList = envDetails.redis || [];
   let redisService = existingRedisList.find((r) => r.name === 'redis') || existingRedisList[0];
@@ -298,7 +333,12 @@ async function main() {
       dockerImage: 'redis:7',
       environmentId: environmentId,
     });
-    console.log(`✅ Redis created (ID: ${createdRedis.redisId}). Deploying...`);
+    console.log(`✅ Redis created (ID: ${createdRedis.redisId}). Attaching to ${envNetName}...`);
+    await dokployRequest('/redis.update', 'POST', {
+      redisId: createdRedis.redisId,
+      networkIds: [envNet.networkId],
+      detachDokployNetwork: true,
+    });
     await dokployRequest('/redis.deploy', 'POST', {
       redisId: createdRedis.redisId,
     });
@@ -306,10 +346,22 @@ async function main() {
     console.log(`✅ Redis deployed: ${redisService.appName}`);
   } else {
     redisService = await dokployRequest(`/redis.one?redisId=${redisService.redisId}`);
+    if (!redisService.networkIds?.includes(envNet.networkId) || !redisService.detachDokployNetwork) {
+      console.log(`🔄 Updating Redis to attach to ${envNetName} and detach from dokploy-network...`);
+      await dokployRequest('/redis.update', 'POST', {
+        redisId: redisService.redisId,
+        networkIds: [envNet.networkId],
+        detachDokployNetwork: true,
+      });
+      await dokployRequest('/redis.deploy', 'POST', {
+        redisId: redisService.redisId,
+      });
+      redisService = await dokployRequest(`/redis.one?redisId=${redisService.redisId}`);
+    }
     console.log(`ℹ️  Redis ready: ${redisService.appName}`);
   }
 
-  // 5. Find or Create Compose Application
+  // 6. Find or Create Compose Application
   console.log('\n📦 Checking Compose application...');
   const existingComposes = envDetails.compose || [];
   let composeApp = existingComposes.find((c) => c.name === customAppName) || existingComposes[0];
@@ -330,10 +382,10 @@ async function main() {
   const composeId = composeApp.composeId;
   composeApp = await dokployRequest(`/compose.one?composeId=${composeId}`);
 
-  // 6. Generate and save environment variables
+  // 7. Generate and save environment variables
   const DOKPLOY_BASE_DOMAIN = requireEnvVar('DOKPLOY_BASE_DOMAIN');
-  const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
-  const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
+  const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith(".") ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
+  const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, "");
   const domainHost = normalizedBase.includes(projectSlug)
     ? `${envName}${normalizedBase}`
     : `${envName}.${projectSlug}${normalizedBase}`;
@@ -346,6 +398,12 @@ async function main() {
     redisAppName: redisService.appName,
     redisPassword: redisService.databasePassword,
   });
+
+  const serviceNetworks = [
+    { serviceName: 'app', networkIds: [envNet.networkId], detachDokployNetwork: false },
+    { serviceName: 'mercure', networkIds: [envNet.networkId], detachDokployNetwork: false },
+    { serviceName: 'browser', networkIds: [envNet.networkId], detachDokployNetwork: false },
+  ];
 
   console.log('\n⚙️  Configuring Compose application settings...');
   await dokployRequest('/compose.update', 'POST', {
@@ -363,6 +421,7 @@ async function main() {
     triggerType: 'push',
     command: '',
     env: composeEnv,
+    serviceNetworks,
   });
 
   await dokployRequest('/compose.saveEnvironment', 'POST', {
@@ -378,6 +437,7 @@ async function main() {
 
   console.log(`✅ Repository dkoldyaev/${projectName} (${gitBranch}), composePath: ./docker-compose.yml`);
   console.log('✅ Environment variables saved (compose + environment level)');
+  console.log(`✅ Connected services (app, mercure, browser) to isolated network "${envNetName}"`);
 
   // 7. Setup Traefik Domains
   console.log('\n🌐 Configuring Traefik domain routes...');
