@@ -373,7 +373,6 @@ async function main() {
 
   console.log(`✅ Repository dkoldyaev/${projectName} (${gitBranch}), composePath: ./docker-compose.yml`);
   console.log('✅ Environment variables saved (compose + environment level)');
-  console.log(`✅ Connected services (app, mercure, browser) to isolated network "${envNetName}"`);
 
   // 7. Setup Traefik Domains
   console.log('\n🌐 Configuring Traefik domain routes...');
