@@ -81,7 +81,7 @@ def test_card_crud_mercure_events():
 
             # 4. Test POST /api/vacancies/batch publishes EVENT_VACANCY_CREATED for new vacancy
             published_events.clear()
-            batch_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}"
+            batch_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}/"
             res = client.post("/api/vacancies/batch", json={
                 "urls": [batch_url],
                 "default_tags": ["batch-mercure-test"]
@@ -95,7 +95,7 @@ def test_card_crud_mercure_events():
 
             # 5. Test POST /api/extension/parse_and_add publishes EVENT_VACANCY_CREATED for new vacancy
             published_events.clear()
-            ext_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}"
+            ext_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}/"
             res = client.post("/api/extension/parse_and_add", json={
                 "url": ext_url,
                 "title": "Extension Card Title",
