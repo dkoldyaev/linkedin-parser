@@ -39,7 +39,7 @@ services:
       retries: 3
 
   mercure:
-    image: dunglas/mercure:latest
+    image: dunglas/mercure:v0.16
     restart: unless-stopped
     environment:
       SERVER_NAME: ':80'
