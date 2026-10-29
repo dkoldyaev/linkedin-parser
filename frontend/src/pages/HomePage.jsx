@@ -227,15 +227,100 @@ export default function HomePage({ user, onLogout }) {
     t
   };
 
-  // Connect to Mercure SSE Hub for real-time updates
+  // Connect to Real-time Updates (WebSocket with Mercure SSE fallback)
   useEffect(() => {
     if (!user) return;
+    let ws = null;
     let eventSource = null;
     let isSubscribed = true;
+    let pingInterval = null;
 
-    const initMercure = async () => {
+    const handleRealtimeData = (data) => {
+      if (!isSubscribed || !data) return;
+      const { type, error_code, vacancy, vacancy_id, title, total_remaining, url } = data;
+      const {
+        fetchTags: currentFetchTags,
+        fetchVacancies: currentFetchVacancies,
+        fetchCountries: currentFetchCountries,
+        fetchCities: currentFetchCities,
+        fetchSources: currentFetchSources,
+        selectedCountry: currentSelectedCountry,
+        selectedClosed: currentSelectedClosed,
+        showToast: currentShowToast,
+        t: currentT
+      } = callbacksRef.current;
+
+      if (total_remaining !== undefined) {
+        setQueueRemaining(total_remaining);
+      }
+
+      if (type === 'vacancy_created' && vacancy) {
+        setVacancies(prev => {
+          if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
+          if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
+          const exists = prev.some(v => v.id === vacancy.id);
+          if (exists) {
+            return prev.map(v => v.id === vacancy.id ? vacancy : v);
+          }
+          return [vacancy, ...prev];
+        });
+        currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
+        currentFetchTags();
+        currentFetchCountries();
+        currentFetchCities(currentSelectedCountry);
+        currentFetchSources();
+      } else if (type === 'vacancy_updated' && vacancy) {
+        setVacancies(prev => {
+          if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
+          if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
+          const exists = prev.some(v => v.id === vacancy.id);
+          if (exists) {
+            return prev.map(v => v.id === vacancy.id ? vacancy : v);
+          }
+          return [vacancy, ...prev];
+        });
+        setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
+        currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
+        currentFetchTags();
+        currentFetchCountries();
+        currentFetchCities(currentSelectedCountry);
+        currentFetchSources();
+      } else if (type === 'vacancy_deleted') {
+        const delId = vacancy_id || (vacancy && vacancy.id);
+        if (delId) {
+          setVacancies(prev => prev.filter(v => v.id !== delId));
+          setSelectedVacancy(prev => (prev && prev.id === delId ? null : prev));
+          setSelectedIds(prev => prev.filter(id => id !== delId));
+          const delTitle = title || (vacancy && vacancy.title);
+          if (delTitle) {
+            currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
+          }
+          currentFetchTags();
+          currentFetchCountries();
+          currentFetchCities(currentSelectedCountry);
+          currentFetchSources();
+        }
+      } else if (type === 'task_failed') {
+        const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
+        currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');
+      } else if (type === 'queue_updated') {
+        if (total_remaining !== undefined) {
+          setQueueRemaining(total_remaining);
+        }
+      } else if (type === 'queue_idle') {
+        setQueueRemaining(0);
+        currentShowToast(currentT('mercure.queue_idle'));
+        currentFetchVacancies();
+        currentFetchTags();
+        currentFetchCountries();
+        currentFetchCities(currentSelectedCountry);
+        currentFetchSources();
+      }
+    };
+
+    const initMercureFallback = async () => {
+      if (!isSubscribed) return;
       try {
-        setMercureStatus('connecting');
         let hubUrl = 'http://localhost:3000/.well-known/mercure';
         let topic = `vacancies:${user.id}`;
 
@@ -247,7 +332,7 @@ export default function HomePage({ user, onLogout }) {
             if (cfg.mercure_topic) topic = cfg.mercure_topic;
           }
         } catch (e) {
-          console.warn('Could not fetch /api/config, fallback to default Mercure hub', e);
+          console.warn('Could not fetch /api/config for Mercure', e);
         }
 
         if (!isSubscribed) return;
@@ -258,116 +343,85 @@ export default function HomePage({ user, onLogout }) {
         eventSource = new EventSource(sseUrl.toString());
 
         eventSource.onopen = () => {
-          if (isSubscribed) {
-            setMercureStatus('connected');
-          }
+          if (isSubscribed) setMercureStatus('connected');
         };
 
         eventSource.onerror = () => {
-          if (isSubscribed) {
-            setMercureStatus('connecting');
-          }
+          if (isSubscribed) setMercureStatus('connecting');
         };
 
         eventSource.onmessage = (event) => {
           if (!isSubscribed) return;
           try {
             const data = JSON.parse(event.data);
-            const { type, error_code, vacancy, vacancy_id, title, total_remaining, url } = data;
-            const {
-              fetchTags: currentFetchTags,
-              fetchVacancies: currentFetchVacancies,
-              fetchCountries: currentFetchCountries,
-              fetchCities: currentFetchCities,
-              fetchSources: currentFetchSources,
-              selectedCountry: currentSelectedCountry,
-              selectedClosed: currentSelectedClosed,
-              showToast: currentShowToast,
-              t: currentT
-            } = callbacksRef.current;
-
-            if (total_remaining !== undefined) {
-              setQueueRemaining(total_remaining);
-            }
-
-            if (type === 'vacancy_created' && vacancy) {
-              setVacancies(prev => {
-                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
-                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
-                const exists = prev.some(v => v.id === vacancy.id);
-                if (exists) {
-                  return prev.map(v => v.id === vacancy.id ? vacancy : v);
-                }
-                return [vacancy, ...prev];
-              });
-              currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
-            } else if (type === 'vacancy_updated' && vacancy) {
-              setVacancies(prev => {
-                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
-                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
-                const exists = prev.some(v => v.id === vacancy.id);
-                if (exists) {
-                  return prev.map(v => v.id === vacancy.id ? vacancy : v);
-                }
-                return [vacancy, ...prev];
-              });
-              setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
-              currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
-            } else if (type === 'vacancy_deleted') {
-              const delId = vacancy_id || (vacancy && vacancy.id);
-              if (delId) {
-                setVacancies(prev => prev.filter(v => v.id !== delId));
-                setSelectedVacancy(prev => (prev && prev.id === delId ? null : prev));
-                setSelectedIds(prev => prev.filter(id => id !== delId));
-                const delTitle = title || (vacancy && vacancy.title);
-                if (delTitle) {
-                  currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
-                }
-                currentFetchTags();
-                currentFetchCountries();
-                currentFetchCities(currentSelectedCountry);
-                currentFetchSources();
-              }
-            } else if (type === 'task_failed') {
-              const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
-              currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');
-            } else if (type === 'queue_updated') {
-              if (total_remaining !== undefined) {
-                setQueueRemaining(total_remaining);
-              }
-            } else if (type === 'queue_idle') {
-              setQueueRemaining(0);
-              currentShowToast(currentT('mercure.queue_idle'));
-              currentFetchVacancies();
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
-            }
+            handleRealtimeData(data);
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
           }
         };
       } catch (err) {
-        console.error('Failed to initialize Mercure EventSource', err);
-        if (isSubscribed) setMercureStatus('connecting');
+        console.warn('Mercure fallback failed to connect', err);
       }
     };
 
-    initMercure();
+    const initWebSocket = () => {
+      setMercureStatus('connecting');
+      try {
+        const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProto}//${window.location.host}/api/ws`;
+
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          if (!isSubscribed) return;
+          setMercureStatus('connected');
+          pingInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 25000);
+        };
+
+        ws.onmessage = (event) => {
+          if (!isSubscribed) return;
+          try {
+            const data = JSON.parse(event.data);
+            handleRealtimeData(data);
+          } catch (err) {
+            console.error('Failed to parse WebSocket message', err);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.debug('WebSocket error, falling back to Mercure SSE', err);
+        };
+
+        ws.onclose = () => {
+          if (pingInterval) clearInterval(pingInterval);
+          if (isSubscribed) {
+            setMercureStatus('connecting');
+            // Attempt fallback to Mercure SSE
+            if (!eventSource) {
+              initMercureFallback();
+            }
+          }
+        };
+      } catch (e) {
+        console.warn('WebSocket init error, fallback to Mercure', e);
+        initMercureFallback();
+      }
+    };
+
+    initWebSocket();
 
     return () => {
       isSubscribed = false;
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) {
+        try { ws.close(); } catch (_) {}
+      }
       if (eventSource) {
-        eventSource.close();
+        try { eventSource.close(); } catch (_) {}
       }
     };
   }, [user]);

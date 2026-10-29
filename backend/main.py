@@ -2,11 +2,13 @@ import os
 import uuid
 import time
 import json
+import secrets
+import hashlib
 import logging
 import datetime
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional, Union
-from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
@@ -21,6 +23,7 @@ from .models import (
     AppSetting,
     User,
     UserSetting,
+    ApiToken,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -52,12 +55,17 @@ from .schemas import (
     UserResponse,
     AuthConfigResponse,
     DevLoginRequest,
+    ApiTokenCreate,
+    ApiTokenResponse,
+    ApiTokenCreatedResponse,
     ExtensionTaskResponse,
     ExtensionParseRequest,
 )
 from .auth import (
     get_current_user,
     get_optional_user,
+    get_user_from_api_token,
+    decode_access_token,
     is_google_configured,
     get_google_auth_url,
     exchange_google_code,
@@ -68,6 +76,7 @@ from .auth import (
     COOKIE_NAME,
     ACCESS_TOKEN_EXPIRE_DAYS,
 )
+from .websocket_manager import ws_manager
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
@@ -368,14 +377,178 @@ def logout(response: Response):
     return {"status": "ok"}
 
 
+@app.get("/api/tokens", response_model=List[ApiTokenResponse])
+def get_tokens(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tokens = (
+        db.query(ApiToken)
+        .filter(ApiToken.user_id == current_user.id)
+        .order_by(ApiToken.created_at.desc())
+        .all()
+    )
+    return tokens
+
+
+@app.post("/api/tokens", response_model=ApiTokenCreatedResponse)
+def create_token(
+    payload: ApiTokenCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    raw_secret = secrets.token_hex(24)
+    token_str = f"mcp_{raw_secret}"
+    token_prefix = f"mcp_{raw_secret[:8]}..."
+    token_hash = hashlib.sha256(token_str.encode("utf-8")).hexdigest()
+
+    expires_at = None
+    if payload.expires_in_days and payload.expires_in_days > 0:
+        expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=payload.expires_in_days)
+
+    token_name = (payload.name or "Default Token").strip()[:128]
+    if not token_name:
+        token_name = "Default Token"
+
+    api_token = ApiToken(
+        user_id=current_user.id,
+        name=token_name,
+        token_hash=token_hash,
+        token_prefix=token_prefix,
+        expires_at=expires_at,
+    )
+    db.add(api_token)
+    db.commit()
+    db.refresh(api_token)
+
+    return ApiTokenCreatedResponse(
+        id=api_token.id,
+        name=api_token.name,
+        token=token_str,
+        token_prefix=token_prefix,
+        created_at=api_token.created_at,
+        expires_at=api_token.expires_at,
+    )
+
+
+@app.delete("/api/tokens/{token_id}")
+def delete_token(
+    token_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    token = (
+        db.query(ApiToken)
+        .filter(ApiToken.id == token_id, ApiToken.user_id == current_user.id)
+        .first()
+    )
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+    db.delete(token)
+    db.commit()
+    return {"status": "ok", "id": token_id}
+
+
 @app.get("/api/config")
 def get_config(current_user: Optional[User] = Depends(get_optional_user)):
-    """Return Mercure public hub URL and topics for frontend SSE connection."""
+    """Return Mercure public hub URL, WebSocket endpoint, and topics for real-time connection."""
     topic = f"vacancies:{current_user.id}" if current_user else "vacancies"
     return {
         "mercure_hub_url": get_mercure_public_url(),
         "mercure_topic": topic,
+        "ws_url": "/api/ws",
     }
+
+
+@app.websocket("/api/ws")
+@app.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None),
+):
+    from .database import SessionLocal
+
+    db = SessionLocal()
+    user = None
+    try:
+        # 1. Check query parameter token (?token=mcp_... or ?token=<jwt>)
+        if token:
+            token_str = token.strip()
+            if token_str.startswith("mcp_") or token_str.startswith("pat_"):
+                user = get_user_from_api_token(token_str, db)
+            else:
+                payload = decode_access_token(token_str)
+                if payload and "sub" in payload:
+                    try:
+                        user = db.query(User).filter(User.id == int(payload["sub"])).first()
+                    except Exception:
+                        pass
+                if not user:
+                    user = get_user_from_api_token(token_str, db)
+
+        # 2. Check HttpOnly cookie
+        if not user and COOKIE_NAME in websocket.cookies:
+            cookie_token = websocket.cookies[COOKIE_NAME]
+            payload = decode_access_token(cookie_token)
+            if payload and "sub" in payload:
+                try:
+                    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+                except Exception:
+                    pass
+
+        # 3. Check Authorization header
+        if not user:
+            auth_header = websocket.headers.get("authorization") or websocket.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                raw_token = auth_header[7:].strip()
+                if raw_token.startswith("mcp_") or raw_token.startswith("pat_"):
+                    user = get_user_from_api_token(raw_token, db)
+                else:
+                    payload = decode_access_token(raw_token)
+                    if payload and "sub" in payload:
+                        try:
+                            user = db.query(User).filter(User.id == int(payload["sub"])).first()
+                        except Exception:
+                            pass
+                    if not user:
+                        user = get_user_from_api_token(raw_token, db)
+
+        # 4. Fallback to dev user in dev mode
+        if not user:
+            dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
+            if dev_enabled:
+                user = get_or_create_dev_user(db)
+    finally:
+        db.close()
+
+    user_id = user.id if user else None
+    await ws_manager.connect(websocket, user_id=user_id)
+
+    # Send initial connection confirmation
+    try:
+        await websocket.send_text(json.dumps({
+            "type": "connected",
+            "user_id": user_id,
+            "topic": f"vacancies:{user_id}" if user_id else "vacancies",
+            "message": "Connected to Job Tracker real-time WebSocket"
+        }, ensure_ascii=False))
+    except Exception:
+        pass
+
+    try:
+        while True:
+            text = await websocket.receive_text()
+            try:
+                msg = json.loads(text)
+                if msg.get("type") == "ping" or msg.get("action") == "ping":
+                    await websocket.send_text(json.dumps({"type": "pong", "timestamp": time.time()}))
+            except Exception:
+                pass
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, user_id=user_id)
+    except Exception as e:
+        logger.warning(f"WebSocket client error: {e}")
+        ws_manager.disconnect(websocket, user_id=user_id)
 
 
 @app.get("/api/queue/status", response_model=QueueStatusResponse)

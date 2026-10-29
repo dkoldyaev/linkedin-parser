@@ -29,6 +29,22 @@ class User(Base):
 
     vacancies = relationship("Vacancy", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan")
+    api_tokens = relationship("ApiToken", back_populates="user", cascade="all, delete-orphan")
+
+
+class ApiToken(Base):
+    __tablename__ = "api_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name = Column(String(128), nullable=False, default="Default Token")
+    token_hash = Column(String(64), unique=True, index=True, nullable=False)
+    token_prefix = Column(String(32), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="api_tokens")
 
 
 class UserSetting(Base):

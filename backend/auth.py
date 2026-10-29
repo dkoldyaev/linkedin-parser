@@ -1,6 +1,8 @@
 import os
 import time
 import logging
+import hashlib
+import secrets
 from urllib.parse import urlencode
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -11,7 +13,7 @@ from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import User, Vacancy
+from .models import User, Vacancy, ApiToken
 
 logger = logging.getLogger("linkedin_tracker.auth")
 
@@ -60,18 +62,52 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
+def get_user_from_api_token(token: str, db: Session) -> Optional[User]:
+    token = token.strip()
+    if not token:
+        return None
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    api_token = db.query(ApiToken).filter(ApiToken.token_hash == token_hash).first()
+    if not api_token:
+        return None
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if api_token.expires_at and api_token.expires_at < now:
+        return None
+
+    api_token.last_used_at = now
+    try:
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to update api_token last_used_at: {e}")
+        db.rollback()
+
+    return api_token.user
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    # 1. Check X-API-Key header first
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        user = get_user_from_api_token(api_key, db)
+        if user:
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired API token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = None
 
-    # Check HttpOnly cookie first
+    # 2. Check HttpOnly cookie
     if COOKIE_NAME in request.cookies:
         token = request.cookies[COOKIE_NAME]
 
-    # Check Authorization: Bearer <token> header fallback
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
+    # 3. Check Authorization: Bearer <token> header fallback
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
 
     if not token:
         raise HTTPException(
@@ -80,8 +116,24 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # 4. Check if token is an API token (starts with mcp_ or pat_)
+    if token.startswith("mcp_") or token.startswith("pat_"):
+        user = get_user_from_api_token(token, db)
+        if user:
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired API token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 5. Check JWT payload
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
+        # Fallback to check if it's an API token without prefix
+        user = get_user_from_api_token(token, db)
+        if user:
+            return user
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -108,19 +160,28 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+    # 1. Check X-API-Key header
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        user = get_user_from_api_token(api_key, db)
+        if user:
+            return user
+
     token = None
     if COOKIE_NAME in request.cookies:
         token = request.cookies[COOKIE_NAME]
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
     if not token:
         return None
 
+    if token.startswith("mcp_") or token.startswith("pat_"):
+        return get_user_from_api_token(token, db)
+
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
-        return None
+        return get_user_from_api_token(token, db)
 
     try:
         user_id_int = int(payload.get("sub"))
