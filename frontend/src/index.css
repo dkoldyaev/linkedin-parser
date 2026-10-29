@@ -1361,6 +1361,7 @@ body {
 .modal-body {
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -2779,5 +2780,190 @@ svg {
 .column-color-picker::-webkit-color-swatch {
   border: none;
   border-radius: 50%;
+}
+
+/* Modal responsive & multiline title styling */
+.modal-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.modal-company-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.modal-company-title .card-company {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 0;
+}
+
+.modal-company-link {
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.modal-company-link:hover {
+  color: var(--text-primary);
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.modal-header-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-bottom: 8px;
+}
+
+.modal-header-badges > span {
+  margin-left: 0 !important;
+}
+
+.modal-title-input {
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  flex: 1;
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  resize: none;
+  overflow: hidden;
+  line-height: 1.35;
+  width: 100%;
+  font-family: inherit;
+  box-sizing: border-box;
+  word-break: break-word;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.modal-title-input:hover {
+  border-color: var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modal-title-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.modal-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-status-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.modal-status-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.modal-status-select {
+  display: none;
+}
+
+/* Salary section grid & fields */
+.salary-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.salary-field-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.salary-field-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.salary-field-input {
+  font-size: 0.8125rem;
+  padding: 6px 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 34px;
+}
+
+@media all and (max-width: 640px) {
+  .salary-fields-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 100%;
+  }
+}
+
+@media all and (max-width: 600px) {
+  .modal-overlay {
+    padding: 8px;
+  }
+  .modal-content {
+    max-height: 95vh;
+  }
+  .modal-header {
+    padding: 12px 14px;
+  }
+  .modal-body {
+    padding: 14px 12px;
+    gap: 14px;
+    overflow-x: hidden;
+  }
+  .modal-footer {
+    padding: 10px 14px;
+  }
+  .modal-title-input {
+    font-size: 1.125rem;
+    padding: 2px 4px;
+  }
+  .modal-status-buttons {
+    display: none !important;
+  }
+  .modal-status-select {
+    display: block !important;
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    min-width: 140px;
+    max-width: 100%;
+  }
 }
 
