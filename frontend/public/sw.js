@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jobs-tracker-v1';
+const CACHE_NAME = 'jobs-tracker-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -39,6 +39,16 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests (mutations handled by frontend offline queue)
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Never intercept or cache Mercure SSE, .well-known / .well_known endpoints, or event streams
+  if (
+    url.pathname.startsWith('/.well-known') ||
+    url.pathname.startsWith('/.well_known') ||
+    url.pathname.includes('mercure') ||
+    request.headers.get('accept')?.includes('text/event-stream')
+  ) {
     return;
   }
 
