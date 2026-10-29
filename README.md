@@ -121,23 +121,28 @@
 
 Приложение предоставляет полноценный **MCP-сервер** для подключения AI-ассистентов (Claude Desktop, Cursor, Antigravity, VS Code, Goose и др.) к вашей Канбан-доске вакансий.
 
+Благодаря поддержке **`npx`**, сервер не требует предварительной установки Python, виртуальных окружений или зависимостей — всё запускается в одну строку.
+
 ### 1. Генерация токена доступа в Web UI
 1. Откройте приложение в браузере и нажмите на иконку шестеренки **«Настройки»** в правом верхнем углу шапки.
 2. Перейдите во вкладку **«MCP / API»**.
 3. Введите название токена (например, *Claude Desktop* или *Cursor*) и нажмите **«Создать токен»**.
 4. Скопируйте сгенерированный токен `mcp_...`.
 
-### 2. Подключение к Claude Desktop
+### 2. Подключение к Claude Desktop (без установки, через npx)
 Добавьте в ваш файл конфигурации Claude Desktop (`claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "job-tracker": {
-      "command": "python3",
-      "args": ["/полный/путь/к/linkedin-parser/mcp_server.py"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:dkoldyaev/linkedin-parser#create_mcp_token_auth"
+      ],
       "env": {
-        "JOB_TRACKER_URL": "http://localhost:8000",
+        "JOB_TRACKER_URL": "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com",
         "JOB_TRACKER_API_KEY": "mcp_ваш_токен"
       }
     }
@@ -152,10 +157,13 @@
 {
   "mcpServers": {
     "job-tracker": {
-      "command": "python3",
-      "args": ["mcp_server.py"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:dkoldyaev/linkedin-parser#create_mcp_token_auth"
+      ],
       "env": {
-        "JOB_TRACKER_URL": "http://localhost:8000",
+        "JOB_TRACKER_URL": "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com",
         "JOB_TRACKER_API_KEY": "mcp_ваш_токен"
       }
     }
@@ -163,11 +171,17 @@
 }
 ```
 
-### 4. Запуск из командной строки
+### 4. Быстрый запуск из CLI
 ```bash
-JOB_TRACKER_URL="http://localhost:8000" JOB_TRACKER_API_KEY="mcp_ваш_токен" python3 mcp_server.py
-# или:
+# Через npx (без клонирования и установки):
+npx -y github:dkoldyaev/linkedin-parser#create_mcp_token_auth \
+  --url "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com" \
+  --api-key "mcp_ваш_токен"
+
+# Или внутри клонированного репозитория:
 npm run mcp -- --api-key="mcp_ваш_токен"
+# или на Python:
+npm run mcp:py -- --api-key="mcp_ваш_токен"
 ```
 
 ### Доступные MCP Инструменты (Tools):

@@ -7,6 +7,10 @@
     "packages/*",
     "services/*"
   ],
+  "bin": {
+    "job-tracker-mcp": "./bin/mcp-server.mjs",
+    "linkedin-parser-mcp": "./bin/mcp-server.mjs"
+  },
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
     "check:python": "./.venv/bin/python -m py_compile backend/models.py backend/database.py backend/schemas.py backend/auth.py backend/scraper.py backend/llm.py backend/queue_manager.py backend/main.py backend/location_parser.py",
@@ -51,7 +55,10 @@
     "test:mercure": "PYTHONPATH=. ./.venv/bin/python tests/test_mercure_card_creation.py",
     "test:ws": "PYTHONPATH=. ./.venv/bin/pytest tests/test_websocket.py",
     "test:mcp": "PYTHONPATH=. ./.venv/bin/pytest tests/test_mcp_and_token_auth.py",
-    "mcp": "PYTHONPATH=. ./.venv/bin/python mcp_server.py",
+    "test:mcp:node": "node tests/test_mcp_node.mjs",
+    "build:mcp": "npx esbuild src/mcp-server.ts --bundle --platform=node --target=node18 --format=esm --banner:js='#!/usr/bin/env node' --outfile=bin/mcp-server.mjs && cp bin/mcp-server.mjs bin/mcp-server.js && chmod +x bin/mcp-server.mjs bin/mcp-server.js",
+    "mcp": "node bin/mcp-server.mjs",
+    "mcp:py": "PYTHONPATH=. ./.venv/bin/python mcp_server.py",
     "backend:dev": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --reload --port 8000",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
@@ -102,5 +109,9 @@
     "dokploy:deploy": "node scripts/create-dokploy-env.mjs",
     "dokploy:destroy": "node scripts/destroy-dokploy-env.mjs",
     "read:dokploy:logs": "node scripts/read-dokploy-logs.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   }
 }

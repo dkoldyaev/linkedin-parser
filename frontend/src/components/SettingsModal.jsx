@@ -232,21 +232,42 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
   const activeTokenStr = createdToken ? createdToken.token : (tokensList.length > 0 ? tokensList[0].token_prefix : '<YOUR_API_TOKEN>');
+  const npxTarget = 'github:dkoldyaev/linkedin-parser#create_mcp_token_auth';
 
-  const configSnippet = configFormat === 'cli'
-    ? `JOB_TRACKER_URL="${currentOrigin}" JOB_TRACKER_API_KEY="${activeTokenStr}" python3 mcp_server.py`
-    : JSON.stringify({
-        mcpServers: {
-          "job-tracker": {
-            command: "python3",
-            args: ["mcp_server.py"],
-            env: {
-              JOB_TRACKER_URL: currentOrigin,
-              JOB_TRACKER_API_KEY: activeTokenStr
-            }
+  let configSnippet = '';
+  if (configFormat === 'cli') {
+    configSnippet = `npx -y ${npxTarget} --url "${currentOrigin}" --api-key "${activeTokenStr}"`;
+  } else if (configFormat === 'local') {
+    configSnippet = JSON.stringify({
+      mcpServers: {
+        "job-tracker": {
+          command: "node",
+          args: ["bin/mcp-server.mjs"],
+          env: {
+            JOB_TRACKER_URL: currentOrigin,
+            JOB_TRACKER_API_KEY: activeTokenStr
           }
         }
-      }, null, 2);
+      }
+    }, null, 2);
+  } else {
+    // Claude Desktop & Cursor / Antigravity via npx (zero local installation required)
+    configSnippet = JSON.stringify({
+      mcpServers: {
+        "job-tracker": {
+          command: "npx",
+          args: [
+            "-y",
+            npxTarget
+          ],
+          env: {
+            JOB_TRACKER_URL: currentOrigin,
+            JOB_TRACKER_API_KEY: activeTokenStr
+          }
+        }
+      }
+    }, null, 2);
+  }
 
   const funnelColumns = columnsList.filter(c => c.id !== 'Отказ');
 
@@ -714,7 +735,22 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                       cursor: 'pointer'
                     }}
                   >
-                    CLI
+                    CLI (npx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfigFormat('local')}
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: '0.725rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: configFormat === 'local' ? 'var(--primary)' : 'var(--bg-secondary)',
+                      color: configFormat === 'local' ? '#fff' : 'var(--text-muted)',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Local
                   </button>
                 </div>
               </div>
