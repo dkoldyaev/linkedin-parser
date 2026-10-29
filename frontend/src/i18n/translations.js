@@ -9,6 +9,20 @@ export const translations = {
       saved: "Сохранено!",
       error: "Ошибка",
     },
+    pwa: {
+      offline: "Оффлайн",
+      offline_desc: "Нет связи с сервером. Изменения сохраняются локально",
+      online: "В сети",
+      syncing: "Синхронизация...",
+      sync_now: "Синхронизировать",
+      sync_pending: "Ожидают синхронизации: {count}",
+      sync_success: "Все оффлайн-изменения успешно синхронизированы!",
+      sync_error: "Ошибка при синхронизации",
+      offline_added: "Добавлено оффлайн. Данные загрузятся при подключении к сети",
+      offline_badge: "Ожидает загрузки",
+      offline_batch_notice: "Вы работаете оффлайн. Вакансии добавлены в локальную очередь и появятся на доске, а парсинг начнется при подключении к интернету.",
+      install_app: "Установить приложение"
+    },
     nav: {
       title: "Job Vacancies",
       subtitle: "AI-саммари & Канбан воронка",
@@ -356,6 +370,20 @@ export const translations = {
       loading: "Loading...",
       saved: "Saved!",
       error: "Error",
+    },
+    pwa: {
+      offline: "Offline",
+      offline_desc: "No server connection. Changes are saved locally",
+      online: "Online",
+      syncing: "Syncing...",
+      sync_now: "Sync Now",
+      sync_pending: "Pending sync: {count}",
+      sync_success: "All offline changes synced successfully!",
+      sync_error: "Sync error",
+      offline_added: "Added offline. Data will load when connection is restored",
+      offline_badge: "Pending download",
+      offline_batch_notice: "You are offline. Vacancies are placed in your offline queue and on the board, and data parsing will start once online.",
+      install_app: "Install App"
     },
     nav: {
       title: "Job Vacancies",

@@ -10,6 +10,7 @@ import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
+import { loadLocalUser, saveLocalUser, clearLocalUser } from './utils/offlineSync';
 
 function Layout({ user, onLogout }) {
   const [open, setOpen] = useState(false);
@@ -46,14 +47,32 @@ export default function App() {
         const userData = await res.json();
         setUser(userData);
         setAnalyticsUser(userData);
+        saveLocalUser(userData);
+      } else if (res.status === 401 || res.status === 403) {
+        clearLocalUser();
+        setUser(null);
+        setAnalyticsUser(null);
+      } else {
+        // Non-auth server issue, try local cache
+        const cached = loadLocalUser();
+        if (cached) {
+          setUser(cached);
+          setAnalyticsUser(cached);
+        } else {
+          setUser(null);
+          setAnalyticsUser(null);
+        }
+      }
+    } catch (err) {
+      console.debug('Auth check offline fallback', err);
+      const cached = loadLocalUser();
+      if (cached) {
+        setUser(cached);
+        setAnalyticsUser(cached);
       } else {
         setUser(null);
         setAnalyticsUser(null);
       }
-    } catch (err) {
-      console.debug('Auth check error', err);
-      setUser(null);
-      setAnalyticsUser(null);
     } finally {
       setAuthLoading(false);
     }
@@ -65,6 +84,7 @@ export default function App() {
 
   const handleLogout = async () => {
     trackEvent(EVENTS.LOGOUT);
+    clearLocalUser();
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
@@ -85,6 +105,7 @@ export default function App() {
   const loginScreen = (
     <LoginModal
       onLoginSuccess={(userData) => {
+        saveLocalUser(userData);
         setAnalyticsUser(userData);
         setUser(userData);
       }}

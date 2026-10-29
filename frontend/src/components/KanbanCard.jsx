@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   MapPin, Sparkles, ChevronLeft, ChevronRight, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  XCircle, RotateCcw, History
+  XCircle, RotateCcw, History, CloudOff
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -171,7 +171,12 @@ export default function KanbanCard({
         </div>
       )}
 
-      {vacancy.ai_summary ? (
+      {vacancy._offline || String(vacancy.id).startsWith('offline_') || vacancy._pending_sync ? (
+        <div className="card-summary card-summary-offline" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#fbbf24', padding: '6px 8px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '6px', border: '1px dashed rgba(245, 158, 11, 0.3)' }} title={t('pwa.offline_added')}>
+          <CloudOff size={13} style={{ flexShrink: 0 }} />
+          <span>{t('pwa.offline_badge')}</span>
+        </div>
+      ) : vacancy.ai_summary ? (
         <div className="card-summary">
           {vacancy.ai_summary}
         </div>

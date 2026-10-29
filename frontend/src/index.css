@@ -1574,6 +1574,47 @@ body {
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
 }
 
+.offline-pill {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #f87171 !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2) !important;
+  animation: none !important;
+}
+
+.syncing-pill {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  color: #818cf8 !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
+  animation: none !important;
+}
+
+.pending-sync-btn {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2) !important;
+  animation: none !important;
+}
+.pending-sync-btn:hover {
+  background: rgba(245, 158, 11, 0.25) !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  transform: scale(1.05);
+}
+
+.synced-pill {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #34d399 !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2) !important;
+  animation: none !important;
+}
+
+.card-summary-offline {
+  border-left: 3px solid #f59e0b !important;
+}
+
 @keyframes bounceSubtle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }

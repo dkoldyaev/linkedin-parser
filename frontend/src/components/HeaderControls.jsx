@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Settings, LogOut, Menu, X } from 'lucide-react';
 import SettingsModal from './SettingsModal';
+import OfflineSyncBadge from './OfflineSyncBadge';
 import { useMenu } from './menuContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -9,7 +10,7 @@ import { trackEvent, EVENTS } from '../utils/analytics';
  * Right side of the app header: page-specific actions (children), download, settings,
  * user badge and the burger button that toggles the navigation drawer.
  */
-export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpdated, children }) {
+export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpdated, onSyncComplete, children }) {
   const { t } = useTranslation();
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
   return (
     <div className="header-actions">
       {children}
+      <OfflineSyncBadge onSyncComplete={onSyncComplete} />
 
       {user && (
         <>

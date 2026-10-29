@@ -13,12 +13,21 @@ import ExtensionPromptModal from '../components/ExtensionPromptModal';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
+import {
+  loadLocalVacancies,
+  saveLocalVacancies,
+  loadLocalColumns,
+  saveLocalColumns,
+  createOfflineVacancy,
+  addToSyncQueue,
+  syncPendingQueue
+} from '../utils/offlineSync';
 
 export default function HomePage({ user, onLogout }) {
   const { t } = useTranslation();
 
-  const [vacancies, setVacancies] = useState([]);
-  const [columns, setColumns] = useState([]);
+  const [vacancies, setVacancies] = useState(() => loadLocalVacancies());
+  const [columns, setColumns] = useState(() => loadLocalColumns());
   const [allTags, setAllTags] = useState([]);
   const [allCountries, setAllCountries] = useState([]);
   const [allCities, setAllCities] = useState([]);
@@ -95,10 +104,17 @@ export default function HomePage({ user, onLogout }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setVacancies(data);
+        setVacancies(prev => {
+          // Preserve any unsynced offline vacancies on the board
+          const offlineOnly = prev.filter(v => v._offline || (typeof v.id === 'string' && v.id.startsWith('offline_')));
+          const offlineRemaining = offlineOnly.filter(ov => !data.some(sv => sv.url === ov.url));
+          const merged = [...offlineRemaining, ...data];
+          saveLocalVacancies(merged);
+          return merged;
+        });
       }
     } catch (err) {
-      console.error('Failed to fetch vacancies', err);
+      console.warn('Failed to fetch vacancies (using offline cache)', err);
     }
   }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
 
@@ -169,9 +185,10 @@ export default function HomePage({ user, onLogout }) {
       if (res.ok) {
         const data = await res.json();
         setColumns(data);
+        saveLocalColumns(data);
       }
     } catch (err) {
-      console.error('Failed to fetch columns', err);
+      console.warn('Failed to fetch columns (using offline cache)', err);
     }
   }, [user]);
 
@@ -374,10 +391,42 @@ export default function HomePage({ user, onLogout }) {
 
   // Handle status change from drag & drop or quick move
   const handleStatusChange = async (vacancyId, newStatus) => {
-    // Optimistic UI update
-    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus } : v));
-    if (selectedVacancy && selectedVacancy.id === vacancyId) {
+    const isOfflineId = typeof vacancyId === 'string' && vacancyId.startsWith('offline_');
+    const localizedStatus = t(`kanban.columns.${newStatus}`) || newStatus;
+
+    // Optimistic UI update & localStorage save
+    setVacancies(prev => {
+      const updated = prev.map(v => {
+        if (String(v.id) === String(vacancyId)) {
+          const nextHistory = [
+            {
+              id: `off_hist_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              from_status: v.status,
+              to_status: newStatus,
+              comment: null,
+              created_at: new Date().toISOString()
+            },
+            ...(v.history || [])
+          ];
+          return { ...v, status: newStatus, history: nextHistory };
+        }
+        return v;
+      });
+      saveLocalVacancies(updated);
+      return updated;
+    });
+
+    if (selectedVacancy && String(selectedVacancy.id) === String(vacancyId)) {
       setSelectedVacancy(prev => ({ ...prev, status: newStatus }));
+    }
+
+    if (!navigator.onLine || isOfflineId) {
+      addToSyncQueue({
+        type: 'UPDATE_STATUS',
+        payload: { vacancyId, status: newStatus }
+      });
+      showToast(t('nav.moved_to', { status: localizedStatus }));
+      return;
     }
 
     try {
@@ -390,46 +439,89 @@ export default function HomePage({ user, onLogout }) {
         throw new Error('Update failed');
       }
       const updatedVacancy = await res.json();
-      setVacancies(prev => prev.map(v => v.id === vacancyId ? updatedVacancy : v));
-      if (selectedVacancy && selectedVacancy.id === vacancyId) {
+      setVacancies(prev => {
+        const updated = prev.map(v => String(v.id) === String(vacancyId) ? updatedVacancy : v);
+        saveLocalVacancies(updated);
+        return updated;
+      });
+      if (selectedVacancy && String(selectedVacancy.id) === String(vacancyId)) {
         setSelectedVacancy(updatedVacancy);
       }
-      const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
-      console.error('Failed to update status', err);
-      fetchVacancies();
-      showToast(t('nav.update_status_failed'), 'error');
+      console.warn('Network update status failed, queued offline', err);
+      addToSyncQueue({
+        type: 'UPDATE_STATUS',
+        payload: { vacancyId, status: newStatus }
+      });
+      showToast(t('nav.moved_to', { status: localizedStatus }));
     }
   };
 
   // Handle manual reorder of cards inside a column (also covers moving into a column at a position)
   const handleReorder = async (status, ids, lane = 0) => {
-    const positions = new Map(ids.map((id, i) => [id, i]));
-    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, lane, sort_order: positions.get(v.id) } : v));
+    const positions = new Map(ids.map((id, i) => [String(id), i]));
+    setVacancies(prev => {
+      const updated = prev.map(v => positions.has(String(v.id)) ? { ...v, status, lane, sort_order: positions.get(String(v.id)) } : v);
+      saveLocalVacancies(updated);
+      return updated;
+    });
+
+    if (!navigator.onLine) {
+      addToSyncQueue({
+        type: 'REORDER',
+        payload: { status, ids, lane }
+      });
+      return;
+    }
 
     try {
-      const res = await fetch('/api/vacancies/reorder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, ids, lane })
-      });
-      if (!res.ok) throw new Error('Reorder failed');
-      const updated = await res.json();
-      const byId = new Map(updated.map(v => [v.id, v]));
-      setVacancies(prev => prev.map(v => byId.get(v.id) || v));
-      if (selectedVacancy && byId.has(selectedVacancy.id)) {
-        setSelectedVacancy(byId.get(selectedVacancy.id));
+      const numericIds = ids.filter(x => typeof x === 'number');
+      if (numericIds.length > 0) {
+        const res = await fetch('/api/vacancies/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, ids: numericIds, lane })
+        });
+        if (!res.ok) throw new Error('Reorder failed');
+        const updated = await res.json();
+        const byId = new Map(updated.map(v => [String(v.id), v]));
+        setVacancies(prev => {
+          const synced = prev.map(v => byId.get(String(v.id)) || v);
+          saveLocalVacancies(synced);
+          return synced;
+        });
       }
     } catch (err) {
-      console.error('Failed to reorder vacancies', err);
-      fetchVacancies();
-      showToast(t('nav.update_status_failed'), 'error');
+      console.warn('Failed to reorder vacancies online, queued offline', err);
+      addToSyncQueue({
+        type: 'REORDER',
+        payload: { status, ids, lane }
+      });
     }
   };
 
   const handleStatusChangeMulti = async (vacancyIds, newStatus) => {
-    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus } : v));
+    const strIds = new Set(vacancyIds.map(String));
+    setVacancies(prev => {
+      const updated = prev.map(v => strIds.has(String(v.id)) ? { ...v, status: newStatus } : v);
+      saveLocalVacancies(updated);
+      return updated;
+    });
+
+    const localizedStatus = t(`kanban.columns.${newStatus}`) || newStatus;
+
+    if (!navigator.onLine) {
+      vacancyIds.forEach(vid => {
+        addToSyncQueue({
+          type: 'UPDATE_STATUS',
+          payload: { vacancyId: vid, status: newStatus }
+        });
+      });
+      showToast(t('nav.moved_to', { status: localizedStatus }));
+      return;
+    }
+
     try {
       await Promise.all(vacancyIds.map(vid => 
         fetch(`/api/vacancies/${vid}`, {
@@ -439,12 +531,16 @@ export default function HomePage({ user, onLogout }) {
         })
       ));
       fetchVacancies();
-      const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
-      console.error('Failed to update status', err);
-      fetchVacancies();
-      showToast(t('nav.update_status_failed'), 'error');
+      console.warn('Failed to update status multi online, queued offline', err);
+      vacancyIds.forEach(vid => {
+        addToSyncQueue({
+          type: 'UPDATE_STATUS',
+          payload: { vacancyId: vid, status: newStatus }
+        });
+      });
+      showToast(t('nav.moved_to', { status: localizedStatus }));
     }
   };
 
@@ -456,9 +552,28 @@ export default function HomePage({ user, onLogout }) {
 
     setIsMovingAllRejected(true);
     trackEvent(EVENTS.MOVE_ALL_CLOSED_REJECTED, { count: targets.length });
+    const ids = targets.map(v => v.id);
+    const strIds = new Set(ids.map(String));
+
+    setVacancies(prev => {
+      const updated = prev.map(v => strIds.has(String(v.id)) ? { ...v, status: 'Отказ' } : v);
+      saveLocalVacancies(updated);
+      return updated;
+    });
+
+    if (!navigator.onLine) {
+      ids.forEach(vid => {
+        addToSyncQueue({
+          type: 'UPDATE_STATUS',
+          payload: { vacancyId: vid, status: 'Отказ' }
+        });
+      });
+      showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
+      setIsMovingAllRejected(false);
+      return;
+    }
+
     try {
-      const ids = targets.map(v => v.id);
-      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
       await Promise.all(ids.map(vid => 
         fetch(`/api/vacancies/${vid}`, {
           method: 'PATCH',
@@ -469,23 +584,56 @@ export default function HomePage({ user, onLogout }) {
       fetchVacancies();
       showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
     } catch (err) {
-      console.error('Failed to move all to rejected', err);
-      fetchVacancies();
-      showToast(t('nav.update_status_failed'), 'error');
+      console.warn('Failed to move all to rejected online, queued offline', err);
+      ids.forEach(vid => {
+        addToSyncQueue({
+          type: 'UPDATE_STATUS',
+          payload: { vacancyId: vid, status: 'Отказ' }
+        });
+      });
+      showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
     } finally {
       setIsMovingAllRejected(false);
     }
   };
 
-  const handleVacancyUpdate = (updatedVacancy) => {
+  const handleVacancyUpdate = (updatedVacancy, offlineAction = null) => {
+    if (offlineAction) {
+      addToSyncQueue(offlineAction);
+    } else if (!navigator.onLine) {
+      addToSyncQueue({
+        type: 'PATCH_VACANCY',
+        payload: {
+          vacancyId: updatedVacancy.id,
+          patch: {
+            title: updatedVacancy.title,
+            company: updatedVacancy.company,
+            notes: updatedVacancy.notes,
+            description: updatedVacancy.description,
+            salary_min: updatedVacancy.salary_min,
+            salary_max: updatedVacancy.salary_max,
+            salary_currency: updatedVacancy.salary_currency,
+            salary_period: updatedVacancy.salary_period,
+            workplace_type: updatedVacancy.workplace_type,
+            is_closed: updatedVacancy.is_closed,
+            tags: updatedVacancy.tags,
+            tech_stack: updatedVacancy.tech_stack
+          }
+        }
+      });
+    }
+
     setVacancies(prev => {
+      let updated;
       if (selectedClosed === 'false' && updatedVacancy.is_closed) {
-        return prev.filter(v => v.id !== updatedVacancy.id);
+        updated = prev.filter(v => String(v.id) !== String(updatedVacancy.id));
+      } else if (selectedClosed === 'true' && !updatedVacancy.is_closed) {
+        updated = prev.filter(v => String(v.id) !== String(updatedVacancy.id));
+      } else {
+        updated = prev.map(v => String(v.id) === String(updatedVacancy.id) ? updatedVacancy : v);
       }
-      if (selectedClosed === 'true' && !updatedVacancy.is_closed) {
-        return prev.filter(v => v.id !== updatedVacancy.id);
-      }
-      return prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v);
+      saveLocalVacancies(updated);
+      return updated;
     });
     setSelectedVacancy(updatedVacancy);
     fetchTags();
@@ -495,14 +643,50 @@ export default function HomePage({ user, onLogout }) {
   };
 
   const handleVacancyDelete = (deletedId) => {
-    setVacancies(prev => prev.filter(v => v.id !== deletedId));
+    setVacancies(prev => {
+      const updated = prev.filter(v => String(v.id) !== String(deletedId));
+      saveLocalVacancies(updated);
+      return updated;
+    });
     setSelectedVacancy(null);
+    setSelectedIds(prev => prev.filter(id => String(id) !== String(deletedId)));
+
+    addToSyncQueue({
+      type: 'DELETE_VACANCY',
+      payload: { vacancyId: deletedId }
+    });
+
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
     fetchSources();
     showToast(t('nav.vacancy_deleted'));
   };
+
+  const handleAddOfflineVacancies = useCallback((urls, defaultTags) => {
+    const initialStatus = columns.length > 0 ? columns[0].id : "Еще не написан";
+    const newItems = urls.map(url => createOfflineVacancy(url, defaultTags, initialStatus));
+
+    newItems.forEach(item => {
+      addToSyncQueue({
+        type: 'CREATE_VACANCY',
+        payload: {
+          tempId: item.id,
+          url: item.url,
+          defaultTags: item.tags,
+          initialStatus: item.status
+        }
+      });
+    });
+
+    setVacancies(prev => {
+      const updated = [...newItems, ...prev];
+      saveLocalVacancies(updated);
+      return updated;
+    });
+
+    showToast(t('pwa.offline_added'));
+  }, [columns, showToast, t]);
 
   const handleImportComplete = () => {
     fetchVacancies();
@@ -512,6 +696,25 @@ export default function HomePage({ user, onLogout }) {
     fetchSources();
     showToast(t('nav.batch_import_completed'));
   };
+
+  // Sync automatically when returning online
+  useEffect(() => {
+    const handleOnline = () => {
+      syncPendingQueue({
+        onSyncSuccess: () => {
+          fetchVacancies();
+          fetchTags();
+          fetchCountries();
+          fetchCities(selectedCountry);
+          fetchSources();
+          showToast(t('pwa.sync_success'));
+        }
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [fetchVacancies, fetchTags, fetchCountries, fetchCities, fetchSources, selectedCountry, showToast, t]);
 
   const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
 
@@ -580,6 +783,7 @@ export default function HomePage({ user, onLogout }) {
           user={user}
           onLogout={handleLogout}
           vacancies={vacancies}
+          onSyncComplete={fetchVacancies}
           onColumnsUpdated={(newCols) => {
             setColumns(newCols);
             fetchVacancies();
@@ -926,6 +1130,7 @@ export default function HomePage({ user, onLogout }) {
         onClose={() => setIsBatchOpen(false)}
         queueRemaining={queueRemaining}
         onImportComplete={handleImportComplete}
+        onAddOfflineVacancies={handleAddOfflineVacancies}
       />
 
       <VacancyModal

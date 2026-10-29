@@ -1,0 +1,32 @@
+{
+  "name": "LinkedIn Jobs Tracker — Канбан & AI Саммари",
+  "short_name": "Jobs Tracker",
+  "description": "Парсер вакансий LinkedIn, автоматический сбор информации о компании и технологиях, AI саммари и Канбан-воронка с поддержкой оффлайн режима.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

@@ -107,8 +107,9 @@ export default function KanbanBoard({
     setDragOverLane(0);
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
-      const vid = parseInt(vacancyId, 10);
-      if (selectedIds.includes(vid) && selectedIds.length > 1 && onStatusChangeMulti) {
+      const vid = !isNaN(Number(vacancyId)) && vacancyId.trim() !== '' ? Number(vacancyId) : vacancyId;
+      const isSelected = selectedIds.some(id => String(id) === String(vid));
+      if (isSelected && selectedIds.length > 1 && onStatusChangeMulti) {
         selectedIds.forEach(id => {
           trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
             vacancy_id: id,
@@ -118,19 +119,19 @@ export default function KanbanBoard({
         });
         onStatusChangeMulti(selectedIds, columnId);
       } else if (onReorder) {
-        const dragged = vacancies.find(v => v.id === vid);
+        const dragged = vacancies.find(v => String(v.id) === String(vid));
         if (!dragged) return;
 
         let ids;
         if (laneColumnIds.has(columnId)) {
           ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
-            .filter(id => id !== vid);
+            .filter(id => String(id) !== String(vid));
           ids.push(vid);
         } else {
           ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
-            .filter(id => id !== vid);
+            .filter(id => String(id) !== String(vid));
           if (targetIndex !== null) {
             ids.splice(Math.min(targetIndex, ids.length), 0, vid);
           } else {
@@ -201,8 +202,9 @@ export default function KanbanBoard({
       <div
         className="kanban-board"
         onDragStart={(e) => {
-          const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
-          setDraggingId(Number.isNaN(id) ? null : id);
+          const rawId = e.dataTransfer.getData('text/plain');
+          const id = !isNaN(Number(rawId)) && rawId.trim() !== '' ? Number(rawId) : rawId;
+          setDraggingId(id || null);
         }}
         onDragEnd={() => {
           setDraggingId(null);

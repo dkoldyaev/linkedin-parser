@@ -126,12 +126,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       if (res.ok) {
         const updated = await res.json();
         onUpdate(updated);
-      } else {
-        onUpdate({ ...vacancy, status: newStatus });
+        return;
       }
     } catch (err) {
-      console.error('Failed to update status', err);
+      console.warn('Failed to update status online, saving offline', err);
     }
+    onUpdate({ ...vacancy, status: newStatus }, {
+      type: 'UPDATE_STATUS',
+      payload: { vacancyId: vacancy.id, status: newStatus }
+    });
   };
 
   const handleSaveHistoryComment = async (historyId) => {
@@ -153,14 +156,32 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         if (res.ok) {
           const updated = await res.json();
           onUpdate(updated);
+          return;
         }
       } catch (err) {
-        console.error('Failed to create history comment', err);
+        console.warn('Failed to create history comment online, saving offline', err);
       } finally {
         setSavingHistoryId(null);
         setEditingHistoryId(null);
         setHistoryCommentText('');
       }
+
+      const newHist = {
+        id: `off_hist_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        to_status: vacancy.status || 'Еще не написан',
+        from_status: null,
+        comment: historyCommentText.trim() || null,
+        created_at: new Date().toISOString()
+      };
+      const updatedHistory = [newHist, ...(vacancy.history || [])];
+      onUpdate({ ...vacancy, history: updatedHistory }, {
+        type: 'ADD_HISTORY',
+        payload: {
+          vacancyId: vacancy.id,
+          to_status: newHist.to_status,
+          comment: newHist.comment
+        }
+      });
       return;
     }
 
@@ -178,14 +199,23 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       if (res.ok) {
         const updated = await res.json();
         onUpdate(updated);
+        return;
       }
     } catch (err) {
-      console.error('Failed to save history comment', err);
+      console.warn('Failed to save history comment online, saving offline', err);
     } finally {
       setSavingHistoryId(null);
       setEditingHistoryId(null);
       setHistoryCommentText('');
     }
+
+    const updatedHistory = (vacancy.history || []).map(h => 
+      h.id === historyId ? { ...h, comment: historyCommentText.trim() || null } : h
+    );
+    onUpdate({ ...vacancy, history: updatedHistory }, {
+      type: 'UPDATE_HISTORY',
+      payload: { vacancyId: vacancy.id, historyId, comment: historyCommentText.trim() || null }
+    });
   };
 
   const handleDeleteHistoryComment = async (historyId) => {
@@ -204,12 +234,21 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       if (res.ok) {
         const updated = await res.json();
         onUpdate(updated);
+        return;
       }
     } catch (err) {
-      console.error('Failed to delete history comment', err);
+      console.warn('Failed to delete history comment online, saving offline', err);
     } finally {
       setSavingHistoryId(null);
     }
+
+    const updatedHistory = (vacancy.history || []).map(h => 
+      h.id === historyId ? { ...h, comment: null } : h
+    );
+    onUpdate({ ...vacancy, history: updatedHistory }, {
+      type: 'DELETE_HISTORY',
+      payload: { vacancyId: vacancy.id, historyId }
+    });
   };
 
   const handleWorkplaceTypeChange = async (newType) => {
@@ -220,15 +259,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       workplace_type: val || 'none'
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val })
       });
-      onUpdate({ ...vacancy, workplace_type: val });
+      if (res.ok) {
+        onUpdate({ ...vacancy, workplace_type: val });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to update workplace type', err);
+      console.warn('Failed to update workplace type online, saving offline', err);
     }
+    onUpdate({ ...vacancy, workplace_type: val }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { workplace_type: val } }
+    });
   };
 
   const handleToggleClosed = async () => {
@@ -239,15 +285,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       is_closed: nextVal
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal })
       });
-      onUpdate({ ...vacancy, is_closed: nextVal });
+      if (res.ok) {
+        onUpdate({ ...vacancy, is_closed: nextVal });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to update closed status', err);
+      console.warn('Failed to update closed status online, saving offline', err);
     }
+    onUpdate({ ...vacancy, is_closed: nextVal }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { is_closed: nextVal } }
+    });
   };
 
   const handleAddTag = async (e) => {
@@ -264,15 +317,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     });
 
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: updatedTags })
       });
-      onUpdate({ ...vacancy, tags: updatedTags });
+      if (res.ok) {
+        onUpdate({ ...vacancy, tags: updatedTags });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to add tag', err);
+      console.warn('Failed to add tag online, saving offline', err);
     }
+    onUpdate({ ...vacancy, tags: updatedTags }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { tags: updatedTags } }
+    });
   };
 
   const handleRemoveTag = async (tagToRemove) => {
@@ -284,15 +344,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     });
 
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: updatedTags })
       });
-      onUpdate({ ...vacancy, tags: updatedTags });
+      if (res.ok) {
+        onUpdate({ ...vacancy, tags: updatedTags });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to remove tag', err);
+      console.warn('Failed to remove tag online, saving offline', err);
     }
+    onUpdate({ ...vacancy, tags: updatedTags }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { tags: updatedTags } }
+    });
   };
 
   const handleSaveDescription = async () => {
@@ -309,12 +376,19 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         onUpdate(updated);
         setSavedDescriptionSuccess(true);
         setTimeout(() => setSavedDescriptionSuccess(false), 2000);
+        return;
       }
     } catch (err) {
-      console.error('Failed to save description', err);
+      console.warn('Failed to save description online, saving offline', err);
     } finally {
       setSavingDescription(false);
     }
+    onUpdate({ ...vacancy, description }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { description } }
+    });
+    setSavedDescriptionSuccess(true);
+    setTimeout(() => setSavedDescriptionSuccess(false), 2000);
   };
 
   const handleAddTech = async (e) => {
@@ -331,15 +405,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     });
 
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tech_stack: updated })
       });
-      onUpdate({ ...vacancy, tech_stack: updated });
+      if (res.ok) {
+        onUpdate({ ...vacancy, tech_stack: updated });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to add tech', err);
+      console.warn('Failed to add tech online, saving offline', err);
     }
+    onUpdate({ ...vacancy, tech_stack: updated }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { tech_stack: updated } }
+    });
   };
 
   const handleRemoveTech = async (techToRemove) => {
@@ -351,15 +432,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     });
 
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tech_stack: updated })
       });
-      onUpdate({ ...vacancy, tech_stack: updated });
+      if (res.ok) {
+        onUpdate({ ...vacancy, tech_stack: updated });
+        return;
+      }
     } catch (err) {
-      console.error('Failed to remove tech', err);
+      console.warn('Failed to remove tech online, saving offline', err);
     }
+    onUpdate({ ...vacancy, tech_stack: updated }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { tech_stack: updated } }
+    });
   };
 
   const handleSaveSalary = async () => {
@@ -371,32 +459,47 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       has_min: salaryMin !== '',
       has_max: salaryMax !== ''
     });
+    const payload = {
+      salary_min: salaryMin !== '' ? parseFloat(salaryMin) : null,
+      salary_max: salaryMax !== '' ? parseFloat(salaryMax) : null,
+      salary_currency: salaryCurrency || null,
+      salary_period: salaryPeriod || null,
+    };
     try {
-      const payload = {
-        salary_min: salaryMin !== '' ? parseFloat(salaryMin) : null,
-        salary_max: salaryMax !== '' ? parseFloat(salaryMax) : null,
-        salary_currency: salaryCurrency || null,
-        salary_period: salaryPeriod || null,
-      };
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      onUpdate({
-        ...vacancy,
-        salary_min: payload.salary_min,
-        salary_max: payload.salary_max,
-        salary_currency: payload.salary_currency,
-        salary_period: payload.salary_period,
-      });
-      setSavedSalarySuccess(true);
-      setTimeout(() => setSavedSalarySuccess(false), 2000);
+      if (res.ok) {
+        onUpdate({
+          ...vacancy,
+          salary_min: payload.salary_min,
+          salary_max: payload.salary_max,
+          salary_currency: payload.salary_currency,
+          salary_period: payload.salary_period,
+        });
+        setSavedSalarySuccess(true);
+        setTimeout(() => setSavedSalarySuccess(false), 2000);
+        return;
+      }
     } catch (err) {
-      console.error('Failed to save salary', err);
+      console.warn('Failed to save salary online, saving offline', err);
     } finally {
       setSavingSalary(false);
     }
+    onUpdate({
+      ...vacancy,
+      salary_min: payload.salary_min,
+      salary_max: payload.salary_max,
+      salary_currency: payload.salary_currency,
+      salary_period: payload.salary_period,
+    }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: payload }
+    });
+    setSavedSalarySuccess(true);
+    setTimeout(() => setSavedSalarySuccess(false), 2000);
   };
 
   const handleSaveTitle = async () => {
@@ -411,12 +514,19 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         onUpdate(await res.json());
         setSavedTitleSuccess(true);
         setTimeout(() => setSavedTitleSuccess(false), 2000);
+        return;
       }
     } catch (err) {
-      console.error('Failed to save title', err);
+      console.warn('Failed to save title online, saving offline', err);
     } finally {
       setSavingTitle(false);
     }
+    onUpdate({ ...vacancy, title }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { title } }
+    });
+    setSavedTitleSuccess(true);
+    setTimeout(() => setSavedTitleSuccess(false), 2000);
   };
 
   const handleSaveNotes = async () => {
@@ -426,19 +536,28 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       notes_length: notes.length
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })
       });
-      onUpdate({ ...vacancy, notes });
-      setSavedNotesSuccess(true);
-      setTimeout(() => setSavedNotesSuccess(false), 2000);
+      if (res.ok) {
+        onUpdate({ ...vacancy, notes });
+        setSavedNotesSuccess(true);
+        setTimeout(() => setSavedNotesSuccess(false), 2000);
+        return;
+      }
     } catch (err) {
-      console.error('Failed to save notes', err);
+      console.warn('Failed to save notes online, saving offline', err);
     } finally {
       setSavingNotes(false);
     }
+    onUpdate({ ...vacancy, notes }, {
+      type: 'PATCH_VACANCY',
+      payload: { vacancyId: vacancy.id, patch: { notes } }
+    });
+    setSavedNotesSuccess(true);
+    setTimeout(() => setSavedNotesSuccess(false), 2000);
   };
 
   const handleResummarize = async () => {

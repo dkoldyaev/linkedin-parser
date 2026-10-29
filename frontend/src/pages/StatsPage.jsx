@@ -65,15 +65,33 @@ function level(count, max) {
 
 export default function StatsPage() {
   const { t, formatDate } = useTranslation();
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lp_stats');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/stats?tz_offset=${new Date().getTimezoneOffset()}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('stats failed'))))
-      .then((json) => !cancelled && setData(json))
-      .catch(() => !cancelled && setError(true));
+      .then((json) => {
+        if (!cancelled) {
+          setData(json);
+          try {
+            localStorage.setItem('lp_stats', JSON.stringify(json));
+          } catch {}
+        }
+      })
+      .catch(() => {
+        if (!cancelled && !data) {
+          setError(true);
+        }
+      });
     return () => {
       cancelled = true;
     };

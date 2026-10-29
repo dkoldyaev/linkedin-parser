@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, UploadCloud, CheckCircle, AlertCircle, Loader2, CloudOff } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
-export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
+export default function BatchImportModal({ isOpen, onClose, onImportComplete, onAddOfflineVacancies, queueRemaining = 0 }) {
   const { t } = useTranslation();
   const [urlsText, setUrlsText] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -18,6 +18,15 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   if (!isOpen) return null;
 
   const performSubmit = async (urls, defaultTags) => {
+    // If offline, bypass network call and create offline vacancies directly
+    if (!navigator.onLine) {
+      if (onAddOfflineVacancies) {
+        onAddOfflineVacancies(urls, defaultTags);
+      }
+      handleClose();
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
@@ -59,6 +68,14 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         onImportComplete();
       }
     } catch (err) {
+      // If network fails (connection dropped or server offline), fallback to offline queue
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        if (onAddOfflineVacancies) {
+          onAddOfflineVacancies(urls, defaultTags);
+          handleClose();
+          return;
+        }
+      }
       trackEvent(EVENTS.BATCH_IMPORT_ERROR, {
         error: err.message || t('common.error')
       });
@@ -85,6 +102,14 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       .map(t => t.trim())
       .filter(t => t.length > 0);
 
+    if (!navigator.onLine) {
+      if (onAddOfflineVacancies) {
+        onAddOfflineVacancies(urls, defaultTags);
+      }
+      handleClose();
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -106,7 +131,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         }
       }
     } catch (dupErr) {
-      console.warn("Duplicate check error:", dupErr);
+      console.warn("Duplicate check error (ignoring offline):", dupErr);
     } finally {
       setLoading(false);
     }
@@ -230,6 +255,18 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="modal-body">
+              {!navigator.onLine && (
+                <div className="info-banner" style={{ background: 'rgba(99, 102, 241, 0.12)', borderColor: 'rgba(99, 102, 241, 0.35)', color: '#a5b4fc', marginBottom: '16px' }}>
+                  <CloudOff size={18} style={{ flexShrink: 0 }} />
+                  <div>
+                    <strong>{t('pwa.offline')}</strong>
+                    <div style={{ fontSize: '0.8rem', marginTop: '2px' }}>
+                      {t('pwa.offline_batch_notice')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}>
                   <AlertCircle size={18} />
