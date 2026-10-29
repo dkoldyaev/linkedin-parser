@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BarChart3, BookOpen, Info, Languages } from 'lucide-react';
+import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, Shield } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from './menuContext';
 
 const LINKS = [
   { to: '/', key: 'home', icon: LayoutDashboard, end: true, auth: true },
+  { to: '/cv', key: 'cv', label: 'My CV & Privacy', icon: Shield, auth: true },
   { to: '/stat', key: 'stat', icon: BarChart3, auth: true },
   { to: '/howtouse', key: 'howtouse', icon: BookOpen },
   { to: '/about', key: 'about', icon: Info },
@@ -35,7 +36,7 @@ export default function NavDrawer({ user }) {
               className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}
             >
               <Icon size={18} />
-              <span>{t(`pages.nav.${key}`)}</span>
+              <span>{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : (key === 'cv' ? 'CV & Privacy' : key)}</span>
             </NavLink>
           ))}
         </nav>

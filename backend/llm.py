@@ -394,3 +394,228 @@ Respond strictly in valid JSON matching the following JSON Schema:
             "salary_period": None,
             "ai_error": f"JSON parse error: {e}"
         }
+
+
+# =====================================================================
+# CV Anonymization & Vacancy Matching Functions
+# =====================================================================
+
+SCORING_WEIGHTS = {
+    "required_technical_skills": 0.40,
+    "relevant_professional_experience": 0.25,
+    "seniority_alignment": 0.15,
+    "optional_technical_skills": 0.10,
+    "domain_experience": 0.10,
+}
+
+SCORING_POLICY_VERSION = "v1.0"
+
+
+def calculate_compatibility_score(dimension_scores: Dict[str, float], critical_gaps_count: int = 0) -> float:
+    """
+    Calculates deterministic compatibility percentage (0-100) based on policy weights
+    and critical gaps count.
+    """
+    req_tech = float(dimension_scores.get("requiredTechnicalSkills", 0))
+    prof_exp = float(dimension_scores.get("relevantProfessionalExperience", 0))
+    sen_align = float(dimension_scores.get("seniorityAlignment", 0))
+    opt_tech = float(dimension_scores.get("optionalTechnicalSkills", 0))
+    dom_exp = float(dimension_scores.get("domainExperience", 0))
+
+    raw = (
+        req_tech * SCORING_WEIGHTS["required_technical_skills"]
+        + prof_exp * SCORING_WEIGHTS["relevant_professional_experience"]
+        + sen_align * SCORING_WEIGHTS["seniority_alignment"]
+        + opt_tech * SCORING_WEIGHTS["optional_technical_skills"]
+        + dom_exp * SCORING_WEIGHTS["domain_experience"]
+    )
+
+    penalty = min(critical_gaps_count * 15.0, 45.0)
+    final_score = max(0.0, min(100.0, round(raw - penalty, 1)))
+    return final_score
+
+
+async def anonymize_companies_with_llm(
+    companies: List[str],
+    provider: str,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> List[Dict[str, str]]:
+    """
+    Replaces brand company names with generalized industry categories using configured LLM.
+    Sends strictly only the list of company names.
+    """
+    if not companies:
+        return []
+
+    provider = str(provider).strip().lower()
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    prompt = f"""You are an expert privacy classifier.
+You will be provided with a JSON list of company/employer names.
+For EACH company, return a generalized industry-level replacement that preserves the domain/industry category while removing the exact identifying brand name.
+
+Examples:
+- "Example Bank" -> "Digital bank" or "Commercial bank"
+- "Revolut" -> "Fintech / Digital banking company"
+- "Spotify" -> "Audio streaming / Media tech company"
+- "Allianz" -> "Insurance company"
+- "Amazon Web Services" -> "Cloud computing provider"
+- "McKinsey" -> "Management consulting firm"
+
+Return ONLY a valid JSON object matching this schema:
+{{
+  "replacements": [
+    {{ "original": "company name", "replacement": "generalized industry replacement" }}
+  ]
+}}
+
+Companies:
+{json.dumps(companies, ensure_ascii=False)}
+"""
+
+    raw_response = ""
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        raw_response = await call_mistral(prompt, mistral_key, mistral_model)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        raw_response = await call_gemini(prompt, gemini_key, gemini_model)
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    try:
+        data = json.loads(raw_response)
+        return data.get("replacements", [])
+    except Exception as e:
+        logger.error(f"Failed to parse LLM company anonymization JSON: {raw_response}. Error: {e}")
+        # Deterministic fallback if model json fails
+        return [{"original": c, "replacement": "Company in industry"} for c in companies]
+
+
+async def evaluate_vacancy_compatibility_with_llm(
+    vacancy_text: str,
+    cv_text: str,
+    provider: str,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Evaluates vacancy requirements vs approved CV text using configured LLM.
+    Returns structured assessment with matched/missing requirements and deterministic overallScore.
+    """
+    provider = str(provider).strip().lower()
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    active_model = mistral_model if provider == "mistral" else gemini_model
+
+    prompt = f"""You are a strict, objective technical recruiter and job compatibility evaluator.
+Compare the following candidate CV against the Job Vacancy Description.
+
+Rules:
+1. Grounding: Every matchedRequirement MUST cite concrete, factual evidence from the CV text.
+2. Missing requirements: If the CV does not mention a required tool, library, or responsibility, classify it under missingRequirements. Do NOT assume candidate knows it unless explicitly supported.
+3. Critical Gaps: Identify hard blockers (e.g. required language/authorization or must-have mandatory core stack that candidate completely lacks).
+4. Seniority: Assess whether the years of experience and level of responsibility match what the vacancy seeks.
+5. Overall Match Score (0-100%): Provide your comprehensive expert holistic score for how well this candidate fits the role.
+6. Dimension Scores: Provide objective 0-100 scores for:
+   - requiredTechnicalSkills: coverage of core mandatory technologies.
+   - relevantProfessionalExperience: similarity of past duties and scope.
+   - seniorityAlignment: match with requested seniority (junior, mid, senior, lead).
+   - optionalTechnicalSkills: coverage of nice-to-have / bonus tools.
+   - domainExperience: relevance of industry/domain knowledge.
+7. Recommendations: Actionable tips for how the candidate can better showcase their REAL experience for this role. Do NOT hallucinate fake experience.
+
+Output strictly valid JSON matching this schema:
+{{
+  "summary": "Short concise summary of compatibility",
+  "overallScore": 0-100,
+  "matchedRequirements": [
+    {{ "requirement": "Technology/Skill", "evidence": "Exact evidence quote/mention from CV" }}
+  ],
+  "missingRequirements": [
+    {{ "requirement": "Technology/Skill", "severity": "low" | "medium" | "high" | "critical", "reason": "Reason missing" }}
+  ],
+  "criticalGaps": [
+    {{ "requirement": "Requirement name", "reason": "Why it is critical blocker" }}
+  ],
+  "seniorityAssessment": {{
+    "status": "matched" | "partially_matched" | "mismatched" | "unclear",
+    "comment": "Assessment comment"
+  }},
+  "recommendations": ["Actionable presentation tip 1", "Actionable presentation tip 2"],
+  "dimensionScores": {{
+    "requiredTechnicalSkills": 0-100,
+    "relevantProfessionalExperience": 0-100,
+    "seniorityAlignment": 0-100,
+    "optionalTechnicalSkills": 0-100,
+    "domainExperience": 0-100
+  }}
+}}
+
+=== VACANCY DESCRIPTION ===
+{vacancy_text}
+
+=== CANDIDATE CV ===
+{cv_text}
+"""
+
+    raw_response = ""
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        raw_response = await call_mistral(prompt, mistral_key, mistral_model)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        raw_response = await call_gemini(prompt, gemini_key, gemini_model)
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    try:
+        data = json.loads(raw_response)
+    except Exception as e:
+        logger.error(f"Failed to parse LLM compatibility JSON: {raw_response}. Error: {e}")
+        raise RuntimeError(f"Failed to parse LLM compatibility evaluation: {e}")
+
+    dim_scores = data.get("dimensionScores") or {
+        "requiredTechnicalSkills": 50,
+        "relevantProfessionalExperience": 50,
+        "seniorityAlignment": 50,
+        "optionalTechnicalSkills": 50,
+        "domainExperience": 50,
+    }
+    crit_gaps = data.get("criticalGaps") or []
+    calculated_score = calculate_compatibility_score(dim_scores, len(crit_gaps))
+
+    # Use LLM direct assessment score when provided by the model; fallback to calculated if missing/invalid
+    raw_llm_score = data.get("overallScore")
+    if raw_llm_score is not None:
+        try:
+            llm_score = float(raw_llm_score)
+            llm_score = max(0.0, min(100.0, round(llm_score, 1)))
+        except (ValueError, TypeError):
+            llm_score = calculated_score
+    else:
+        llm_score = calculated_score
+
+    # Primary overallScore is the LLM score
+    overall_score = llm_score
+
+    return {
+        **data,
+        "overallScore": overall_score,
+        "llmScore": llm_score,
+        "calculatedScore": calculated_score,
+        "scoringPolicyVersion": SCORING_POLICY_VERSION,
+        "model": active_model,
+    }
+

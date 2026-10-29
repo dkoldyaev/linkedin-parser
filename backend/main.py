@@ -4,6 +4,7 @@ import time
 import json
 import logging
 import datetime
+import httpx
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
@@ -21,6 +22,8 @@ from .models import (
     AppSetting,
     User,
     UserSetting,
+    ApprovedCV,
+    VacancyCVAnalysis,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -54,6 +57,12 @@ from .schemas import (
     DevLoginRequest,
     ExtensionTaskResponse,
     ExtensionParseRequest,
+    AnonymizeCompaniesRequest,
+    AnonymizeCompaniesResponse,
+    CompanyReplacementItem,
+    ApprovedCVCreate,
+    ApprovedCVResponse,
+    VacancyCVAnalysisResponse,
 )
 from .auth import (
     get_current_user,
@@ -72,7 +81,12 @@ from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_jo
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
 from .location_parser import parse_location
-from .llm import analyze_vacancy_with_llm, get_setting_or_env
+from .llm import (
+    analyze_vacancy_with_llm,
+    get_setting_or_env,
+    anonymize_companies_with_llm,
+    evaluate_vacancy_compatibility_with_llm,
+)
 import asyncio
 from .mercure import (
     get_mercure_public_url,
@@ -608,8 +622,15 @@ async def update_vacancy(
             v.sort_order = None
             v.lane = 0
 
+    content_changed = any(f in update_data for f in ["title", "description", "tech_stack", "company"])
     for field, val in update_data.items():
         setattr(v, field, val)
+
+    if content_changed:
+        db.query(VacancyCVAnalysis).filter(
+            VacancyCVAnalysis.vacancy_id == v.id,
+            VacancyCVAnalysis.user_id == current_user.id
+        ).update({"is_outdated": True})
 
     db.commit()
     db.refresh(v)
@@ -1770,6 +1791,285 @@ def get_stats(
         "by_status": status_counts,
         "daily": series,
     }
+
+
+# =====================================================================
+# CV Anonymization & Vacancy Matching Endpoints
+# =====================================================================
+
+
+@app.post("/api/cv/anonymize-companies", response_model=AnonymizeCompaniesResponse)
+async def anonymize_companies(
+    payload: AnonymizeCompaniesRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Sends ONLY approved company names to the LLM (from backend/llm.py) to retrieve
+    generalized industry replacements. Never accepts or sends raw CV text.
+    """
+    if not payload.companies:
+        return AnonymizeCompaniesResponse(replacements=[])
+
+    provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id)
+    try:
+        replacements = await anonymize_companies_with_llm(
+            companies=payload.companies,
+            provider=provider,
+            db=db,
+            user_id=current_user.id,
+        )
+        return AnonymizeCompaniesResponse(
+            replacements=[CompanyReplacementItem(**item) for item in replacements]
+        )
+    except Exception as e:
+        logger.error(f"Company anonymization failed: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Company anonymization failed: {e}",
+        )
+
+
+@app.get("/api/cv/approved", response_model=Optional[ApprovedCVResponse])
+def get_approved_cv(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns the current user's approved anonymized CV from server persistence."""
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    if not approved_cv:
+        return None
+    return ApprovedCVResponse.model_validate(approved_cv)
+
+
+@app.post("/api/cv/approved", response_model=ApprovedCVResponse)
+def save_approved_cv(
+    payload: ApprovedCVCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Stores or replaces the user's approved anonymized CV.
+    Marks any existing compatibility analyses as outdated since the CV revision changed.
+    """
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    now = datetime.datetime.utcnow()
+
+    if approved_cv:
+        approved_cv.content = payload.content
+        approved_cv.revision = payload.revision
+        approved_cv.approved_at = now
+        approved_cv.updated_at = now
+    else:
+        approved_cv = ApprovedCV(
+            user_id=current_user.id,
+            content=payload.content,
+            revision=payload.revision,
+            approved_at=now,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(approved_cv)
+
+    # Invalidate previous analyses for this user
+    db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.user_id == current_user.id
+    ).update({"is_outdated": True})
+
+    db.commit()
+    db.refresh(approved_cv)
+    return ApprovedCVResponse.model_validate(approved_cv)
+
+
+@app.delete("/api/cv/approved", status_code=status.HTTP_204_NO_CONTENT)
+def delete_approved_cv(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Deletes the approved CV and associated analyses for the authenticated user."""
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    if approved_cv:
+        db.delete(approved_cv)
+
+    db.query(VacancyCVAnalysis).filter(VacancyCVAnalysis.user_id == current_user.id).delete()
+    db.commit()
+    return None
+
+
+@app.get("/api/vacancies/{vacancy_id}/compatibility", response_model=Optional[VacancyCVAnalysisResponse])
+def get_vacancy_compatibility(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns the latest compatibility analysis between the vacancy and approved CV."""
+    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    analysis = db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.vacancy_id == vacancy_id,
+        VacancyCVAnalysis.user_id == current_user.id,
+    ).first()
+
+    if not analysis:
+        return None
+
+    # Check if approved CV revision changed
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    is_outdated = analysis.is_outdated or (approved_cv is not None and analysis.cv_revision != approved_cv.revision)
+
+    res_data = analysis.result or {}
+    return VacancyCVAnalysisResponse(
+        id=analysis.id,
+        user_id=analysis.user_id,
+        vacancy_id=analysis.vacancy_id,
+        cv_revision=analysis.cv_revision,
+        scoring_policy_version=analysis.scoring_policy_version,
+        model_id=analysis.model_id,
+        overall_score=analysis.overall_score,
+        llm_score=res_data.get("llmScore"),
+        calculated_score=res_data.get("calculatedScore"),
+        is_outdated=is_outdated,
+        summary=res_data.get("summary", ""),
+        matched_requirements=res_data.get("matchedRequirements", []),
+        missing_requirements=res_data.get("missingRequirements", []),
+        critical_gaps=res_data.get("criticalGaps", []),
+        seniority_assessment=res_data.get("seniorityAssessment"),
+        recommendations=res_data.get("recommendations", []),
+        dimension_scores=res_data.get("dimensionScores"),
+        created_at=analysis.created_at,
+        updated_at=analysis.updated_at,
+    )
+
+
+@app.post("/api/vacancies/{vacancy_id}/compatibility", response_model=VacancyCVAnalysisResponse)
+async def analyze_vacancy_compatibility(
+    vacancy_id: int,
+    force: bool = Query(False, description="Force re-analysis even if a cached result exists"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Performs AI-assisted compatibility analysis by sending the vacancy text
+    and the approved anonymized CV to the local LLM microservice.
+    """
+    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    if not approved_cv or not approved_cv.content.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="No approved CV found. Please upload and approve your CV before requesting compatibility analysis.",
+        )
+
+    # Check cache if not forcing re-analysis
+    existing = db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.vacancy_id == vacancy_id,
+        VacancyCVAnalysis.user_id == current_user.id,
+    ).first()
+
+    if existing and not force and not existing.is_outdated and existing.cv_revision == approved_cv.revision:
+        res_data = existing.result or {}
+        return VacancyCVAnalysisResponse(
+            id=existing.id,
+            user_id=existing.user_id,
+            vacancy_id=existing.vacancy_id,
+            cv_revision=existing.cv_revision,
+            scoring_policy_version=existing.scoring_policy_version,
+            model_id=existing.model_id,
+            overall_score=existing.overall_score,
+            is_outdated=False,
+            summary=res_data.get("summary", ""),
+            matched_requirements=res_data.get("matchedRequirements", []),
+            missing_requirements=res_data.get("missingRequirements", []),
+            critical_gaps=res_data.get("criticalGaps", []),
+            seniority_assessment=res_data.get("seniorityAssessment"),
+            recommendations=res_data.get("recommendations", []),
+            dimension_scores=res_data.get("dimensionScores"),
+            created_at=existing.created_at,
+            updated_at=existing.updated_at,
+        )
+
+    # Compose vacancy text for inference
+    vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
+    if vacancy.tech_stack:
+        vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
+    if vacancy.description:
+        vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
+
+    provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id)
+    try:
+        eval_data = await evaluate_vacancy_compatibility_with_llm(
+            vacancy_text=vacancy_full_text,
+            cv_text=approved_cv.content,
+            provider=provider,
+            db=db,
+            user_id=current_user.id,
+        )
+    except Exception as e:
+        logger.error(f"Vacancy compatibility evaluation failed: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Compatibility evaluation failed: {e}",
+        )
+
+    overall_score = float(eval_data.get("overallScore", 0.0))
+    policy_version = str(eval_data.get("scoringPolicyVersion", "v1.0"))
+    model_id = str(eval_data.get("model", provider))
+    now = datetime.datetime.utcnow()
+
+    if existing:
+        existing.cv_revision = approved_cv.revision
+        existing.scoring_policy_version = policy_version
+        existing.model_id = model_id
+        existing.overall_score = overall_score
+        existing.result = eval_data
+        existing.is_outdated = False
+        existing.updated_at = now
+        analysis_record = existing
+    else:
+        analysis_record = VacancyCVAnalysis(
+            user_id=current_user.id,
+            vacancy_id=vacancy.id,
+            cv_revision=approved_cv.revision,
+            scoring_policy_version=policy_version,
+            model_id=model_id,
+            overall_score=overall_score,
+            result=eval_data,
+            is_outdated=False,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(analysis_record)
+
+    db.commit()
+    db.refresh(analysis_record)
+
+    return VacancyCVAnalysisResponse(
+        id=analysis_record.id,
+        user_id=analysis_record.user_id,
+        vacancy_id=analysis_record.vacancy_id,
+        cv_revision=analysis_record.cv_revision,
+        scoring_policy_version=analysis_record.scoring_policy_version,
+        model_id=analysis_record.model_id,
+        overall_score=analysis_record.overall_score,
+        llm_score=eval_data.get("llmScore"),
+        calculated_score=eval_data.get("calculatedScore"),
+        is_outdated=False,
+        summary=eval_data.get("summary", ""),
+        matched_requirements=eval_data.get("matchedRequirements", []),
+        missing_requirements=eval_data.get("missingRequirements", []),
+        critical_gaps=eval_data.get("criticalGaps", []),
+        seniority_assessment=eval_data.get("seniorityAssessment"),
+        recommendations=eval_data.get("recommendations", []),
+        dimension_scores=eval_data.get("dimensionScores"),
+        created_at=analysis_record.created_at,
+        updated_at=analysis_record.updated_at,
+    )
+
 
 
 # Static files mount for built React frontend
