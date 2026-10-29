@@ -2847,6 +2847,46 @@ svg {
   flex-wrap: wrap;
 }
 
+/* Custom dropdown chevron for selects per SO: 611482 */
+select.form-input,
+select.form-select,
+.modal-status-select,
+.modal-workplace-select,
+select.salary-field-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+  padding-right: 30px !important;
+}
+
+select.form-input:hover,
+select.form-select:hover,
+.modal-status-select:hover,
+.modal-workplace-select:hover,
+select.salary-field-input:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+select.form-input::-ms-expand,
+select.form-select::-ms-expand,
+select.salary-field-input::-ms-expand,
+.modal-status-select::-ms-expand,
+.modal-workplace-select::-ms-expand {
+  display: none;
+}
+
+.modal-workplace-select {
+  font-size: 0.75rem;
+  padding: 5px 30px 5px 10px !important;
+  cursor: pointer;
+  min-width: 135px;
+  max-width: 100%;
+}
+
 .modal-status-select {
   display: none;
 }
@@ -2884,6 +2924,10 @@ svg {
   height: 34px;
 }
 
+select.salary-field-input {
+  padding: 6px 30px 6px 10px !important;
+}
+
 @media all and (max-width: 640px) {
   .salary-fields-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2919,7 +2963,7 @@ svg {
   .modal-status-select {
     display: block !important;
     font-size: 0.75rem;
-    padding: 5px 10px;
+    padding: 5px 30px 5px 10px !important;
     cursor: pointer;
     min-width: 140px;
     max-width: 100%;
