@@ -63,7 +63,16 @@ if (!DOKPLOY_API_KEY) {
 }
 
 const projectName = process.env.PROJECT_NAME || 'linkedin-parser';
-const DEV_DOMAIN = `dev.${projectName.replace(/[^a-zA-Z0-9]/g, '')}.194-163-164-255.sslip.io`;
+const DOKPLOY_BASE_DOMAIN = process.env.DOKPLOY_BASE_DOMAIN;
+if (!DOKPLOY_BASE_DOMAIN) {
+  console.error('❌ DOKPLOY_BASE_DOMAIN is not set in .env or environment variables.');
+  process.exit(1);
+}
+const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
+const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
+const DEV_DOMAIN = normalizedBase.includes(projectSlug)
+  ? `dev${normalizedBase}`
+  : `dev.${projectSlug}${normalizedBase}`;
 
 async function trpcCall<T = unknown>(endpoint: string, method: 'GET' | 'POST', data?: unknown): Promise<T> {
   let url = `${DOKPLOY_URL}/api/trpc/${endpoint}`;
