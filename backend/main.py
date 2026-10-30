@@ -95,10 +95,12 @@ from .mercure import (
     EVENT_VACANCY_UPDATED,
     EVENT_VACANCY_DELETED,
     EVENT_QUEUE_UPDATED,
+    EVENT_COMPATIBILITY_ANALYZED,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
     MSG_VACANCY_DELETED,
     MSG_QUEUE_UPDATED,
+    MSG_COMPATIBILITY_ANALYZED,
 )
 from .queue_manager import (
     queue_manager,
@@ -2045,8 +2047,39 @@ async def analyze_vacancy_compatibility(
         )
         db.add(analysis_record)
 
+    # Also update vacancy.match_score and emit Mercure event so Kanban board reflects manual compatibility check
+    vacancy.match_score = overall_score
     db.commit()
     db.refresh(analysis_record)
+
+    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_VACANCY_UPDATED,
+            data={"vacancy": vacancy_data, "message_code": MSG_VACANCY_UPDATED},
+            topic=mercure_topic,
+        )
+    )
+    asyncio.create_task(
+        publish_mercure_event(
+            event_type=EVENT_COMPATIBILITY_ANALYZED,
+            data={
+                "message_code": MSG_COMPATIBILITY_ANALYZED,
+                "vacancy_id": vacancy.id,
+                "match_score": overall_score,
+                "overall_score": overall_score,
+                "llm_score": eval_data.get("llmScore"),
+                "calculated_score": eval_data.get("calculatedScore"),
+                "summary": eval_data.get("summary"),
+                "matched_requirements": eval_data.get("matchedRequirements", []),
+                "missing_requirements": eval_data.get("missingRequirements", []),
+                "critical_gaps": eval_data.get("criticalGaps", []),
+                "recommendations": eval_data.get("recommendations", []),
+            },
+            topic=mercure_topic,
+        )
+    )
 
     return VacancyCVAnalysisResponse(
         id=analysis_record.id,

@@ -4,18 +4,23 @@ import asyncio
 import logging
 import time
 import uuid
+import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 
 import redis.asyncio as aioredis
 
 from .database import SessionLocal
-from .models import Vacancy, VacancyStatusHistory, AppSetting
+from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
-from .llm import analyze_vacancy_with_llm, get_setting_or_env
+from .llm import (
+    analyze_vacancy_with_llm,
+    get_setting_or_env,
+    evaluate_vacancy_compatibility_with_llm,
+)
 from .mercure import (
     publish_mercure_event,
     EVENT_VACANCY_CREATED,
@@ -23,11 +28,13 @@ from .mercure import (
     EVENT_TASK_FAILED,
     EVENT_QUEUE_UPDATED,
     EVENT_QUEUE_IDLE,
+    EVENT_COMPATIBILITY_ANALYZED,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
     MSG_TASK_FAILED,
     MSG_QUEUE_UPDATED,
     MSG_QUEUE_IDLE,
+    MSG_COMPATIBILITY_ANALYZED,
     ERR_SCRAPE_FAILED,
     ERR_AI_ANALYSIS_FAILED,
 )
@@ -879,6 +886,66 @@ class RedisQueueManager:
                 if llm_res.get("is_closed") is not None:
                     vacancy.is_closed = llm_res["is_closed"]
 
+                # Check if user has an approved CV to automatically evaluate compatibility
+                approved_cv = None
+                if user_id:
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+
+                compat_res = None
+                if approved_cv and approved_cv.content and approved_cv.content.strip():
+                    try:
+                        logger.info(f"[Stage 2 - AI] Running automatic CV compatibility evaluation for vacancy #{vacancy.id} (user {user_id})")
+                        vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
+                        if vacancy.tech_stack:
+                            vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
+                        if vacancy.description:
+                            vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
+
+                        compat_res = await evaluate_vacancy_compatibility_with_llm(
+                            vacancy_text=vacancy_full_text,
+                            cv_text=approved_cv.content,
+                            provider=provider,
+                            db=db,
+                            user_id=user_id,
+                        )
+
+                        overall_score = float(compat_res.get("overallScore", 0.0))
+                        policy_version = str(compat_res.get("scoringPolicyVersion", "v1.0"))
+                        model_id = str(compat_res.get("model", provider or "llm"))
+                        now = datetime.datetime.utcnow()
+
+                        vacancy.match_score = overall_score
+
+                        existing_analysis = db.query(VacancyCVAnalysis).filter(
+                            VacancyCVAnalysis.vacancy_id == vacancy.id,
+                            VacancyCVAnalysis.user_id == user_id,
+                        ).first()
+
+                        if existing_analysis:
+                            existing_analysis.cv_revision = approved_cv.revision
+                            existing_analysis.scoring_policy_version = policy_version
+                            existing_analysis.model_id = model_id
+                            existing_analysis.overall_score = overall_score
+                            existing_analysis.result = compat_res
+                            existing_analysis.is_outdated = False
+                            existing_analysis.updated_at = now
+                        else:
+                            new_analysis = VacancyCVAnalysis(
+                                user_id=user_id,
+                                vacancy_id=vacancy.id,
+                                cv_revision=approved_cv.revision,
+                                scoring_policy_version=policy_version,
+                                model_id=model_id,
+                                overall_score=overall_score,
+                                result=compat_res,
+                                is_outdated=False,
+                                created_at=now,
+                                updated_at=now,
+                            )
+                            db.add(new_analysis)
+                    except Exception as e_comp:
+                        logger.warning(f"Automatic CV compatibility evaluation failed for vacancy #{vacancy.id}: {e_comp}")
+
                 db.commit()
                 db.refresh(vacancy)
                 vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
@@ -899,7 +966,7 @@ class RedisQueueManager:
                 f"Remaining tasks in pipeline: {total_rem}"
             )
 
-            # Publish updated vacancy to Mercure Hub: frontend updates card with AI summary & tech stack!
+            # Publish updated vacancy to Mercure Hub: frontend updates card with AI summary, tech stack, and match_score!
             mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
@@ -913,6 +980,26 @@ class RedisQueueManager:
                 },
                 topic=mercure_topic,
             )
+
+            # If compatibility analysis was computed, also publish dedicated compatibility event
+            if compat_res:
+                await publish_mercure_event(
+                    event_type=EVENT_COMPATIBILITY_ANALYZED,
+                    data={
+                        "message_code": MSG_COMPATIBILITY_ANALYZED,
+                        "vacancy_id": vacancy_data.get("id"),
+                        "match_score": vacancy_data.get("match_score"),
+                        "overall_score": compat_res.get("overallScore"),
+                        "llm_score": compat_res.get("llmScore"),
+                        "calculated_score": compat_res.get("calculatedScore"),
+                        "summary": compat_res.get("summary"),
+                        "matched_requirements": compat_res.get("matchedRequirements", []),
+                        "missing_requirements": compat_res.get("missingRequirements", []),
+                        "critical_gaps": compat_res.get("criticalGaps", []),
+                        "recommendations": compat_res.get("recommendations", []),
+                    },
+                    topic=mercure_topic,
+                )
 
         except Exception as e:
             task.status = "failed"

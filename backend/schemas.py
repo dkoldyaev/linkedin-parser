@@ -42,6 +42,7 @@ class VacancyBase(BaseModel):
     salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: List[str] = Field(default_factory=list)
+    match_score: Optional[float] = None
     tags: List[str] = Field(default_factory=list)
     status: str = "Еще не написан"
     notes: Optional[str] = None
@@ -68,6 +69,7 @@ class VacancyUpdate(BaseModel):
     salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: Optional[List[str]] = None
+    match_score: Optional[float] = None
     company_info: Optional[str] = None
     status_comment: Optional[str] = None
 

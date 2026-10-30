@@ -75,6 +75,7 @@ class Vacancy(Base):
     # AI-generated fields
     ai_summary = Column(Text, nullable=True)
     tech_stack = Column(JSON, default=list)  # list of strings e.g. ["Python", "Docker"]
+    match_score = Column(Float, nullable=True)  # Compatibility score (0-100) with approved CV
     
     # Kanban & User organization
     status = Column(String(64), nullable=False, default="Еще не написан")

@@ -101,6 +101,8 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN sort_order REAL"))
                     if "lane" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
+                    if "match_score" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -113,6 +115,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS source VARCHAR(64)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS match_score DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))

@@ -86,6 +86,10 @@ export const translations = {
       new_stage: "Новый этап",
       stage_n: "Этап {n}",
       stage_badge: "этап {n}",
+      match_badge: "Совпадение: {score}%",
+      match_high: "Высокое совпадение",
+      match_medium: "Среднее совпадение",
+      match_low: "Низкое совпадение",
     },
     workplace: {
       remote: "Удаленка",
@@ -434,6 +438,10 @@ export const translations = {
       new_stage: "New stage",
       stage_n: "Stage {n}",
       stage_badge: "stage {n}",
+      match_badge: "Match: {score}%",
+      match_high: "High match",
+      match_medium: "Moderate match",
+      match_low: "Low match",
     },
     workplace: {
       remote: "Remote",
