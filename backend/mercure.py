@@ -79,6 +79,21 @@ async def publish_mercure_event(
         **data
     }
 
+    # Broadcast to active WebSockets in real time
+    try:
+        from .websocket_manager import ws_manager
+        if topic and topic.startswith("vacancies:"):
+            try:
+                user_id_part = topic.split(":", 1)[1]
+                user_id_int = int(user_id_part)
+                await ws_manager.broadcast_to_user(user_id_int, payload)
+            except (ValueError, IndexError):
+                await ws_manager.broadcast_all(payload)
+        else:
+            await ws_manager.broadcast_all(payload)
+    except Exception as e:
+        logger.debug(f"WebSocket broadcast error: {e}")
+
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.post(

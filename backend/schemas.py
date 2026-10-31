@@ -21,6 +21,29 @@ class DevLoginRequest(BaseModel):
     email: Optional[str] = "dev@local.user"
     name: Optional[str] = "Dev User"
 
+class ApiTokenCreate(BaseModel):
+    name: Optional[str] = "Default Token"
+    expires_in_days: Optional[int] = None
+
+class ApiTokenResponse(BaseModel):
+    id: int
+    name: str
+    token_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ApiTokenCreatedResponse(BaseModel):
+    id: int
+    name: str
+    token: str
+    token_prefix: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+
 class VacancyBase(BaseModel):
     title: str
     company: str

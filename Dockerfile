@@ -44,6 +44,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application
 COPY backend/ ./backend
+COPY mcp_server.py ./
 
 # Copy built frontend assets to static dir
 COPY --from=frontend-builder /app/frontend/dist /app/static

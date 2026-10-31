@@ -114,3 +114,107 @@
 2. В интерфейсе приложения:
    - Нажмите на иконку шестеренки **«Настройки AI»** в правом верхнем углу шапки.
    - Выберите активного провайдера и введите ключ. Настройки сохранятся в базе данных.
+
+---
+
+## Model Context Protocol (MCP) Server & API Токены
+
+Приложение предоставляет полноценный **MCP-сервер** для подключения AI-ассистентов (Claude Desktop, Cursor, Antigravity, VS Code, Goose и др.) к вашей Канбан-доске вакансий.
+
+Благодаря поддержке **`npx`**, сервер не требует предварительной установки Python, виртуальных окружений или зависимостей — всё запускается в одну строку.
+
+### 1. Генерация токена доступа в Web UI
+1. Откройте приложение в браузере и нажмите на иконку шестеренки **«Настройки»** в правом верхнем углу шапки.
+2. Перейдите во вкладку **«MCP / API»**.
+3. Введите название токена (например, *Claude Desktop* или *Cursor*) и нажмите **«Создать токен»**.
+4. Скопируйте сгенерированный токен `mcp_...`.
+
+### 2. Подключение к Claude Desktop (без установки, через npx)
+Добавьте в ваш файл конфигурации Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "job-tracker": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:dkoldyaev/linkedin-parser#create_mcp_token_auth"
+      ],
+      "env": {
+        "JOB_TRACKER_URL": "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com",
+        "JOB_TRACKER_API_KEY": "mcp_ваш_токен"
+      }
+    }
+  }
+}
+```
+
+### 3. Подключение к Cursor / Antigravity
+Создайте или отредактируйте `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "job-tracker": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:dkoldyaev/linkedin-parser#create_mcp_token_auth"
+      ],
+      "env": {
+        "JOB_TRACKER_URL": "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com",
+        "JOB_TRACKER_API_KEY": "mcp_ваш_токен"
+      }
+    }
+  }
+}
+```
+
+### 4. Быстрый запуск из CLI
+```bash
+# Через npx (без клонирования и установки):
+npx -y github:dkoldyaev/linkedin-parser#create_mcp_token_auth \
+  --url "https://create-mcp-token-auth.linkedinparser.build.dkoldyaev.com" \
+  --api-key "mcp_ваш_токен"
+
+# Или внутри клонированного репозитория:
+npm run mcp -- --api-key="mcp_ваш_токен"
+# или на Python:
+npm run mcp:py -- --api-key="mcp_ваш_токен"
+```
+
+### Доступные MCP Инструменты (Tools):
+- `list_vacancies`: Поиск и фильтрация сохраненных вакансий по статусу, компании, тегам, городам, странам и ключевым словам.
+- `get_vacancy`: Получение полных данных по вакансии (полное описание, AI-саммари, стек технологий, зарплата, история статусов).
+- `create_vacancy`: Ручное добавление вакансии в трекер.
+- `import_vacancies`: Пакетный импорт по ссылкам (LinkedIn, Habr Career, HeadHunter, Upwork, Avito и др.) с автоматическим парсингом и AI-анализом.
+- `update_vacancy`: Перемещение карточек по колонкам воронки («Написал», «Собеседование», «Тестовое», «Оффер», «Отказ»), обновление заметок, тегов, зарплаты.
+- `delete_vacancy`: Удаление вакансии.
+- `add_status_history`: Фиксация комментариев по этапам собеседований в истории вакансии.
+- `resummarize_vacancy`: Перегенерация AI-саммари и стека.
+- `reparse_vacancy`: Повторный сбор данных с сайта вакансии.
+- `get_stats`: Метрики и конверсия воронки откликов.
+- `get_columns`: Список активных колонок Канбан-доски.
+- `get_tags`: Список используемых тегов.
+- `check_duplicates`: Проверка ссылок на дубликаты.
+
+### MCP Ресурсы:
+- `job-tracker://vacancies`, `job-tracker://stats`, `job-tracker://columns`.
+
+---
+
+## Обновления в реальном времени (WebSocket & Mercure)
+
+Приложение поддерживает трансляцию изменений вакансий и статусов очередей в реальном времени:
+
+1. **WebSocket (`/api/ws` или `/ws`)**:
+   - Работает прямо в основном backend-процессе FastAPI (порт 8000), не требует отдельных демонов или внешних портов.
+   - Поддерживает аутентификацию через сессионные cookies, заголовок `Authorization` или query-параметр: `ws://localhost:8000/api/ws?token=mcp_...`.
+   - Изолирует события по пользователю: события вакансий отправляются только подключенным сокетам соответствующего пользователя.
+   - Поддерживает ping/pong для контроля соединения.
+
+2. **Mercure Hub (SSE)**:
+   - В `docker-compose.yml` открыт порт Mercure: `"${MERCURE_PORT:-3000}:80"`.
+   - Frontend автоматически подключается к WebSocket (`/api/ws`), а в случае разрыва соединения автоматически переключается на Mercure SSE hub.
+

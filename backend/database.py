@@ -73,6 +73,11 @@ def ensure_db_schema():
     """Ensure newly added columns exist in existing database tables."""
     from sqlalchemy import text
     try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.warning(f"Base.metadata.create_all check: {e}")
+
+    try:
         with engine.begin() as conn:
             dialect = engine.dialect.name
             if dialect == "sqlite":
