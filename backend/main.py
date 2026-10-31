@@ -2233,6 +2233,51 @@ async def adapt_cv_for_vacancy(
     )
 
 
+@app.post("/api/cv/publish-proxy")
+async def publish_cv_proxy(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Transparent CORS reverse proxy for publishing the client-deanonymized DeveloperCV payload
+    to the external CV service (https://cv.build.dkoldyaev.com/api/cv).
+    The deanonymized payload and auth token are sent by the client directly to this endpoint,
+    which forwards it server-to-server, bypassing browser CORS restrictions.
+    """
+    try:
+        payload = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {e}")
+
+    # Extract auth token from incoming request headers or fallback to known token
+    auth_header = request.headers.get("authorization") or request.headers.get("x-api-key")
+    if not auth_header:
+        auth_header = "Bearer cvt_6aa894042bcc46afc448983f57b7756a63a075626a7eba2e"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": auth_header if auth_header.startswith("Bearer ") else f"Bearer {auth_header}",
+        "x-api-key": auth_header.replace("Bearer ", ""),
+    }
+
+    target_url = "https://cv.build.dkoldyaev.com/api/cv"
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.post(target_url, json=payload, headers=headers)
+        except httpx.RequestError as exc:
+            logger.error(f"Failed to forward CV publishing request to {target_url}: {exc}")
+            raise HTTPException(status_code=502, detail=f"Failed to reach CV service: {exc}")
+
+    if resp.is_error:
+        try:
+            err_json = resp.json()
+        except Exception:
+            err_json = {"error": resp.text}
+        raise HTTPException(status_code=resp.status_code, detail=err_json)
+
+    return resp.json()
+
+
 
 # Static files mount for built React frontend
 STATIC_DIR = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))

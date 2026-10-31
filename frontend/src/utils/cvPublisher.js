@@ -184,21 +184,35 @@ export async function publishAdaptedCV(anonymizedAdaptedCv, token = CV_SERVICE_T
   // 3. Clean and validate against OpenAPI schema
   const payload = sanitizeDeveloperCVPayload(deanonymizedCv);
 
-  // 4. Send directly to CV API using token
-  const res = await fetch(`${DEFAULT_CV_API_URL}/api/cv`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      'x-api-key': token,
-    },
-    body: JSON.stringify(payload),
-  });
+  // 4. Send to CV API using proxy to avoid browser CORS restrictions
+  let res;
+  try {
+    res = await fetch('/api/cv/publish-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-api-key': token,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    // If local proxy fails due to network/routing, attempt direct fallback
+    res = await fetch(`${DEFAULT_CV_API_URL}/api/cv`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-api-key': token,
+      },
+      body: JSON.stringify(payload),
+    });
+  }
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}));
-    const errDetail = errorBody.error || (errorBody.details ? JSON.stringify(errorBody.details) : res.statusText);
-    throw new Error(`Failed to publish tailored CV (${res.status}): ${errDetail}`);
+    const errDetail = errorBody.error || errorBody.detail || (errorBody.details ? JSON.stringify(errorBody.details) : res.statusText);
+    throw new Error(`Failed to publish tailored CV (${res.status}): ${typeof errDetail === 'object' ? JSON.stringify(errDetail) : errDetail}`);
   }
 
   const result = await res.json();
