@@ -240,6 +240,28 @@ export function deanonymizeCVText(text, mappings = []) {
 }
 
 /**
+ * Recursively deanonymizes an object or array (e.g. DeveloperCV structured JSON)
+ * by reversing all placeholder tokens and generalized names using saved mappings.
+ */
+export function deanonymizeObject(obj, mappings = []) {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string') {
+    return deanonymizeCVText(obj, mappings);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => deanonymizeObject(item, mappings));
+  }
+  if (typeof obj === 'object') {
+    const copy = {};
+    for (const [key, val] of Object.entries(obj)) {
+      copy[key] = deanonymizeObject(val, mappings);
+    }
+    return copy;
+  }
+  return obj;
+}
+
+/**
  * Extracts potential company / employer names from CV text using client-side heuristics
  * and Compromise organizations/patterns so the user can review and approve them.
  */

@@ -86,6 +86,7 @@ from .llm import (
     get_setting_or_env,
     anonymize_companies_with_llm,
     evaluate_vacancy_compatibility_with_llm,
+    adapt_cv_for_vacancy_with_llm,
 )
 import asyncio
 from .mercure import (
@@ -1940,6 +1941,7 @@ def get_vacancy_compatibility(
         seniority_assessment=res_data.get("seniorityAssessment"),
         recommendations=res_data.get("recommendations", []),
         dimension_scores=res_data.get("dimensionScores"),
+        adapted_cv=analysis.adapted_cv,
         created_at=analysis.created_at,
         updated_at=analysis.updated_at,
     )
@@ -2023,12 +2025,31 @@ async def analyze_vacancy_compatibility(
     model_id = str(eval_data.get("model", provider))
     now = datetime.datetime.utcnow()
 
+    adapted_cv_payload = None
+    if overall_score >= 75.0:
+        try:
+            logger.info(f"Generating adapted anonymized DeveloperCV for vacancy #{vacancy.id} (score {overall_score}%)...")
+            mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=current_user.id)
+            gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=current_user.id)
+            adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
+                anonymized_cv_text=approved_cv.content,
+                vacancy_text=vacancy_full_text,
+                mistral_key=mistral_key,
+                gemini_key=gemini_key,
+                active_provider=provider,
+                active_model=eval_data.get("model"),
+            )
+        except Exception as e_adapt:
+            logger.warning(f"CV adaptation failed for vacancy #{vacancy.id}: {e_adapt}")
+
     if existing:
         existing.cv_revision = approved_cv.revision
         existing.scoring_policy_version = policy_version
         existing.model_id = model_id
         existing.overall_score = overall_score
         existing.result = eval_data
+        if adapted_cv_payload:
+            existing.adapted_cv = adapted_cv_payload
         existing.is_outdated = False
         existing.updated_at = now
         analysis_record = existing
@@ -2041,6 +2062,7 @@ async def analyze_vacancy_compatibility(
             model_id=model_id,
             overall_score=overall_score,
             result=eval_data,
+            adapted_cv=adapted_cv_payload,
             is_outdated=False,
             created_at=now,
             updated_at=now,
@@ -2076,6 +2098,7 @@ async def analyze_vacancy_compatibility(
                 "missing_requirements": eval_data.get("missingRequirements", []),
                 "critical_gaps": eval_data.get("criticalGaps", []),
                 "recommendations": eval_data.get("recommendations", []),
+                "adapted_cv": analysis_record.adapted_cv,
             },
             topic=mercure_topic,
         )
@@ -2099,6 +2122,7 @@ async def analyze_vacancy_compatibility(
         seniority_assessment=eval_data.get("seniorityAssessment"),
         recommendations=eval_data.get("recommendations", []),
         dimension_scores=eval_data.get("dimensionScores"),
+        adapted_cv=analysis_record.adapted_cv,
         created_at=analysis_record.created_at,
         updated_at=analysis_record.updated_at,
     )

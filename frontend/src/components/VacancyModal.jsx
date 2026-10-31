@@ -3,7 +3,7 @@ import {
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
   Laptop, Layers, Building, Ban, History, MessageSquare, ArrowRight, Edit3,
-  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle
+  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -11,6 +11,7 @@ import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
+import { publishAdaptedCV, CV_SERVICE_TOKEN } from '../utils/cvPublisher';
 
 const DEFAULT_COLUMNS = [
   { id: "Еще не написан", color: "#6366f1" },
@@ -76,6 +77,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [compatError, setCompatError] = useState(null);
   const [showEvidenceMap, setShowEvidenceMap] = useState({});
 
+  // Publishing adapted CV state
+  const [publishingCV, setPublishingCV] = useState(false);
+  const [publishedCVData, setPublishedCVData] = useState(null);
+  const [publishError, setPublishError] = useState(null);
+
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
       titleTextareaRef.current.style.height = 'auto';
@@ -116,6 +122,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setTitle(vacancy.title || "");
       setCompatibility(null);
       setCompatError(null);
+      setPublishedCVData(null);
+      setPublishError(null);
 
       // Fetch cached compatibility analysis
       if (vacancy.id) {
@@ -146,6 +154,26 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setCompatError(err.message);
     } finally {
       setAnalyzingCompatibility(false);
+    }
+  };
+
+  const handlePublishAdaptedCV = async () => {
+    if (!compatibility?.adapted_cv) return;
+    setPublishingCV(true);
+    setPublishError(null);
+    try {
+      const res = await publishAdaptedCV(compatibility.adapted_cv, CV_SERVICE_TOKEN);
+      setPublishedCVData(res);
+      trackEvent('CV_ADAPTED_PUBLISHED', {
+        vacancy_id: vacancy.id,
+        cv_id: res.id,
+        url: res.url,
+      });
+    } catch (err) {
+      console.error('Publishing adapted CV failed:', err);
+      setPublishError(err.message || 'Failed to publish CV');
+    } finally {
+      setPublishingCV(false);
     }
   };
 
@@ -1114,6 +1142,120 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         <li key={i}>{rec}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* Adapted CV Generation & Client-Side Publishing for High Match */}
+                {compatibility.overall_score >= 75 && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '14px',
+                    borderRadius: '8px',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 600, fontSize: '0.9rem' }}>
+                        <Globe size={18} />
+                        <span>Tailored Developer CV (High Match &ge; 75%)</span>
+                      </div>
+                      {compatibility.adapted_cv && (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={handlePublishAdaptedCV}
+                          disabled={publishingCV}
+                          style={{
+                            background: '#0284c7',
+                            borderColor: '#0284c7',
+                            color: '#ffffff',
+                            fontSize: '0.8rem',
+                            padding: '6px 14px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          {publishingCV ? (
+                            <>
+                              <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                              <span>Deanonymizing & Publishing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink size={13} />
+                              <span>Publish New CV Page</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.45, margin: '0 0 10px 0' }}>
+                      A tailored version in standard DeveloperCV format was generated on the server without inventing new facts.
+                      Clicking &ldquo;Publish New CV Page&rdquo; deanonymizes personal identifiers and company names <strong>strictly in your browser</strong>, then calls the CV service API to generate your public link.
+                    </p>
+
+                    {publishError && (
+                      <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginBottom: '10px' }}>
+                        {publishError}
+                      </div>
+                    )}
+
+                    {publishedCVData && (
+                      <div style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid #10b981',
+                        padding: '12px',
+                        borderRadius: '6px',
+                        marginTop: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6ee7b7', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>
+                          <Check size={16} />
+                          <span>New CV page successfully published!</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '0.8rem' }}>
+                          <a
+                            href={publishedCVData.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ color: '#38bdf8', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                          >
+                            <ExternalLink size={12} /> Open HTML CV
+                          </a>
+                          {publishedCVData.markdownUrl && (
+                            <a
+                              href={publishedCVData.markdownUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#94a3b8', textDecoration: 'underline' }}
+                            >
+                              Markdown (.md)
+                            </a>
+                          )}
+                          {publishedCVData.pdfUrl && (
+                            <a
+                              href={publishedCVData.pdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#94a3b8', textDecoration: 'underline' }}
+                            >
+                              PDF (.pdf)
+                            </a>
+                          )}
+                          {publishedCVData.jsonUrl && (
+                            <a
+                              href={publishedCVData.jsonUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ color: '#94a3b8', textDecoration: 'underline' }}
+                            >
+                              JSON (.json)
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

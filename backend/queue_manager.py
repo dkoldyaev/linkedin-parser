@@ -20,6 +20,7 @@ from .llm import (
     analyze_vacancy_with_llm,
     get_setting_or_env,
     evaluate_vacancy_compatibility_with_llm,
+    adapt_cv_for_vacancy_with_llm,
 )
 from .mercure import (
     publish_mercure_event,
@@ -916,6 +917,24 @@ class RedisQueueManager:
 
                         vacancy.match_score = overall_score
 
+                        # If high match (>= 75%), automatically adapt anonymized CV for this vacancy
+                        adapted_cv_payload = None
+                        if overall_score >= 75.0:
+                            try:
+                                logger.info(f"[Stage 2 - AI] Vacancy #{vacancy.id} has high match ({overall_score}%). Generating adapted anonymized DeveloperCV...")
+                                mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=user_id)
+                                gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=user_id)
+                                adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
+                                    anonymized_cv_text=approved_cv.content,
+                                    vacancy_text=vacancy_full_text,
+                                    mistral_key=mistral_key,
+                                    gemini_key=gemini_key,
+                                    active_provider=provider,
+                                    active_model=compat_res.get("model"),
+                                )
+                            except Exception as e_adapt:
+                                logger.warning(f"Automatic CV adaptation failed for vacancy #{vacancy.id}: {e_adapt}")
+
                         existing_analysis = db.query(VacancyCVAnalysis).filter(
                             VacancyCVAnalysis.vacancy_id == vacancy.id,
                             VacancyCVAnalysis.user_id == user_id,
@@ -927,6 +946,8 @@ class RedisQueueManager:
                             existing_analysis.model_id = model_id
                             existing_analysis.overall_score = overall_score
                             existing_analysis.result = compat_res
+                            if adapted_cv_payload:
+                                existing_analysis.adapted_cv = adapted_cv_payload
                             existing_analysis.is_outdated = False
                             existing_analysis.updated_at = now
                         else:
@@ -938,6 +959,7 @@ class RedisQueueManager:
                                 model_id=model_id,
                                 overall_score=overall_score,
                                 result=compat_res,
+                                adapted_cv=adapted_cv_payload,
                                 is_outdated=False,
                                 created_at=now,
                                 updated_at=now,
@@ -997,6 +1019,7 @@ class RedisQueueManager:
                         "missing_requirements": compat_res.get("missingRequirements", []),
                         "critical_gaps": compat_res.get("criticalGaps", []),
                         "recommendations": compat_res.get("recommendations", []),
+                        "adapted_cv": adapted_cv_payload,
                     },
                     topic=mercure_topic,
                 )

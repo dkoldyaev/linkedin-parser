@@ -288,6 +288,7 @@ class VacancyCVAnalysisResponse(BaseModel):
     seniority_assessment: Optional[SeniorityAssessmentData] = None
     recommendations: List[str] = Field(default_factory=list)
     dimension_scores: Optional[dict] = None
+    adapted_cv: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
 

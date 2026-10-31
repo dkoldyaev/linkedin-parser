@@ -619,3 +619,136 @@ Output strictly valid JSON matching this schema:
         "model": active_model,
     }
 
+
+async def adapt_cv_for_vacancy_with_llm(
+    anonymized_cv_text: str,
+    vacancy_text: str,
+    mistral_key: Optional[str] = None,
+    gemini_key: Optional[str] = None,
+    active_provider: Optional[str] = None,
+    active_model: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Adapts the candidate's approved anonymized CV for a specific target vacancy.
+    Strict constraint: NEVER hallucinate or add any new facts or false experience.
+    Only reorganize, rephrase, tailor summary/highlights to emphasize relevant skills,
+    and remove irrelevant or redundant details.
+    
+    Returns a structured dictionary strictly adhering to the DeveloperCV schema (https://cv.build.dkoldyaev.com/openapi.json).
+    Placeholders (e.g. [PERSON_NAME], [EMAIL], [PHONE], [ADDRESS], [PERSONAL_URL], [COMPANY_*])
+    are preserved so the client can deanonymize them before publishing.
+    """
+    provider = (active_provider or os.getenv("LLM_PROVIDER") or "mistral").lower()
+    mistral_model = active_model or os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = active_model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    prompt = f"""You are an expert technical resume writer and career advisor.
+Your task is to tailor an approved ANONYMIZED CV for a specific target job vacancy.
+
+CRITICAL RULES:
+1. TRUTHFULNESS & GROUNDING:
+   - DO NOT INVENT OR HALLUCINATE ANY NEW FACTS, experiences, employers, technologies, degrees, or certifications.
+   - ONLY rephrase, re-order, emphasize, or highlight existing real experience present in the base CV.
+   - Omit or shorten irrelevant details that do not contribute to matching this specific vacancy.
+2. ANONYMIZATION PRESERVATION:
+   - PRESERVE ALL PII PLACEHOLDERS exactly as they appear (e.g., [PERSON_NAME], [EMAIL], [PHONE], [PERSONAL_URL], [ADDRESS], [CUSTOM], generalized company names).
+   - Do NOT replace placeholders with real names or invented fake names.
+3. OUTPUT FORMAT:
+   - You MUST output STRICTLY VALID JSON conforming to the DeveloperCV JSON schema (no markdown fences, no explanatory text outside JSON).
+
+DEVELOPER CV SCHEMA SPECIFICATION:
+- name: string (must use the placeholder from the CV, e.g. "[PERSON_NAME]" or original if not masked)
+- headline: string (relevant targeted professional headline aligned with the vacancy and existing experience)
+- summary: string (targeted executive summary emphasizing candidate's relevant strengths for this vacancy without adding new claims)
+- contact: object with:
+    - email: string (placeholder e.g. "email@placeholder.local" or placeholder token if valid format, e.g. "candidate@anonymized.local" or "[EMAIL]")
+    - phone: string (placeholder e.g. "[PHONE]")
+    - location: object with:
+        - city: string or null
+        - country: string (minimum length 1)
+        - region: optional string
+    - links: array of objects with {{"label": string, "url": string (must start with https://)}}
+- workExperience: array of objects with:
+    - id: string (slug matching ^[a-z0-9-]+$)
+    - title: string
+    - company: object with {{"name": string, "url": string starting with https:// or null}}
+    - employmentType: one of ["freelance", "full-time", "part-time", "contract", "internship", "unspecified"]
+    - startDate: string (YYYY-MM)
+    - endDate: string (YYYY-MM) or null (if currently employed)
+    - location: object with {{"city": string or null, "country": string}}
+    - summary: string or null
+    - highlights: array of strings (rephrased/focused bullet points highlighting vacancy-relevant achievements)
+- skills: array of strings (unique list of real candidate skills from base CV, ordered by relevance to the vacancy)
+- languages: array of strings (from base CV)
+- education: array of objects with:
+    - institution: string
+    - fieldOfStudy: string
+    - startDate: string (YYYY)
+    - endDate: string (YYYY) or null
+    - location: object with {{"city": string or null, "country": string}}
+    - degree: string or null
+- volunteerExperience: array of objects with:
+    - organization: string
+    - role: string
+    - startDate: string (YYYY)
+    - endDate: string (YYYY) or null
+    - location: object with {{"city": string or null, "country": string}}
+    - highlights: array of strings
+
+=== TARGET VACANCY ===
+{vacancy_text}
+
+=== APPROVED ANONYMIZED BASE CV ===
+{anonymized_cv_text}
+"""
+
+    raw_response = ""
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        raw_response = await call_mistral(prompt, mistral_key, mistral_model)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        raw_response = await call_gemini(prompt, gemini_key, gemini_model)
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    # Parse and clean response
+    cleaned = raw_response.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    try:
+        adapted_cv = json.loads(cleaned)
+    except Exception as e:
+        logger.error(f"Failed to parse adapted DeveloperCV JSON: {cleaned}. Error: {e}")
+        raise RuntimeError(f"LLM failed to produce valid DeveloperCV JSON: {e}")
+
+    # Validate essential required top-level fields
+    for req_field in ["name", "headline", "summary", "contact", "workExperience", "skills", "languages", "education", "volunteerExperience"]:
+        if req_field not in adapted_cv:
+            if req_field in ["workExperience", "skills", "languages", "education", "volunteerExperience"]:
+                adapted_cv[req_field] = []
+            elif req_field == "contact":
+                adapted_cv["contact"] = {
+                    "email": "candidate@anonymized.local",
+                    "phone": "[PHONE]",
+                    "location": {"city": None, "country": "Unspecified"},
+                    "links": [],
+                }
+            elif req_field == "headline":
+                adapted_cv["headline"] = "Software Engineer"
+            elif req_field == "summary":
+                adapted_cv["summary"] = ""
+            elif req_field == "name":
+                adapted_cv["name"] = "[PERSON_NAME]"
+
+    return adapted_cv
+
+

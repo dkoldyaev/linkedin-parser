@@ -147,12 +147,16 @@ def ensure_db_schema():
                         model_id VARCHAR(128) NOT NULL,
                         overall_score REAL NOT NULL,
                         result JSON NOT NULL,
+                        adapted_cv JSON,
                         is_outdated BOOLEAN NOT NULL DEFAULT 0,
                         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         UNIQUE(user_id, vacancy_id)
                     );
                 """))
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(vacancy_cv_analyses)")).fetchall()]
+                if "adapted_cv" not in cols:
+                    conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN adapted_cv JSON"))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -181,6 +185,7 @@ def ensure_db_schema():
                         CONSTRAINT uq_user_vacancy_analysis UNIQUE (user_id, vacancy_id)
                     );
                 """))
+                conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN IF NOT EXISTS adapted_cv JSONB"))
     except Exception as e:
         logger.warning(f"Approved CV / Vacancy analysis tables migration check: {e}")
 

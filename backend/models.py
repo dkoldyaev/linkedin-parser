@@ -148,6 +148,7 @@ class VacancyCVAnalysis(Base):
     model_id = Column(String(128), nullable=False)
     overall_score = Column(Float, nullable=False)
     result = Column(JSON, nullable=False)
+    adapted_cv = Column(JSON, nullable=True)  # Anonymized DeveloperCV payload tailored for this vacancy
     is_outdated = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
