@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 
 import redis.asyncio as aioredis
+from sqlalchemy import func
 
 from .database import SessionLocal
 from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis
