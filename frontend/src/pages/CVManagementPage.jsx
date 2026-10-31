@@ -8,10 +8,11 @@ import {
   Edit3,
 } from 'lucide-react';
 import { extractTextFromFile } from '../utils/textExtractor';
-import { anonymizeCVText } from '../utils/anonymizer';
 import { getLocalCV, saveLocalCV, clearLocalCV } from '../utils/cvIndexedDB';
+import { useTranslation } from '../i18n/I18nContext';
 
 export default function CVManagementPage() {
+  const { t, locale } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [sourceText, setSourceText] = useState('');
   const [sourceRevision, setSourceRevision] = useState(1);
@@ -64,7 +65,7 @@ export default function CVManagementPage() {
           }
         }
       } catch (err) {
-        setError('Error loading local CV: ' + err.message);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -90,7 +91,7 @@ export default function CVManagementPage() {
 
       await saveLocalCV({
         sourceText: text,
-        anonymizedText: text, // Raw text is directly saved
+        anonymizedText: text,
         detectedEntities: [],
         replacementMappings: [],
         sourceRevision: newRev,
@@ -98,9 +99,9 @@ export default function CVManagementPage() {
         filename: file.name,
       });
 
-      setMessage(`File "${file.name}" loaded successfully.`);
+      setMessage(t('pages.cv.loaded_success', { filename: file.name }));
     } catch (err) {
-      setError('File extraction failed: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -125,10 +126,10 @@ export default function CVManagementPage() {
     });
   };
 
-  // Server approval
+  // Server save
   const handleApproveAndSync = async () => {
     if (!sourceText.trim()) {
-      setError('Cannot save an empty CV.');
+      setError(t('pages.cv.empty_error'));
       return;
     }
 
@@ -136,7 +137,6 @@ export default function CVManagementPage() {
       setIsSubmitting(true);
       setError(null);
 
-      // Save CV directly on the server
       const res = await fetch('/api/cv/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,25 +166,25 @@ export default function CVManagementPage() {
         filename,
       });
 
-      setMessage('CV successfully saved on server! Vacancy compatibility analysis is now unlocked.');
+      setMessage(t('pages.cv.save_success'));
     } catch (err) {
-      setError('Save failed: ' + err.message);
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteServerCV = async () => {
-    if (!window.confirm('Are you sure you want to delete your CV from the server? This will also remove compatibility analyses.')) return;
+    if (!window.confirm(t('pages.cv.confirm_delete_server'))) return;
     try {
       setIsSubmitting(true);
       await fetch('/api/cv/approved', { method: 'DELETE' });
       setServerCV(null);
       setApprovedRevision(0);
       setSyncStatus(sourceText ? 'draft' : 'none');
-      setMessage('Server CV removed.');
+      setMessage(t('pages.cv.server_deleted_success'));
     } catch (err) {
-      setError('Delete error: ' + err.message);
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -192,14 +192,14 @@ export default function CVManagementPage() {
 
   // Clear local storage
   const handleClearLocal = async () => {
-    if (!window.confirm('Delete local CV draft from your browser?')) return;
+    if (!window.confirm(t('pages.cv.confirm_clear_draft'))) return;
     await clearLocalCV();
     setSourceText('');
     setSourceRevision(1);
     setApprovedRevision(0);
     setFilename('');
     setSyncStatus('none');
-    setMessage('Local CV draft cleared.');
+    setMessage(t('pages.cv.draft_cleared'));
   };
 
   return (
@@ -209,10 +209,10 @@ export default function CVManagementPage() {
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText style={{ color: '#6366f1' }} size={28} />
-            CV Management
+            {t('pages.cv.title')}
           </h1>
           <p style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.95rem' }}>
-            Upload or edit your base CV. It is used directly for automatic vacancy compatibility matching and tailoring.
+            {t('pages.cv.subtitle')}
           </p>
         </div>
 
@@ -220,17 +220,17 @@ export default function CVManagementPage() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {syncStatus === 'approved' && (
             <span style={{ background: '#05966922', color: '#10b981', border: '1px solid #059669', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CheckCircle2 size={16} /> Saved on Server (Rev {approvedRevision})
+              <CheckCircle2 size={16} /> {t('pages.cv.saved_on_server', { rev: approvedRevision })}
             </span>
           )}
           {syncStatus === 'outdated' && (
             <span style={{ background: '#d9770622', color: '#f59e0b', border: '1px solid #d97706', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={16} /> Modified Locally (Save Needed)
+              <AlertTriangle size={16} /> {t('pages.cv.modified_locally')}
             </span>
           )}
           {syncStatus === 'draft' && (
             <span style={{ background: '#6366f122', color: '#818cf8', border: '1px solid #6366f1', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Edit3 size={16} /> Local Draft (Unsaved)
+              <Edit3 size={16} /> {t('pages.cv.local_draft')}
             </span>
           )}
         </div>
@@ -252,7 +252,7 @@ export default function CVManagementPage() {
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
           <Upload size={18} />
-          {sourceText ? 'Replace CV (MD, JSON, TXT)' : 'Upload CV (MD, JSON, TXT)'}
+          {sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}
           <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
         </label>
 
@@ -263,14 +263,14 @@ export default function CVManagementPage() {
               disabled={isSubmitting}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#059669', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
             >
-              <CheckCircle2 size={18} /> Save on Server
+              <CheckCircle2 size={18} /> {t('pages.cv.save_btn')}
             </button>
 
             <button
               onClick={handleClearLocal}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#334155', color: '#f87171', border: '1px solid #475569', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
             >
-              <Trash2 size={16} /> Clear Draft
+              <Trash2 size={16} /> {t('pages.cv.clear_draft_btn')}
             </button>
           </>
         )}
@@ -281,7 +281,7 @@ export default function CVManagementPage() {
             disabled={isSubmitting}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#7f1d1d22', color: '#fca5a5', border: '1px solid #7f1d1d', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
           >
-            <Trash2 size={16} /> Delete Server CV
+            <Trash2 size={16} /> {t('pages.cv.delete_server_btn')}
           </button>
         )}
       </div>
@@ -291,9 +291,9 @@ export default function CVManagementPage() {
         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontWeight: '600', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileText size={18} /> CV Content ({filename || 'Current Document'})
+              <FileText size={18} /> {t('pages.cv.content_header', { filename: filename || (locale === 'ru' ? 'Текущий документ' : 'Current Document') })}
             </span>
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Revision {sourceRevision}</span>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('pages.cv.revision', { rev: sourceRevision })}</span>
           </div>
           <textarea
             value={sourceText}
@@ -316,12 +316,12 @@ export default function CVManagementPage() {
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#0f172a', border: '2px dashed #334155', borderRadius: '12px' }}>
           <FileText size={48} style={{ color: '#6366f1', margin: '0 auto 16px' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>No CV Loaded</h2>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>{t('pages.cv.no_cv_title')}</h2>
           <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.9rem' }}>
-            Upload your CV in Markdown (.md), JSON (.json), or Plain Text (.txt) format. It will be used directly for automatic vacancy matching.
+            {t('pages.cv.no_cv_desc')}
           </p>
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
-            <Upload size={18} /> Choose CV File
+            <Upload size={18} /> {t('pages.cv.choose_file')}
             <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
