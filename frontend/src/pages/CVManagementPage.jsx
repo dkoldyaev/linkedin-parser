@@ -7,7 +7,7 @@ import {
   CheckCircle2,
   Trash2,
   RefreshCw,
-  Building2,
+  Hash,
   Edit3,
   Eye,
   AlertTriangle,
@@ -18,7 +18,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { extractTextFromFile } from '../utils/textExtractor';
-import { anonymizeCVText, deanonymizeCVText, extractPotentialCompanies, PLACEHOLDERS } from '../utils/anonymizer';
+import { anonymizeCVText, deanonymizeCVText, getHashedPlaceholder } from '../utils/anonymizer';
 import { getLocalCV, saveLocalCV, clearLocalCV } from '../utils/cvIndexedDB';
 
 export default function CVManagementPage() {
@@ -33,15 +33,10 @@ export default function CVManagementPage() {
   const [syncStatus, setSyncStatus] = useState('none'); // 'none' | 'draft' | 'approved' | 'outdated'
   const [filename, setFilename] = useState('');
 
-  // Company anonymization state
-  const [potentialCompanies, setPotentialCompanies] = useState([]);
-  const [selectedCompanies, setSelectedCompanies] = useState({});
-  const [companyReplacements, setCompanyReplacements] = useState([]);
-  const [isAnonymizingCompanies, setIsAnonymizingCompanies] = useState(false);
-
-  // Manual replacement state
+  // Manual & Custom replacement state
   const [manualOriginal, setManualOriginal] = useState('');
-  const [manualPlaceholder, setManualPlaceholder] = useState('[CUSTOM]');
+  const [manualPlaceholder, setManualPlaceholder] = useState('');
+  const [manualType, setManualType] = useState('CUSTOM');
   const [customReplacements, setCustomReplacements] = useState([]);
 
   // UI status
@@ -81,7 +76,6 @@ export default function CVManagementPage() {
           setApprovedRevision(local.approvedRevision || 0);
           setFilename(local.filename || '');
           setCustomReplacements(local.customReplacements || []);
-          setCompanyReplacements(local.companyReplacements || []);
           setReplacementMappings(local.replacementMappings || []);
 
           if (local.sourceRevision > (local.approvedRevision || 0)) {
@@ -118,20 +112,10 @@ export default function CVManagementPage() {
       setSyncStatus('draft');
 
       // Run anonymization pipeline
-      const { anonymizedText: anon, detectedEntities: entities, mappings } = anonymizeCVText(text, [
-        ...customReplacements,
-        ...companyReplacements,
-      ]);
+      const { anonymizedText: anon, detectedEntities: entities, mappings } = anonymizeCVText(text, customReplacements);
       setAnonymizedText(anon);
       setDetectedEntities(entities);
       setReplacementMappings(mappings);
-
-      // Detect potential companies
-      const companies = extractPotentialCompanies(text);
-      setPotentialCompanies(companies);
-      const initialSelected = {};
-      companies.forEach((c) => (initialSelected[c] = true));
-      setSelectedCompanies(initialSelected);
 
       await saveLocalCV({
         sourceText: text,
@@ -142,7 +126,6 @@ export default function CVManagementPage() {
         approvedRevision: 0,
         filename: file.name,
         customReplacements,
-        companyReplacements,
       });
 
       setMessage(`File "${file.name}" extracted and anonymized locally.`);
@@ -155,17 +138,11 @@ export default function CVManagementPage() {
 
   // Run or re-run anonymization
   const runAnonymization = useCallback(
-    async (newSourceText, newCustom = customReplacements, newCompanies = companyReplacements) => {
-      const { anonymizedText: anon, detectedEntities: entities, mappings } = anonymizeCVText(newSourceText, [
-        ...newCustom,
-        ...newCompanies,
-      ]);
+    async (newSourceText, newCustom = customReplacements) => {
+      const { anonymizedText: anon, detectedEntities: entities, mappings } = anonymizeCVText(newSourceText, newCustom);
       setAnonymizedText(anon);
       setDetectedEntities(entities);
       setReplacementMappings(mappings);
-
-      const comps = extractPotentialCompanies(newSourceText);
-      setPotentialCompanies(comps);
 
       await saveLocalCV({
         sourceText: newSourceText,
@@ -176,10 +153,9 @@ export default function CVManagementPage() {
         approvedRevision,
         filename,
         customReplacements: newCustom,
-        companyReplacements: newCompanies,
       });
     },
-    [customReplacements, companyReplacements, sourceRevision, approvedRevision, filename]
+    [customReplacements, sourceRevision, approvedRevision, filename]
   );
 
   // Edit source text locally
@@ -192,59 +168,26 @@ export default function CVManagementPage() {
     runAnonymization(newText);
   };
 
-  // Add custom manual entity replacement
+  // Add custom manual entity replacement / hash
   const handleAddCustomReplacement = () => {
-    if (!manualOriginal.trim()) return;
+    const orig = manualOriginal.trim();
+    if (!orig) return;
+
+    const placeholder = manualPlaceholder.trim() || getHashedPlaceholder(manualType, orig);
     const newCustom = [
-      ...customReplacements.filter((c) => c.original !== manualOriginal.trim()),
-      { original: manualOriginal.trim(), replacement: manualPlaceholder.trim() },
+      ...customReplacements.filter((c) => c.original !== orig),
+      { original: orig, replacement: placeholder, type: manualType },
     ];
     setCustomReplacements(newCustom);
     setManualOriginal('');
-    runAnonymization(sourceText, newCustom, companyReplacements);
+    setManualPlaceholder('');
+    runAnonymization(sourceText, newCustom);
   };
 
   const handleRemoveCustomReplacement = (orig) => {
     const newCustom = customReplacements.filter((c) => c.original !== orig);
     setCustomReplacements(newCustom);
-    runAnonymization(sourceText, newCustom, companyReplacements);
-  };
-
-  // Request company anonymization from LLM
-  const handleRequestCompanyAnonymization = async () => {
-    const toAnonymize = potentialCompanies.filter((c) => selectedCompanies[c]);
-    if (toAnonymize.length === 0) {
-      setError('Please select at least one company to anonymize.');
-      return;
-    }
-
-    try {
-      setIsAnonymizingCompanies(true);
-      setError(null);
-      // Privacy by design: ONLY approved company names are sent. Raw CV is NEVER sent.
-      const res = await fetch('/api/cv/anonymize-companies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companies: toAnonymize }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || 'Company anonymization request failed');
-      }
-
-      const data = await res.json();
-      const replacements = data.replacements || [];
-      setCompanyReplacements(replacements);
-
-      // Re-run pipeline locally with company replacements
-      await runAnonymization(sourceText, customReplacements, replacements);
-      setMessage(`Successfully anonymized ${replacements.length} companies into generalized industries.`);
-    } catch (err) {
-      setError('Company anonymization failed: ' + err.message);
-    } finally {
-      setIsAnonymizingCompanies(false);
-    }
+    runAnonymization(sourceText, newCustom);
   };
 
   // Server approval
@@ -297,7 +240,6 @@ export default function CVManagementPage() {
         approvedRevision: saved.revision,
         filename,
         customReplacements,
-        companyReplacements,
       });
 
       setMessage('Anonymized CV approved and saved on server! Vacancy compatibility analysis is now unlocked.');
@@ -342,8 +284,6 @@ export default function CVManagementPage() {
     setApprovedRevision(0);
     setFilename('');
     setCustomReplacements([]);
-    setCompanyReplacements([]);
-    setPotentialCompanies([]);
     setSyncStatus('none');
     setMessage('Local CV draft cleared.');
   };
@@ -460,98 +400,161 @@ export default function CVManagementPage() {
       {/* Main Content Area */}
       {sourceText ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }}>
-          {/* Company Anonymization Section */}
-          {potentialCompanies.length > 0 && (
-            <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          {/* Client-Side Hashing & Entity Replacements Section */}
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#e2e8f0' }}>
-                  <Building2 size={18} style={{ color: '#38bdf8' }} /> Optional Company Anonymization (AI)
+                  <Hash size={18} style={{ color: '#38bdf8' }} /> Client-Side Hashing & Active Replacements
                 </h3>
-                <button
-                  onClick={handleRequestCompanyAnonymization}
-                  disabled={isAnonymizingCompanies}
-                  style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
+                  Company names, personal names, and contact details are hashed 100% locally in your browser. No PII or original names are ever sent to LLMs or backend servers.
+                </p>
+              </div>
+              <span style={{ fontSize: '0.85rem', color: '#38bdf8', background: '#0369a133', padding: '4px 10px', borderRadius: '12px', border: '1px solid #0284c7' }}>
+                {replacementMappings.length} active replacement{replacementMappings.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {/* Custom Replacement Input Form */}
+            <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', padding: '12px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', marginBottom: '8px' }}>
+                Add Custom / Manual Replacement:
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Exact text or company name (e.g. Acme Corp)"
+                  value={manualOriginal}
+                  onChange={(e) => setManualOriginal(e.target.value)}
+                  style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '8px 12px', borderRadius: '6px', flex: '2', minWidth: '200px' }}
+                />
+                <select
+                  value={manualType}
+                  onChange={(e) => setManualType(e.target.value)}
+                  style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '8px 12px', borderRadius: '6px' }}
                 >
-                  {isAnonymizingCompanies ? <RefreshCw size={14} className="spin" /> : <Shield size={14} />}
-                  Anonymize Selected Companies
+                  <option value="COMPANY">Company</option>
+                  <option value="PERSON_NAME">Person Name</option>
+                  <option value="EMAIL">Email</option>
+                  <option value="PHONE">Phone</option>
+                  <option value="URL">URL</option>
+                  <option value="CUSTOM">Custom</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder={`Placeholder (leave blank for [${manualType}_<hash>])`}
+                  value={manualPlaceholder}
+                  onChange={(e) => setManualPlaceholder(e.target.value)}
+                  style={{ background: '#1e293b', border: '1px solid #475569', color: '#fff', padding: '8px 12px', borderRadius: '6px', flex: '2', minWidth: '220px' }}
+                />
+                <button
+                  onClick={handleAddCustomReplacement}
+                  disabled={!manualOriginal.trim()}
+                  style={{
+                    background: manualOriginal.trim() ? '#0284c7' : '#334155',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: manualOriginal.trim() ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontWeight: '500',
+                  }}
+                >
+                  <Plus size={16} /> Add Replacement
                 </button>
               </div>
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '14px' }}>
-                Select detected employers to generalize into industry categories (e.g. &ldquo;Example Bank&rdquo; &rarr; &ldquo;Digital bank&rdquo;). Only the selected names are sent to the backend.
-              </p>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {potentialCompanies.map((c) => (
-                  <label
-                    key={c}
-                    style={{
-                      background: selectedCompanies[c] ? '#0369a133' : '#0f172a',
-                      border: selectedCompanies[c] ? '1px solid #0284c7' : '1px solid #334155',
-                      padding: '6px 12px',
-                      borderRadius: '16px',
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      color: selectedCompanies[c] ? '#38bdf8' : '#94a3b8',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!selectedCompanies[c]}
-                      onChange={(e) => setSelectedCompanies({ ...selectedCompanies, [c]: e.target.checked })}
-                    />
-                    {c}
-                  </label>
-                ))}
+            </div>
+
+            {/* List of Active Mappings */}
+            {replacementMappings.length > 0 ? (
+              <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid #334155', borderRadius: '6px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#0f172a', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                      <th style={{ padding: '8px 12px', width: '120px' }}>Type</th>
+                      <th style={{ padding: '8px 12px' }}>Original Sensitive Text</th>
+                      <th style={{ padding: '8px 12px' }}>Hashed Placeholder (in Anonymized CV)</th>
+                      <th style={{ padding: '8px 12px', width: '90px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {replacementMappings.map((m, idx) => {
+                      const isCustom = customReplacements.some((c) => c.original.toLowerCase() === m.original.toLowerCase());
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? '#131e30' : '#0f172a' }}>
+                          <td style={{ padding: '8px 12px' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                background:
+                                  m.type === 'COMPANY'
+                                    ? '#0369a133'
+                                    : m.type === 'PERSON_NAME'
+                                    ? '#4338ca33'
+                                    : m.type === 'EMAIL' || m.type === 'PHONE'
+                                    ? '#b91c1c33'
+                                    : '#334155',
+                                color:
+                                  m.type === 'COMPANY'
+                                    ? '#38bdf8'
+                                    : m.type === 'PERSON_NAME'
+                                    ? '#a5b4fc'
+                                    : m.type === 'EMAIL' || m.type === 'PHONE'
+                                    ? '#fca5a5'
+                                    : '#cbd5e1',
+                                border:
+                                  m.type === 'COMPANY'
+                                    ? '1px solid #0284c7'
+                                    : m.type === 'PERSON_NAME'
+                                    ? '1px solid #6366f1'
+                                    : m.type === 'EMAIL' || m.type === 'PHONE'
+                                    ? '1px solid #ef4444'
+                                    : '1px solid #64748b',
+                              }}
+                            >
+                              {m.type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 12px', color: '#f1f5f9', fontWeight: '500' }}>{m.original}</td>
+                          <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#38bdf8' }}>{m.placeholder}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                            {isCustom ? (
+                              <button
+                                onClick={() => handleRemoveCustomReplacement(m.original)}
+                                title="Remove custom replacement"
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#f87171',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '2px',
+                                }}
+                              >
+                                <X size={16} />
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Auto</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-
-              {companyReplacements.length > 0 && (
-                <div style={{ marginTop: '14px', borderTop: '1px solid #334155', paddingTop: '10px' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Applied Company Replacements: </span>
-                  {companyReplacements.map((r, i) => (
-                    <span key={i} style={{ background: '#0f172a', padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem', marginRight: '8px', color: '#a5f3fc' }}>
-                      {r.original} &rarr; <b>{r.replacement}</b>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Custom Replacements Input */}
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '16px' }}>
-            <h4 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '8px', color: '#e2e8f0' }}>Manual Replacements</h4>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <input
-                type="text"
-                placeholder="Exact text to hide (e.g. Acme Corp)"
-                value={manualOriginal}
-                onChange={(e) => setManualOriginal(e.target.value)}
-                style={{ background: '#0f172a', border: '1px solid #475569', color: '#fff', padding: '8px 12px', borderRadius: '6px', flex: '1', minWidth: '220px' }}
-              />
-              <input
-                type="text"
-                placeholder="Placeholder (e.g. [COMPANY])"
-                value={manualPlaceholder}
-                onChange={(e) => setManualPlaceholder(e.target.value)}
-                style={{ background: '#0f172a', border: '1px solid #475569', color: '#fff', padding: '8px 12px', borderRadius: '6px', width: '200px' }}
-              />
-              <button
-                onClick={handleAddCustomReplacement}
-                style={{ background: '#475569', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <Plus size={16} /> Add Replacement
-              </button>
-            </div>
-            {customReplacements.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
-                {customReplacements.map((cr, idx) => (
-                  <span key={idx} style={{ background: '#0f172a', border: '1px solid #475569', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {cr.original} &rarr; {cr.replacement}
-                    <X size={14} style={{ cursor: 'pointer', color: '#f87171' }} onClick={() => handleRemoveCustomReplacement(cr.original)} />
-                  </span>
-                ))}
+            ) : (
+              <div style={{ fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic', padding: '8px 0' }}>
+                No entities detected yet. Upload or type your CV text below.
               </div>
             )}
           </div>
