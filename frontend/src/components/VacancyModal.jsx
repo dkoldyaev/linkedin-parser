@@ -1236,7 +1236,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                             {publishingCV ? (
                               <>
                                 <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                                <span>Deanonymizing & Publishing...</span>
+                                <span>Publishing CV...</span>
                               </>
                             ) : (
                               <>
@@ -1250,8 +1250,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </div>
 
                     <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.45, margin: '0 0 10px 0' }}>
-                      A tailored version in standard DeveloperCV format was generated without inventing new facts.
-                      Clicking &ldquo;Publish New CV Page&rdquo; deanonymizes personal identifiers and company names <strong>strictly in your browser</strong>, then calls the CV service API to generate your public link.
+                      A tailored version in standard DeveloperCV format was generated based on your CV and this vacancy.
+                      Clicking &ldquo;Publish New CV Page&rdquo; validates and publishes the CV via the CV service API to generate your public link.
                     </p>
 
                     {publishError && (
@@ -1369,7 +1369,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             ) : (
               <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
-                Compare this job description against your approved anonymized CV using your self-hosted LLM to evaluate skill coverage, seniority alignment, and missing requirements.
+                Compare this job description against your saved CV using your configured LLM to evaluate skill coverage, seniority alignment, and missing requirements.
               </p>
             )}
           </div>

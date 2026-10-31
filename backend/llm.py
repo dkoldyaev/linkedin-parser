@@ -643,26 +643,25 @@ async def adapt_cv_for_vacancy_with_llm(
     gemini_model = active_model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     prompt = f"""You are an expert technical resume writer and career advisor.
-Your task is to tailor an approved ANONYMIZED CV for a specific target job vacancy.
+Your task is to tailor a candidate's base CV for a specific target job vacancy.
 
 CRITICAL RULES:
 1. TRUTHFULNESS & GROUNDING:
    - DO NOT INVENT OR HALLUCINATE ANY NEW FACTS, experiences, employers, technologies, degrees, or certifications.
    - ONLY rephrase, re-order, emphasize, or highlight existing real experience present in the base CV.
    - Omit or shorten irrelevant details that do not contribute to matching this specific vacancy.
-2. ANONYMIZATION PRESERVATION:
-   - PRESERVE ALL PII PLACEHOLDERS exactly as they appear (e.g., [PERSON_NAME], [EMAIL], [PHONE], [PERSONAL_URL], [ADDRESS], [CUSTOM], generalized company names).
-   - Do NOT replace placeholders with real names or invented fake names.
+2. ACCURACY & PERSONAL DATA:
+   - Use the candidate's real name, contact details, employers, and history as specified in the base CV.
 3. OUTPUT FORMAT:
    - You MUST output STRICTLY VALID JSON conforming to the DeveloperCV JSON schema (no markdown fences, no explanatory text outside JSON).
 
 DEVELOPER CV SCHEMA SPECIFICATION:
-- name: string (must use the placeholder from the CV, e.g. "[PERSON_NAME]" or original if not masked)
+- name: string (candidate's name from CV)
 - headline: string (relevant targeted professional headline aligned with the vacancy and existing experience)
 - summary: string (targeted executive summary emphasizing candidate's relevant strengths for this vacancy without adding new claims)
 - contact: object with:
-    - email: string (placeholder e.g. "email@placeholder.local" or placeholder token if valid format, e.g. "candidate@anonymized.local" or "[EMAIL]")
-    - phone: string (placeholder e.g. "[PHONE]")
+    - email: string (candidate's email or "candidate@local" if not provided)
+    - phone: string (candidate's phone or "" if not provided)
     - location: object with:
         - city: string or null
         - country: string (minimum length 1)
@@ -698,7 +697,7 @@ DEVELOPER CV SCHEMA SPECIFICATION:
 === TARGET VACANCY ===
 {vacancy_text}
 
-=== APPROVED ANONYMIZED BASE CV ===
+=== CANDIDATE BASE CV ===
 {anonymized_cv_text}
 """
 
