@@ -12,6 +12,7 @@ import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 import { publishAdaptedCV, CV_SERVICE_TOKEN } from '../utils/cvPublisher';
+import { computeCVDiff } from '../utils/cvDiff';
 
 const DEFAULT_COLUMNS = [
   { id: "Еще не написан", color: "#6366f1" },
@@ -83,6 +84,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [publishError, setPublishError] = useState(null);
   const [adaptingCV, setAdaptingCV] = useState(false);
   const [adaptError, setAdaptError] = useState(null);
+
+  // Versioning and comments for Adapted CV
+  const [adaptComment, setAdaptComment] = useState('');
+  const [selectedVersionId, setSelectedVersionId] = useState(null);
+  const [showDiff, setShowDiff] = useState(false);
+  const [lastDiffItems, setLastDiffItems] = useState([]);
 
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
@@ -181,18 +188,44 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
-  const handleManualAdaptCV = async () => {
+  const handleManualAdaptCV = async (parentVerId = null) => {
     if (!vacancy?.id) return;
     setAdaptingCV(true);
     setAdaptError(null);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/adapt-cv`, { method: 'POST' });
+      // Find previous version for diff calculation
+      const prevVersionObj = (compatibility?.versions || []).find(v => v.id === (parentVerId || selectedVersionId)) || (compatibility?.versions || [])[0];
+      const prevAdaptedCv = prevVersionObj ? prevVersionObj.adapted_cv : compatibility?.adapted_cv;
+
+      const bodyPayload = {
+        user_comment: adaptComment.trim() || null,
+        parent_version_id: parentVerId || selectedVersionId || null,
+      };
+
+      const res = await fetch(`/api/vacancies/${vacancy.id}/adapt-cv`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyPayload),
+      });
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Manual CV adaptation failed');
+        throw new Error(err.detail || 'CV adaptation failed');
       }
       const data = await res.json();
       setCompatibility(data);
+      setAdaptComment('');
+
+      // Auto-select newest version and calculate diff
+      if (data.versions && data.versions.length > 0) {
+        setSelectedVersionId(data.versions[0].id);
+        if (prevAdaptedCv) {
+          const diffs = computeCVDiff(prevAdaptedCv, data.versions[0].adapted_cv);
+          setLastDiffItems(diffs);
+          setShowDiff(true);
+        }
+      }
+
       trackEvent('CV_MANUAL_ADAPT_SUCCESS', { vacancy_id: vacancy.id });
     } catch (err) {
       console.error('Manual adaptation failed:', err);
@@ -1170,93 +1203,229 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   </div>
                 )}
 
-                {/* Adapted CV Generation & Client-Side Publishing (Auto for >= 75%, Manual Option for < 75%) */}
-                {compatibility.overall_score >= 75 || compatibility.adapted_cv ? (
+                {/* Adapted CV Generation, Versioning, Feedback & Publishing */}
+                {compatibility.overall_score >= 75 || compatibility.adapted_cv || (compatibility.versions && compatibility.versions.length > 0) ? (
                   <div style={{
                     marginTop: '16px',
-                    padding: '14px',
+                    padding: '16px',
                     borderRadius: '8px',
                     background: 'rgba(56, 189, 248, 0.08)',
                     border: '1px solid rgba(56, 189, 248, 0.3)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 600, fontSize: '0.9rem' }}>
+                    {/* Header Toolbar */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 600, fontSize: '0.95rem' }}>
                         <Globe size={18} />
-                        <span>
-                          {compatibility.overall_score >= 75
-                            ? 'Tailored Developer CV (High Match ≥ 75%)'
-                            : 'Tailored Developer CV (Manually Adapted)'}
-                        </span>
+                        <span>Tailored Developer CV</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {compatibility.overall_score < 75 && (
+
+                      {/* Version Selector Tabs / Chips */}
+                      {compatibility.versions && compatibility.versions.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginRight: '4px' }}>Versions:</span>
+                          {compatibility.versions.map((ver) => {
+                            const isSelected = (selectedVersionId || compatibility.versions[0].id) === ver.id;
+                            return (
+                              <button
+                                key={ver.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedVersionId(ver.id);
+                                  setShowDiff(false);
+                                }}
+                                style={{
+                                  padding: '3px 8px',
+                                  fontSize: '0.75rem',
+                                  borderRadius: '4px',
+                                  border: isSelected ? '1px solid #38bdf8' : '1px solid #475569',
+                                  background: isSelected ? '#0284c7' : '#1e293b',
+                                  color: isSelected ? '#ffffff' : '#cbd5e1',
+                                  cursor: 'pointer',
+                                  fontWeight: isSelected ? 600 : 400,
+                                }}
+                              >
+                                v{ver.version_number}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Publish Button */}
+                      {(compatibility.adapted_cv || (compatibility.versions && compatibility.versions.length > 0)) && (
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => {
+                            const currentVer = (compatibility.versions || []).find(v => v.id === selectedVersionId) || (compatibility.versions || [])[0];
+                            const toPublish = currentVer ? currentVer.adapted_cv : compatibility.adapted_cv;
+                            handlePublishAdaptedCV(toPublish);
+                          }}
+                          disabled={publishingCV || adaptingCV}
+                          style={{
+                            background: '#0284c7',
+                            borderColor: '#0284c7',
+                            color: '#ffffff',
+                            fontSize: '0.8rem',
+                            padding: '6px 14px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          {publishingCV ? (
+                            <>
+                              <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                              <span>Publishing CV...</span>
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink size={13} />
+                              <span>Publish New CV Page</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Active Version Info & User Comment Display */}
+                    {(() => {
+                      const activeVer = (compatibility.versions || []).find(v => v.id === (selectedVersionId || compatibility.versions[0]?.id));
+                      if (activeVer) {
+                        return (
+                          <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: '6px', marginBottom: '12px', border: '1px solid #334155', fontSize: '0.8rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', marginBottom: '4px' }}>
+                              <span>Version <strong>v{activeVer.version_number}</strong> {activeVer.parent_version_id ? `(iterated from version)` : ''}</span>
+                              <span>{new Date(activeVer.created_at).toLocaleString()}</span>
+                            </div>
+                            {activeVer.user_comment && (
+                              <div style={{ color: '#cbd5e1', marginTop: '4px' }}>
+                                <span style={{ color: '#38bdf8', fontWeight: 600 }}>Revision comment: </span>
+                                &ldquo;{activeVer.user_comment}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* What changed / Diff Display Panel */}
+                    {lastDiffItems.length > 0 && (
+                      <div style={{
+                        background: '#0f172a',
+                        border: '1px solid #38bdf8',
+                        borderRadius: '6px',
+                        padding: '12px',
+                        marginBottom: '14px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Check size={16} /> Changes in this revision:
+                          </span>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            onClick={handleManualAdaptCV}
-                            disabled={adaptingCV || publishingCV}
-                            style={{
-                              fontSize: '0.8rem',
-                              padding: '5px 10px',
-                              background: '#1e293b',
-                              borderColor: '#38bdf8',
-                              color: '#38bdf8'
-                            }}
+                            onClick={() => setShowDiff(!showDiff)}
+                            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.75rem' }}
                           >
-                            {adaptingCV ? (
-                              <>
-                                <Loader2 size={12} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                                <span>Re-adapting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw size={12} />
-                                <span>Re-adapt CV</span>
-                              </>
-                            )}
+                            {showDiff ? 'Hide diff' : 'Show details'}
                           </button>
-                        )}
-                        {compatibility.adapted_cv && (
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handlePublishAdaptedCV}
-                            disabled={publishingCV || adaptingCV}
-                            style={{
-                              background: '#0284c7',
-                              borderColor: '#0284c7',
-                              color: '#ffffff',
-                              fontSize: '0.8rem',
-                              padding: '6px 14px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            {publishingCV ? (
-                              <>
-                                <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                                <span>Publishing CV...</span>
-                              </>
-                            ) : (
-                              <>
-                                <ExternalLink size={13} />
-                                <span>Publish New CV Page</span>
-                              </>
-                            )}
-                          </button>
-                        )}
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#e2e8f0', display: showDiff ? 'block' : 'none' }}>
+                          {lastDiffItems.map((item, idx) => (
+                            <li key={idx} style={{ marginBottom: '6px' }}>
+                              <strong>{item.field}:</strong>{' '}
+                              {item.type === 'changed' && (
+                                <span>
+                                  <span style={{ color: '#f87171', textDecoration: 'line-through' }}>{item.oldValue}</span>
+                                  {' → '}
+                                  <span style={{ color: '#4ade80' }}>{item.newValue}</span>
+                                </span>
+                              )}
+                              {item.type === 'added' && (
+                                <span style={{ color: '#4ade80' }}>
+                                  {item.newValue || (item.items && item.items.join(', '))}
+                                </span>
+                              )}
+                              {item.type === 'removed' && (
+                                <span style={{ color: '#f87171', textDecoration: 'line-through' }}>
+                                  {item.items && item.items.join(', ')}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Re-adaptation & Comment / Prompt Input */}
+                    <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '6px', padding: '12px', marginTop: '10px' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>
+                        Refine & Re-adapt CV:
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <textarea
+                          placeholder="What needs to be adjusted? (e.g. 'Emphasize GraphQL experience', 'Shorten summary', 'Focus on backend achievements')..."
+                          value={adaptComment}
+                          onChange={(e) => setAdaptComment(e.target.value)}
+                          rows={2}
+                          style={{
+                            flex: 1,
+                            minWidth: '240px',
+                            background: '#0f172a',
+                            border: '1px solid #475569',
+                            color: '#fff',
+                            padding: '8px 10px',
+                            borderRadius: '4px',
+                            fontSize: '0.8rem',
+                            lineHeight: 1.4,
+                            resize: 'vertical',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => handleManualAdaptCV(selectedVersionId)}
+                          disabled={adaptingCV || publishingCV}
+                          style={{
+                            fontSize: '0.8rem',
+                            padding: '8px 16px',
+                            background: '#0284c7',
+                            borderColor: '#0284c7',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            alignSelf: 'flex-start',
+                          }}
+                        >
+                          {adaptingCV ? (
+                            <>
+                              <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                              <span>Re-adapting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw size={13} />
+                              <span>Re-adapt CV</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
+                        This will send the base CV and current revision with your comment to the LLM to generate a new version.
                       </div>
                     </div>
 
-                    <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.45, margin: '0 0 10px 0' }}>
-                      A tailored version in standard DeveloperCV format was generated based on your CV and this vacancy.
-                      Clicking &ldquo;Publish New CV Page&rdquo; validates and publishes the CV via the CV service API to generate your public link.
-                    </p>
-
                     {publishError && (
-                      <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginBottom: '10px' }}>
+                      <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '10px' }}>
                         {publishError}
+                      </div>
+                    )}
+                    {adaptError && (
+                      <div style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginTop: '10px' }}>
+                        {adaptError}
                       </div>
                     )}
 

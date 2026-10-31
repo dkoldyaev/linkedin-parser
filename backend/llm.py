@@ -623,24 +623,40 @@ Output strictly valid JSON matching this schema:
 async def adapt_cv_for_vacancy_with_llm(
     anonymized_cv_text: str,
     vacancy_text: str,
+    user_comment: Optional[str] = None,
+    previous_adapted_cv: Optional[Dict[str, Any]] = None,
     mistral_key: Optional[str] = None,
     gemini_key: Optional[str] = None,
     active_provider: Optional[str] = None,
     active_model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Adapts the candidate's approved anonymized CV for a specific target vacancy.
+    Adapts the candidate's base CV for a specific target vacancy.
     Strict constraint: NEVER hallucinate or add any new facts or false experience.
     Only reorganize, rephrase, tailor summary/highlights to emphasize relevant skills,
-    and remove irrelevant or redundant details.
+    and incorporate user guidance/feedback if provided.
     
     Returns a structured dictionary strictly adhering to the DeveloperCV schema (https://cv.build.dkoldyaev.com/openapi.json).
-    Placeholders (e.g. [PERSON_NAME], [EMAIL], [PHONE], [ADDRESS], [PERSONAL_URL], [COMPANY_*])
-    are preserved so the client can deanonymize them before publishing.
     """
     provider = (active_provider or os.getenv("LLM_PROVIDER") or "mistral").lower()
     mistral_model = active_model or os.getenv("MISTRAL_MODEL", "mistral-small-latest")
     gemini_model = active_model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+    comment_instruction = ""
+    if user_comment and user_comment.strip():
+        comment_instruction = f"""
+4. USER REFINEMENT FEEDBACK:
+   - The user provided specific instructions for this revision:
+   "{user_comment.strip()}"
+   - Make sure you address this feedback precisely while still adhering strictly to the facts present in the base CV.
+"""
+
+    prev_cv_section = ""
+    if previous_adapted_cv:
+        prev_cv_section = f"""
+=== PREVIOUS ADAPTED CV (FOR CONTEXT / ITERATION) ===
+{json.dumps(previous_adapted_cv, ensure_ascii=False, indent=2)}
+"""
 
     prompt = f"""You are an expert technical resume writer and career advisor.
 Your task is to tailor a candidate's base CV for a specific target job vacancy.
@@ -653,8 +669,7 @@ CRITICAL RULES:
 2. ACCURACY & PERSONAL DATA:
    - Use the candidate's real name, contact details, employers, and history as specified in the base CV.
 3. OUTPUT FORMAT:
-   - You MUST output STRICTLY VALID JSON conforming to the DeveloperCV JSON schema (no markdown fences, no explanatory text outside JSON).
-
+   - You MUST output STRICTLY VALID JSON conforming to the DeveloperCV JSON schema (no markdown fences, no explanatory text outside JSON).{comment_instruction}
 DEVELOPER CV SCHEMA SPECIFICATION:
 - name: string (candidate's name from CV)
 - headline: string (relevant targeted professional headline aligned with the vacancy and existing experience)
@@ -696,7 +711,7 @@ DEVELOPER CV SCHEMA SPECIFICATION:
 
 === TARGET VACANCY ===
 {vacancy_text}
-
+{prev_cv_section}
 === CANDIDATE BASE CV ===
 {anonymized_cv_text}
 """

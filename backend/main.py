@@ -24,6 +24,7 @@ from .models import (
     UserSetting,
     ApprovedCV,
     VacancyCVAnalysis,
+    AdaptedCVVersion,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -63,6 +64,8 @@ from .schemas import (
     ApprovedCVCreate,
     ApprovedCVResponse,
     VacancyCVAnalysisResponse,
+    AdaptedCVVersionResponse,
+    AdaptCVRequest,
 )
 from .auth import (
     get_current_user,
@@ -1923,6 +1926,10 @@ def get_vacancy_compatibility(
     is_outdated = analysis.is_outdated or (approved_cv is not None and analysis.cv_revision != approved_cv.revision)
 
     res_data = analysis.result or {}
+    versions_list = db.query(AdaptedCVVersion).filter(
+        AdaptedCVVersion.analysis_id == analysis.id
+    ).order_by(AdaptedCVVersion.version_number.desc()).all()
+
     return VacancyCVAnalysisResponse(
         id=analysis.id,
         user_id=analysis.user_id,
@@ -1942,6 +1949,7 @@ def get_vacancy_compatibility(
         recommendations=res_data.get("recommendations", []),
         dimension_scores=res_data.get("dimensionScores"),
         adapted_cv=analysis.adapted_cv,
+        versions=[AdaptedCVVersionResponse.model_validate(v) for v in versions_list],
         created_at=analysis.created_at,
         updated_at=analysis.updated_at,
     )
@@ -2069,6 +2077,18 @@ async def analyze_vacancy_compatibility(
         )
         db.add(analysis_record)
 
+    # Also record version 1 if adapted_cv_payload was produced
+    if adapted_cv_payload:
+        v1 = AdaptedCVVersion(
+            analysis_id=analysis_record.id,
+            version_number=1,
+            adapted_cv=adapted_cv_payload,
+            user_comment="Initial automatic adaptation",
+            parent_version_id=None,
+            created_at=now,
+        )
+        db.add(v1)
+
     # Also update vacancy.match_score and emit Mercure event so Kanban board reflects manual compatibility check
     vacancy.match_score = overall_score
     db.commit()
@@ -2123,6 +2143,7 @@ async def analyze_vacancy_compatibility(
         recommendations=eval_data.get("recommendations", []),
         dimension_scores=eval_data.get("dimensionScores"),
         adapted_cv=analysis_record.adapted_cv,
+        versions=[AdaptedCVVersionResponse.model_validate(v) for v in analysis_record.versions],
         created_at=analysis_record.created_at,
         updated_at=analysis_record.updated_at,
     )
@@ -2131,13 +2152,13 @@ async def analyze_vacancy_compatibility(
 @app.post("/api/vacancies/{vacancy_id}/adapt-cv", response_model=VacancyCVAnalysisResponse)
 async def adapt_cv_for_vacancy(
     vacancy_id: int,
+    payload: Optional[AdaptCVRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Manually triggers adaptation of the approved anonymized CV for this specific vacancy,
-    tailoring it into standard DeveloperCV format without adding any new facts.
-    Useful for vacancies where match score is under 75% or when the user explicitly requests it.
+    Triggers adaptation or re-adaptation of the candidate's CV for this specific vacancy.
+    Supports user comments/instructions and versioning.
     """
     vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not vacancy:
@@ -2147,7 +2168,7 @@ async def adapt_cv_for_vacancy(
     if not approved_cv or not approved_cv.content.strip():
         raise HTTPException(
             status_code=400,
-            detail="No approved CV found. Please upload and approve your CV first.",
+            detail="No saved CV found. Please upload your CV first.",
         )
 
     # Prepare vacancy text
@@ -2157,6 +2178,27 @@ async def adapt_cv_for_vacancy(
     if vacancy.description:
         vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
 
+    existing_analysis = db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.vacancy_id == vacancy_id,
+        VacancyCVAnalysis.user_id == current_user.id,
+    ).first()
+
+    # Determine previous version/adapted_cv for iteration context if parent_version_id is provided or from existing
+    parent_adapted_cv = None
+    parent_version_id = payload.parent_version_id if payload else None
+    user_comment = payload.user_comment if payload else None
+
+    if existing_analysis:
+        if parent_version_id:
+            parent_ver = db.query(AdaptedCVVersion).filter(
+                AdaptedCVVersion.id == parent_version_id,
+                AdaptedCVVersion.analysis_id == existing_analysis.id,
+            ).first()
+            if parent_ver:
+                parent_adapted_cv = parent_ver.adapted_cv
+        elif existing_analysis.adapted_cv:
+            parent_adapted_cv = existing_analysis.adapted_cv
+
     provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id)
     mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=current_user.id)
     gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=current_user.id)
@@ -2165,6 +2207,8 @@ async def adapt_cv_for_vacancy(
         adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
             anonymized_cv_text=approved_cv.content,
             vacancy_text=vacancy_full_text,
+            user_comment=user_comment,
+            previous_adapted_cv=parent_adapted_cv,
             mistral_key=mistral_key,
             gemini_key=gemini_key,
             active_provider=provider,
@@ -2177,15 +2221,10 @@ async def adapt_cv_for_vacancy(
         )
 
     now = datetime.datetime.utcnow()
-    existing = db.query(VacancyCVAnalysis).filter(
-        VacancyCVAnalysis.vacancy_id == vacancy_id,
-        VacancyCVAnalysis.user_id == current_user.id,
-    ).first()
-
-    if existing:
-        existing.adapted_cv = adapted_cv_payload
-        existing.updated_at = now
-        analysis_record = existing
+    if existing_analysis:
+        existing_analysis.adapted_cv = adapted_cv_payload
+        existing_analysis.updated_at = now
+        analysis_record = existing_analysis
     else:
         analysis_record = VacancyCVAnalysis(
             user_id=current_user.id,
@@ -2204,11 +2243,32 @@ async def adapt_cv_for_vacancy(
             updated_at=now,
         )
         db.add(analysis_record)
+        db.flush()
+
+    # Determine next version number
+    current_max_ver = db.query(func.coalesce(func.max(AdaptedCVVersion.version_number), 0)).filter(
+        AdaptedCVVersion.analysis_id == analysis_record.id
+    ).scalar()
+    next_ver_num = current_max_ver + 1
+
+    new_version = AdaptedCVVersion(
+        analysis_id=analysis_record.id,
+        version_number=next_ver_num,
+        adapted_cv=adapted_cv_payload,
+        user_comment=user_comment,
+        parent_version_id=parent_version_id,
+        created_at=now,
+    )
+    db.add(new_version)
 
     db.commit()
     db.refresh(analysis_record)
 
     res_data = analysis_record.result or {}
+    versions_list = db.query(AdaptedCVVersion).filter(
+        AdaptedCVVersion.analysis_id == analysis_record.id
+    ).order_by(AdaptedCVVersion.version_number.desc()).all()
+
     return VacancyCVAnalysisResponse(
         id=analysis_record.id,
         user_id=analysis_record.user_id,
@@ -2228,6 +2288,7 @@ async def adapt_cv_for_vacancy(
         recommendations=res_data.get("recommendations", []),
         dimension_scores=res_data.get("dimensionScores"),
         adapted_cv=analysis_record.adapted_cv,
+        versions=[AdaptedCVVersionResponse.model_validate(v) for v in versions_list],
         created_at=analysis_record.created_at,
         updated_at=analysis_record.updated_at,
     )

@@ -159,4 +159,21 @@ class VacancyCVAnalysis(Base):
 
     user = relationship("User")
     vacancy = relationship("Vacancy")
+    versions = relationship("AdaptedCVVersion", back_populates="analysis", cascade="all, delete-orphan", order_by="AdaptedCVVersion.version_number.desc()")
+
+
+class AdaptedCVVersion(Base):
+    __tablename__ = "adapted_cv_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    analysis_id = Column(Integer, ForeignKey("vacancy_cv_analyses.id", ondelete="CASCADE"), index=True, nullable=False)
+    version_number = Column(Integer, nullable=False)
+    adapted_cv = Column(JSON, nullable=False)
+    user_comment = Column(Text, nullable=True)  # User instructions/comment that produced this version
+    parent_version_id = Column(Integer, ForeignKey("adapted_cv_versions.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+    analysis = relationship("VacancyCVAnalysis", back_populates="versions")
+    parent_version = relationship("AdaptedCVVersion", remote_side=[id])
+
 

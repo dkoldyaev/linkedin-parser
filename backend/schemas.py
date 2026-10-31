@@ -289,9 +289,29 @@ class VacancyCVAnalysisResponse(BaseModel):
     recommendations: List[str] = Field(default_factory=list)
     dimension_scores: Optional[dict] = None
     adapted_cv: Optional[dict] = None
+    versions: List["AdaptedCVVersionResponse"] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class AdaptedCVVersionResponse(BaseModel):
+    id: int
+    analysis_id: int
+    version_number: int
+    adapted_cv: dict
+    user_comment: Optional[str] = None
+    parent_version_id: Optional[int] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdaptCVRequest(BaseModel):
+    user_comment: Optional[str] = None
+    parent_version_id: Optional[int] = None
+
 

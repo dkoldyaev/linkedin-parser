@@ -157,6 +157,18 @@ def ensure_db_schema():
                 cols = [row[1] for row in conn.execute(text("PRAGMA table_info(vacancy_cv_analyses)")).fetchall()]
                 if "adapted_cv" not in cols:
                     conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN adapted_cv JSON"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS adapted_cv_versions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        analysis_id INTEGER NOT NULL REFERENCES vacancy_cv_analyses(id) ON DELETE CASCADE,
+                        version_number INTEGER NOT NULL,
+                        adapted_cv JSON NOT NULL,
+                        user_comment TEXT,
+                        parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -186,6 +198,17 @@ def ensure_db_schema():
                     );
                 """))
                 conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN IF NOT EXISTS adapted_cv JSONB"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS adapted_cv_versions (
+                        id SERIAL PRIMARY KEY,
+                        analysis_id INTEGER NOT NULL REFERENCES vacancy_cv_analyses(id) ON DELETE CASCADE,
+                        version_number INTEGER NOT NULL,
+                        adapted_cv JSONB NOT NULL,
+                        user_comment TEXT,
+                        parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+                """))
     except Exception as e:
         logger.warning(f"Approved CV / Vacancy analysis tables migration check: {e}")
 

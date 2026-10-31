@@ -950,6 +950,7 @@ class RedisQueueManager:
                                 existing_analysis.adapted_cv = adapted_cv_payload
                             existing_analysis.is_outdated = False
                             existing_analysis.updated_at = now
+                            analysis_target = existing_analysis
                         else:
                             new_analysis = VacancyCVAnalysis(
                                 user_id=user_id,
@@ -965,6 +966,23 @@ class RedisQueueManager:
                                 updated_at=now,
                             )
                             db.add(new_analysis)
+                            db.flush()
+                            analysis_target = new_analysis
+
+                        if adapted_cv_payload:
+                            from .models import AdaptedCVVersion
+                            max_ver = db.query(func.coalesce(func.max(AdaptedCVVersion.version_number), 0)).filter(
+                                AdaptedCVVersion.analysis_id == analysis_target.id
+                            ).scalar()
+                            v_record = AdaptedCVVersion(
+                                analysis_id=analysis_target.id,
+                                version_number=max_ver + 1,
+                                adapted_cv=adapted_cv_payload,
+                                user_comment="Initial automatic adaptation",
+                                parent_version_id=None,
+                                created_at=now,
+                            )
+                            db.add(v_record)
                     except Exception as e_comp:
                         logger.warning(f"Automatic CV compatibility evaluation failed for vacancy #{vacancy.id}: {e_comp}")
 
