@@ -979,6 +979,54 @@ body {
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
 }
 
+/* Match Score Tiers */
+.kanban-card.card-match-high {
+  border-left: 4px solid #10b981;
+}
+
+.kanban-card.card-match-medium {
+  border-left: 4px solid #f59e0b;
+}
+
+.kanban-card.card-match-low {
+  border-left: 4px solid #ef4444;
+}
+
+.card-match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: all 0.15s ease;
+}
+
+.card-match-badge.match-high {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.card-match-badge.match-medium {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.card-match-badge.match-low {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.card-match-badge:hover {
+  filter: brightness(1.15);
+}
+
 /* Closed Vacancy State */
 .kanban-card.is-closed {
   border-color: rgba(244, 63, 94, 0.28);

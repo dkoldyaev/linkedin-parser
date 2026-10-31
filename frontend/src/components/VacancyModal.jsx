@@ -3,7 +3,7 @@ import {
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
   Laptop, Layers, Building, Ban, History, MessageSquare, ArrowRight, Edit3,
-  ChevronDown, ChevronUp, Copy
+  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -69,6 +69,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savedDescriptionSuccess, setSavedDescriptionSuccess] = useState(false);
   const titleTextareaRef = useRef(null);
 
+  // CV Compatibility Analysis state
+  const [compatibility, setCompatibility] = useState(null);
+  const [loadingCompatibility, setLoadingCompatibility] = useState(false);
+  const [analyzingCompatibility, setAnalyzingCompatibility] = useState(false);
+  const [compatError, setCompatError] = useState(null);
+  const [showEvidenceMap, setShowEvidenceMap] = useState({});
+
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
       titleTextareaRef.current.style.height = 'auto';
@@ -107,8 +114,40 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setCopiedDesc(false);
       setDescription(vacancy.description || "");
       setTitle(vacancy.title || "");
+      setCompatibility(null);
+      setCompatError(null);
+
+      // Fetch cached compatibility analysis
+      if (vacancy.id) {
+        setLoadingCompatibility(true);
+        fetch(`/api/vacancies/${vacancy.id}/compatibility`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => setCompatibility(data))
+          .catch((err) => console.warn('Failed to load compatibility:', err))
+          .finally(() => setLoadingCompatibility(false));
+      }
     }
   }, [vacancy]);
+
+  const handleRunCompatibilityAnalysis = async (force = false) => {
+    if (!vacancy?.id) return;
+    setAnalyzingCompatibility(true);
+    setCompatError(null);
+    try {
+      const url = `/api/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
+      const res = await fetch(url, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Analysis failed');
+      }
+      const data = await res.json();
+      setCompatibility(data);
+    } catch (err) {
+      setCompatError(err.message);
+    } finally {
+      setAnalyzingCompatibility(false);
+    }
+  };
 
   const handleCopyDescription = (e) => {
     e.stopPropagation();
@@ -917,6 +956,171 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {currentSalaryInfo.original}
               </div>
+            )}
+          </div>
+
+          {/* CV Compatibility Analysis Section */}
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 78, 59, 0.15) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px',
+            marginTop: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a7f3d0', fontWeight: 600, fontSize: '0.95rem' }}>
+                <Shield size={18} color="#34d399" />
+                <span>CV Compatibility Match</span>
+                {compatibility && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
+                      color: '#ffffff',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      marginLeft: '4px'
+                    }}>
+                      AI Match: {Math.round(compatibility.overall_score)}%
+                    </span>
+                    {compatibility.calculated_score != null && (
+                      <span style={{
+                        background: 'rgba(51, 65, 85, 0.6)',
+                        color: '#94a3b8',
+                        padding: '2px 6px',
+                        borderRadius: '8px',
+                        fontSize: '0.7rem',
+                      }} title="Formula-weighted deterministic score for reference">
+                        Formula: {Math.round(compatibility.calculated_score)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => handleRunCompatibilityAnalysis(!!compatibility)}
+                disabled={analyzingCompatibility || loadingCompatibility}
+                style={{ fontSize: '0.75rem', padding: '5px 12px', background: '#064e3b', color: '#6ee7b7', border: '1px solid #059669' }}
+              >
+                {analyzingCompatibility ? (
+                  <>
+                    <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Evaluating with AI...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={12} />
+                    <span>{compatibility ? 'Re-Analyze Match' : 'Compare with My CV'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {compatError && (
+              <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginBottom: '10px' }}>
+                {compatError}
+              </div>
+            )}
+
+            {compatibility ? (
+              <div>
+                {compatibility.is_outdated && (
+                  <div style={{ background: '#d9770622', border: '1px solid #d97706', color: '#fcd34d', padding: '6px 10px', borderRadius: '4px', fontSize: '0.75rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertCircle size={14} />
+                    <span>CV was updated since last evaluation. Showing result for Rev {compatibility.cv_revision}. Re-analyze to update.</span>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.5, marginBottom: '12px' }}>
+                  {compatibility.summary}
+                </p>
+
+                {/* Seniority assessment */}
+                {compatibility.seniority_assessment && (
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '0.8rem', border: '1px solid #334155' }}>
+                    <span style={{ color: '#94a3b8' }}>Seniority Alignment: </span>
+                    <strong style={{ color: '#38bdf8' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
+                  </div>
+                )}
+
+                {/* Matched Requirements with Evidence toggles */}
+                {compatibility.matched_requirements?.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#34d399', marginBottom: '6px' }}>
+                      Matched Requirements ({compatibility.matched_requirements.length}):
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {compatibility.matched_requirements.map((m, idx) => (
+                        <div key={idx} style={{ background: 'rgba(6, 78, 59, 0.25)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
+                            <span style={{ color: '#a7f3d0', fontWeight: 600 }}>&bull; {m.requirement}</span>
+                            <span style={{ color: '#6ee7b7', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              Evidence {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            </span>
+                          </div>
+                          {showEvidenceMap[`m_${idx}`] && (
+                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#cbd5e1', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>
+                              {m.evidence}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Missing Requirements */}
+                {compatibility.missing_requirements?.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f59e0b', marginBottom: '6px' }}>
+                      Missing / Unconfirmed Requirements ({compatibility.missing_requirements.length}):
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {compatibility.missing_requirements.map((m, idx) => (
+                        <div key={idx} style={{ background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: '#fed7aa' }}>
+                          &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Critical Gaps */}
+                {compatibility.critical_gaps?.length > 0 && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ef4444', marginBottom: '6px' }}>
+                      Critical Incompatibilities:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {compatibility.critical_gaps.map((g, idx) => (
+                        <div key={idx} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: '#fca5a5' }}>
+                          &bull; <strong>{g.requirement}</strong>: {g.reason}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Grounded Actionable Recommendations */}
+                {compatibility.recommendations?.length > 0 && (
+                  <div style={{ borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '8px', marginTop: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#38bdf8', marginBottom: '4px' }}>
+                      Recommendations for CV Presentation:
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                      {compatibility.recommendations.map((rec, i) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
+                Compare this job description against your approved anonymized CV using your self-hosted LLM to evaluate skill coverage, seniority alignment, and missing requirements.
+              </p>
             )}
           </div>
 

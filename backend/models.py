@@ -75,6 +75,7 @@ class Vacancy(Base):
     # AI-generated fields
     ai_summary = Column(Text, nullable=True)
     tech_stack = Column(JSON, default=list)  # list of strings e.g. ["Python", "Docker"]
+    match_score = Column(Float, nullable=True)  # Compatibility score (0-100) with approved CV
     
     # Kanban & User organization
     status = Column(String(64), nullable=False, default="Еще не написан")
@@ -116,3 +117,45 @@ class AppSetting(Base):
     key = Column(String(128), primary_key=True)
     value = Column(Text, nullable=True)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class ApprovedCV(Base):
+    __tablename__ = "approved_cvs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    content = Column(Text, nullable=False)
+    revision = Column(Integer, nullable=False, default=1)
+    approved_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_user_approved_cv"),
+    )
+
+    user = relationship("User")
+
+
+class VacancyCVAnalysis(Base):
+    __tablename__ = "vacancy_cv_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="CASCADE"), index=True, nullable=False)
+    cv_revision = Column(Integer, nullable=False)
+    scoring_policy_version = Column(String(32), nullable=False, default="v1.0")
+    model_id = Column(String(128), nullable=False)
+    overall_score = Column(Float, nullable=False)
+    result = Column(JSON, nullable=False)
+    is_outdated = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "vacancy_id", name="uq_user_vacancy_analysis"),
+    )
+
+    user = relationship("User")
+    vacancy = relationship("Vacancy")
+

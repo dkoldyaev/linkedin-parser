@@ -42,6 +42,7 @@ class VacancyBase(BaseModel):
     salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: List[str] = Field(default_factory=list)
+    match_score: Optional[float] = None
     tags: List[str] = Field(default_factory=list)
     status: str = "Еще не написан"
     notes: Optional[str] = None
@@ -68,6 +69,7 @@ class VacancyUpdate(BaseModel):
     salary_period: Optional[str] = None
     ai_summary: Optional[str] = None
     tech_stack: Optional[List[str]] = None
+    match_score: Optional[float] = None
     company_info: Optional[str] = None
     status_comment: Optional[str] = None
 
@@ -222,3 +224,73 @@ class ExtensionParseRequest(BaseModel):
 class ExtensionTaskResponse(BaseModel):
     task_id: str
     url: str
+
+# --- CV Anonymization & Vacancy Matching Schemas ---
+
+class AnonymizeCompaniesRequest(BaseModel):
+    companies: List[str] = Field(..., min_length=1)
+
+class CompanyReplacementItem(BaseModel):
+    original: str
+    replacement: str
+
+class AnonymizeCompaniesResponse(BaseModel):
+    replacements: List[CompanyReplacementItem]
+
+class ApprovedCVCreate(BaseModel):
+    content: str = Field(..., min_length=1)
+    revision: int = Field(default=1, ge=1)
+
+class ApprovedCVResponse(BaseModel):
+    id: int
+    user_id: int
+    content: str
+    revision: int
+    approved_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class MatchedRequirementItem(BaseModel):
+    requirement: str
+    evidence: str
+
+class MissingRequirementItem(BaseModel):
+    requirement: str
+    severity: str
+    reason: str
+
+class CriticalGapItem(BaseModel):
+    requirement: str
+    reason: str
+
+class SeniorityAssessmentData(BaseModel):
+    status: str
+    comment: str
+
+class VacancyCVAnalysisResponse(BaseModel):
+    id: int
+    user_id: int
+    vacancy_id: int
+    cv_revision: int
+    scoring_policy_version: str
+    model_id: str
+    overall_score: float
+    llm_score: Optional[float] = None
+    calculated_score: Optional[float] = None
+    is_outdated: bool
+    summary: str
+    matched_requirements: List[MatchedRequirementItem] = Field(default_factory=list)
+    missing_requirements: List[MissingRequirementItem] = Field(default_factory=list)
+    critical_gaps: List[CriticalGapItem] = Field(default_factory=list)
+    seniority_assessment: Optional[SeniorityAssessmentData] = None
+    recommendations: List[str] = Field(default_factory=list)
+    dimension_scores: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
