@@ -2128,6 +2128,111 @@ async def analyze_vacancy_compatibility(
     )
 
 
+@app.post("/api/vacancies/{vacancy_id}/adapt-cv", response_model=VacancyCVAnalysisResponse)
+async def adapt_cv_for_vacancy(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Manually triggers adaptation of the approved anonymized CV for this specific vacancy,
+    tailoring it into standard DeveloperCV format without adding any new facts.
+    Useful for vacancies where match score is under 75% or when the user explicitly requests it.
+    """
+    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    if not approved_cv or not approved_cv.content.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="No approved CV found. Please upload and approve your CV first.",
+        )
+
+    # Prepare vacancy text
+    vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
+    if vacancy.tech_stack:
+        vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
+    if vacancy.description:
+        vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
+
+    provider = get_setting_or_env(db, "llm_provider", os.getenv("LLM_PROVIDER", "mistral"), user_id=current_user.id)
+    mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=current_user.id)
+    gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=current_user.id)
+
+    try:
+        adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
+            anonymized_cv_text=approved_cv.content,
+            vacancy_text=vacancy_full_text,
+            mistral_key=mistral_key,
+            gemini_key=gemini_key,
+            active_provider=provider,
+        )
+    except Exception as e:
+        logger.error(f"Manual CV adaptation failed for vacancy #{vacancy.id}: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"CV adaptation failed: {e}",
+        )
+
+    now = datetime.datetime.utcnow()
+    existing = db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.vacancy_id == vacancy_id,
+        VacancyCVAnalysis.user_id == current_user.id,
+    ).first()
+
+    if existing:
+        existing.adapted_cv = adapted_cv_payload
+        existing.updated_at = now
+        analysis_record = existing
+    else:
+        analysis_record = VacancyCVAnalysis(
+            user_id=current_user.id,
+            vacancy_id=vacancy.id,
+            cv_revision=approved_cv.revision,
+            scoring_policy_version="v1.0",
+            model_id=provider,
+            overall_score=vacancy.match_score if vacancy.match_score is not None else 0.0,
+            result={
+                "summary": "Manual CV adaptation generated.",
+                "overallScore": vacancy.match_score if vacancy.match_score is not None else 0.0,
+            },
+            adapted_cv=adapted_cv_payload,
+            is_outdated=False,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(analysis_record)
+
+    db.commit()
+    db.refresh(analysis_record)
+
+    res_data = analysis_record.result or {}
+    return VacancyCVAnalysisResponse(
+        id=analysis_record.id,
+        user_id=analysis_record.user_id,
+        vacancy_id=analysis_record.vacancy_id,
+        cv_revision=analysis_record.cv_revision,
+        scoring_policy_version=analysis_record.scoring_policy_version,
+        model_id=analysis_record.model_id,
+        overall_score=analysis_record.overall_score,
+        llm_score=res_data.get("llmScore"),
+        calculated_score=res_data.get("calculatedScore"),
+        is_outdated=analysis_record.is_outdated,
+        summary=res_data.get("summary", ""),
+        matched_requirements=res_data.get("matchedRequirements", []),
+        missing_requirements=res_data.get("missingRequirements", []),
+        critical_gaps=res_data.get("criticalGaps", []),
+        seniority_assessment=res_data.get("seniorityAssessment"),
+        recommendations=res_data.get("recommendations", []),
+        dimension_scores=res_data.get("dimensionScores"),
+        adapted_cv=analysis_record.adapted_cv,
+        created_at=analysis_record.created_at,
+        updated_at=analysis_record.updated_at,
+    )
+
+
 
 # Static files mount for built React frontend
 STATIC_DIR = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))

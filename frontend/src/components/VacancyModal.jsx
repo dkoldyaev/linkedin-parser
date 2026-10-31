@@ -81,6 +81,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [publishingCV, setPublishingCV] = useState(false);
   const [publishedCVData, setPublishedCVData] = useState(null);
   const [publishError, setPublishError] = useState(null);
+  const [adaptingCV, setAdaptingCV] = useState(false);
+  const [adaptError, setAdaptError] = useState(null);
 
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
@@ -124,6 +126,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setCompatError(null);
       setPublishedCVData(null);
       setPublishError(null);
+      setAdaptingCV(false);
+      setAdaptError(null);
 
       // Fetch cached compatibility analysis
       if (vacancy.id) {
@@ -174,6 +178,27 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setPublishError(err.message || 'Failed to publish CV');
     } finally {
       setPublishingCV(false);
+    }
+  };
+
+  const handleManualAdaptCV = async () => {
+    if (!vacancy?.id) return;
+    setAdaptingCV(true);
+    setAdaptError(null);
+    try {
+      const res = await fetch(`/api/vacancies/${vacancy.id}/adapt-cv`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Manual CV adaptation failed');
+      }
+      const data = await res.json();
+      setCompatibility(data);
+      trackEvent('CV_MANUAL_ADAPT_SUCCESS', { vacancy_id: vacancy.id });
+    } catch (err) {
+      console.error('Manual adaptation failed:', err);
+      setAdaptError(err.message || 'Failed to adapt CV');
+    } finally {
+      setAdaptingCV(false);
     }
   };
 
@@ -1145,8 +1170,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   </div>
                 )}
 
-                {/* Adapted CV Generation & Client-Side Publishing for High Match */}
-                {compatibility.overall_score >= 75 && (
+                {/* Adapted CV Generation & Client-Side Publishing (Auto for >= 75%, Manual Option for < 75%) */}
+                {compatibility.overall_score >= 75 || compatibility.adapted_cv ? (
                   <div style={{
                     marginTop: '16px',
                     padding: '14px',
@@ -1157,42 +1182,75 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 600, fontSize: '0.9rem' }}>
                         <Globe size={18} />
-                        <span>Tailored Developer CV (High Match &ge; 75%)</span>
+                        <span>
+                          {compatibility.overall_score >= 75
+                            ? 'Tailored Developer CV (High Match ≥ 75%)'
+                            : 'Tailored Developer CV (Manually Adapted)'}
+                        </span>
                       </div>
-                      {compatibility.adapted_cv && (
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={handlePublishAdaptedCV}
-                          disabled={publishingCV}
-                          style={{
-                            background: '#0284c7',
-                            borderColor: '#0284c7',
-                            color: '#ffffff',
-                            fontSize: '0.8rem',
-                            padding: '6px 14px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          {publishingCV ? (
-                            <>
-                              <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                              <span>Deanonymizing & Publishing...</span>
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink size={13} />
-                              <span>Publish New CV Page</span>
-                            </>
-                          )}
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {compatibility.overall_score < 75 && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={handleManualAdaptCV}
+                            disabled={adaptingCV || publishingCV}
+                            style={{
+                              fontSize: '0.8rem',
+                              padding: '5px 10px',
+                              background: '#1e293b',
+                              borderColor: '#38bdf8',
+                              color: '#38bdf8'
+                            }}
+                          >
+                            {adaptingCV ? (
+                              <>
+                                <Loader2 size={12} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                                <span>Re-adapting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={12} />
+                                <span>Re-adapt CV</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {compatibility.adapted_cv && (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handlePublishAdaptedCV}
+                            disabled={publishingCV || adaptingCV}
+                            style={{
+                              background: '#0284c7',
+                              borderColor: '#0284c7',
+                              color: '#ffffff',
+                              fontSize: '0.8rem',
+                              padding: '6px 14px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            {publishingCV ? (
+                              <>
+                                <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                                <span>Deanonymizing & Publishing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink size={13} />
+                                <span>Publish New CV Page</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <p style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: 1.45, margin: '0 0 10px 0' }}>
-                      A tailored version in standard DeveloperCV format was generated on the server without inventing new facts.
+                      A tailored version in standard DeveloperCV format was generated without inventing new facts.
                       Clicking &ldquo;Publish New CV Page&rdquo; deanonymizes personal identifiers and company names <strong>strictly in your browser</strong>, then calls the CV service API to generate your public link.
                     </p>
 
@@ -1254,6 +1312,56 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                             </a>
                           )}
                         </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{
+                    marginTop: '14px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', maxWidth: '520px' }}>
+                      Match score is under 75%. You can still adapt your CV for this vacancy to emphasize transferable skills without adding new facts.
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleManualAdaptCV}
+                      disabled={adaptingCV}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '6px 14px',
+                        background: '#0369a1',
+                        borderColor: '#0284c7',
+                        color: '#ffffff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      {adaptingCV ? (
+                        <>
+                          <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                          <span>Adapting CV with AI...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} />
+                          <span>Adapt CV for This Vacancy</span>
+                        </>
+                      )}
+                    </button>
+                    {adaptError && (
+                      <div style={{ width: '100%', color: '#fca5a5', fontSize: '0.8rem', marginTop: '6px' }}>
+                        {adaptError}
                       </div>
                     )}
                   </div>
