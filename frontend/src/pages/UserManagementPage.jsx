@@ -3,8 +3,6 @@ import {
   Users, 
   Search, 
   CheckCircle2, 
-  Plus, 
-  Trash2, 
   Save, 
   Loader2, 
   AlertTriangle,
@@ -18,10 +16,16 @@ export default function UserManagementPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [editingFlags, setEditingFlags] = useState({}); // { [userId]: string[] }
-  const [newFlagName, setNewFlagName] = useState({}); // { [userId]: string }
   const [savingUserId, setSavingUserId] = useState(null);
   const [statusMsg, setStatusMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  const availableFlags = [
+    { key: 'cv_edit', label: t('settingsModal.feature_cv_edit_title') || 'cv_edit' },
+    { key: 'user_management', label: t('settingsModal.feature_user_mgmt_title') || 'user_management' },
+    { key: 'api_access', label: t('settingsModal.feature_api_access_title') || 'api_access' },
+    { key: 'admin', label: t('settingsModal.feature_admin_title') || 'admin' },
+  ];
 
   const userFlags = user?.feature_flags || [];
   const hasAccess = userFlags.includes('user_management') || userFlags.includes('admin');
@@ -62,31 +66,13 @@ export default function UserManagementPage({ user }) {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleToggleFlag = (userId, flag) => {
+  const handleToggleFlag = (userId, flagKey) => {
     setEditingFlags(prev => {
       const current = prev[userId] || [];
-      const updated = current.includes(flag)
-        ? current.filter(f => f !== flag)
-        : [...current, flag];
+      const updated = current.includes(flagKey)
+        ? current.filter(f => f !== flagKey)
+        : [...current, flagKey];
       return { ...prev, [userId]: updated };
-    });
-  };
-
-  const handleAddFlag = (userId) => {
-    const flagToAdd = (newFlagName[userId] || '').trim();
-    if (!flagToAdd) return;
-    setEditingFlags(prev => {
-      const current = prev[userId] || [];
-      if (current.includes(flagToAdd)) return prev;
-      return { ...prev, [userId]: [...current, flagToAdd] };
-    });
-    setNewFlagName(prev => ({ ...prev, [userId]: '' }));
-  };
-
-  const handleRemoveFlag = (userId, flag) => {
-    setEditingFlags(prev => {
-      const current = prev[userId] || [];
-      return { ...prev, [userId]: current.filter(f => f !== flag) };
     });
   };
 
@@ -242,95 +228,46 @@ export default function UserManagementPage({ user }) {
                       </td>
 
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                          {/* Common predefined flags as quick toggle pills */}
-                          {['cv_edit', 'user_management', 'api_access'].map(stdFlag => {
-                            const active = flags.includes(stdFlag);
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+                          {availableFlags.map(flagObj => {
+                            const isChecked = flags.includes(flagObj.key);
                             return (
-                              <button
-                                key={stdFlag}
-                                type="button"
-                                onClick={() => handleToggleFlag(u.id, stdFlag)}
+                              <label
+                                key={flagObj.key}
                                 style={{
-                                  padding: '4px 10px',
-                                  borderRadius: '16px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 500,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  padding: '8px 12px',
+                                  background: isChecked ? 'rgba(99, 102, 241, 0.12)' : '#1e293b',
+                                  border: `1px solid ${isChecked ? '#6366f1' : '#334155'}`,
+                                  borderRadius: '8px',
                                   cursor: 'pointer',
-                                  background: active ? '#6366f122' : '#1e293b',
-                                  border: `1px solid ${active ? '#6366f1' : '#334155'}`,
-                                  color: active ? '#818cf8' : '#94a3b8',
+                                  userSelect: 'none',
                                   transition: 'all 0.15s ease'
                                 }}
                               >
-                                {active ? '✓ ' : '+ '} {stdFlag}
-                              </button>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleFlag(u.id, flagObj.key)}
+                                  style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    accentColor: '#6366f1',
+                                    cursor: 'pointer'
+                                  }}
+                                />
+                                <span style={{
+                                  fontSize: '0.85rem',
+                                  fontWeight: 500,
+                                  color: isChecked ? '#c7d2fe' : '#94a3b8'
+                                }}>
+                                  {flagObj.label}
+                                </span>
+                              </label>
                             );
                           })}
-
-                          {/* Custom flags */}
-                          {flags.filter(f => !['cv_edit', 'user_management', 'api_access'].includes(f)).map(f => (
-                            <span
-                              key={f}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '4px 8px',
-                                borderRadius: '16px',
-                                fontSize: '0.75rem',
-                                background: '#05966922',
-                                border: '1px solid #059669',
-                                color: '#34d399',
-                              }}
-                            >
-                              <span>{f}</span>
-                              <Trash2
-                                size={12}
-                                style={{ cursor: 'pointer', color: '#f87171' }}
-                                onClick={() => handleRemoveFlag(u.id, f)}
-                              />
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Add custom flag input */}
-                        <div style={{ display: 'flex', gap: '6px', maxWidth: '300px' }}>
-                          <input
-                            type="text"
-                            placeholder={t('pages.userManagement.flag_key_placeholder')}
-                            value={newFlagName[u.id] || ''}
-                            onChange={(e) => setNewFlagName(prev => ({ ...prev, [u.id]: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddFlag(u.id); }}}
-                            style={{
-                              flex: 1,
-                              padding: '4px 8px',
-                              background: '#1e293b',
-                              border: '1px solid #334155',
-                              borderRadius: '6px',
-                              color: '#f8fafc',
-                              fontSize: '0.8rem',
-                              outline: 'none'
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleAddFlag(u.id)}
-                            style={{
-                              padding: '4px 10px',
-                              background: '#334155',
-                              border: '1px solid #475569',
-                              borderRadius: '6px',
-                              color: '#f8fafc',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.8rem'
-                            }}
-                          >
-                            <Plus size={12} />
-                          </button>
                         </div>
                       </td>
 

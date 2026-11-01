@@ -16,6 +16,9 @@ class UserResponse(BaseModel):
 class UserUpdateFeatureFlagsRequest(BaseModel):
     feature_flags: List[str] = Field(default_factory=list)
 
+class AvailableFeatureFlagsResponse(BaseModel):
+    available_flags: List[str]
+
 class AuthConfigResponse(BaseModel):
     google_configured: bool
     google_client_id: Optional[str] = None

@@ -34,22 +34,23 @@ class TestUserFeatureFlags(unittest.TestCase):
         self.assertIn("feature_flags", user_data)
         self.assertEqual(user_data["feature_flags"], [])
 
-        # Update flags via /api/auth/me/feature-flags
+        # Update flags via /api/auth/me/feature-flags (only valid predefined constants allowed)
         update_res = self.client.put(
             "/api/auth/me/feature-flags",
-            json={"feature_flags": ["cv_edit", "api_access", "beta_test"]},
+            json={"feature_flags": ["cv_edit", "api_access", "arbitrary_typo_flag"]},
             cookies=self.cookies
         )
         self.assertEqual(update_res.status_code, 200)
         updated_data = update_res.json()
         self.assertIn("cv_edit", updated_data["feature_flags"])
         self.assertIn("api_access", updated_data["feature_flags"])
-        self.assertIn("beta_test", updated_data["feature_flags"])
+        # arbitrary_typo_flag should be filtered out
+        self.assertNotIn("arbitrary_typo_flag", updated_data["feature_flags"])
 
         # Check /api/auth/me reflects update
         me_again = self.client.get("/api/auth/me", cookies=self.cookies)
         self.assertEqual(me_again.status_code, 200)
-        self.assertEqual(me_again.json()["feature_flags"], ["cv_edit", "api_access", "beta_test"])
+        self.assertEqual(set(me_again.json()["feature_flags"]), {"cv_edit", "api_access"})
 
     def test_cv_editing_permission_check(self):
         """Saving or deleting approved CV is blocked if user lacks cv_edit feature flag."""

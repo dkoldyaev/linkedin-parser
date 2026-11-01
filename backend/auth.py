@@ -11,7 +11,7 @@ from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import User, Vacancy
+from .models import User, Vacancy, UserFeatureFlag, KNOWN_FEATURE_FLAGS
 
 logger = logging.getLogger("linkedin_tracker.auth")
 
@@ -104,6 +104,17 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             detail="User not found",
         )
 
+    # Sync feature flags from user_feature_flags relation
+    db_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+    if not db_flags and user.feature_flags and isinstance(user.feature_flags, list):
+        # Migrate legacy JSON flags to table if any
+        for flag_name in user.feature_flags:
+            if flag_name in KNOWN_FEATURE_FLAGS:
+                db.add(UserFeatureFlag(user_id=user.id, flag=flag_name))
+        db.commit()
+        db_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+    user.feature_flags = db_flags
+
     return user
 
 
@@ -124,7 +135,10 @@ def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Option
 
     try:
         user_id_int = int(payload.get("sub"))
-        return db.query(User).filter(User.id == user_id_int).first()
+        user = db.query(User).filter(User.id == user_id_int).first()
+        if user:
+            user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+        return user
     except Exception:
         return None
 
@@ -168,6 +182,17 @@ async def get_google_user_info(access_token: str) -> dict:
         return res.json()
 
 
+def is_admin_email(email: str) -> bool:
+    email_clean = email.strip().lower()
+    if email_clean == "dkoldyaev@gmail.com":
+        return True
+    admin_emails_env = os.getenv("ADMIN_EMAILS", "")
+    if not admin_emails_env:
+        return False
+    admin_list = [e.strip().lower() for e in admin_emails_env.split(",") if e.strip()]
+    return email_clean in admin_list
+
+
 def get_or_create_user(
     db: Session,
     google_id: str,
@@ -196,6 +221,12 @@ def get_or_create_user(
             db.commit()
             db.refresh(user)
 
+            # Auto-grant admin feature flags for admin email
+            if is_admin_email(email):
+                for flag_name in KNOWN_FEATURE_FLAGS:
+                    db.add(UserFeatureFlag(user_id=user.id, flag=flag_name))
+                db.commit()
+
             # Check if any orphan vacancies exist without user_id; attach them to this first user
             orphans = db.query(Vacancy).filter(Vacancy.user_id.is_(None)).all()
             if orphans:
@@ -216,6 +247,18 @@ def get_or_create_user(
             db.commit()
             db.refresh(user)
 
+    if is_admin_email(email):
+        existing_flags = {f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()}
+        added = False
+        for flag_name in KNOWN_FEATURE_FLAGS:
+            if flag_name not in existing_flags:
+                db.add(UserFeatureFlag(user_id=user.id, flag=flag_name))
+                added = True
+        if added:
+            db.commit()
+            db.refresh(user)
+
+    user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
     return user
 
 

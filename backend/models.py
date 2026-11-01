@@ -16,6 +16,19 @@ BASE_STATUSES = ["Еще не написан", "Отказ"]
 
 VALID_STATUSES = [col["id"] for col in DEFAULT_COLUMNS]
 
+# Predefined constant feature flags
+FEATURE_FLAG_CV_EDIT = "cv_edit"
+FEATURE_FLAG_USER_MANAGEMENT = "user_management"
+FEATURE_FLAG_API_ACCESS = "api_access"
+FEATURE_FLAG_ADMIN = "admin"
+
+KNOWN_FEATURE_FLAGS = [
+    FEATURE_FLAG_CV_EDIT,
+    FEATURE_FLAG_USER_MANAGEMENT,
+    FEATURE_FLAG_API_ACCESS,
+    FEATURE_FLAG_ADMIN,
+]
+
 class User(Base):
     __tablename__ = "users"
 
@@ -26,10 +39,27 @@ class User(Base):
     picture = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    # Kept for backward compatibility if needed, but primary storage is user_feature_flags table
     feature_flags = Column(JSON, default=list)
 
     vacancies = relationship("Vacancy", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan")
+    flags = relationship("UserFeatureFlag", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserFeatureFlag(Base):
+    __tablename__ = "user_feature_flags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    flag = Column(String(64), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "flag", name="uq_user_feature_flag"),
+    )
+
+    user = relationship("User", back_populates="flags")
 
 
 class UserSetting(Base):

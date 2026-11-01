@@ -107,6 +107,17 @@ def ensure_db_schema():
                 user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
                 if user_cols and "feature_flags" not in user_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_feature_flags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        flag VARCHAR(64) NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_user_feature_flag UNIQUE (user_id, flag)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -124,6 +135,16 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_feature_flags (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        flag VARCHAR(64) NOT NULL,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_user_feature_flag UNIQUE (user_id, flag)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

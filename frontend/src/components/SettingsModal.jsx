@@ -574,6 +574,37 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   />
                 </label>
               </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: 'var(--bg-card, #1e293b)',
+                  border: '1px solid var(--border-subtle, #334155)',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
+                    {t('settingsModal.feature_admin_title')}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
+                    {t('settingsModal.feature_admin_desc')}
+                  </div>
+                </div>
+
+                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
+                  <input
+                    type="checkbox"
+                    checked={featureFlags.includes('admin')}
+                    onChange={() => handleToggleFeature('admin')}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1' }}
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="modal-footer" style={{ marginTop: '10px', padding: '12px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -22,12 +22,18 @@ from .models import (
     AppSetting,
     User,
     UserSetting,
+    UserFeatureFlag,
     ApprovedCV,
     VacancyCVAnalysis,
     AdaptedCVVersion,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
+    KNOWN_FEATURE_FLAGS,
+    FEATURE_FLAG_CV_EDIT,
+    FEATURE_FLAG_USER_MANAGEMENT,
+    FEATURE_FLAG_API_ACCESS,
+    FEATURE_FLAG_ADMIN,
 )
 from .schemas import (
     VacancyResponse,
@@ -55,6 +61,7 @@ from .schemas import (
     ColumnsOrderRequest,
     UserResponse,
     UserUpdateFeatureFlagsRequest,
+    AvailableFeatureFlagsResponse,
     AuthConfigResponse,
     DevLoginRequest,
     ExtensionTaskResponse,
@@ -293,8 +300,32 @@ def get_auth_config():
 
 
 @app.get("/api/auth/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == current_user.id).all()]
     return current_user
+
+
+@app.get("/api/feature-flags", response_model=AvailableFeatureFlagsResponse)
+def get_available_feature_flags(current_user: User = Depends(get_current_user)):
+    """Return list of predefined valid feature flag constants."""
+    return AvailableFeatureFlagsResponse(available_flags=KNOWN_FEATURE_FLAGS)
+
+
+def _sync_user_flags_table(db: Session, user_id: int, requested_flags: List[str]) -> List[str]:
+    # Restrict to known constants to prevent typos or arbitrary strings
+    valid_flags = [f for f in requested_flags if f in KNOWN_FEATURE_FLAGS]
+    # Remove existing
+    db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user_id).delete()
+    for flag_name in set(valid_flags):
+        db.add(UserFeatureFlag(user_id=user_id, flag=flag_name))
+    # Update user.feature_flags column as well for consistency
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        user.feature_flags = valid_flags
+    db.commit()
+    if user:
+        db.refresh(user)
+    return valid_flags
 
 
 @app.put("/api/auth/me/feature-flags", response_model=UserResponse)
@@ -304,9 +335,8 @@ def update_my_feature_flags(
     db: Session = Depends(get_db),
 ):
     """Update current user's feature flags."""
-    current_user.feature_flags = payload.feature_flags
-    db.commit()
-    db.refresh(current_user)
+    saved_flags = _sync_user_flags_table(db, current_user.id, payload.feature_flags)
+    current_user.feature_flags = saved_flags
     return current_user
 
 
@@ -322,7 +352,11 @@ def list_users(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User management access required (missing feature flag user_management)",
         )
-    return db.query(User).order_by(User.id.asc()).all()
+    users = db.query(User).order_by(User.id.asc()).all()
+    # Populate flags from UserFeatureFlag
+    for u in users:
+        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+    return users
 
 
 @app.put("/api/users/{user_id}/feature-flags", response_model=UserResponse)
@@ -344,9 +378,8 @@ def update_user_feature_flags(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.feature_flags = payload.feature_flags
-    db.commit()
-    db.refresh(user)
+    saved_flags = _sync_user_flags_table(db, user.id, payload.feature_flags)
+    user.feature_flags = saved_flags
     return user
 
 
