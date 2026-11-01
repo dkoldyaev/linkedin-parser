@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
+import CVManagementPage from './pages/CVManagementPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
 function Layout({ user, onLogout }) {
@@ -95,6 +96,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout user={user} onLogout={handleLogout} />}>
         <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} /> : loginScreen} />
+        <Route path="/cv" element={user ? <CVManagementPage /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/howtouse" element={<HowToUsePage />} />
         <Route path="/about" element={<AboutPage />} />

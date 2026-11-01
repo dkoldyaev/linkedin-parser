@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   MapPin, Sparkles, ChevronLeft, ChevronRight, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  XCircle, RotateCcw, History
+  XCircle, RotateCcw, History, Award
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -35,6 +35,23 @@ export default function KanbanCard({
   const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
+
+  // Match score tier classification
+  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : null;
+  let matchTier = '';
+  let matchTierLabel = '';
+  if (matchScore !== null) {
+    if (matchScore >= 75) {
+      matchTier = 'match-high';
+      matchTierLabel = t('kanban.match_high');
+    } else if (matchScore >= 50) {
+      matchTier = 'match-medium';
+      matchTierLabel = t('kanban.match_medium');
+    } else {
+      matchTier = 'match-low';
+      matchTierLabel = t('kanban.match_low');
+    }
+  }
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());
@@ -96,7 +113,7 @@ export default function KanbanCard({
 
   return (
     <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''}`}
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -146,8 +163,17 @@ export default function KanbanCard({
         </div>
       </div>
 
-      {(vacancy.location || salaryInfo.hasSalary || workplaceInfo) && (
+      {(vacancy.location || salaryInfo.hasSalary || workplaceInfo || matchScore !== null) && (
         <div className="card-meta">
+          {matchScore !== null && (
+            <div
+              className={`card-match-badge ${matchTier}`}
+              title={`${t('kanban.match_badge', { score: matchScore })} (${matchTierLabel})`}
+            >
+              <Award size={11} />
+              <span>{matchScore}%</span>
+            </div>
+          )}
           {workplaceInfo && (
             <div className={`card-workplace-badge ${workplaceInfo.className}`} title={t('workplace.badge_title', { format: workplaceInfo.fullLabel || workplaceInfo.label })}>
               {workplaceInfo.key === 'remote' && <Laptop size={11} />}

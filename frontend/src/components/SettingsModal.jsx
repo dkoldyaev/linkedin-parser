@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Settings, Check, Globe, Columns3, 
-  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2 
+  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Key
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -14,6 +14,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns'
   const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(salaryDisplayFormat || 'month');
+  const [cvServiceToken, setCvServiceToken] = useState('');
   const [columnsList, setColumnsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -34,6 +35,9 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
         if (data.salary_display_format) {
           setSelectedSalaryFormat(data.salary_display_format);
           setSalaryDisplayFormat(data.salary_display_format);
+        }
+        if (data.cv_service_token !== undefined) {
+          setCvServiceToken(data.cv_service_token || '');
         }
         if (data.columns && Array.isArray(data.columns)) {
           setColumnsList(data.columns);
@@ -57,6 +61,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
       const payload = {
         locale: selectedLocale,
         salary_display_format: selectedSalaryFormat,
+        cv_service_token: cvServiceToken.trim(),
       };
 
       const res = await fetch('/api/settings', {
@@ -264,6 +269,25 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   <option value="day">{t('settingsModal.salary_format_day')}</option>
                   <option value="original">{t('settingsModal.salary_format_original')}</option>
                 </select>
+              </div>
+
+              {/* CV Service Token */}
+              <div className="form-group" style={{ marginTop: '16px', marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Key size={15} />
+                  <span>{t('settingsModal.cv_token_label')}</span>
+                </label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="cvt_..."
+                  value={cvServiceToken}
+                  onChange={e => setCvServiceToken(e.target.value)}
+                  style={{ marginTop: '8px' }}
+                />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', marginBottom: 0 }}>
+                  {t('settingsModal.cv_token_hint')}
+                </p>
               </div>
             </div>
 

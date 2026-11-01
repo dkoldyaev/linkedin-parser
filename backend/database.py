@@ -101,6 +101,8 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN sort_order REAL"))
                     if "lane" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
+                    if "match_score" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -113,11 +115,102 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS source VARCHAR(64)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS match_score DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
+
+    try:
+        with engine.begin() as conn:
+            dialect = engine.dialect.name
+            if dialect == "sqlite":
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS approved_cvs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                        content TEXT NOT NULL,
+                        revision INTEGER NOT NULL DEFAULT 1,
+                        approved_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS vacancy_cv_analyses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        vacancy_id INTEGER NOT NULL REFERENCES vacancies(id) ON DELETE CASCADE,
+                        cv_revision INTEGER NOT NULL,
+                        scoring_policy_version VARCHAR(32) NOT NULL DEFAULT 'v1.0',
+                        model_id VARCHAR(128) NOT NULL,
+                        overall_score REAL NOT NULL,
+                        result JSON NOT NULL,
+                        adapted_cv JSON,
+                        is_outdated BOOLEAN NOT NULL DEFAULT 0,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, vacancy_id)
+                    );
+                """))
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(vacancy_cv_analyses)")).fetchall()]
+                if "adapted_cv" not in cols:
+                    conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN adapted_cv JSON"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS adapted_cv_versions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        analysis_id INTEGER NOT NULL REFERENCES vacancy_cv_analyses(id) ON DELETE CASCADE,
+                        version_number INTEGER NOT NULL,
+                        adapted_cv JSON NOT NULL,
+                        user_comment TEXT,
+                        parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
+            elif dialect == "postgresql":
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS approved_cvs (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                        content TEXT NOT NULL,
+                        revision INTEGER NOT NULL DEFAULT 1,
+                        approved_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS vacancy_cv_analyses (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        vacancy_id INTEGER NOT NULL REFERENCES vacancies(id) ON DELETE CASCADE,
+                        cv_revision INTEGER NOT NULL,
+                        scoring_policy_version VARCHAR(32) NOT NULL DEFAULT 'v1.0',
+                        model_id VARCHAR(128) NOT NULL,
+                        overall_score DOUBLE PRECISION NOT NULL,
+                        result JSONB NOT NULL,
+                        is_outdated BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        CONSTRAINT uq_user_vacancy_analysis UNIQUE (user_id, vacancy_id)
+                    );
+                """))
+                conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN IF NOT EXISTS adapted_cv JSONB"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS adapted_cv_versions (
+                        id SERIAL PRIMARY KEY,
+                        analysis_id INTEGER NOT NULL REFERENCES vacancy_cv_analyses(id) ON DELETE CASCADE,
+                        version_number INTEGER NOT NULL,
+                        adapted_cv JSONB NOT NULL,
+                        user_comment TEXT,
+                        parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+                """))
+    except Exception as e:
+        logger.warning(f"Approved CV / Vacancy analysis tables migration check: {e}")
 
     try:
         with engine.begin() as conn:
