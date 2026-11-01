@@ -12,8 +12,12 @@ import { extractTextFromFile } from '../utils/textExtractor';
 import { getLocalCV, saveLocalCV, clearLocalCV } from '../utils/cvIndexedDB';
 import { useTranslation } from '../i18n/I18nContext';
 
-export default function CVManagementPage() {
+export default function CVManagementPage({ user }) {
   const { t, locale } = useTranslation();
+  const [currentUser, setCurrentUser] = useState(user || null);
+
+  const userFlags = currentUser?.feature_flags || [];
+  const canEditCV = userFlags.includes('cv_edit') || userFlags.includes('cv_editing');
   const [loading, setLoading] = useState(true);
   const [sourceText, setSourceText] = useState('');
   const [sourceRevision, setSourceRevision] = useState(1);
@@ -61,6 +65,19 @@ export default function CVManagementPage() {
     }
   }, []);
 
+  // Fetch current user if not provided via props
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const u = await res.json();
+        setCurrentUser(u);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch current user:', err);
+    }
+  }, []);
+
   // Save CV service token
   const handleSaveToken = async (e) => {
     if (e) e.preventDefault();
@@ -87,7 +104,7 @@ export default function CVManagementPage() {
     async function loadData() {
       try {
         setLoading(true);
-        await Promise.all([fetchServerApprovedCV(), fetchSettings()]);
+        await Promise.all([fetchServerApprovedCV(), fetchSettings(), fetchCurrentUser()]);
         const local = await getLocalCV();
         if (local) {
           const text = local.sourceText || local.anonymizedText || '';
@@ -277,6 +294,12 @@ export default function CVManagementPage() {
       </div>
 
       {/* Notifications */}
+      {!canEditCV && (
+        <div style={{ background: '#3b82f622', border: '1px solid #3b82f6', color: '#93c5fd', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={18} />
+          <span>{t('pages.cv.cv_editing_disabled')}</span>
+        </div>
+      )}
       {error && (
         <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: '#fca5a5', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
@@ -346,42 +369,44 @@ export default function CVManagementPage() {
       </div>
 
       {/* Upload & Actions Toolbar */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
-          <Upload size={18} />
-          {sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}
-          <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
-        </label>
+      {canEditCV && (
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
+            <Upload size={18} />
+            {sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}
+            <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+          </label>
 
-        {sourceText && (
-          <>
+          {sourceText && (
+            <>
+              <button
+                onClick={handleApproveAndSync}
+                disabled={isSubmitting}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#059669', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+              >
+                <CheckCircle2 size={18} /> {t('pages.cv.save_btn')}
+              </button>
+
+              <button
+                onClick={handleClearLocal}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#334155', color: '#f87171', border: '1px solid #475569', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
+              >
+                <Trash2 size={16} /> {t('pages.cv.clear_draft_btn')}
+              </button>
+            </>
+          )}
+
+          {serverCV && (
             <button
-              onClick={handleApproveAndSync}
+              onClick={handleDeleteServerCV}
               disabled={isSubmitting}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#059669', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#7f1d1d22', color: '#fca5a5', border: '1px solid #7f1d1d', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
             >
-              <CheckCircle2 size={18} /> {t('pages.cv.save_btn')}
+              <Trash2 size={16} /> {t('pages.cv.delete_server_btn')}
             </button>
-
-            <button
-              onClick={handleClearLocal}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#334155', color: '#f87171', border: '1px solid #475569', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
-            >
-              <Trash2 size={16} /> {t('pages.cv.clear_draft_btn')}
-            </button>
-          </>
-        )}
-
-        {serverCV && (
-          <button
-            onClick={handleDeleteServerCV}
-            disabled={isSubmitting}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#7f1d1d22', color: '#fca5a5', border: '1px solid #7f1d1d', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
-          >
-            <Trash2 size={16} /> {t('pages.cv.delete_server_btn')}
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Main Content Area */}
       {sourceText ? (
@@ -394,7 +419,8 @@ export default function CVManagementPage() {
           </div>
           <textarea
             value={sourceText}
-            onChange={handleSourceTextChange}
+            onChange={canEditCV ? handleSourceTextChange : undefined}
+            readOnly={!canEditCV}
             rows={26}
             style={{
               width: '100%',
@@ -407,6 +433,8 @@ export default function CVManagementPage() {
               fontSize: '0.9rem',
               lineHeight: '1.6',
               resize: 'vertical',
+              opacity: canEditCV ? 1 : 0.85,
+              cursor: canEditCV ? 'text' : 'default',
             }}
           />
         </div>
@@ -415,12 +443,14 @@ export default function CVManagementPage() {
           <FileText size={48} style={{ color: '#6366f1', margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>{t('pages.cv.no_cv_title')}</h2>
           <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.9rem' }}>
-            {t('pages.cv.no_cv_desc')}
+            {canEditCV ? t('pages.cv.no_cv_desc') : t('pages.cv.cv_editing_disabled')}
           </p>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
-            <Upload size={18} /> {t('pages.cv.choose_file')}
-            <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
-          </label>
+          {canEditCV && (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
+              <Upload size={18} /> {t('pages.cv.choose_file')}
+              <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+            </label>
+          )}
         </div>
       )}
     </div>

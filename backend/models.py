@@ -26,6 +26,7 @@ class User(Base):
     picture = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    feature_flags = Column(JSON, default=list)
 
     vacancies = relationship("Vacancy", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan")

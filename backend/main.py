@@ -54,6 +54,7 @@ from .schemas import (
     ColumnDeleteRequest,
     ColumnsOrderRequest,
     UserResponse,
+    UserUpdateFeatureFlagsRequest,
     AuthConfigResponse,
     DevLoginRequest,
     ExtensionTaskResponse,
@@ -294,6 +295,59 @@ def get_auth_config():
 @app.get("/api/auth/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@app.put("/api/auth/me/feature-flags", response_model=UserResponse)
+def update_my_feature_flags(
+    payload: UserUpdateFeatureFlagsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update current user's feature flags."""
+    current_user.feature_flags = payload.feature_flags
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.get("/api/users", response_model=List[UserResponse])
+def list_users(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all users (requires user_management or admin permission/feature flag)."""
+    user_flags = current_user.feature_flags or []
+    if "user_management" not in user_flags and "admin" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User management access required (missing feature flag user_management)",
+        )
+    return db.query(User).order_by(User.id.asc()).all()
+
+
+@app.put("/api/users/{user_id}/feature-flags", response_model=UserResponse)
+def update_user_feature_flags(
+    user_id: int,
+    payload: UserUpdateFeatureFlagsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update feature flags for a specified user (requires user_management permission or self-update)."""
+    user_flags = current_user.feature_flags or []
+    can_manage_users = "user_management" in user_flags or "admin" in user_flags
+    if user_id != current_user.id and not can_manage_users:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User management access required (missing feature flag user_management)",
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.feature_flags = payload.feature_flags
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @app.get("/api/auth/google/login")
@@ -1876,7 +1930,15 @@ def save_approved_cv(
     """
     Stores or replaces the user's approved anonymized CV.
     Marks any existing compatibility analyses as outdated since the CV revision changed.
+    Requires user to have 'cv_edit' or 'cv_editing' feature flag.
     """
+    user_flags = current_user.feature_flags or []
+    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CV editing is not enabled for your account (missing feature flag)",
+        )
+
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     now = datetime.datetime.utcnow()
 
@@ -1912,6 +1974,13 @@ def delete_approved_cv(
     db: Session = Depends(get_db),
 ):
     """Deletes the approved CV and associated analyses for the authenticated user."""
+    user_flags = current_user.feature_flags or []
+    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CV editing is not enabled for your account (missing feature flag)",
+        )
+
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if approved_cv:
         db.delete(approved_cv)

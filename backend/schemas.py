@@ -7,10 +7,14 @@ class UserResponse(BaseModel):
     email: str
     name: str
     picture: Optional[str] = None
+    feature_flags: List[str] = Field(default_factory=list)
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+class UserUpdateFeatureFlagsRequest(BaseModel):
+    feature_flags: List[str] = Field(default_factory=list)
 
 class AuthConfigResponse(BaseModel):
     google_configured: bool

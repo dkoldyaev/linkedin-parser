@@ -103,6 +103,10 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
                     if "match_score" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
+
+                user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
+                if user_cols and "feature_flags" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -119,6 +123,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

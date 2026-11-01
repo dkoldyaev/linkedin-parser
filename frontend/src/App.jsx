@@ -10,9 +10,10 @@ import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import CVManagementPage from './pages/CVManagementPage';
+import UserManagementPage from './pages/UserManagementPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
-function Layout({ user, onLogout }) {
+function Layout({ user, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const menu = useMemo(
@@ -25,7 +26,7 @@ function Layout({ user, onLogout }) {
   return (
     <MenuContext.Provider value={menu}>
       <div className="app-shell">
-        {showPageHeader && <PageHeader user={user} onLogout={onLogout} />}
+        {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
         <div className="app-shell-content">
           <Outlet />
         </div>
@@ -94,10 +95,11 @@ export default function App() {
 
   return (
     <Routes>
-      <Route element={<Layout user={user} onLogout={handleLogout} />}>
-        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} /> : loginScreen} />
-        <Route path="/cv" element={user ? <CVManagementPage /> : loginScreen} />
+      <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
+        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : loginScreen} />
+        <Route path="/cv" element={user ? <CVManagementPage user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
+        <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
         <Route path="/howtouse" element={<HowToUsePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

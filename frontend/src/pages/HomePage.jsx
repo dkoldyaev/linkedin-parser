@@ -14,7 +14,7 @@ import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 
-export default function HomePage({ user, onLogout }) {
+export default function HomePage({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
 
   const [vacancies, setVacancies] = useState([]);
@@ -591,6 +591,7 @@ export default function HomePage({ user, onLogout }) {
             setColumns(newCols);
             fetchVacancies();
           }}
+          onUserUpdated={onUserUpdated}
         >
           {/* Real-time Queue status indicator */}
           {queueRemaining > 0 && (

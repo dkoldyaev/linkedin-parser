@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, FileText } from 'lucide-react';
+import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, FileText, Users } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from './menuContext';
 
@@ -8,6 +8,7 @@ const LINKS = [
   { to: '/', key: 'home', icon: LayoutDashboard, end: true, auth: true },
   { to: '/cv', key: 'cv', icon: FileText, auth: true },
   { to: '/stat', key: 'stat', icon: BarChart3, auth: true },
+  { to: '/users', key: 'users', icon: Users, auth: true, requireFlag: 'user_management' },
   { to: '/howtouse', key: 'howtouse', icon: BookOpen },
   { to: '/about', key: 'about', icon: Info },
 ];
@@ -16,7 +17,12 @@ const LINKS = [
 export default function NavDrawer({ user }) {
   const { t, locale, setLocale } = useTranslation();
   const { open, close } = useMenu();
-  const links = LINKS.filter((l) => !l.auth || user);
+  const userFlags = user?.feature_flags || [];
+  const links = LINKS.filter((l) => {
+    if (l.auth && !user) return false;
+    if (l.requireFlag && !userFlags.includes(l.requireFlag) && !userFlags.includes('admin')) return false;
+    return true;
+  });
   // The switch shows the language you would switch TO.
   const targetLocale = locale === 'ru' ? 'en' : 'ru';
 
