@@ -11,6 +11,7 @@ import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import CVManagementPage from './pages/CVManagementPage';
 import UserManagementPage from './pages/UserManagementPage';
+import AdminPage from './pages/AdminPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
 function Layout({ user, onLogout, onUserUpdated }) {
@@ -100,6 +101,7 @@ export default function App() {
         <Route path="/cv" element={user ? <CVManagementPage user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
+        <Route path="/admin" element={user ? <AdminPage user={user} /> : loginScreen} />
         <Route path="/howtouse" element={<HowToUsePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

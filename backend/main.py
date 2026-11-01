@@ -62,6 +62,7 @@ from .schemas import (
     UserResponse,
     UserUpdateFeatureFlagsRequest,
     AvailableFeatureFlagsResponse,
+    AdminUserUpdate,
     AuthConfigResponse,
     DevLoginRequest,
     ExtensionTaskResponse,
@@ -77,6 +78,7 @@ from .schemas import (
 )
 from .auth import (
     get_current_user,
+    get_current_admin_user,
     get_optional_user,
     is_google_configured,
     get_google_auth_url,
@@ -473,6 +475,59 @@ def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depend
 def logout(response: Response):
     response.delete_cookie(key=COOKIE_NAME, path="/")
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Admin API: User & Feature Flag Management
+# ---------------------------------------------------------------------------
+
+@app.get("/api/admin/users", response_model=List[UserResponse])
+def admin_get_users(
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    users = db.query(User).order_by(User.id.asc()).all()
+    for u in users:
+        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+    return users
+
+
+@app.patch("/api/admin/users/{user_id}", response_model=UserResponse)
+def admin_update_user(
+    user_id: int,
+    payload: AdminUserUpdate,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.is_admin is not None:
+        target_user.is_admin = payload.is_admin
+        if payload.is_admin:
+            # ensure 'admin' flag is present in user_feature_flags
+            existing = db.query(UserFeatureFlag).filter(
+                UserFeatureFlag.user_id == target_user.id,
+                UserFeatureFlag.flag == "admin"
+            ).first()
+            if not existing:
+                db.add(UserFeatureFlag(user_id=target_user.id, flag="admin"))
+        else:
+            # remove 'admin' flag if unsetting is_admin
+            db.query(UserFeatureFlag).filter(
+                UserFeatureFlag.user_id == target_user.id,
+                UserFeatureFlag.flag == "admin"
+            ).delete()
+
+    if payload.feature_flags is not None:
+        saved_flags = _sync_user_flags_table(db, target_user.id, payload.feature_flags)
+        target_user.feature_flags = saved_flags
+
+    db.commit()
+    db.refresh(target_user)
+    target_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == target_user.id).all()]
+    return target_user
 
 
 @app.get("/api/config")

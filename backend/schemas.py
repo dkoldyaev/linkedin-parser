@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -7,6 +7,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     picture: Optional[str] = None
+    is_admin: bool = False
     feature_flags: List[str] = Field(default_factory=list)
     created_at: Optional[datetime] = None
 
@@ -18,6 +19,10 @@ class UserUpdateFeatureFlagsRequest(BaseModel):
 
 class AvailableFeatureFlagsResponse(BaseModel):
     available_flags: List[str]
+
+class AdminUserUpdate(BaseModel):
+    is_admin: Optional[bool] = None
+    feature_flags: Optional[List[str]] = None
 
 class AuthConfigResponse(BaseModel):
     google_configured: bool

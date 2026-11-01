@@ -105,8 +105,11 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
 
                 user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
-                if user_cols and "feature_flags" not in user_cols:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
+                if user_cols:
+                    if "is_admin" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0 NOT NULL"))
+                    if "feature_flags" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
 
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
@@ -134,6 +137,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE NOT NULL"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (

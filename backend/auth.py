@@ -118,6 +118,15 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
+def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
+
+
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     token = None
     if COOKIE_NAME in request.cookies:
@@ -210,12 +219,17 @@ def get_or_create_user(
                 user.name = name
             if picture:
                 user.picture = picture
+            if is_admin_email(email) and not user.is_admin:
+                user.is_admin = True
         else:
+            is_admin = is_admin_email(email)
             user = User(
                 google_id=google_id,
                 email=email,
                 name=name or email.split("@")[0],
                 picture=picture,
+                is_admin=is_admin,
+                feature_flags={},
             )
             db.add(user)
             db.commit()
@@ -242,6 +256,9 @@ def get_or_create_user(
             changed = True
         if picture and user.picture != picture:
             user.picture = picture
+            changed = True
+        if is_admin_email(email) and not user.is_admin:
+            user.is_admin = True
             changed = True
         if changed:
             db.commit()
