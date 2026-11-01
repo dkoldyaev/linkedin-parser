@@ -2336,7 +2336,12 @@ async def publish_cv_proxy(
     elif auth_header:
         final_token = auth_header.replace("Bearer ", "").strip()
     else:
-        final_token = os.getenv("CV_SERVICE_TOKEN", "cvt_6aa894042bcc46afc448983f57b7756a63a075626a7eba2e")
+        final_token = os.getenv("CV_SERVICE_TOKEN", "cvt_44930d0195b67afcf586896183b9ffcb8fa894558ef9a434")
+
+    logger.info(
+        f"Publishing CV for user {current_user.id} ({current_user.email}) "
+        f"using token: {final_token[:8]}... (from {'db' if user_token and user_token.strip() else 'header/env'})"
+    )
 
     headers = {
         "Content-Type": "application/json",

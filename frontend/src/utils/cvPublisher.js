@@ -12,7 +12,7 @@ import { deanonymizeObject } from './anonymizer.js';
 import { getLocalCV } from './cvIndexedDB.js';
 
 export const DEFAULT_CV_API_URL = 'https://cv.build.dkoldyaev.com';
-export const CV_SERVICE_TOKEN = 'cvt_6aa894042bcc46afc448983f57b7756a63a075626a7eba2e';
+export const CV_SERVICE_TOKEN = 'cvt_44930d0195b67afcf586896183b9ffcb8fa894558ef9a434';
 
 /**
  * Validates and cleans DeveloperCV payload according to the API schema
