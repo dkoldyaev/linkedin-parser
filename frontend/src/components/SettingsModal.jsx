@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Settings, Check, Globe, Columns3, 
-  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Key
+  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Key,
+  Copy, ExternalLink, Code2, ShieldAlert
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -11,7 +12,7 @@ import ColumnDeleteModal from './ColumnDeleteModal';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated }) {
   const { t, locale, setLocale, salaryDisplayFormat, setSalaryDisplayFormat } = useTranslation();
-  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns'
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns' | 'apikeys'
   const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(salaryDisplayFormat || 'month');
   const [cvServiceToken, setCvServiceToken] = useState('');
@@ -19,10 +20,28 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState([]);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [generatingKey, setGeneratingKey] = useState(false);
+  const [createdKeyToken, setCreatedKeyToken] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(false);
+
   // Modals inside Settings for Column CRUD
   const [isCreateColOpen, setIsCreateColOpen] = useState(false);
   const [editingCol, setEditingCol] = useState(null);
   const [deletingCol, setDeletingCol] = useState(null);
+
+  const fetchApiKeys = () => {
+    fetch('/api/api-keys')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setApiKeys(data);
+        }
+      })
+      .catch(err => console.error('Failed to load api keys', err));
+  };
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -49,6 +68,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   useEffect(() => {
     if (isOpen) {
       fetchSettings();
+      fetchApiKeys();
     }
   }, [isOpen, setLocale]);
 
@@ -161,11 +181,56 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     await handleSaveColumn(col.id, { has_lanes: !col.has_lanes });
   };
 
+  const handleGenerateApiKey = async (e) => {
+    e.preventDefault();
+    setGeneratingKey(true);
+    try {
+      const res = await fetch('/api/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName.trim() || 'Default API Key' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCreatedKeyToken(data.token);
+        setNewKeyName('');
+        fetchApiKeys();
+      }
+    } catch (err) {
+      console.error('Failed to generate api key', err);
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
+
+  const handleRevokeApiKey = async (keyItem) => {
+    const confirmMsg = t('settingsModal.revoke_key_confirm').replace('{name}', keyItem.name);
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/api-keys/${keyItem.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchApiKeys();
+      }
+    } catch (err) {
+      console.error('Failed to revoke api key', err);
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (!createdKeyToken) return;
+    navigator.clipboard.writeText(createdKeyToken);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
+  };
+
   const funnelColumns = columnsList.filter(c => c.id !== 'Отказ');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '560px' : '460px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '560px' : activeTab === 'apikeys' ? '580px' : '460px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <Settings size={20} color="#6366f1" />
@@ -193,6 +258,14 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
           >
             <Columns3 size={15} />
             <span>{t('settingsModal.tab_columns')}</span>
+          </button>
+          <button
+            type="button"
+            className={`settings-tab-btn ${activeTab === 'apikeys' ? 'active' : ''}`}
+            onClick={() => setActiveTab('apikeys')}
+          >
+            <Key size={15} />
+            <span>{t('settingsModal.tab_api_keys')}</span>
           </button>
         </div>
 
@@ -420,6 +493,196 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   </div>
                 );
               })}
+            </div>
+
+            <div className="modal-footer" style={{ marginTop: '10px', padding: '12px 0 0 0' }}>
+              <button type="button" className="btn btn-primary" onClick={onClose}>
+                {t('vacancyModal.close_btn')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* API Keys & OpenAPI Tab */}
+        {activeTab === 'apikeys' && (
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+              {t('settingsModal.api_keys_desc')}
+            </p>
+
+            {/* OpenAPI Documentation Links Banner */}
+            <div style={{
+              background: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a5b4fc', fontSize: '0.875rem', fontWeight: 600 }}>
+                <Code2 size={16} />
+                <span>{t('settingsModal.openapi_docs_title')}</span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                {t('settingsModal.openapi_docs_desc')}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                <a
+                  href="/docs"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '5px 10px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={12} />
+                  <span>{t('settingsModal.openapi_swagger_btn')}</span>
+                </a>
+                <a
+                  href="/redoc"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '5px 10px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={12} />
+                  <span>{t('settingsModal.openapi_redoc_btn')}</span>
+                </a>
+                <a
+                  href="/openapi.json"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '5px 10px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <ExternalLink size={12} />
+                  <span>{t('settingsModal.openapi_json_btn')}</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Newly Created Key Alert Box */}
+            {createdKeyToken && (
+              <div style={{
+                background: 'rgba(234, 179, 8, 0.1)',
+                border: '1px solid rgba(234, 179, 8, 0.4)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#facc15', fontSize: '0.8125rem', fontWeight: 600 }}>
+                  <ShieldAlert size={16} />
+                  <span>{t('settingsModal.new_key_warning')}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdKeyToken}
+                    className="form-input"
+                    style={{ fontFamily: 'monospace', fontSize: '0.8125rem', padding: '6px 10px', background: 'rgba(0, 0, 0, 0.3)' }}
+                    onClick={e => e.target.select()}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCopyToken}
+                    style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copiedKey ? t('settingsModal.key_copied') : t('settingsModal.copy_key_btn')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Create New Key Form */}
+            <form onSubmit={handleGenerateApiKey} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                {t('settingsModal.api_key_name_label')}
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={t('settingsModal.api_key_name_placeholder')}
+                  value={newKeyName}
+                  onChange={e => setNewKeyName(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={generatingKey}
+                  style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Key size={14} />
+                  <span>{t('settingsModal.generate_key_btn')}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Existing Keys List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                {t('settingsModal.my_keys_title')}
+              </span>
+
+              {apiKeys.length === 0 ? (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0' }}>
+                  {t('settingsModal.no_keys_yet')}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {apiKeys.map(k => (
+                    <div
+                      key={k.id}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                          {k.name}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontFamily: 'monospace', color: '#a5b4fc' }}>
+                            {k.key_prefix}••••••••
+                          </span>
+                          <span>
+                            {t('settingsModal.key_created_at').replace('{date}', new Date(k.created_at).toLocaleDateString())}
+                          </span>
+                          <span>
+                            {k.last_used_at 
+                              ? t('settingsModal.key_last_used').replace('{date}', new Date(k.last_used_at).toLocaleDateString())
+                              : t('settingsModal.key_never_used')
+                            }
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-icon"
+                        style={{ width: '28px', height: '28px', color: '#f87171', flexShrink: 0 }}
+                        onClick={() => handleRevokeApiKey(k)}
+                        title={t('settingsModal.revoke_key_btn')}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="modal-footer" style={{ marginTop: '10px', padding: '12px 0 0 0' }}>

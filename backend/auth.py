@@ -1,5 +1,6 @@
 import os
 import time
+import hashlib
 import logging
 from urllib.parse import urlencode
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,7 @@ from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import User, Vacancy
+from .models import User, Vacancy, ApiKey
 
 logger = logging.getLogger("linkedin_tracker.auth")
 
@@ -61,17 +62,42 @@ def decode_access_token(token: str) -> Optional[dict]:
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
-    token = None
+    # 1. Check X-API-Key header or Authorization: Bearer ak_...
+    api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+    auth_header = request.headers.get("Authorization")
+    
+    candidate_api_key = None
+    if api_key_header:
+        candidate_api_key = api_key_header.strip()
+    elif auth_header and auth_header.startswith("Bearer "):
+        bearer_val = auth_header[7:].strip()
+        if bearer_val.startswith("ak_"):
+            candidate_api_key = bearer_val
 
-    # Check HttpOnly cookie first
+    if candidate_api_key:
+        key_hash = hashlib.sha256(candidate_api_key.encode()).hexdigest()
+        api_key_record = db.query(ApiKey).filter(ApiKey.key_hash == key_hash).first()
+        if not api_key_record:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key",
+                headers={"WWW-Authenticate": "ApiKey"},
+            )
+        # Update last_used_at
+        api_key_record.last_used_at = datetime.utcnow()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+        return api_key_record.user
+
+    # 2. Check HttpOnly cookie or JWT Authorization header
+    token = None
     if COOKIE_NAME in request.cookies:
         token = request.cookies[COOKIE_NAME]
 
-    # Check Authorization: Bearer <token> header fallback
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
+    if not token and auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
 
     if not token:
         raise HTTPException(
@@ -108,21 +134,41 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
-    token = None
-    if COOKIE_NAME in request.cookies:
-        token = request.cookies[COOKIE_NAME]
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header[7:].strip()
-    if not token:
-        return None
-
-    payload = decode_access_token(token)
-    if not payload or "sub" not in payload:
-        return None
-
     try:
+        api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+        auth_header = request.headers.get("Authorization")
+        
+        candidate_api_key = None
+        if api_key_header:
+            candidate_api_key = api_key_header.strip()
+        elif auth_header and auth_header.startswith("Bearer "):
+            bearer_val = auth_header[7:].strip()
+            if bearer_val.startswith("ak_"):
+                candidate_api_key = bearer_val
+
+        if candidate_api_key:
+            key_hash = hashlib.sha256(candidate_api_key.encode()).hexdigest()
+            api_key_record = db.query(ApiKey).filter(ApiKey.key_hash == key_hash).first()
+            if api_key_record:
+                api_key_record.last_used_at = datetime.utcnow()
+                try:
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                return api_key_record.user
+
+        token = None
+        if COOKIE_NAME in request.cookies:
+            token = request.cookies[COOKIE_NAME]
+        if not token and auth_header and auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+        if not token:
+            return None
+
+        payload = decode_access_token(token)
+        if not payload or "sub" not in payload:
+            return None
+
         user_id_int = int(payload.get("sub"))
         return db.query(User).filter(User.id == user_id_int).first()
     except Exception:

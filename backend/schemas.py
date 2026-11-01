@@ -318,3 +318,25 @@ class AdaptCVRequest(BaseModel):
     parent_version_id: Optional[int] = None
 
 
+# --- API Key Schemas ---
+
+class ApiKeyCreateRequest(BaseModel):
+    name: Optional[str] = "Default API Key"
+
+
+class ApiKeyResponse(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    token: str
+
+
+
