@@ -91,6 +91,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [showDiff, setShowDiff] = useState(false);
   const [lastDiffItems, setLastDiffItems] = useState([]);
 
+  // Modal navigation tab
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
+
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
       titleTextareaRef.current.style.height = 'auto';
@@ -837,8 +840,43 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
         )}
 
+        {/* Navigation Tabs */}
+        <div className="settings-tabs" style={{ padding: '0 20px', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(255, 255, 255, 0.02)' }}>
+          <button
+            type="button"
+            className={`settings-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
+            onClick={() => setActiveTab('details')}
+          >
+            <FileText size={15} />
+            <span>{t('vacancyModal.tab_details')}</span>
+          </button>
+          <button
+            type="button"
+            className={`settings-tab-btn ${activeTab === 'compatibility' ? 'active' : ''}`}
+            onClick={() => setActiveTab('compatibility')}
+          >
+            <Shield size={15} color={compatibility ? '#34d399' : undefined} />
+            <span>{t('vacancyModal.tab_cv_compatibility')}</span>
+            {compatibility && (
+              <span style={{
+                background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
+                color: '#ffffff',
+                padding: '1px 7px',
+                borderRadius: '10px',
+                fontSize: '0.725rem',
+                fontWeight: '700',
+                marginLeft: '4px'
+              }}>
+                {Math.round(compatibility.overall_score)}%
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Body */}
         <div className="modal-body">
+          {activeTab === 'details' && (
+            <>
           {/* Status & Workplace Format Bar */}
           <div className="modal-meta-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
             <div className="modal-status-group">
@@ -1046,6 +1084,416 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             )}
           </div>
 
+          {/* AI Summary Section */}
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(30, 27, 75, 0.2) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#c7d2fe', fontWeight: 600, fontSize: '0.9rem' }}>
+                <Sparkles size={16} color="#a5b4fc" />
+                <span>{t('vacancyModal.ai_summary_title')}</span>
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={handleResummarize}
+                disabled={resummarizing}
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              >
+                {resummarizing ? (
+                  <>
+                    <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>{t('vacancyModal.analyzing')}</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={12} />
+                    <span>{t('vacancyModal.resummarize_btn')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+            
+            <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+              {vacancy.ai_summary || t('vacancyModal.no_summary')}
+            </p>
+
+            {vacancy.company_info && (
+              <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(99, 102, 241, 0.15)', fontSize: '0.8125rem', color: '#94a3b8' }}>
+                <strong style={{ color: '#c7d2fe' }}>{t('vacancyModal.about_company')}</strong>
+                {vacancy.company_info}
+              </div>
+            )}
+          </div>
+
+          {/* Tech Stack */}
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{t('vacancyModal.tech_stack_title')}</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {techStack.map(tech => (
+                <span key={tech} className="tech-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 8px' }}>
+                  {tech}
+                  <button 
+                    onClick={() => handleRemoveTech(tech)} 
+                    style={{ background: 'none', border: 'none', color: '#818cf8', cursor: 'pointer', padding: 0, display: 'flex' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              {techStack.length === 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tech_stack')}</span>
+              )}
+            </div>
+            <form onSubmit={handleAddTech} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
+              <input
+                type="text"
+                className="form-input"
+                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                placeholder={t('vacancyModal.add_tech_placeholder')}
+                value={newTechInput}
+                onChange={e => setNewTechInput(e.target.value)}
+              />
+              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
+                <Plus size={14} />
+              </button>
+            </form>
+          </div>
+
+          {/* Custom Tags */}
+          <div className="form-group">
+            <label className="form-label">
+              {t('vacancyModal.tags_title')}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {tags.map(tagItem => (
+                <span key={tagItem} className="tag-chip" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                  <Tag size={11} />
+                  {tagItem}
+                  <button 
+                    onClick={() => handleRemoveTag(tagItem)} 
+                    style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: '2px' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              {tags.length === 0 && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tags')}</span>
+              )}
+            </div>
+            <form onSubmit={handleAddTag} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
+              <input
+                type="text"
+                className="form-input"
+                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                placeholder={t('vacancyModal.add_tag_placeholder')}
+                value={newTagInput}
+                onChange={e => setNewTagInput(e.target.value)}
+              />
+              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
+                <Plus size={14} />
+              </button>
+            </form>
+          </div>
+
+          {/* Stage Movement History */}
+          <div className="form-group stage-history-section">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
+                <History size={15} color="#818cf8" />
+                <span>{t('vacancyModal.history_title')}</span>
+              </label>
+              {vacancy.history && vacancy.history.length > 0 && (
+                <span className="stage-count-badge">
+                  {t('vacancyModal.history_badge_hint', { count: vacancy.history.length })}
+                </span>
+              )}
+            </div>
+
+            {(!vacancy.history || vacancy.history.length === 0) ? (
+              <div className="stage-timeline-empty">
+                <History size={15} />
+                <span>{t('vacancyModal.history_empty')}</span>
+              </div>
+            ) : (
+              <div className="stage-timeline">
+                {vacancy.history.map((item, idx) => {
+                  const isCurrent = idx === vacancy.history.length - 1;
+                  const stageColor = stageColorMap[item.to_status] || '#6366f1';
+                  const isEditingThis = editingHistoryId === item.id;
+                  const isSavingThis = savingHistoryId === item.id;
+                  const isLastItem = idx === vacancy.history.length - 1;
+
+                  return (
+                    <div key={item.id || idx} className={`stage-timeline-item ${isCurrent ? 'is-current' : ''}`}>
+                      {!isLastItem && <div className="stage-timeline-line" />}
+                      <div
+                        className="stage-timeline-dot"
+                        style={{
+                          borderColor: stageColor,
+                          backgroundColor: isCurrent ? stageColor : 'var(--bg-card)',
+                          boxShadow: isCurrent ? `0 0 8px ${stageColor}88` : 'none'
+                        }}
+                      />
+
+                      <div className="stage-timeline-content">
+                        <div className="stage-timeline-header">
+                          <div className="stage-badges-row">
+                            {item.from_status && item.from_status !== item.to_status ? (
+                              <div className="stage-transition-group">
+                                <span className="stage-badge stage-badge-from">
+                                  {t(`kanban.columns.${item.from_status}`)}
+                                </span>
+                                <ArrowRight size={11} className="stage-arrow-icon" />
+                                <span
+                                  className="stage-badge stage-badge-to"
+                                  style={{
+                                    borderColor: `${stageColor}50`,
+                                    color: stageColor,
+                                    backgroundColor: `${stageColor}18`
+                                  }}
+                                >
+                                  {t(`kanban.columns.${item.to_status}`)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span
+                                className="stage-badge stage-badge-to"
+                                style={{
+                                  borderColor: `${stageColor}50`,
+                                  color: stageColor,
+                                  backgroundColor: `${stageColor}18`
+                                }}
+                              >
+                                {t(`kanban.columns.${item.to_status}`)}
+                              </span>
+                            )}
+
+                            {isCurrent && (
+                              <span className="stage-current-pill">
+                                {t('vacancyModal.history_current')}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="stage-time">
+                            {formatDate(item.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {/* Comment section for this stage */}
+                        <div className="stage-comment-area">
+                          {isEditingThis ? (
+                            <div className="stage-comment-form">
+                              <textarea
+                                className="form-textarea stage-comment-input"
+                                rows={2}
+                                placeholder={t('vacancyModal.history_comment_placeholder')}
+                                value={historyCommentText}
+                                onChange={(e) => setHistoryCommentText(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="stage-comment-form-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                  onClick={() => handleSaveHistoryComment(item.id)}
+                                  disabled={isSavingThis}
+                                >
+                                  {isSavingThis ? (
+                                    <>
+                                      <Loader2 size={12} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                                      <span>{t('vacancyModal.history_saving')}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={12} />
+                                      <span>{t('vacancyModal.history_save_comment')}</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                                  onClick={() => {
+                                    setEditingHistoryId(null);
+                                    setHistoryCommentText('');
+                                  }}
+                                  disabled={isSavingThis}
+                                >
+                                  <X size={12} />
+                                  <span>{t('vacancyModal.history_cancel')}</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : item.comment ? (
+                            <div className="stage-comment-bubble">
+                              <div className="stage-comment-text">
+                                <MessageSquare size={13} className="stage-comment-icon" />
+                                <span>{item.comment}</span>
+                              </div>
+                              <div className="stage-comment-tools">
+                                <button
+                                  type="button"
+                                  className="stage-tool-btn"
+                                  title={t('vacancyModal.history_edit_comment')}
+                                  onClick={() => {
+                                    setEditingHistoryId(item.id);
+                                    setHistoryCommentText(item.comment || '');
+                                  }}
+                                >
+                                  <Edit3 size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="stage-tool-btn stage-tool-btn-danger"
+                                  title={t('vacancyModal.history_delete_comment')}
+                                  onClick={() => handleDeleteHistoryComment(item.id)}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="stage-add-comment-btn"
+                              onClick={() => {
+                                setEditingHistoryId(item.id);
+                                setHistoryCommentText('');
+                              }}
+                            >
+                              <Plus size={11} />
+                              <span>{t('vacancyModal.history_add_comment')}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Personal Notes */}
+          <div className="form-group">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <StickyNote size={14} />
+                <span>{t('vacancyModal.notes_title')}</span>
+              </label>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleSaveNotes}
+                disabled={savingNotes}
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              >
+                {savedNotesSuccess ? (
+                  <>
+                    <Check size={14} color="#10b981" />
+                    <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_notes')}</span>
+                  </>
+                ) : (
+                  <span>{t('vacancyModal.save_notes')}</span>
+                )}
+              </button>
+            </div>
+            <textarea
+              className="form-textarea"
+              style={{ minHeight: '80px' }}
+              placeholder={t('vacancyModal.notes_placeholder')}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+          </div>
+
+          {/* Original Vacancy Description */}
+          <div className="form-group orig-desc-section">
+            <button
+              type="button"
+              className={`orig-desc-header ${isDescExpanded ? 'is-expanded' : ''}`}
+              onClick={() => {
+                trackEvent(EVENTS.DESCRIPTION_EXPAND, {
+                  vacancy_id: vacancy.id,
+                  expanded: !isDescExpanded
+                });
+                setIsDescExpanded(prev => !prev);
+              }}
+              aria-expanded={isDescExpanded}
+            >
+              <div className="orig-desc-header-title">
+                <FileText size={15} />
+                <span>{t('vacancyModal.orig_description_title')}</span>
+              </div>
+              <div className="orig-desc-header-action">
+                <span>{isDescExpanded ? t('vacancyModal.collapse') : t('vacancyModal.show_full')}</span>
+                {isDescExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </div>
+            </button>
+            {isDescExpanded && (
+              <div className="orig-desc-body">
+                <div className="orig-desc-actions" style={{ justifyContent: 'space-between', display: 'flex', marginBottom: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleSaveDescription}
+                    disabled={savingDescription}
+                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                  >
+                    {savedDescriptionSuccess ? (
+                      <>
+                        <Check size={12} color="#10b981" />
+                        <span style={{ color: '#10b981' }}>Сохранено</span>
+                      </>
+                    ) : (
+                      <span>Сохранить текст</span>
+                    )}
+                  </button>
+                  {vacancy.description && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary orig-desc-copy-btn"
+                      onClick={handleCopyDescription}
+                      title={t('vacancyModal.copy_description')}
+                    >
+                      {copiedDesc ? (
+                        <>
+                          <Check size={12} color="#10b981" />
+                          <span style={{ color: '#10b981' }}>{t('vacancyModal.copied')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>{t('vacancyModal.copy_description')}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  className="form-textarea"
+                  style={{ minHeight: '150px', width: '100%', fontSize: '0.8125rem' }}
+                  placeholder="Вставьте текст вакансии сюда..."
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+            </>
+          )}
+
+          {activeTab === "compatibility" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* CV Compatibility Analysis Section */}
           <div style={{
             background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 78, 59, 0.15) 100%)',
@@ -1544,411 +1992,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             )}
           </div>
 
-          {/* AI Summary Section */}
-          <div style={{
-            background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(30, 27, 75, 0.2) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#c7d2fe', fontWeight: 600, fontSize: '0.9rem' }}>
-                <Sparkles size={16} color="#a5b4fc" />
-                <span>{t('vacancyModal.ai_summary_title')}</span>
-              </div>
-              <button
-                className="btn btn-secondary"
-                onClick={handleResummarize}
-                disabled={resummarizing}
-                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-              >
-                {resummarizing ? (
-                  <>
-                    <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>{t('vacancyModal.analyzing')}</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={12} />
-                    <span>{t('vacancyModal.resummarize_btn')}</span>
-                  </>
-                )}
-              </button>
             </div>
-            
-            <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-              {vacancy.ai_summary || t('vacancyModal.no_summary')}
-            </p>
-
-            {vacancy.company_info && (
-              <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(99, 102, 241, 0.15)', fontSize: '0.8125rem', color: '#94a3b8' }}>
-                <strong style={{ color: '#c7d2fe' }}>{t('vacancyModal.about_company')}</strong>
-                {vacancy.company_info}
-              </div>
-            )}
-          </div>
-
-          {/* Tech Stack */}
-          <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>{t('vacancyModal.tech_stack_title')}</span>
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-              {techStack.map(tech => (
-                <span key={tech} className="tech-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 8px' }}>
-                  {tech}
-                  <button 
-                    onClick={() => handleRemoveTech(tech)} 
-                    style={{ background: 'none', border: 'none', color: '#818cf8', cursor: 'pointer', padding: 0, display: 'flex' }}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              {techStack.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tech_stack')}</span>
-              )}
-            </div>
-            <form onSubmit={handleAddTech} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder={t('vacancyModal.add_tech_placeholder')}
-                value={newTechInput}
-                onChange={e => setNewTechInput(e.target.value)}
-              />
-              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
-                <Plus size={14} />
-              </button>
-            </form>
-          </div>
-
-          {/* Custom Tags */}
-          <div className="form-group">
-            <label className="form-label">
-              {t('vacancyModal.tags_title')}
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-              {tags.map(tagItem => (
-                <span key={tagItem} className="tag-chip" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                  <Tag size={11} />
-                  {tagItem}
-                  <button 
-                    onClick={() => handleRemoveTag(tagItem)} 
-                    style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: '2px' }}
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              {tags.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tags')}</span>
-              )}
-            </div>
-            <form onSubmit={handleAddTag} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder={t('vacancyModal.add_tag_placeholder')}
-                value={newTagInput}
-                onChange={e => setNewTagInput(e.target.value)}
-              />
-              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
-                <Plus size={14} />
-              </button>
-            </form>
-          </div>
-
-          {/* Stage Movement History */}
-          <div className="form-group stage-history-section">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
-                <History size={15} color="#818cf8" />
-                <span>{t('vacancyModal.history_title')}</span>
-              </label>
-              {vacancy.history && vacancy.history.length > 0 && (
-                <span className="stage-count-badge">
-                  {t('vacancyModal.history_badge_hint', { count: vacancy.history.length })}
-                </span>
-              )}
-            </div>
-
-            {(!vacancy.history || vacancy.history.length === 0) ? (
-              <div className="stage-timeline-empty">
-                <History size={15} />
-                <span>{t('vacancyModal.history_empty')}</span>
-              </div>
-            ) : (
-              <div className="stage-timeline">
-                {vacancy.history.map((item, idx) => {
-                  const isCurrent = idx === vacancy.history.length - 1;
-                  const stageColor = stageColorMap[item.to_status] || '#6366f1';
-                  const isEditingThis = editingHistoryId === item.id;
-                  const isSavingThis = savingHistoryId === item.id;
-                  const isLastItem = idx === vacancy.history.length - 1;
-
-                  return (
-                    <div key={item.id || idx} className={`stage-timeline-item ${isCurrent ? 'is-current' : ''}`}>
-                      {!isLastItem && <div className="stage-timeline-line" />}
-                      <div
-                        className="stage-timeline-dot"
-                        style={{
-                          borderColor: stageColor,
-                          backgroundColor: isCurrent ? stageColor : 'var(--bg-card)',
-                          boxShadow: isCurrent ? `0 0 8px ${stageColor}88` : 'none'
-                        }}
-                      />
-
-                      <div className="stage-timeline-content">
-                        <div className="stage-timeline-header">
-                          <div className="stage-badges-row">
-                            {item.from_status && item.from_status !== item.to_status ? (
-                              <div className="stage-transition-group">
-                                <span className="stage-badge stage-badge-from">
-                                  {t(`kanban.columns.${item.from_status}`)}
-                                </span>
-                                <ArrowRight size={11} className="stage-arrow-icon" />
-                                <span
-                                  className="stage-badge stage-badge-to"
-                                  style={{
-                                    borderColor: `${stageColor}50`,
-                                    color: stageColor,
-                                    backgroundColor: `${stageColor}18`
-                                  }}
-                                >
-                                  {t(`kanban.columns.${item.to_status}`)}
-                                </span>
-                              </div>
-                            ) : (
-                              <span
-                                className="stage-badge stage-badge-to"
-                                style={{
-                                  borderColor: `${stageColor}50`,
-                                  color: stageColor,
-                                  backgroundColor: `${stageColor}18`
-                                }}
-                              >
-                                {t(`kanban.columns.${item.to_status}`)}
-                              </span>
-                            )}
-
-                            {isCurrent && (
-                              <span className="stage-current-pill">
-                                {t('vacancyModal.history_current')}
-                              </span>
-                            )}
-                          </div>
-
-                          <span className="stage-time">
-                            {formatDate(item.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-
-                        {/* Comment section for this stage */}
-                        <div className="stage-comment-area">
-                          {isEditingThis ? (
-                            <div className="stage-comment-form">
-                              <textarea
-                                className="form-textarea stage-comment-input"
-                                rows={2}
-                                placeholder={t('vacancyModal.history_comment_placeholder')}
-                                value={historyCommentText}
-                                onChange={(e) => setHistoryCommentText(e.target.value)}
-                                autoFocus
-                              />
-                              <div className="stage-comment-form-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn-primary"
-                                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                                  onClick={() => handleSaveHistoryComment(item.id)}
-                                  disabled={isSavingThis}
-                                >
-                                  {isSavingThis ? (
-                                    <>
-                                      <Loader2 size={12} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                                      <span>{t('vacancyModal.history_saving')}</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Check size={12} />
-                                      <span>{t('vacancyModal.history_save_comment')}</span>
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                                  onClick={() => {
-                                    setEditingHistoryId(null);
-                                    setHistoryCommentText('');
-                                  }}
-                                  disabled={isSavingThis}
-                                >
-                                  <X size={12} />
-                                  <span>{t('vacancyModal.history_cancel')}</span>
-                                </button>
-                              </div>
-                            </div>
-                          ) : item.comment ? (
-                            <div className="stage-comment-bubble">
-                              <div className="stage-comment-text">
-                                <MessageSquare size={13} className="stage-comment-icon" />
-                                <span>{item.comment}</span>
-                              </div>
-                              <div className="stage-comment-tools">
-                                <button
-                                  type="button"
-                                  className="stage-tool-btn"
-                                  title={t('vacancyModal.history_edit_comment')}
-                                  onClick={() => {
-                                    setEditingHistoryId(item.id);
-                                    setHistoryCommentText(item.comment || '');
-                                  }}
-                                >
-                                  <Edit3 size={12} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="stage-tool-btn stage-tool-btn-danger"
-                                  title={t('vacancyModal.history_delete_comment')}
-                                  onClick={() => handleDeleteHistoryComment(item.id)}
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="stage-add-comment-btn"
-                              onClick={() => {
-                                setEditingHistoryId(item.id);
-                                setHistoryCommentText('');
-                              }}
-                            >
-                              <Plus size={11} />
-                              <span>{t('vacancyModal.history_add_comment')}</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Personal Notes */}
-          <div className="form-group">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <StickyNote size={14} />
-                <span>{t('vacancyModal.notes_title')}</span>
-              </label>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleSaveNotes}
-                disabled={savingNotes}
-                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-              >
-                {savedNotesSuccess ? (
-                  <>
-                    <Check size={14} color="#10b981" />
-                    <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_notes')}</span>
-                  </>
-                ) : (
-                  <span>{t('vacancyModal.save_notes')}</span>
-                )}
-              </button>
-            </div>
-            <textarea
-              className="form-textarea"
-              style={{ minHeight: '80px' }}
-              placeholder={t('vacancyModal.notes_placeholder')}
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-          </div>
-
-          {/* Original Vacancy Description */}
-          <div className="form-group orig-desc-section">
-            <button
-              type="button"
-              className={`orig-desc-header ${isDescExpanded ? 'is-expanded' : ''}`}
-              onClick={() => {
-                trackEvent(EVENTS.DESCRIPTION_EXPAND, {
-                  vacancy_id: vacancy.id,
-                  expanded: !isDescExpanded
-                });
-                setIsDescExpanded(prev => !prev);
-              }}
-              aria-expanded={isDescExpanded}
-            >
-              <div className="orig-desc-header-title">
-                <FileText size={15} />
-                <span>{t('vacancyModal.orig_description_title')}</span>
-              </div>
-              <div className="orig-desc-header-action">
-                <span>{isDescExpanded ? t('vacancyModal.collapse') : t('vacancyModal.show_full')}</span>
-                {isDescExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-              </div>
-            </button>
-            {isDescExpanded && (
-              <div className="orig-desc-body">
-                <div className="orig-desc-actions" style={{ justifyContent: 'space-between', display: 'flex', marginBottom: '8px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleSaveDescription}
-                    disabled={savingDescription}
-                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                  >
-                    {savedDescriptionSuccess ? (
-                      <>
-                        <Check size={12} color="#10b981" />
-                        <span style={{ color: '#10b981' }}>Сохранено</span>
-                      </>
-                    ) : (
-                      <span>Сохранить текст</span>
-                    )}
-                  </button>
-                  {vacancy.description && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary orig-desc-copy-btn"
-                      onClick={handleCopyDescription}
-                      title={t('vacancyModal.copy_description')}
-                    >
-                      {copiedDesc ? (
-                        <>
-                          <Check size={12} color="#10b981" />
-                          <span style={{ color: '#10b981' }}>{t('vacancyModal.copied')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} />
-                          <span>{t('vacancyModal.copy_description')}</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  className="form-textarea"
-                  style={{ minHeight: '150px', width: '100%', fontSize: '0.8125rem' }}
-                  placeholder="Вставьте текст вакансии сюда..."
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Footer */}

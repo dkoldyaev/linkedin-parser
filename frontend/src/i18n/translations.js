@@ -123,6 +123,8 @@ export const translations = {
       original_mult160: "Оригинал: {range} {suffix} (расчет из 160 ч/мес)",
     },
     vacancyModal: {
+      tab_details: "Описание и детали",
+      tab_cv_compatibility: "Совместимость с CV",
       open_linkedin: "Открыть на LinkedIn",
       delete_vacancy: "Удалить вакансию",
       closed_badge: "Вакансия закрыта (архив)",
@@ -505,6 +507,8 @@ export const translations = {
       original_mult160: "Original: {range} {suffix} (160 hrs/mo)",
     },
     vacancyModal: {
+      tab_details: "Details & Notes",
+      tab_cv_compatibility: "CV Compatibility",
       open_linkedin: "Open on LinkedIn",
       delete_vacancy: "Delete vacancy",
       closed_badge: "Vacancy closed (archived)",
