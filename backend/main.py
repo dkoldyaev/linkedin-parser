@@ -1314,7 +1314,11 @@ def get_settings(
     salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
     columns_raw = get_user_columns(db, current_user.id)
     columns = [ColumnItem(**c) for c in columns_raw]
-    cv_token = get_setting_or_env(db, "cv_service_token", os.getenv("CV_SERVICE_TOKEN", ""), user_id=current_user.id)
+    cv_token_setting = db.query(UserSetting).filter(
+        UserSetting.user_id == current_user.id,
+        UserSetting.key == "cv_service_token"
+    ).first()
+    cv_token = cv_token_setting.value.strip() if cv_token_setting and cv_token_setting.value else None
 
     return SettingsResponse(
         llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
@@ -1326,7 +1330,7 @@ def get_settings(
         salary_display_format=salary_display_format,
         columns=columns,
         cv_service_token_set=bool(cv_token),
-        cv_service_token=cv_token if cv_token else None,
+        cv_service_token=cv_token,
     )
 
 
@@ -2316,31 +2320,40 @@ async def publish_cv_proxy(
     db: Session = Depends(get_db),
 ):
     """
-    Transparent CORS reverse proxy for publishing the client-deanonymized DeveloperCV payload
+    Transparent CORS reverse proxy for publishing the DeveloperCV payload
     to the external CV service (https://cv.build.dkoldyaev.com/api/cv).
-    Uses the user's personal CV service token stored in DB if available, falling back
-    to request headers or environment variable.
+    Strictly uses the user's personal CV service token stored in DB for their account,
+    or falls back to an explicit client-provided Authorization header.
     """
     try:
         payload = await request.json()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {e}")
 
-    # Determine user token: check DB first, then incoming headers, then env fallback
-    user_token = get_setting_or_env(db, "cv_service_token", "", user_id=current_user.id)
+    # Determine user token from DB setting first
+    token_setting = db.query(UserSetting).filter(
+        UserSetting.user_id == current_user.id,
+        UserSetting.key == "cv_service_token"
+    ).first()
+    user_token = token_setting.value.strip() if token_setting and token_setting.value else None
+
     auth_header = request.headers.get("authorization") or request.headers.get("x-api-key")
 
     final_token = None
-    if user_token and user_token.strip():
-        final_token = user_token.strip()
+    if user_token:
+        final_token = user_token
     elif auth_header:
         final_token = auth_header.replace("Bearer ", "").strip()
-    else:
-        final_token = os.getenv("CV_SERVICE_TOKEN", "cvt_44930d0195b67afcf586896183b9ffcb8fa894558ef9a434")
+
+    if not final_token:
+        raise HTTPException(
+            status_code=400,
+            detail="CV publishing token is not configured. Please save your API token (cvt_...) in Settings or CV Management."
+        )
 
     logger.info(
         f"Publishing CV for user {current_user.id} ({current_user.email}) "
-        f"using token: {final_token[:8]}... (from {'db' if user_token and user_token.strip() else 'header/env'})"
+        f"using token: {final_token[:8]}... (length: {len(final_token)})"
     )
 
     headers = {

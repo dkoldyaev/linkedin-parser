@@ -12,7 +12,6 @@ import { deanonymizeObject } from './anonymizer.js';
 import { getLocalCV } from './cvIndexedDB.js';
 
 export const DEFAULT_CV_API_URL = 'https://cv.build.dkoldyaev.com';
-export const CV_SERVICE_TOKEN = 'cvt_44930d0195b67afcf586896183b9ffcb8fa894558ef9a434';
 
 /**
  * Validates and cleans DeveloperCV payload according to the API schema
@@ -202,20 +201,20 @@ export async function publishAdaptedCV(anonymizedAdaptedCv, token = null) {
       body: JSON.stringify(payload),
     });
   } catch (err) {
-    // If local proxy fails due to network/routing, attempt direct fallback
-    const fallbackHeaders = {
-      'Content-Type': 'application/json',
-    };
-    const fallbackToken = token || CV_SERVICE_TOKEN;
-    if (fallbackToken) {
-      fallbackHeaders['Authorization'] = `Bearer ${fallbackToken}`;
-      fallbackHeaders['x-api-key'] = fallbackToken;
+    // If local proxy fails due to network/routing and token was explicitly passed, attempt direct fallback
+    if (token) {
+      res = await fetch(`${DEFAULT_CV_API_URL}/api/cv`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-api-key': token,
+        },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      throw err;
     }
-    res = await fetch(`${DEFAULT_CV_API_URL}/api/cv`, {
-      method: 'POST',
-      headers: fallbackHeaders,
-      body: JSON.stringify(payload),
-    });
   }
 
   if (!res.ok) {
