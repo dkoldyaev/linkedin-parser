@@ -169,7 +169,7 @@ export function sanitizeDeveloperCVPayload(rawCv) {
  * @param {string} token API access token (cvt_...)
  * @returns {Promise<{id: string, url: string, markdownUrl: string, pdfUrl: string, jsonUrl: string}>}
  */
-export async function publishAdaptedCV(anonymizedAdaptedCv, token = CV_SERVICE_TOKEN) {
+export async function publishAdaptedCV(anonymizedAdaptedCv, token = null) {
   if (!anonymizedAdaptedCv) {
     throw new Error('No adapted CV data available to publish');
   }
@@ -185,26 +185,35 @@ export async function publishAdaptedCV(anonymizedAdaptedCv, token = CV_SERVICE_T
   const payload = sanitizeDeveloperCVPayload(deanonymizedCv);
 
   // 4. Send to CV API using proxy to avoid browser CORS restrictions
+  // The server publish-proxy endpoint loads the user's personal token from the database
+  const proxyHeaders = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    proxyHeaders['Authorization'] = `Bearer ${token}`;
+    proxyHeaders['x-api-key'] = token;
+  }
+
   let res;
   try {
     res = await fetch('/api/cv/publish-proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'x-api-key': token,
-      },
+      headers: proxyHeaders,
       body: JSON.stringify(payload),
     });
   } catch (err) {
     // If local proxy fails due to network/routing, attempt direct fallback
+    const fallbackHeaders = {
+      'Content-Type': 'application/json',
+    };
+    const fallbackToken = token || CV_SERVICE_TOKEN;
+    if (fallbackToken) {
+      fallbackHeaders['Authorization'] = `Bearer ${fallbackToken}`;
+      fallbackHeaders['x-api-key'] = fallbackToken;
+    }
     res = await fetch(`${DEFAULT_CV_API_URL}/api/cv`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        'x-api-key': token,
-      },
+      headers: fallbackHeaders,
       body: JSON.stringify(payload),
     });
   }

@@ -11,7 +11,7 @@ import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { shouldShowExtensionPrompt } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
-import { publishAdaptedCV, CV_SERVICE_TOKEN } from '../utils/cvPublisher';
+import { publishAdaptedCV } from '../utils/cvPublisher';
 import { computeCVDiff } from '../utils/cvDiff';
 
 const DEFAULT_COLUMNS = [
@@ -168,12 +168,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
-  const handlePublishAdaptedCV = async () => {
-    if (!compatibility?.adapted_cv) return;
+  const handlePublishAdaptedCV = async (cvDataToPublish = null) => {
+    const targetCv = cvDataToPublish || compatibility?.adapted_cv;
+    if (!targetCv) return;
     setPublishingCV(true);
     setPublishError(null);
     try {
-      const res = await publishAdaptedCV(compatibility.adapted_cv, CV_SERVICE_TOKEN);
+      const res = await publishAdaptedCV(targetCv);
       setPublishedCVData(res);
       trackEvent('CV_ADAPTED_PUBLISHED', {
         vacancy_id: vacancy.id,

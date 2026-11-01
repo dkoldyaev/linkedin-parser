@@ -1314,6 +1314,7 @@ def get_settings(
     salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
     columns_raw = get_user_columns(db, current_user.id)
     columns = [ColumnItem(**c) for c in columns_raw]
+    cv_token = get_setting_or_env(db, "cv_service_token", os.getenv("CV_SERVICE_TOKEN", ""), user_id=current_user.id)
 
     return SettingsResponse(
         llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
@@ -1324,6 +1325,8 @@ def get_settings(
         locale=locale,
         salary_display_format=salary_display_format,
         columns=columns,
+        cv_service_token_set=bool(cv_token),
+        cv_service_token=cv_token if cv_token else None,
     )
 
 
@@ -1354,6 +1357,18 @@ def update_settings(
             db.add(setting)
         else:
             setting.value = payload.salary_display_format.strip().lower()
+
+    if payload.cv_service_token is not None:
+        token_val = payload.cv_service_token.strip()
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "cv_service_token"
+        ).first()
+        if not setting:
+            setting = UserSetting(user_id=current_user.id, key="cv_service_token", value=token_val)
+            db.add(setting)
+        else:
+            setting.value = token_val
 
     if payload.columns is not None:
         cols_data = [c.model_dump() for c in payload.columns]
@@ -2298,27 +2313,35 @@ async def adapt_cv_for_vacancy(
 async def publish_cv_proxy(
     request: Request,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """
     Transparent CORS reverse proxy for publishing the client-deanonymized DeveloperCV payload
     to the external CV service (https://cv.build.dkoldyaev.com/api/cv).
-    The deanonymized payload and auth token are sent by the client directly to this endpoint,
-    which forwards it server-to-server, bypassing browser CORS restrictions.
+    Uses the user's personal CV service token stored in DB if available, falling back
+    to request headers or environment variable.
     """
     try:
         payload = await request.json()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {e}")
 
-    # Extract auth token from incoming request headers or fallback to known token
+    # Determine user token: check DB first, then incoming headers, then env fallback
+    user_token = get_setting_or_env(db, "cv_service_token", "", user_id=current_user.id)
     auth_header = request.headers.get("authorization") or request.headers.get("x-api-key")
-    if not auth_header:
-        auth_header = "Bearer cvt_6aa894042bcc46afc448983f57b7756a63a075626a7eba2e"
+
+    final_token = None
+    if user_token and user_token.strip():
+        final_token = user_token.strip()
+    elif auth_header:
+        final_token = auth_header.replace("Bearer ", "").strip()
+    else:
+        final_token = os.getenv("CV_SERVICE_TOKEN", "cvt_6aa894042bcc46afc448983f57b7756a63a075626a7eba2e")
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": auth_header if auth_header.startswith("Bearer ") else f"Bearer {auth_header}",
-        "x-api-key": auth_header.replace("Bearer ", ""),
+        "Authorization": f"Bearer {final_token}",
+        "x-api-key": final_token,
     }
 
     target_url = "https://cv.build.dkoldyaev.com/api/cv"

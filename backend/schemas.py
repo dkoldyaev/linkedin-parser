@@ -206,6 +206,8 @@ class SettingsResponse(BaseModel):
     locale: str = "ru"
     salary_display_format: str = "month"
     columns: List[ColumnItem] = Field(default_factory=list)
+    cv_service_token_set: bool = False
+    cv_service_token: Optional[str] = None
 
 class SettingsUpdateRequest(BaseModel):
     llm_provider: Optional[str] = None
@@ -216,6 +218,7 @@ class SettingsUpdateRequest(BaseModel):
     locale: Optional[str] = None
     salary_display_format: Optional[str] = None
     columns: Optional[List[ColumnItem]] = None
+    cv_service_token: Optional[str] = None
 
 class ExtensionParseRequest(BaseModel):
     url: str

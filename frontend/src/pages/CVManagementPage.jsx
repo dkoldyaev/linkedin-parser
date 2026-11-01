@@ -6,6 +6,7 @@ import {
   Trash2,
   AlertTriangle,
   Edit3,
+  Key,
 } from 'lucide-react';
 import { extractTextFromFile } from '../utils/textExtractor';
 import { getLocalCV, saveLocalCV, clearLocalCV } from '../utils/cvIndexedDB';
@@ -20,6 +21,9 @@ export default function CVManagementPage() {
   const [serverCV, setServerCV] = useState(null);
   const [syncStatus, setSyncStatus] = useState('none'); // 'none' | 'draft' | 'approved' | 'outdated'
   const [filename, setFilename] = useState('');
+  const [cvServiceToken, setCvServiceToken] = useState('');
+  const [isSavingToken, setIsSavingToken] = useState(false);
+  const [tokenSavedMsg, setTokenSavedMsg] = useState(false);
 
   // UI status
   const [message, setMessage] = useState(null);
@@ -42,12 +46,48 @@ export default function CVManagementPage() {
     }
   }, []);
 
+  // Fetch settings (for cv_service_token)
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.cv_service_token !== undefined) {
+          setCvServiceToken(data.cv_service_token || '');
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch settings:', err);
+    }
+  }, []);
+
+  // Save CV service token
+  const handleSaveToken = async (e) => {
+    if (e) e.preventDefault();
+    setIsSavingToken(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv_service_token: cvServiceToken.trim() }),
+      });
+      if (res.ok) {
+        setTokenSavedMsg(true);
+        setTimeout(() => setTokenSavedMsg(false), 2500);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to save token');
+    } finally {
+      setIsSavingToken(false);
+    }
+  };
+
   // Load local CV from IndexedDB
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        await fetchServerApprovedCV();
+        await Promise.all([fetchServerApprovedCV(), fetchSettings()]);
         const local = await getLocalCV();
         if (local) {
           const text = local.sourceText || local.anonymizedText || '';
@@ -71,7 +111,7 @@ export default function CVManagementPage() {
       }
     }
     loadData();
-  }, [fetchServerApprovedCV]);
+  }, [fetchServerApprovedCV, fetchSettings]);
 
   // Handle File Upload
   const handleFileUpload = async (e) => {
@@ -247,6 +287,63 @@ export default function CVManagementPage() {
           {message}
         </div>
       )}
+
+      {/* API Key Configuration Card */}
+      <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '16px 20px', marginBottom: '24px' }}>
+        <form onSubmit={handleSaveToken} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Key size={18} style={{ color: '#6366f1' }} />
+            <span style={{ fontWeight: 600, fontSize: '0.95rem', color: '#e2e8f0' }}>{t('pages.cv.token_card_title')}</span>
+          </div>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '2px 0 8px 0' }}>
+            {t('pages.cv.token_card_desc')}
+          </p>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="password"
+              placeholder="cvt_..."
+              value={cvServiceToken}
+              onChange={(e) => setCvServiceToken(e.target.value)}
+              style={{
+                flex: '1 1 300px',
+                background: '#1e293b',
+                border: '1px solid #475569',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                color: '#f8fafc',
+                fontSize: '0.9rem',
+                fontFamily: 'monospace',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isSavingToken}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#6366f1',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+              }}
+            >
+              {tokenSavedMsg ? (
+                <>
+                  <CheckCircle2 size={16} color="#4ade80" />
+                  <span style={{ color: '#4ade80' }}>{t('pages.cv.token_saved')}</span>
+                </>
+              ) : (
+                t('pages.cv.token_save_btn')
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Upload & Actions Toolbar */}
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
