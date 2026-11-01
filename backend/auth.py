@@ -8,11 +8,14 @@ from typing import Optional
 
 import jwt
 import httpx
-from fastapi import Request, HTTPException, status, Depends
+from fastapi import Request, HTTPException, status, Depends, Security
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import User, Vacancy, ApiKey
+
+api_key_header_scheme = APIKeyHeader(name="X-API-Key", auto_error=False, description="Personal API Key")
 
 logger = logging.getLogger("linkedin_tracker.auth")
 
@@ -131,6 +134,47 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         )
 
     return user
+
+
+def get_current_user_from_api_key(
+    request: Request,
+    api_key_param: Optional[str] = Security(api_key_header_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    """Strictly authenticate via personal API key only (X-API-Key or Authorization: Bearer ak_...)."""
+    api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key") or api_key_param
+    auth_header = request.headers.get("Authorization")
+    
+    candidate_api_key = None
+    if api_key_header:
+        candidate_api_key = api_key_header.strip()
+    elif auth_header and auth_header.startswith("Bearer "):
+        bearer_val = auth_header[7:].strip()
+        if bearer_val.startswith("ak_"):
+            candidate_api_key = bearer_val
+
+    if not candidate_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key required in X-API-Key header or Authorization: Bearer ak_...",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    key_hash = hashlib.sha256(candidate_api_key.encode()).hexdigest()
+    api_key_record = db.query(ApiKey).filter(ApiKey.key_hash == key_hash).first()
+    if not api_key_record:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked API key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+
+    api_key_record.last_used_at = datetime.utcnow()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+    return api_key_record.user
 
 
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:

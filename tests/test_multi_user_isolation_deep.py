@@ -9,7 +9,12 @@ from backend.auth import create_access_token
 def users_fixture():
     db = SessionLocal()
     # Cleanup prior test data
-    db.query(User).filter(User.email.in_(["iso_alice@test.com", "iso_bob@test.com"])).delete()
+    existing = db.query(User).filter(User.email.in_(["iso_alice@test.com", "iso_bob@test.com"])).all()
+    for u in existing:
+        db.query(Vacancy).filter(Vacancy.user_id == u.id).delete()
+        db.query(ApiKey).filter(ApiKey.user_id == u.id).delete()
+        db.query(ApprovedCV).filter(ApprovedCV.user_id == u.id).delete()
+        db.delete(u)
     db.commit()
 
     user_a = User(google_id="iso_alice", email="iso_alice@test.com", name="Alice")
@@ -23,7 +28,12 @@ def users_fixture():
 
     # Cleanup
     db = SessionLocal()
-    db.query(User).filter(User.email.in_(["iso_alice@test.com", "iso_bob@test.com"])).delete()
+    cleanup_users = db.query(User).filter(User.email.in_(["iso_alice@test.com", "iso_bob@test.com"])).all()
+    for u in cleanup_users:
+        db.query(Vacancy).filter(Vacancy.user_id == u.id).delete()
+        db.query(ApiKey).filter(ApiKey.user_id == u.id).delete()
+        db.query(ApprovedCV).filter(ApprovedCV.user_id == u.id).delete()
+        db.delete(u)
     db.commit()
     db.close()
 

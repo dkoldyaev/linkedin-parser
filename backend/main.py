@@ -73,6 +73,7 @@ from .schemas import (
 )
 from .auth import (
     get_current_user,
+    get_current_user_from_api_key,
     get_optional_user,
     is_google_configured,
     get_google_auth_url,
@@ -268,15 +269,43 @@ async def lifespan(app: FastAPI):
     await queue_manager.stop()
 
 
+# System app has NO public documentation: docs_url=None, redoc_url=None, openapi_url=None
 app = FastAPI(
-    title="LinkedIn Vacancy Tracker API",
-    description="API for managing job vacancies, Kanban tracking, CV analysis and AI summarization",
+    title="LinkedIn Vacancy Tracker System API",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+    lifespan=lifespan
+)
+
+# Public API v1 sub-application with OpenAPI documentation strictly for Public API
+public_app = FastAPI(
+    title="Job Vacancies Public API",
+    description="Public API for accessing and managing job vacancies. Access is granted strictly via Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
-    lifespan=lifespan
 )
+
+from .public_api import router as public_router
+public_app.include_router(public_router)
+
+# Mount public API at /api/v1
+app.mount("/api/v1", public_app)
+
+# Convenience redirects for root docs/openapi pointing directly to the Public API documentation
+@app.get("/docs", include_in_schema=False)
+def redirect_docs():
+    return RedirectResponse(url="/api/v1/docs")
+
+@app.get("/redoc", include_in_schema=False)
+def redirect_redoc():
+    return RedirectResponse(url="/api/v1/redoc")
+
+@app.get("/openapi.json", include_in_schema=False)
+def redirect_openapi():
+    return RedirectResponse(url="/api/v1/openapi.json")
 
 # CORS middleware for local dev
 app.add_middleware(
@@ -1333,11 +1362,6 @@ def get_settings(
     cv_token = cv_token_setting.value.strip() if cv_token_setting and cv_token_setting.value else None
 
     return SettingsResponse(
-        llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
-        mistral_api_key_set=bool(os.getenv("MISTRAL_API_KEY", "")),
-        mistral_model=os.getenv("MISTRAL_MODEL", "mistral-small-latest"),
-        gemini_api_key_set=bool(os.getenv("GEMINI_API_KEY", "")),
-        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         locale=locale,
         salary_display_format=salary_display_format,
         columns=columns,

@@ -27,13 +27,15 @@ def test_user():
 
 def test_openapi_endpoints():
     client = TestClient(app)
-    # /openapi.json
+    # /openapi.json redirects to public API openapi.json
     res = client.get("/openapi.json")
     assert res.status_code == 200
     schema = res.json()
     assert "openapi" in schema
-    assert "/api/vacancies" in schema["paths"]
-    assert "/api/api-keys" in schema["paths"]
+    # Public API paths are exposed without /api/api-keys or internal auth
+    assert "/vacancies" in schema["paths"]
+    assert "/columns" in schema["paths"]
+    assert "/api/api-keys" not in schema["paths"]
 
     # /docs
     res_docs = client.get("/docs")

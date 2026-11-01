@@ -529,7 +529,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
                 <a
-                  href="/docs"
+                  href="/api/v1/docs"
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-secondary"
@@ -539,7 +539,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   <span>{t('settingsModal.openapi_swagger_btn')}</span>
                 </a>
                 <a
-                  href="/redoc"
+                  href="/api/v1/redoc"
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-secondary"
@@ -549,7 +549,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   <span>{t('settingsModal.openapi_redoc_btn')}</span>
                 </a>
                 <a
-                  href="/openapi.json"
+                  href="/api/v1/openapi.json"
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-secondary"
