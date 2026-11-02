@@ -9,7 +9,7 @@ import { trackEvent, EVENTS } from '../utils/analytics';
  * Right side of the app header: page-specific actions (children), download, settings,
  * user badge and the burger button that toggles the navigation drawer.
  */
-export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpdated, children }) {
+export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpdated, onUserUpdated, children }) {
   const { t } = useTranslation();
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -59,6 +59,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             onClose={() => setIsSettingsOpen(false)}
             vacancies={vacancies}
             onColumnsUpdated={onColumnsUpdated}
+            onUserUpdated={onUserUpdated}
           />
         </>
       )}

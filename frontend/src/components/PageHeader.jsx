@@ -5,7 +5,7 @@ import HeaderControls from './HeaderControls';
 import { useTranslation } from '../i18n/I18nContext';
 
 /** Header for pages other than the board (the board renders its own header with search). */
-export default function PageHeader({ user, onLogout }) {
+export default function PageHeader({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
   return (
     <header className="app-header">
@@ -16,7 +16,7 @@ export default function PageHeader({ user, onLogout }) {
           <p className="brand-subtitle">{t('nav.subtitle')}</p>
         </div>
       </Link>
-      <HeaderControls user={user} onLogout={onLogout} />
+      <HeaderControls user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />
     </header>
   );
 }

@@ -22,12 +22,19 @@ from .models import (
     AppSetting,
     User,
     UserSetting,
+    UserFeatureFlag,
     ApprovedCV,
     VacancyCVAnalysis,
     AdaptedCVVersion,
+    ApiKey,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
+    KNOWN_FEATURE_FLAGS,
+    FEATURE_FLAG_CV_EDIT,
+    FEATURE_FLAG_USER_MANAGEMENT,
+    FEATURE_FLAG_API_ACCESS,
+    FEATURE_FLAG_ADMIN,
 )
 from .schemas import (
     VacancyResponse,
@@ -54,6 +61,9 @@ from .schemas import (
     ColumnDeleteRequest,
     ColumnsOrderRequest,
     UserResponse,
+    UserUpdateFeatureFlagsRequest,
+    AvailableFeatureFlagsResponse,
+    AdminUserUpdate,
     AuthConfigResponse,
     DevLoginRequest,
     ExtensionTaskResponse,
@@ -66,9 +76,14 @@ from .schemas import (
     VacancyCVAnalysisResponse,
     AdaptedCVVersionResponse,
     AdaptCVRequest,
+    ApiKeyCreateRequest,
+    ApiKeyResponse,
+    ApiKeyCreatedResponse,
 )
 from .auth import (
     get_current_user,
+    get_current_admin_user,
+    get_current_user_from_api_key,
     get_optional_user,
     is_google_configured,
     get_google_auth_url,
@@ -264,7 +279,43 @@ async def lifespan(app: FastAPI):
     await queue_manager.stop()
 
 
-app = FastAPI(title="LinkedIn Vacancy Tracker", version="1.0.0", lifespan=lifespan)
+# System app has NO public documentation: docs_url=None, redoc_url=None, openapi_url=None
+app = FastAPI(
+    title="LinkedIn Vacancy Tracker System API",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+    lifespan=lifespan
+)
+
+# Public API v1 sub-application with OpenAPI documentation strictly for Public API
+public_app = FastAPI(
+    title="Job Vacancies Public API",
+    description="Public API for accessing and managing job vacancies. Access is granted strictly via Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
+
+from .public_api import router as public_router
+public_app.include_router(public_router)
+
+# Mount public API at /api/v1
+app.mount("/api/v1", public_app)
+
+# Convenience redirects for root docs/openapi pointing directly to the Public API documentation
+@app.get("/docs", include_in_schema=False)
+def redirect_docs():
+    return RedirectResponse(url="/api/v1/docs")
+
+@app.get("/redoc", include_in_schema=False)
+def redirect_redoc():
+    return RedirectResponse(url="/api/v1/redoc")
+
+@app.get("/openapi.json", include_in_schema=False)
+def redirect_openapi():
+    return RedirectResponse(url="/api/v1/openapi.json")
 
 # CORS middleware for local dev
 app.add_middleware(
@@ -292,8 +343,87 @@ def get_auth_config():
 
 
 @app.get("/api/auth/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == current_user.id).all()]
     return current_user
+
+
+@app.get("/api/feature-flags", response_model=AvailableFeatureFlagsResponse)
+def get_available_feature_flags(current_user: User = Depends(get_current_user)):
+    """Return list of predefined valid feature flag constants."""
+    return AvailableFeatureFlagsResponse(available_flags=KNOWN_FEATURE_FLAGS)
+
+
+def _sync_user_flags_table(db: Session, user_id: int, requested_flags: List[str]) -> List[str]:
+    # Restrict to known constants to prevent typos or arbitrary strings
+    valid_flags = [f for f in requested_flags if f in KNOWN_FEATURE_FLAGS]
+    # Remove existing
+    db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user_id).delete()
+    for flag_name in set(valid_flags):
+        db.add(UserFeatureFlag(user_id=user_id, flag=flag_name))
+    # Update user.feature_flags column as well for consistency
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        user.feature_flags = valid_flags
+    db.commit()
+    if user:
+        db.refresh(user)
+    return valid_flags
+
+
+@app.put("/api/auth/me/feature-flags", response_model=UserResponse)
+def update_my_feature_flags(
+    payload: UserUpdateFeatureFlagsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update current user's feature flags."""
+    saved_flags = _sync_user_flags_table(db, current_user.id, payload.feature_flags)
+    current_user.feature_flags = saved_flags
+    return current_user
+
+
+@app.get("/api/users", response_model=List[UserResponse])
+def list_users(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all users (requires user_management or admin permission/feature flag)."""
+    user_flags = current_user.feature_flags or []
+    if "user_management" not in user_flags and "admin" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User management access required (missing feature flag user_management)",
+        )
+    users = db.query(User).order_by(User.id.asc()).all()
+    # Populate flags from UserFeatureFlag
+    for u in users:
+        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+    return users
+
+
+@app.put("/api/users/{user_id}/feature-flags", response_model=UserResponse)
+def update_user_feature_flags(
+    user_id: int,
+    payload: UserUpdateFeatureFlagsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update feature flags for a specified user (requires user_management permission or admin permission or self-update)."""
+    user_flags = current_user.feature_flags or []
+    can_manage_users = "user_management" in user_flags or "admin" in user_flags
+    if user_id != current_user.id and not can_manage_users:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User management access required (missing feature flag user_management)",
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    saved_flags = _sync_user_flags_table(db, user.id, payload.feature_flags)
+    user.feature_flags = saved_flags
+    return user
 
 
 @app.get("/api/auth/google/login")
@@ -386,6 +516,42 @@ def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depend
 def logout(response: Response):
     response.delete_cookie(key=COOKIE_NAME, path="/")
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Admin API: User & Feature Flag Management
+# ---------------------------------------------------------------------------
+
+@app.get("/api/admin/users", response_model=List[UserResponse])
+def admin_get_users(
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    users = db.query(User).order_by(User.id.asc()).all()
+    for u in users:
+        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+    return users
+
+
+@app.patch("/api/admin/users/{user_id}", response_model=UserResponse)
+def admin_update_user(
+    user_id: int,
+    payload: AdminUserUpdate,
+    admin: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.feature_flags is not None:
+        saved_flags = _sync_user_flags_table(db, target_user.id, payload.feature_flags)
+        target_user.feature_flags = saved_flags
+
+    db.commit()
+    db.refresh(target_user)
+    target_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == target_user.id).all()]
+    return target_user
 
 
 @app.get("/api/config")
@@ -1321,11 +1487,6 @@ def get_settings(
     cv_token = cv_token_setting.value.strip() if cv_token_setting and cv_token_setting.value else None
 
     return SettingsResponse(
-        llm_provider=os.getenv("LLM_PROVIDER", "mistral").lower(),
-        mistral_api_key_set=bool(os.getenv("MISTRAL_API_KEY", "")),
-        mistral_model=os.getenv("MISTRAL_MODEL", "mistral-small-latest"),
-        gemini_api_key_set=bool(os.getenv("GEMINI_API_KEY", "")),
-        gemini_model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         locale=locale,
         salary_display_format=salary_display_format,
         columns=columns,
@@ -1386,6 +1547,89 @@ def update_settings(
     db.commit()
 
     return get_settings(current_user=current_user, db=db)
+
+
+@app.get("/api/api-keys", response_model=List[ApiKeyResponse])
+def list_api_keys(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List API keys generated by the current user (requires api_access or admin)."""
+    user_flags = current_user.feature_flags or []
+    if "api_access" not in user_flags and "admin" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API access is disabled for your account (missing feature flag api_access)",
+        )
+    keys = (
+        db.query(ApiKey)
+        .filter(ApiKey.user_id == current_user.id)
+        .order_by(ApiKey.created_at.desc())
+        .all()
+    )
+    return keys
+
+
+@app.post("/api/api-keys", response_model=ApiKeyCreatedResponse)
+def create_api_key(
+    payload: ApiKeyCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a new personal API key for the current user (requires api_access or admin)."""
+    user_flags = current_user.feature_flags or []
+    if "api_access" not in user_flags and "admin" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API access is disabled for your account (missing feature flag api_access)",
+        )
+    import secrets
+    import hashlib
+
+    raw_token = f"ak_{secrets.token_urlsafe(32)}"
+    key_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    key_prefix = raw_token[:10]  # e.g. "ak_abcdefg..."
+
+    name = (payload.name or "Default API Key").strip() or "Default API Key"
+    new_key = ApiKey(
+        user_id=current_user.id,
+        name=name,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        created_at=datetime.datetime.utcnow(),
+    )
+    db.add(new_key)
+    db.commit()
+    db.refresh(new_key)
+
+    return ApiKeyCreatedResponse(
+        id=new_key.id,
+        name=new_key.name,
+        key_prefix=new_key.key_prefix,
+        created_at=new_key.created_at,
+        last_used_at=new_key.last_used_at,
+        token=raw_token,
+    )
+
+
+@app.delete("/api/api-keys/{key_id}")
+def revoke_api_key(
+    key_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke/delete an API key."""
+    key_record = (
+        db.query(ApiKey)
+        .filter(ApiKey.id == key_id, ApiKey.user_id == current_user.id)
+        .first()
+    )
+    if not key_record:
+        raise HTTPException(status_code=404, detail="API key not found")
+
+    db.delete(key_record)
+    db.commit()
+    return {"status": "ok", "message": "API key revoked"}
 
 
 @app.get("/api/columns", response_model=List[ColumnItem])
@@ -1876,7 +2120,15 @@ def save_approved_cv(
     """
     Stores or replaces the user's approved anonymized CV.
     Marks any existing compatibility analyses as outdated since the CV revision changed.
+    Requires user to have 'cv_edit' or 'cv_editing' feature flag.
     """
+    user_flags = current_user.feature_flags or []
+    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CV editing is not enabled for your account (missing feature flag)",
+        )
+
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     now = datetime.datetime.utcnow()
 
@@ -1912,6 +2164,13 @@ def delete_approved_cv(
     db: Session = Depends(get_db),
 ):
     """Deletes the approved CV and associated analyses for the authenticated user."""
+    user_flags = current_user.feature_flags or []
+    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CV editing is not enabled for your account (missing feature flag)",
+        )
+
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if approved_cv:
         db.delete(approved_cv)
@@ -2095,6 +2354,7 @@ async def analyze_vacancy_compatibility(
             updated_at=now,
         )
         db.add(analysis_record)
+        db.flush()
 
     # Also record version 1 if adapted_cv_payload was produced
     if adapted_cv_payload:
@@ -2388,8 +2648,8 @@ if os.path.exists(STATIC_DIR):
 
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
-        # Don't hijack API routes
-        if full_path.startswith("api"):
+        # Don't hijack API routes and OpenAPI docs routes
+        if full_path.startswith("api") or full_path in ("docs", "redoc", "openapi.json"):
             raise HTTPException(status_code=404, detail="Not found")
         file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):

@@ -26,11 +26,15 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         res_a = self.client.post("/api/auth/dev-login", json={"email": "alice@local.test", "name": "Alice"})
         self.assertEqual(res_a.status_code, 200)
         self.cookies_alice = res_a.cookies
+        # Enable cv_edit feature flag for Alice
+        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies_alice)
 
         # Login dev user B
         res_b = self.client.post("/api/auth/dev-login", json={"email": "bob@local.test", "name": "Bob"})
         self.assertEqual(res_b.status_code, 200)
         self.cookies_bob = res_b.cookies
+        # Enable cv_edit feature flag for Bob
+        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies_bob)
 
     def test_company_anonymization_privacy_boundary(self):
         """Scenario 4: Only company names are sent to the backend endpoint."""

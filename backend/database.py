@@ -103,6 +103,22 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
                     if "match_score" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
+
+                user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
+                if user_cols:
+                    if "feature_flags" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_feature_flags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        flag VARCHAR(64) NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_user_feature_flag UNIQUE (user_id, flag)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -119,6 +135,17 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_feature_flags (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        flag VARCHAR(64) NOT NULL,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_user_feature_flag UNIQUE (user_id, flag)
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 
@@ -169,6 +196,17 @@ def ensure_db_schema():
                         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     );
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(128) NOT NULL,
+                        key_hash VARCHAR(64) NOT NULL UNIQUE,
+                        key_prefix VARCHAR(16) NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        last_used_at DATETIME
+                    );
+                """))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -207,6 +245,17 @@ def ensure_db_schema():
                         user_comment TEXT,
                         parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
                         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(128) NOT NULL,
+                        key_hash VARCHAR(64) NOT NULL UNIQUE,
+                        key_prefix VARCHAR(16) NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        last_used_at TIMESTAMP WITH TIME ZONE
                     );
                 """))
     except Exception as e:
