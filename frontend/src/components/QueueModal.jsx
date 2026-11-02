@@ -62,7 +62,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <List size={20} color="#6366f1" />
+            <List size={20} color="#2563eb" />
             <span>Очередь обработки</span>
           </div>
           <button className="btn-icon" onClick={onClose}>
@@ -72,7 +72,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
           {loading ? (
              <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-               <Loader2 size={24} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+               <Loader2 size={24} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
              </div>
           ) : error ? (
              <div style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>

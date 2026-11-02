@@ -60,7 +60,7 @@ export default function LoginModal({ onLoginSuccess }) {
         {/* Brand Header */}
         <div className="login-brand">
           <div className="login-logo-glow">
-            <Briefcase size={28} color="#818cf8" />
+            <Briefcase size={28} color="#60a5fa" />
           </div>
           <h1 className="login-title">LinkedIn Vacancies</h1>
           <p className="login-subtitle">{t('auth.subtitle')}</p>

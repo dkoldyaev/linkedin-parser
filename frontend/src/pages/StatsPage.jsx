@@ -148,7 +148,7 @@ export default function StatsPage() {
   if (!view) {
     return (
       <div className="info-page" style={{ alignItems: 'center' }}>
-        <Loader2 size={32} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={32} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }

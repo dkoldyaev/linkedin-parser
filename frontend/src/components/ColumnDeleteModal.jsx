@@ -44,7 +44,7 @@ export default function ColumnDeleteModal({
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ArrowRight size={14} color="#6366f1" />
+                  <ArrowRight size={14} color="#2563eb" />
                   <span>{t('kanban.migrate_to_label')}</span>
                 </label>
                 <select

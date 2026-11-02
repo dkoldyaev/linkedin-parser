@@ -14,7 +14,7 @@ import ExtensionPromptModal from './ExtensionPromptModal';
 import { computeCVDiff } from '../utils/cvDiff';
 
 const DEFAULT_COLUMNS = [
-  { id: "Еще не написан", color: "#6366f1" },
+  { id: "Еще не написан", color: "#2563eb" },
   { id: "Написал", color: "#0284c7" },
   { id: "Собеседование", color: "#d97706" },
   { id: "Тестовое", color: "#9333ea" },
@@ -27,13 +27,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
-    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#6366f1' } : c)
+    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
     : DEFAULT_COLUMNS;
 
   const stageColorMap = modalColumns.reduce((acc, col) => {
     acc[col.id] = col.color;
     return acc;
-  }, { "Отказ": "#ef4444", "Еще не написан": "#6366f1" });
+  }, { "Отказ": "#ef4444", "Еще не написан": "#2563eb" });
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
   const [notes, setNotes] = useState(vacancy?.notes || "");
@@ -1114,7 +1114,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   {tech}
                   <button 
                     onClick={() => handleRemoveTech(tech)} 
-                    style={{ background: 'none', border: 'none', color: '#818cf8', cursor: 'pointer', padding: 0, display: 'flex' }}
+                    style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, display: 'flex' }}
                   >
                     <X size={12} />
                   </button>
@@ -1180,7 +1180,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           <div className="form-group stage-history-section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
-                <History size={15} color="#818cf8" />
+                <History size={15} color="#60a5fa" />
                 <span>{t('vacancyModal.history_title')}</span>
               </label>
               {vacancy.history && vacancy.history.length > 0 && (
@@ -1199,7 +1199,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div className="stage-timeline">
                 {vacancy.history.map((item, idx) => {
                   const isCurrent = idx === vacancy.history.length - 1;
-                  const stageColor = stageColorMap[item.to_status] || '#6366f1';
+                  const stageColor = stageColorMap[item.to_status] || '#2563eb';
                   const isEditingThis = editingHistoryId === item.id;
                   const isSavingThis = savingHistoryId === item.id;
                   const isLastItem = idx === vacancy.history.length - 1;

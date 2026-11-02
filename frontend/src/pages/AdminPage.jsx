@@ -245,7 +245,7 @@ export default function AdminPage({ user }) {
                               fontSize: 12, 
                               fontWeight: 600,
                               background: isUserAdmin ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-item)', 
-                              color: isUserAdmin ? '#6366f1' : 'var(--text-muted)',
+                              color: isUserAdmin ? '#2563eb' : 'var(--text-muted)',
                               border: `1px solid ${isUserAdmin ? 'rgba(99, 102, 241, 0.3)' : 'var(--border-color)'}`
                             }}>
                               {isUserAdmin ? t('pages.admin.admin_badge') : t('pages.admin.user_badge')}
@@ -308,7 +308,7 @@ export default function AdminPage({ user }) {
                                 gap: '8px',
                                 padding: '8px 12px',
                                 background: isChecked ? 'rgba(99, 102, 241, 0.12)' : 'var(--bg-app)',
-                                border: `1px solid ${isChecked ? '#6366f1' : 'var(--border-color)'}`,
+                                border: `1px solid ${isChecked ? '#2563eb' : 'var(--border-color)'}`,
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 userSelect: 'none',
@@ -322,7 +322,7 @@ export default function AdminPage({ user }) {
                                 style={{
                                   width: '16px',
                                   height: '16px',
-                                  accentColor: '#6366f1',
+                                  accentColor: '#2563eb',
                                   cursor: 'pointer'
                                 }}
                               />

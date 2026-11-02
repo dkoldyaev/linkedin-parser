@@ -223,7 +223,7 @@ export default function CVManagementPage({ user }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FileText style={{ color: '#6366f1' }} size={28} />
+            <FileText style={{ color: '#2563eb' }} size={28} />
             {t('pages.cv.title')}
           </h1>
           <p style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.95rem' }}>
@@ -244,7 +244,7 @@ export default function CVManagementPage({ user }) {
             </span>
           )}
           {syncStatus === 'draft' && (
-            <span style={{ background: '#6366f122', color: '#818cf8', border: '1px solid #6366f1', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Edit3 size={16} /> {t('pages.cv.local_draft')}
             </span>
           )}
@@ -266,7 +266,7 @@ export default function CVManagementPage({ user }) {
       {/* Upload & Actions Toolbar */}
       {canEditCV && (
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563eb', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
             <Upload size={18} />
             {sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}
             <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
@@ -335,12 +335,12 @@ export default function CVManagementPage({ user }) {
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#0f172a', border: '2px dashed #334155', borderRadius: '12px' }}>
-          <FileText size={48} style={{ color: '#6366f1', margin: '0 auto 16px' }} />
+          <FileText size={48} style={{ color: '#2563eb', margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>{t('pages.cv.no_cv_title')}</h2>
           <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.9rem' }}>
             {t('pages.cv.no_cv_desc')}
           </p>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#6366f1', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563eb', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
             <Upload size={18} /> {t('pages.cv.choose_file')}
             <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>

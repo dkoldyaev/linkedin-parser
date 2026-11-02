@@ -10,7 +10,7 @@ import ColumnDeleteModal from './ColumnDeleteModal';
 const REJECTED_STATUS = "Отказ";
 
 const DEFAULT_BOARD_COLUMNS = [
-  { id: "Еще не написан", color: "#6366f1", has_lanes: false, is_base: true },
+  { id: "Еще не написан", color: "#2563eb", has_lanes: false, is_base: true },
   { id: "Написал", color: "#0284c7", has_lanes: false, is_base: false },
   { id: "Собеседование", color: "#d97706", has_lanes: true, is_base: false },
   { id: "Тестовое", color: "#9333ea", has_lanes: true, is_base: false },
@@ -291,7 +291,7 @@ export default function KanbanBoard({
                         setEditingColumn(col);
                       }}
                     >
-                      <Edit2 size={13} color="#6366f1" />
+                      <Edit2 size={13} color="#2563eb" />
                       <span>{t('kanban.edit_column')}</span>
                     </button>
 

@@ -3,14 +3,14 @@ import { X, Edit3, Palette, Layers } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
 const PRESET_COLORS = [
-  '#6366f1', '#0284c7', '#d97706', '#9333ea', 
-  '#059669', '#e11d48', '#ea580c', '#0891b2', '#4f46e5'
+  '#2563eb', '#0284c7', '#d97706', '#9333ea', 
+  '#059669', '#e11d48', '#ea580c', '#0891b2', '#1d4ed8'
 ];
 
 export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
-  const [color, setColor] = useState('#6366f1');
+  const [color, setColor] = useState('#2563eb');
   const [hasLanes, setHasLanes] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
   useEffect(() => {
     if (column && isOpen) {
       setName(column.id || '');
-      setColor(column.color || '#6366f1');
+      setColor(column.color || '#2563eb');
       setHasLanes(Boolean(column.has_lanes));
       setError('');
     }
@@ -52,7 +52,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <Edit3 size={18} color="#6366f1" />
+            <Edit3 size={18} color="#2563eb" />
             <span>{t('kanban.edit_column')}</span>
           </div>
           <button className="btn-icon" onClick={onClose}>
@@ -139,7 +139,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
               />
               <label htmlFor="edit-modal-has-lanes" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={14} color="#6366f1" />
+                  <Layers size={14} color="#2563eb" />
                   {t('kanban.enable_stages')}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>

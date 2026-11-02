@@ -137,7 +137,7 @@ export default function UserManagementPage({ user }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Users style={{ color: '#6366f1' }} size={28} />
+            <Users style={{ color: '#3b82f6' }} size={28} />
             {t('pages.userManagement.title')}
           </h1>
           <p style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.95rem' }}>
@@ -183,7 +183,7 @@ export default function UserManagementPage({ user }) {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <Loader2 size={32} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+          <Loader2 size={32} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
         </div>
       ) : (
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
@@ -214,7 +214,7 @@ export default function UserManagementPage({ user }) {
                           {u.picture ? (
                             <img src={u.picture} alt="" style={{ width: '34px', height: '34px', borderRadius: '50%' }} />
                           ) : (
-                            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
                               {(u.name || u.email || 'U')[0].toUpperCase()}
                             </div>
                           )}
@@ -238,7 +238,7 @@ export default function UserManagementPage({ user }) {
                                   gap: '8px',
                                   padding: '8px 12px',
                                   background: isChecked ? 'rgba(99, 102, 241, 0.12)' : '#1e293b',
-                                  border: `1px solid ${isChecked ? '#6366f1' : '#334155'}`,
+                                  border: `1px solid ${isChecked ? '#2563eb' : '#334155'}`,
                                   borderRadius: '8px',
                                   cursor: 'pointer',
                                   userSelect: 'none',
@@ -252,7 +252,7 @@ export default function UserManagementPage({ user }) {
                                   style={{
                                     width: '16px',
                                     height: '16px',
-                                    accentColor: '#6366f1',
+                                    accentColor: '#2563eb',
                                     cursor: 'pointer'
                                   }}
                                 />
@@ -278,7 +278,7 @@ export default function UserManagementPage({ user }) {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '6px',
-                            background: '#6366f1',
+                            background: '#2563eb',
                             color: '#ffffff',
                             border: 'none',
                             padding: '6px 14px',

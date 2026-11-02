@@ -202,7 +202,7 @@ export default function KanbanCard({
           {vacancy.ai_summary}
         </div>
       ) : (
-        <div className="card-summary card-summary-pending" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#818cf8', padding: '6px 8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
+        <div className="card-summary card-summary-pending" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#60a5fa', padding: '6px 8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
           <Sparkles size={13} style={{ flexShrink: 0, animation: 'pulse 2s infinite' }} />
           <span>{t('kanban.ai_generating')}</span>
         </div>

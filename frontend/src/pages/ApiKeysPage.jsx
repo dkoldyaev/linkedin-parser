@@ -109,7 +109,7 @@ export default function ApiKeysPage({ user }) {
     <div className="page-container" style={{ maxWidth: '880px', margin: '0 auto', padding: '24px 16px' }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Key size={24} style={{ color: '#6366f1' }} />
+          <Key size={24} style={{ color: '#2563eb' }} />
           <span>{t('pages.nav.apikeys')}</span>
         </h1>
         <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>

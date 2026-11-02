@@ -200,7 +200,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
       <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '560px' : '460px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <Settings size={20} color="#6366f1" />
+            <Settings size={20} color="#2563eb" />
             <span>{t('settingsModal.title')}</span>
           </div>
           <button className="btn-icon" onClick={onClose}>
@@ -265,7 +265,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                     <strong style={{ color: selectedLocale === 'ru' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
                       🇷🇺 {t('settingsModal.language_ru')}
                     </strong>
-                    {selectedLocale === 'ru' && <Check size={16} color="#6366f1" />}
+                    {selectedLocale === 'ru' && <Check size={16} color="#2563eb" />}
                   </div>
 
                   <div
@@ -286,7 +286,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                     <strong style={{ color: selectedLocale === 'en' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
                       🇬🇧 {t('settingsModal.language_en')}
                     </strong>
-                    {selectedLocale === 'en' && <Check size={16} color="#6366f1" />}
+                    {selectedLocale === 'en' && <Check size={16} color="#2563eb" />}
                   </div>
                 </div>
               </div>
@@ -342,7 +342,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                 style={{ fontSize: '0.8125rem', padding: '6px 12px', gap: '6px' }}
                 onClick={() => setIsCreateColOpen(true)}
               >
-                <Plus size={14} color="#6366f1" />
+                <Plus size={14} color="#2563eb" />
                 <span>{t('kanban.add_column')}</span>
               </button>
             </div>
@@ -485,7 +485,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                     type="checkbox"
                     checked={featureFlags.includes('api_access')}
                     onChange={() => handleToggleFeature('api_access')}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1' }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563eb' }}
                   />
                 </label>
               </div>
@@ -516,7 +516,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                     type="checkbox"
                     checked={featureFlags.includes('admin')}
                     onChange={() => handleToggleFeature('admin')}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1' }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563eb' }}
                   />
                 </label>
               </div>

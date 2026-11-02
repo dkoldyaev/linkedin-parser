@@ -46,7 +46,7 @@ export default function ExtensionPromptModal({ isOpen, onClose, onProceed }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#818cf8'
+              color: '#60a5fa'
             }}>
               <Puzzle size={22} />
             </div>
@@ -81,7 +81,7 @@ export default function ExtensionPromptModal({ isOpen, onClose, onProceed }) {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
               <div style={{
                 background: 'rgba(99, 102, 241, 0.12)',
-                color: '#818cf8',
+                color: '#60a5fa',
                 borderRadius: '6px',
                 padding: '6px',
                 display: 'flex',
@@ -130,7 +130,7 @@ export default function ExtensionPromptModal({ isOpen, onClose, onProceed }) {
           }}>
             <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <HelpCircle size={15} color="#818cf8" />
+                <HelpCircle size={15} color="#60a5fa" />
                 <span>{t('extensionModal.install_title')}</span>
               </div>
               <a href="/extension.zip" download className="btn btn-secondary btn-icon" style={{ padding: '4px 10px', height: '24px', fontSize: '0.75rem', borderRadius: '4px' }} title="Скачать ZIP">
