@@ -86,7 +86,7 @@ export default function CVManagementPage({ user }) {
       }
     }
     loadData();
-  }, [fetchServerApprovedCV, fetchSettings]);
+  }, [fetchServerApprovedCV, fetchCurrentUser]);
 
   // Handle File Upload
   const handleFileUpload = async (e) => {
