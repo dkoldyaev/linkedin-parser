@@ -99,11 +99,6 @@ def test_llm_fallback_language_texts():
 def test_settings_locale_schema():
     """Test SettingsResponse and SettingsUpdateRequest handle locale properly."""
     res = SettingsResponse(
-        llm_provider="mistral",
-        mistral_api_key_set=True,
-        mistral_model="mistral-small-latest",
-        gemini_api_key_set=False,
-        gemini_model="gemini-2.5-flash",
         locale="en",
     )
     assert res.locale == "en"

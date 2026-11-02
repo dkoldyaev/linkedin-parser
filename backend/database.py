@@ -196,6 +196,17 @@ def ensure_db_schema():
                         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                     );
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(128) NOT NULL,
+                        key_hash VARCHAR(64) NOT NULL UNIQUE,
+                        key_prefix VARCHAR(16) NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        last_used_at DATETIME
+                    );
+                """))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -234,6 +245,17 @@ def ensure_db_schema():
                         user_comment TEXT,
                         parent_version_id INTEGER REFERENCES adapted_cv_versions(id) ON DELETE SET NULL,
                         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS api_keys (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(128) NOT NULL,
+                        key_hash VARCHAR(64) NOT NULL UNIQUE,
+                        key_prefix VARCHAR(16) NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        last_used_at TIMESTAMP WITH TIME ZONE
                     );
                 """))
     except Exception as e:

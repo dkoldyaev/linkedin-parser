@@ -208,11 +208,6 @@ class ColumnsOrderRequest(BaseModel):
     columns: List[ColumnItem]
 
 class SettingsResponse(BaseModel):
-    llm_provider: str
-    mistral_api_key_set: bool
-    mistral_model: str
-    gemini_api_key_set: bool
-    gemini_model: str
     locale: str = "ru"
     salary_display_format: str = "month"
     columns: List[ColumnItem] = Field(default_factory=list)
@@ -220,11 +215,6 @@ class SettingsResponse(BaseModel):
     cv_service_token: Optional[str] = None
 
 class SettingsUpdateRequest(BaseModel):
-    llm_provider: Optional[str] = None
-    mistral_api_key: Optional[str] = None
-    mistral_model: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    gemini_model: Optional[str] = None
     locale: Optional[str] = None
     salary_display_format: Optional[str] = None
     columns: Optional[List[ColumnItem]] = None
@@ -326,5 +316,27 @@ class AdaptedCVVersionResponse(BaseModel):
 class AdaptCVRequest(BaseModel):
     user_comment: Optional[str] = None
     parent_version_id: Optional[int] = None
+
+
+# --- API Key Schemas ---
+
+class ApiKeyCreateRequest(BaseModel):
+    name: Optional[str] = "Default API Key"
+
+
+class ApiKeyResponse(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    token: str
+
 
 
