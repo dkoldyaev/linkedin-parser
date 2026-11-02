@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.models import User, Vacancy, ApiKey
+from backend.models import User, Vacancy, ApiKey, UserFeatureFlag
 from backend.database import SessionLocal
 from backend.auth import create_access_token
 
@@ -12,6 +12,7 @@ def api_user_fixture():
     if existing_user:
         db.query(Vacancy).filter(Vacancy.user_id == existing_user.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == existing_user.id).delete()
+        db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == existing_user.id).delete()
         db.delete(existing_user)
         db.commit()
 
@@ -23,6 +24,10 @@ def api_user_fixture():
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Grant api_access feature flag
+    db.add(UserFeatureFlag(user_id=user.id, flag="api_access"))
+    db.commit()
 
     client = TestClient(app)
     # Generate API key for this user
@@ -37,6 +42,7 @@ def api_user_fixture():
     if cleanup_user:
         db.query(Vacancy).filter(Vacancy.user_id == cleanup_user.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == cleanup_user.id).delete()
+        db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == cleanup_user.id).delete()
         db.delete(cleanup_user)
         db.commit()
     db.close()
@@ -141,3 +147,13 @@ def test_public_api_access_control(api_user_fixture):
     # 10. Delete vacancy
     del_res = client.delete(f"/api/v1/vacancies/{vac_id}", headers={"X-API-Key": raw_api_key})
     assert del_res.status_code == 204
+
+    # 11. Revoke api_access feature flag -> Public API access should return 403 Forbidden
+    db = SessionLocal()
+    db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id, UserFeatureFlag.flag == "api_access").delete()
+    db.commit()
+    db.close()
+
+    res_no_flag = client.get("/api/v1/vacancies", headers={"X-API-Key": raw_api_key})
+    assert res_no_flag.status_code == 403
+    assert "api_access" in res_no_flag.json()["detail"]

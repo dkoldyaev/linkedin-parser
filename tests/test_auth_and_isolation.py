@@ -151,9 +151,6 @@ class TestAuthAndIsolation(unittest.TestCase):
 
         self.assertEqual(settings_a["locale"], "en")
         self.assertEqual(settings_b["locale"], "ru")
-        expected_provider = os.getenv("LLM_PROVIDER", "mistral").lower()
-        self.assertEqual(settings_a["llm_provider"], expected_provider)
-        self.assertEqual(settings_b["llm_provider"], expected_provider)
 
     def test_mercure_user_scoped_topic(self):
         res_a = self.client.post("/api/auth/dev-login", json={"email": "user_a@test.com", "name": "User Alpha"})

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.models import User, Vacancy, ApiKey, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion
+from backend.models import User, Vacancy, ApiKey, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, UserFeatureFlag
 from backend.database import SessionLocal
 from backend.auth import create_access_token
 
@@ -14,6 +14,7 @@ def users_fixture():
         db.query(Vacancy).filter(Vacancy.user_id == u.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == u.id).delete()
         db.query(ApprovedCV).filter(ApprovedCV.user_id == u.id).delete()
+        db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).delete()
         db.delete(u)
     db.commit()
 
@@ -24,6 +25,15 @@ def users_fixture():
     db.refresh(user_a)
     db.refresh(user_b)
 
+    # Grant flags: user_a has cv_edit and api_access, user_b has cv_edit and api_access
+    db.add_all([
+        UserFeatureFlag(user_id=user_a.id, flag="cv_edit"),
+        UserFeatureFlag(user_id=user_a.id, flag="api_access"),
+        UserFeatureFlag(user_id=user_b.id, flag="cv_edit"),
+        UserFeatureFlag(user_id=user_b.id, flag="api_access"),
+    ])
+    db.commit()
+
     yield user_a, user_b
 
     # Cleanup
@@ -33,6 +43,7 @@ def users_fixture():
         db.query(Vacancy).filter(Vacancy.user_id == u.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == u.id).delete()
         db.query(ApprovedCV).filter(ApprovedCV.user_id == u.id).delete()
+        db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).delete()
         db.delete(u)
     db.commit()
     db.close()

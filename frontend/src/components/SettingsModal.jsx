@@ -55,7 +55,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
       })
       .catch(err => console.error('Failed to load api keys', err));
   };
-  };
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -688,6 +687,13 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   </span>
                 )}
               </div>
+              <button type="button" className="btn btn-primary" onClick={onClose}>
+                {t('vacancyModal.close_btn')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* API Keys & OpenAPI Tab */}
         {activeTab === 'apikeys' && (
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.models import User, ApiKey
+from backend.models import User, ApiKey, UserFeatureFlag
 from backend.database import SessionLocal
 from backend.auth import create_access_token
 
@@ -18,9 +18,17 @@ def test_user():
         db.add(user)
         db.commit()
         db.refresh(user)
+
+    # Ensure api_access flag
+    flag = db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id, UserFeatureFlag.flag == "api_access").first()
+    if not flag:
+        db.add(UserFeatureFlag(user_id=user.id, flag="api_access"))
+        db.commit()
+
     yield user
     # cleanup
     db.query(ApiKey).filter(ApiKey.user_id == user.id).delete()
+    db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).delete()
     db.query(User).filter(User.id == user.id).delete()
     db.commit()
     db.close()

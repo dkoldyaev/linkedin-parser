@@ -2354,6 +2354,7 @@ async def analyze_vacancy_compatibility(
             updated_at=now,
         )
         db.add(analysis_record)
+        db.flush()
 
     # Also record version 1 if adapted_cv_payload was produced
     if adapted_cv_payload:
