@@ -37,7 +37,6 @@ class User(Base):
     email = Column(String(256), unique=True, index=True, nullable=False)
     name = Column(String(256), nullable=False, default="")
     picture = Column(String(1024), nullable=True)
-    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     # Kept for backward compatibility if needed, but primary storage is user_feature_flags table

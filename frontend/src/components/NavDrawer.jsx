@@ -19,7 +19,7 @@ export default function NavDrawer({ user }) {
   const { t, locale, setLocale } = useTranslation();
   const { open, close } = useMenu();
   const userFlags = user?.feature_flags || [];
-  const isAdmin = Boolean(user?.is_admin || userFlags.includes('admin'));
+  const isAdmin = userFlags.includes('admin');
 
   const links = LINKS.filter((l) => {
     if (l.auth && !user) return false;

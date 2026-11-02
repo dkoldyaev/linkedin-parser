@@ -29,7 +29,7 @@ export default function AdminPage({ user }) {
   ];
 
   const userFlags = user?.feature_flags || [];
-  const isAdmin = Boolean(user?.is_admin || userFlags.includes('admin'));
+  const isAdmin = userFlags.includes('admin');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -85,7 +85,12 @@ export default function AdminPage({ user }) {
   }
 
   const handleToggleAdmin = async (targetUser) => {
-    const nextAdmin = !targetUser.is_admin;
+    const currentFlags = editingFlags[targetUser.id] ?? (targetUser.feature_flags || []);
+    const isCurrentlyAdmin = currentFlags.includes('admin');
+    const nextFlags = isCurrentlyAdmin
+      ? currentFlags.filter(f => f !== 'admin')
+      : [...currentFlags, 'admin'];
+
     setSavingUserId(targetUser.id);
     setStatusMsg(null);
     setErrorMsg(null);
@@ -94,7 +99,7 @@ export default function AdminPage({ user }) {
       const res = await fetch(`/api/admin/users/${targetUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_admin: nextAdmin })
+        body: JSON.stringify({ feature_flags: nextFlags })
       });
       if (!res.ok) throw new Error('Failed to update admin role');
       const updated = await res.json();
@@ -219,6 +224,7 @@ export default function AdminPage({ user }) {
             ) : (
               filteredUsers.map((u) => {
                 const uFlags = editingFlags[u.id] || [];
+                const isUserAdmin = uFlags.includes('admin');
                 const isSaving = savingUserId === u.id;
 
                 return (
@@ -240,11 +246,11 @@ export default function AdminPage({ user }) {
                               borderRadius: 12, 
                               fontSize: 12, 
                               fontWeight: 600,
-                              background: u.is_admin ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-item)', 
-                              color: u.is_admin ? '#6366f1' : 'var(--text-muted)',
-                              border: `1px solid ${u.is_admin ? 'rgba(99, 102, 241, 0.3)' : 'var(--border-color)'}`
+                              background: isUserAdmin ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-item)', 
+                              color: isUserAdmin ? '#6366f1' : 'var(--text-muted)',
+                              border: `1px solid ${isUserAdmin ? 'rgba(99, 102, 241, 0.3)' : 'var(--border-color)'}`
                             }}>
-                              {u.is_admin ? t('pages.admin.admin_badge') : t('pages.admin.user_badge')}
+                              {isUserAdmin ? t('pages.admin.admin_badge') : t('pages.admin.user_badge')}
                             </span>
                             {user.id === u.id && (
                               <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-app)', padding: '2px 6px', borderRadius: 4 }}>
@@ -264,13 +270,13 @@ export default function AdminPage({ user }) {
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <button
                           type="button"
-                          className={`btn ${u.is_admin ? 'btn-secondary' : 'btn-primary'}`}
+                          className={`btn ${isUserAdmin ? 'btn-secondary' : 'btn-primary'}`}
                           style={{ fontSize: 13, padding: '6px 14px' }}
-                          disabled={isSaving || (user.id === u.id && u.is_admin)}
+                          disabled={isSaving || (user.id === u.id && isUserAdmin)}
                           onClick={() => handleToggleAdmin(u)}
-                          title={user.id === u.id && u.is_admin ? "Нельзя снять права администратора с себя" : ""}
+                          title={user.id === u.id && isUserAdmin ? "Нельзя снять права администратора с себя" : ""}
                         >
-                          {u.is_admin ? t('pages.admin.toggle_admin_revoke') : t('pages.admin.toggle_admin_grant')}
+                          {isUserAdmin ? t('pages.admin.toggle_admin_revoke') : t('pages.admin.toggle_admin_grant')}
                         </button>
                       </div>
                     </div>

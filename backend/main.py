@@ -368,7 +368,7 @@ def update_user_feature_flags(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update feature flags for a specified user (requires user_management permission or self-update)."""
+    """Update feature flags for a specified user (requires user_management permission or admin permission or self-update)."""
     user_flags = current_user.feature_flags or []
     can_manage_users = "user_management" in user_flags or "admin" in user_flags
     if user_id != current_user.id and not can_manage_users:
@@ -502,23 +502,6 @@ def admin_update_user(
     target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
-
-    if payload.is_admin is not None:
-        target_user.is_admin = payload.is_admin
-        if payload.is_admin:
-            # ensure 'admin' flag is present in user_feature_flags
-            existing = db.query(UserFeatureFlag).filter(
-                UserFeatureFlag.user_id == target_user.id,
-                UserFeatureFlag.flag == "admin"
-            ).first()
-            if not existing:
-                db.add(UserFeatureFlag(user_id=target_user.id, flag="admin"))
-        else:
-            # remove 'admin' flag if unsetting is_admin
-            db.query(UserFeatureFlag).filter(
-                UserFeatureFlag.user_id == target_user.id,
-                UserFeatureFlag.flag == "admin"
-            ).delete()
 
     if payload.feature_flags is not None:
         saved_flags = _sync_user_flags_table(db, target_user.id, payload.feature_flags)

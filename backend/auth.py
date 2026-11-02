@@ -119,10 +119,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
 
 
 def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    if not getattr(current_user, "is_admin", False):
+    user_flags = current_user.feature_flags or []
+    if "admin" not in user_flags:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
+            detail="Admin access required (missing feature flag admin)",
         )
     return current_user
 
@@ -219,17 +220,13 @@ def get_or_create_user(
                 user.name = name
             if picture:
                 user.picture = picture
-            if is_admin_email(email) and not user.is_admin:
-                user.is_admin = True
         else:
-            is_admin = is_admin_email(email)
             user = User(
                 google_id=google_id,
                 email=email,
                 name=name or email.split("@")[0],
                 picture=picture,
-                is_admin=is_admin,
-                feature_flags={},
+                feature_flags=[],
             )
             db.add(user)
             db.commit()
@@ -256,9 +253,6 @@ def get_or_create_user(
             changed = True
         if picture and user.picture != picture:
             user.picture = picture
-            changed = True
-        if is_admin_email(email) and not user.is_admin:
-            user.is_admin = True
             changed = True
         if changed:
             db.commit()
