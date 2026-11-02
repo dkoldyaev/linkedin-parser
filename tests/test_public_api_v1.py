@@ -1,15 +1,18 @@
 import pytest
 from fastapi.testclient import TestClient
-from backend.main import app
-from backend.models import User, Vacancy, ApiKey, UserFeatureFlag
+from backend.main import app, queue_manager
+from backend.models import User, Vacancy, ApiKey, UserFeatureFlag, ApprovedCV, VacancyCVAnalysis
 from backend.database import SessionLocal
 from backend.auth import create_access_token
+import datetime
 
 @pytest.fixture
 def api_user_fixture():
     db = SessionLocal()
     existing_user = db.query(User).filter(User.email == "public_api_user@test.com").first()
     if existing_user:
+        db.query(VacancyCVAnalysis).filter(VacancyCVAnalysis.user_id == existing_user.id).delete()
+        db.query(ApprovedCV).filter(ApprovedCV.user_id == existing_user.id).delete()
         db.query(Vacancy).filter(Vacancy.user_id == existing_user.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == existing_user.id).delete()
         db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == existing_user.id).delete()
@@ -40,6 +43,8 @@ def api_user_fixture():
     db = SessionLocal()
     cleanup_user = db.query(User).filter(User.email == "public_api_user@test.com").first()
     if cleanup_user:
+        db.query(VacancyCVAnalysis).filter(VacancyCVAnalysis.user_id == cleanup_user.id).delete()
+        db.query(ApprovedCV).filter(ApprovedCV.user_id == cleanup_user.id).delete()
         db.query(Vacancy).filter(Vacancy.user_id == cleanup_user.id).delete()
         db.query(ApiKey).filter(ApiKey.user_id == cleanup_user.id).delete()
         db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == cleanup_user.id).delete()
@@ -75,8 +80,16 @@ def test_system_vs_public_api_docs():
     # Must contain public endpoints
     assert "/vacancies" in paths
     assert "/vacancies/{vacancy_id}" in paths
+    assert "/vacancies/{vacancy_id}/history" in paths
+    assert "/vacancies/{vacancy_id}/compatibility" in paths
+    assert "/vacancies/batch" in paths
+    assert "/queue/tasks/{task_id}" in paths
+    assert "/cv" in paths
+    assert "/countries" in paths
+    assert "/cities" in paths
     assert "/columns" in paths
     assert "/tags" in paths
+    assert "/sources" in paths
 
     # Must NOT contain system or internal auth endpoints!
     assert "/api/auth/dev-login" not in paths
@@ -122,17 +135,27 @@ def test_public_api_access_control(api_user_fixture):
         "title": "Public API Engineer",
         "company": "OpenAPI Corp",
         "url": "https://www.linkedin.com/jobs/view/11223344",
-        "tags": ["public", "fastapi"]
+        "tags": ["public", "fastapi"],
+        "city": "Berlin",
+        "country": "Germany"
     }, headers={"X-API-Key": raw_api_key})
     assert create_res.status_code == 200
     vac_id = create_res.json()["id"]
+
+    # Duplicate creation check
+    dup_res = client.post("/api/v1/vacancies", json={
+        "title": "Duplicate Engineer",
+        "company": "Another Corp",
+        "url": "https://www.linkedin.com/jobs/view/11223344",
+    }, headers={"X-API-Key": raw_api_key})
+    assert dup_res.status_code == 409
 
     # 7. Get vacancy by ID
     get_res = client.get(f"/api/v1/vacancies/{vac_id}", headers={"X-API-Key": raw_api_key})
     assert get_res.status_code == 200
     assert get_res.json()["title"] == "Public API Engineer"
 
-    # 8. Update vacancy
+    # 8. Update vacancy and check history
     patch_res = client.patch(f"/api/v1/vacancies/{vac_id}", json={
         "status": "Написал",
         "notes": "Contacted via recruiter"
@@ -140,15 +163,81 @@ def test_public_api_access_control(api_user_fixture):
     assert patch_res.status_code == 200
     assert patch_res.json()["status"] == "Написал"
 
-    # 9. List metadata
+    hist_res = client.get(f"/api/v1/vacancies/{vac_id}/history", headers={"X-API-Key": raw_api_key})
+    assert hist_res.status_code == 200
+    assert len(hist_res.json()) >= 2  # initial create + status update
+
+    # 9. List metadata (tags, columns, countries, cities)
     assert "public" in client.get("/api/v1/tags", headers={"X-API-Key": raw_api_key}).json()
     assert len(client.get("/api/v1/columns", headers={"X-API-Key": raw_api_key}).json()) > 0
+    assert "Germany" in client.get("/api/v1/countries", headers={"X-API-Key": raw_api_key}).json()
+    assert "Berlin" in client.get("/api/v1/cities", headers={"X-API-Key": raw_api_key}).json()
 
-    # 10. Delete vacancy
+    # 10. Check pagination
+    list_paged = client.get("/api/v1/vacancies?limit=1&offset=0", headers={"X-API-Key": raw_api_key})
+    assert list_paged.status_code == 200
+    assert len(list_paged.json()) == 1
+
+    list_paged_empty = client.get("/api/v1/vacancies?limit=1&offset=10", headers={"X-API-Key": raw_api_key})
+    assert list_paged_empty.status_code == 200
+    assert len(list_paged_empty.json()) == 0
+
+    # 11. Test CV & Compatibility
+    cv_res = client.get("/api/v1/cv", headers={"X-API-Key": raw_api_key})
+    assert cv_res.status_code == 200
+    assert cv_res.json() is None
+
+    compat_res = client.get(f"/api/v1/vacancies/{vac_id}/compatibility", headers={"X-API-Key": raw_api_key})
+    assert compat_res.status_code == 200
+    assert compat_res.json() is None
+
+    # Setup approved CV and analysis in DB
+    db = SessionLocal()
+    cv_obj = ApprovedCV(user_id=user.id, content="Senior Software Engineer CV", revision=1)
+    db.add(cv_obj)
+    db.commit()
+    analysis_obj = VacancyCVAnalysis(
+        user_id=user.id,
+        vacancy_id=vac_id,
+        cv_revision=1,
+        scoring_policy_version="v1.0",
+        model_id="gemini-pro",
+        overall_score=85.0,
+        result={"summary": "Great match", "matchedRequirements": [{"requirement": "Python", "evidence": "5 years"}]}
+    )
+    db.add(analysis_obj)
+    db.commit()
+    db.close()
+
+    cv_res2 = client.get("/api/v1/cv", headers={"X-API-Key": raw_api_key})
+    assert cv_res2.status_code == 200
+    assert cv_res2.json()["content"] == "Senior Software Engineer CV"
+
+    compat_res2 = client.get(f"/api/v1/vacancies/{vac_id}/compatibility", headers={"X-API-Key": raw_api_key})
+    assert compat_res2.status_code == 200
+    assert compat_res2.json()["overall_score"] == 85.0
+
+    # 12. Batch import async
+    batch_res = client.post("/api/v1/vacancies/batch", json={
+        "urls": ["https://www.linkedin.com/jobs/view/99887766"],
+        "default_tags": ["batch-test"]
+    }, headers={"X-API-Key": raw_api_key})
+    assert batch_res.status_code == 200
+    batch_data = batch_res.json()
+    assert batch_data["status"] == "queued"
+    assert len(batch_data["tasks"]) == 1
+    task_id = batch_data["tasks"][0]["task_id"]
+
+    # 13. Queue task status endpoint
+    task_res = client.get(f"/api/v1/queue/tasks/{task_id}", headers={"X-API-Key": raw_api_key})
+    assert task_res.status_code == 200
+    assert task_res.json()["task_id"] == task_id
+
+    # 14. Delete vacancy
     del_res = client.delete(f"/api/v1/vacancies/{vac_id}", headers={"X-API-Key": raw_api_key})
     assert del_res.status_code == 204
 
-    # 11. Revoke api_access feature flag -> Public API access should return 403 Forbidden
+    # 15. Revoke api_access feature flag -> Public API access should return 403 Forbidden
     db = SessionLocal()
     db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id, UserFeatureFlag.flag == "api_access").delete()
     db.commit()

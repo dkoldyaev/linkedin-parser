@@ -37,12 +37,11 @@ class TestUserFeatureFlags(unittest.TestCase):
         # Update flags via /api/auth/me/feature-flags (only valid predefined constants allowed)
         update_res = self.client.put(
             "/api/auth/me/feature-flags",
-            json={"feature_flags": ["cv_edit", "api_access", "arbitrary_typo_flag"]},
+            json={"feature_flags": ["api_access", "arbitrary_typo_flag"]},
             cookies=self.cookies
         )
         self.assertEqual(update_res.status_code, 200)
         updated_data = update_res.json()
-        self.assertIn("cv_edit", updated_data["feature_flags"])
         self.assertIn("api_access", updated_data["feature_flags"])
         # arbitrary_typo_flag should be filtered out
         self.assertNotIn("arbitrary_typo_flag", updated_data["feature_flags"])
@@ -50,52 +49,36 @@ class TestUserFeatureFlags(unittest.TestCase):
         # Check /api/auth/me reflects update
         me_again = self.client.get("/api/auth/me", cookies=self.cookies)
         self.assertEqual(me_again.status_code, 200)
-        self.assertEqual(set(me_again.json()["feature_flags"]), {"cv_edit", "api_access"})
+        self.assertEqual(set(me_again.json()["feature_flags"]), {"api_access"})
 
-    def test_cv_editing_permission_check(self):
-        """Saving or deleting approved CV is blocked if user lacks cv_edit feature flag."""
+    def test_cv_edit_available_for_all(self):
+        """Saving or deleting approved CV is available for all authenticated users without cv_edit flag."""
         # Reset flags to empty
         self.client.put("/api/auth/me/feature-flags", json={"feature_flags": []}, cookies=self.cookies)
 
-        # Attempt to save approved CV -> 403 Forbidden
+        # Attempt to save approved CV -> 200 OK
         post_cv = self.client.post(
             "/api/cv/approved",
             json={"content": "CV test content", "revision": 1},
             cookies=self.cookies
         )
-        self.assertEqual(post_cv.status_code, 403)
-        self.assertIn("missing feature flag", post_cv.json()["detail"])
-
-        # Attempt to delete approved CV -> 403 Forbidden
-        del_cv = self.client.delete("/api/cv/approved", cookies=self.cookies)
-        self.assertEqual(del_cv.status_code, 403)
-
-        # Now grant cv_edit flag
-        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies)
-
-        # Attempt to save approved CV -> 200 OK
-        post_cv_ok = self.client.post(
-            "/api/cv/approved",
-            json={"content": "CV test content", "revision": 1},
-            cookies=self.cookies
-        )
-        self.assertEqual(post_cv_ok.status_code, 200)
-        self.assertEqual(post_cv_ok.json()["content"], "CV test content")
+        self.assertEqual(post_cv.status_code, 200)
+        self.assertEqual(post_cv.json()["content"], "CV test content")
 
         # Attempt to delete approved CV -> 204 No Content
-        del_cv_ok = self.client.delete("/api/cv/approved", cookies=self.cookies)
-        self.assertEqual(del_cv_ok.status_code, 204)
+        del_cv = self.client.delete("/api/cv/approved", cookies=self.cookies)
+        self.assertEqual(del_cv.status_code, 204)
 
-    def test_user_management_permission_check(self):
-        """Access to /api/users is protected by user_management flag."""
-        # 1. Login user without user_management flag
-        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies)
+    def test_admin_user_management_permission_check(self):
+        """Access to /api/users is protected by admin flag."""
+        # 1. Login user without admin flag
+        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": []}, cookies=self.cookies)
         res_denied = self.client.get("/api/users", cookies=self.cookies)
         self.assertEqual(res_denied.status_code, 403)
-        self.assertIn("user_management", res_denied.json()["detail"])
+        self.assertIn("Admin access required", res_denied.json()["detail"])
 
-        # 2. Grant user_management flag
-        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["cv_edit", "user_management"]}, cookies=self.cookies)
+        # 2. Grant admin flag
+        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["admin"]}, cookies=self.cookies)
         res_allowed = self.client.get("/api/users", cookies=self.cookies)
         self.assertEqual(res_allowed.status_code, 200)
         users = res_allowed.json()
@@ -108,8 +91,8 @@ class TestUserFeatureFlags(unittest.TestCase):
 
         update_target = self.client.put(
             f"/api/users/{other_id}/feature-flags",
-            json={"feature_flags": ["cv_edit"]},
+            json={"feature_flags": ["api_access"]},
             cookies=self.cookies
         )
         self.assertEqual(update_target.status_code, 200)
-        self.assertEqual(update_target.json()["feature_flags"], ["cv_edit"])
+        self.assertEqual(update_target.json()["feature_flags"], ["api_access"])

@@ -127,6 +127,22 @@ class RedisQueueManager:
         self._worker_tasks: List[asyncio.Task] = []
         self._running: bool = False
 
+    async def get_task(self, task_id: str, user_id: Optional[int] = None) -> Optional[JobTask]:
+        """Fetch a specific task by task_id and optionally check user_id."""
+        if not self.redis:
+            return None
+        raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+        if not raw:
+            return None
+        try:
+            task = JobTask.from_dict(json.loads(raw))
+            if user_id is not None and task.user_id != user_id:
+                return None
+            return task
+        except Exception as e:
+            logger.warning(f"Error decoding task JSON for {task_id}: {e}")
+            return None
+
     async def start(self):
         """Connect to Redis broker and start background workers for Scraping and AI."""
         if self._running:
@@ -918,23 +934,8 @@ class RedisQueueManager:
 
                         vacancy.match_score = overall_score
 
-                        # If high match (>= 75%), automatically adapt anonymized CV for this vacancy
+                        # Adaptation is currently disabled
                         adapted_cv_payload = None
-                        if overall_score >= 75.0:
-                            try:
-                                logger.info(f"[Stage 2 - AI] Vacancy #{vacancy.id} has high match ({overall_score}%). Generating adapted anonymized DeveloperCV...")
-                                mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=user_id)
-                                gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=user_id)
-                                adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
-                                    anonymized_cv_text=approved_cv.content,
-                                    vacancy_text=vacancy_full_text,
-                                    mistral_key=mistral_key,
-                                    gemini_key=gemini_key,
-                                    active_provider=provider,
-                                    active_model=compat_res.get("model"),
-                                )
-                            except Exception as e_adapt:
-                                logger.warning(f"Automatic CV adaptation failed for vacancy #{vacancy.id}: {e_adapt}")
 
                         existing_analysis = db.query(VacancyCVAnalysis).filter(
                             VacancyCVAnalysis.vacancy_id == vacancy.id,

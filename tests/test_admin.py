@@ -80,23 +80,21 @@ class TestAdminPanel(unittest.TestCase):
 
         # 2. Admin assigns feature flags to regular user
         patch_res = self.admin_client.patch(f"/api/admin/users/{reg_user['id']}", json={
-            "feature_flags": ["cv_edit", "api_access"]
+            "feature_flags": ["api_access"]
         })
         self.assertEqual(patch_res.status_code, 200)
         updated = patch_res.json()
-        self.assertIn("cv_edit", updated["feature_flags"])
         self.assertIn("api_access", updated["feature_flags"])
 
         # 3. Regular user sees their feature flags in /api/auth/me
         me_res = self.user_client.get("/api/auth/me")
         self.assertEqual(me_res.status_code, 200)
         me_data = me_res.json()
-        self.assertIn("cv_edit", me_data["feature_flags"])
         self.assertIn("api_access", me_data["feature_flags"])
 
         # 4. Admin promotes user to admin via "admin" feature flag
         admin_promo_res = self.admin_client.patch(f"/api/admin/users/{reg_user['id']}", json={
-            "feature_flags": ["cv_edit", "api_access", "admin"]
+            "feature_flags": ["api_access", "admin"]
         })
         self.assertEqual(admin_promo_res.status_code, 200)
         self.assertIn("admin", admin_promo_res.json()["feature_flags"])

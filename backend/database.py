@@ -285,3 +285,11 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Backfill vacancy status history check: {e}")
 
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM user_settings WHERE key = 'cv_service_token'"))
+            conn.execute(text("DELETE FROM settings WHERE key = 'cv_service_token'"))
+    except Exception as e:
+        logger.warning(f"Cleanup legacy cv_service_token settings: {e}")
+
+
