@@ -162,7 +162,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '560px' : '460px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '576px' : '448px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <Settings size={20} color="#2563eb" />

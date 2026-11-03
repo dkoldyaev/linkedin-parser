@@ -676,10 +676,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
       {/* Filter bar for Country, City, Workplace & Tags */}
       {selectedIds.length > 0 ? (
-        <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
+        <div className="filter-bar filter-bar-bulk" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Выделено карточек: {selectedIds.length}</span>
-            <button className="btn btn-secondary btn-icon" style={{ height: '28px', width: '28px' }} onClick={() => setSelectedIds([])} title="Снять выделение">
+            <span className="bulk-selection-count">Выделено карточек: {selectedIds.length}</span>
+            <button className="btn btn-secondary btn-icon" onClick={() => setSelectedIds([])} title="Снять выделение">
               <X size={14} />
             </button>
           </div>
@@ -688,11 +688,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               type="text" 
               placeholder="Тег..."
               className="search-input"
-              style={{ width: '150px', height: '32px' }}
+              
               value={bulkTagInput}
               onChange={e => setBulkTagInput(e.target.value)}
             />
-            <button className="btn btn-secondary" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-secondary" onClick={async () => {
               if (!bulkTagInput.trim()) return;
               try {
                 await Promise.all(selectedIds.map(async id => {
@@ -708,7 +708,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 showToast("Теги добавлены");
               } catch (e) { console.error(e); }
             }}>Добавить тег</button>
-            <button className="btn btn-danger" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-danger" onClick={async () => {
               if (!bulkTagInput.trim()) return;
               try {
                 await Promise.all(selectedIds.map(async id => {
@@ -725,7 +725,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               } catch (e) { console.error(e); }
             }}>Удалить тег</button>
             <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 4px' }} />
-            <button className="btn btn-danger btn-icon" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-danger btn-icon" onClick={async () => {
               if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
               try {
                 await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));

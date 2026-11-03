@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { 
   MapPin, Sparkles, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
@@ -27,6 +27,22 @@ export default function KanbanCard({
   laneColumns = new Set(["Собеседование", "Тестовое"])
 }) {
   const { t, formatDate, salaryDisplayFormat } = useTranslation();
+  const contentRef = useRef(null);
+  const [gridHeight, setGridHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const updateHeight = () => {
+      // Snap the content area to the grid, leaving the footer on the next grid line.
+      const height = Math.ceil(content.offsetHeight / 32) * 32;
+      setGridHeight((previous) => previous === height ? previous : height);
+    };
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(content);
+    updateHeight();
+    return () => observer.disconnect();
+  }, []);
   const isRejected = vacancy.status === "Отказ";
   // Filter out Отказ from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
@@ -119,6 +135,9 @@ export default function KanbanCard({
       onDragEnd={handleDragEnd}
       onClick={handleCardClick}
     >
+      <div className="card-grid-content">
+      <div className="card-grid-body" style={gridHeight ? { minHeight: gridHeight } : undefined}>
+      <div className="card-grid-body-content" ref={contentRef}>
       <div className="card-top">
         <div className="card-heading">
           <input
@@ -240,6 +259,8 @@ export default function KanbanCard({
         </div>
       )}
 
+      </div>
+      </div>
       <div className="card-footer">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="card-date">
@@ -320,6 +341,7 @@ export default function KanbanCard({
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

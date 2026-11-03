@@ -24,7 +24,7 @@ export default function ColumnDeleteModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
         <div className="modal-header">
           <div className="modal-title" style={{ color: '#ef4444' }}>
             <Trash2 size={18} />

@@ -49,7 +49,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <Edit3 size={18} color="#2563eb" />

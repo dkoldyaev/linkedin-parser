@@ -619,7 +619,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
         {/* Header */}
         <div className="modal-header modal-header-custom" style={{ display: 'block' }}>
           <div className="modal-header-top">

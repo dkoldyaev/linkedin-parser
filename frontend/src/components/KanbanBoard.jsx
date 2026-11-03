@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import KanbanCard from './KanbanCard';
 import { useTranslation } from '../i18n/I18nContext';
 import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
@@ -38,6 +38,28 @@ export default function KanbanBoard({
   onReorder
 }) {
   const { t } = useTranslation();
+  const wrapperRef = useRef(null);
+  const rejectedRef = useRef(null);
+  const [boardHeight, setBoardHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const rejected = rejectedRef.current;
+    if (!wrapper || !rejected) return;
+    const update = () => {
+      const available = wrapper.clientHeight - rejected.offsetHeight;
+      const minimum = window.innerHeight * 0.7;
+      const height = Math.max(32, Math.floor(Math.max(available, minimum) / 32) * 32);
+      setBoardHeight(previous => previous === height ? previous : height);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(wrapper);
+    observer.observe(rejected);
+    window.addEventListener('resize', update);
+    update();
+    return () => { observer.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
+
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
   const [dragOverLane, setDragOverLane] = useState(0);
@@ -196,10 +218,11 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="kanban-wrapper">
+    <div className="kanban-wrapper" ref={wrapperRef}>
       {/* Funnel Columns */}
       <div
         className="kanban-board"
+        style={boardHeight ? { height: boardHeight } : undefined}
         onDragStart={(e) => {
           const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
           setDraggingId(Number.isNaN(id) ? null : id);
@@ -367,6 +390,7 @@ export default function KanbanBoard({
 
       {/* Bottom Rejection Block */}
       <div
+        ref={rejectedRef}
         className={`kanban-rejected-block ${dragOverColumn === REJECTED_STATUS ? 'drag-over' : ''} ${isRejectedCollapsed ? 'is-collapsed' : ''}`}
         onDragOver={(e) => handleDragOver(e, REJECTED_STATUS)}
         onDragLeave={(e) => handleDragLeave(e, REJECTED_STATUS)}

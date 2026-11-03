@@ -50,7 +50,7 @@ export default function ColumnCreateModal({ isOpen, onClose, onCreate }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <Plus size={18} color="#2563eb" />

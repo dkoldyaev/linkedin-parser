@@ -59,7 +59,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '608px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <List size={20} color="#2563eb" />
