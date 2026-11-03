@@ -2485,7 +2485,7 @@ body {
   background: var(--bg-card-active);
 }
 
-.card-checkbox {
+/* .card-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 14px;
@@ -2517,7 +2517,7 @@ body {
   border: solid white;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
-}
+} */
 
 svg {
   flex-shrink: 0;

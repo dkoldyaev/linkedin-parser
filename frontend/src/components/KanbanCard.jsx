@@ -140,19 +140,19 @@ export default function KanbanCard({
       <div className="card-grid-body-content" ref={contentRef}>
       <div className="card-top">
         <div className="card-heading">
-          <input
-            type="checkbox"
-            checked={isSelected || false}
-            onChange={(e) => {
-              e.stopPropagation();
-              if (onToggleSelect) onToggleSelect(vacancy.id);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="card-checkbox"
-            title="Выделить карточку"
-          />
           <div className="card-title-container">
             <div className="card-header-meta">
+              <input
+                type="checkbox"
+                checked={isSelected || false}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onToggleSelect) onToggleSelect(vacancy.id);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="card-checkbox"
+                title="Выделить карточку"
+              />
               <a 
                 href={vacancy.url} 
                 target="_blank" 

@@ -203,7 +203,7 @@ body { background: var(--bg-main); }
 .kanban-card:hover, [data-theme='light'] .kanban-card:hover { border-color: var(--primary); box-shadow: none; transform: none; }
 .card-heading { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
 .card-title-container { min-width: 0; }
-.card-checkbox { position: relative; flex: 0 0 14px; margin: 3px 0 0; border-radius: 0; }
+.card-checkbox { margin: 0 8px 0 0; }
 .card-header-meta { margin-bottom: 5px; font: 500 .65rem var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
 .card-source-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
 .card-title { font-size: 1rem; line-height: 1.3; }
