@@ -10,6 +10,8 @@
   --bg-card-active: #203956;
   --bg-subtle: #182c46;
   --bg-glass: #101f35;
+  --lane-overlay-background: rgba(16, 31, 53, .94);
+  --lane-zone-background: rgba(255, 255, 255, .03);
   --border-subtle: #304c6c;
   --border-strong: #527292;
   --border-focus: #79aeff;
@@ -142,6 +144,7 @@ body { background: var(--bg-main); }
 :root[data-theme='light'] {
   --bg-main: #f4f4f1; --bg-surface: #fff; --bg-card: #fff;
   --bg-card-hover: #f7f8f5; --bg-card-active: #ecefeb; --bg-subtle: #efefeb; --bg-glass: #fff;
+  --lane-overlay-background: rgba(255, 255, 255, .94); --lane-zone-background: rgba(69, 103, 145, .04);
   --border-subtle: #d7d8d2; --border-strong: #a8aaa4; --border-focus: #304bde;
   --border-blueprint: #304bde; --border-mint: #619f74;
   --text-primary: #222321; --text-secondary: #555a54; --text-muted: #6c716a; --text-inverse: #fff;

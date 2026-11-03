@@ -277,9 +277,10 @@ export default function KanbanBoard({
         }}
       >
         {funnelColumns.map((col, colIndex) => {
-          const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
-          const columnName = t(`kanban.columns.${col.id}`);
           const isLaneColumn = laneColumnIds.has(col.id);
+          const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
+          if (isLaneColumn) columnVacancies.sort((a, b) => (b.lane ?? 0) - (a.lane ?? 0));
+          const columnName = t(`kanban.columns.${col.id}`);
           const isDragging = draggingId !== null;
           const isBase = col.id === 'Еще не написан' || col.id === 'Отказ';
 
