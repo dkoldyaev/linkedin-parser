@@ -460,3 +460,56 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .filter-bar-bulk .btn-danger { color: #c65f66; }
 .filter-bar-bulk .btn-danger:hover { color: #d96c72; }
 .filter-bar-bulk .search-input { width: 88px; height: 22px; padding-inline: 6px; }
+
+/* Vacancy detail: quiet blueprint surfaces and an 8px spacing rhythm. */
+.vacancy-modal {
+  --vacancy-grid-line: rgba(153, 196, 242, .09);
+  background-color: var(--bg-surface);
+  background-image: linear-gradient(var(--vacancy-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--vacancy-grid-line) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+}
+[data-theme='light'] .vacancy-modal { --vacancy-grid-line: rgba(69, 103, 145, .08); background-color: #fff; }
+.vacancy-modal .modal-header, .vacancy-modal .modal-footer,
+[data-theme='light'] .vacancy-modal .modal-header, [data-theme='light'] .vacancy-modal .modal-footer { background: transparent; }
+.vacancy-modal .modal-header { padding: var(--grid) calc(var(--grid) - 3px) var(--grid)  var(--grid); gap: 16px; min-height: calc(4 * var(--grid)); }
+.vacancy-modal .modal-header-top { min-height: calc(1 * var(--grid)); gap: 8px; margin-bottom: 0; }
+.vacancy-modal .modal-header-actions { gap: 8px; }
+.vacancy-modal .modal-header-badges { gap: 8px; height: calc(1 * var(--grid)); margin: 0; }
+.vacancy-modal .modal-title-input { font-family: var(--font-sans); font-size: 1.25rem; line-height: var(--grid); display: block; border: 0; padding: 0; }
+.vacancy-modal .vacancy-tabs { padding: 0 calc(var(--grid) - 4px) 0 var(--grid); height: var(--grid); background: transparent; }
+.vacancy-modal .settings-tab-btn { padding: 8px; font-size: .75rem; gap: 8px; }
+.vacancy-modal .modal-body { padding: 0 calc(var(--grid) - 4px) 16px  var(--grid); gap: 16px; }
+.vacancy-modal .modal-meta-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0; padding: 0; border-bottom: 1px solid var(--border-subtle); }
+.vacancy-modal .modal-status-group { gap: 8px; height: var(--grid); }
+.vacancy-modal .modal-status-buttons { gap: 4px; flex-wrap: wrap; }
+.vacancy-modal .vacancy-status-option { border: 0 !important; border-bottom: 1px solid transparent !important; background: transparent !important; padding: 4px 8px !important; font-size: .7rem !important; font-weight: 500 !important; }
+.vacancy-modal .vacancy-status-option[aria-pressed='true'] { border-bottom-color: var(--primary) !important; color: var(--primary) !important; }
+.vacancy-modal .vacancy-status-option:hover { color: var(--primary) !important; background: var(--primary-light) !important; }
+.vacancy-modal .vacancy-salary { padding: 0 0 16px; background: transparent; border: 0; border-bottom: 1px solid var(--border-subtle); gap: 8px; }
+.vacancy-modal .salary-fields-grid { gap: 8px; }
+.vacancy-modal .salary-field-input { height: 32px; font-size: .75rem; }
+.vacancy-modal .salary-field-label { font-size: .7rem; }
+.vacancy-modal .btn, .vacancy-modal .btn-icon { height: 32px; font-size: .7rem; letter-spacing: 0; }
+.vacancy-modal .btn-icon { width: 32px; }
+.vacancy-modal .btn-secondary, .vacancy-modal .btn-danger { background: transparent; border-color: transparent; box-shadow: none; }
+.vacancy-modal .btn-secondary:hover, .vacancy-modal .btn-danger:hover { background: var(--primary-light); }
+.vacancy-modal .btn-danger { color: #c65f66; }
+.vacancy-modal .header-badge { padding: 0 8px; }
+.vacancy-modal .header-badge.btn-icon { padding: 0; margin-left: 0; }
+.vacancy-modal .vacancy-ai-summary { border-top: 0; padding: 0 0 16px; }
+.vacancy-modal .vacancy-ai-summary-header { margin-bottom: 8px; }
+.vacancy-modal .vacancy-ai-summary-title { font-size: .8125rem; }
+.vacancy-modal .vacancy-ai-summary-text { font-size: .8125rem; }
+.vacancy-modal .modal-footer { min-height: 48px; padding: 8px 24px; }
+.vacancy-modal .modal-workplace-select { min-height: 32px; border: 0; }
+@media (max-width: 600px) {
+  .vacancy-modal .modal-header, .vacancy-modal .modal-body, .vacancy-modal .modal-footer { padding-inline: 16px; }
+  .vacancy-modal .vacancy-tabs { padding-inline: 16px; }
+  .vacancy-modal .modal-header-actions { gap: 0; }
+}
+
+[data-theme='light'] .vacancy-modal { background-image: linear-gradient(var(--vacancy-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--vacancy-grid-line) 1px, transparent 1px); }
+.vacancy-modal .vacancy-compatibility { padding: 0; margin: 0; background: transparent; border: 0; }
+.vacancy-modal .compatibility-assessment { padding: 8px 0; margin-bottom: 16px; font-size: .8rem; border-block: 1px solid var(--border-subtle); }
+.vacancy-modal .compatibility-row { padding: 8px 0; font-size: .8rem; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
+

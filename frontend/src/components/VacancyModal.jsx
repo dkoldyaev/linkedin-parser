@@ -104,6 +104,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   // Modal navigation tab
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
 
+
+
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
       titleTextareaRef.current.style.height = 'auto';
@@ -619,7 +621,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
+      <div className="modal-content vacancy-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
         {/* Header */}
         <div className="modal-header modal-header-custom" style={{ display: 'block' }}>
           <div className="modal-header-top">
@@ -722,7 +724,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', marginTop: '4px' }}>
+          <div className="modal-header-title">
             <textarea
               ref={titleTextareaRef}
               rows={1}
@@ -775,7 +777,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         )}
 
         {/* Navigation Tabs */}
-        <div className="settings-tabs" style={{ padding: '0 20px', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(255, 255, 255, 0.02)' }}>
+        <div className="settings-tabs vacancy-tabs">
           <button
             type="button"
             className={`settings-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
@@ -812,7 +814,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {activeTab === 'details' && (
             <>
           {/* Status & Workplace Format Bar */}
-          <div className="modal-meta-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="modal-meta-bar">
             <div className="modal-status-group">
               <span className="modal-status-label">
                 {t('vacancyModal.status_label')}
@@ -844,6 +846,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <button
                       key={col}
                       onClick={() => handleStatusChange(col)}
+                      className="vacancy-status-option"
+                      aria-pressed={isSelected}
                       style={{
                         padding: '5px 10px',
                         borderRadius: 'var(--radius-sm)',
@@ -876,7 +880,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className='modal-status-group'>
               <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
                 {t('vacancyModal.workplace_label')}
               </span>
@@ -892,7 +896,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className='modal-status-group'>
               <button
                 type="button"
                 onClick={handleToggleClosed}
@@ -930,7 +934,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Salary Section */}
-          <div className="form-group" style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+          <div className="form-group vacancy-salary">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Banknote size={15} color="var(--aspen-mint)" />
@@ -1394,13 +1398,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {activeTab === "compatibility" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* CV Compatibility Analysis Section */}
-          <div style={{
-            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 78, 59, 0.15) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            marginTop: '12px',
-          }}>
+          <div className="vacancy-compatibility">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--aspen-mint)', fontWeight: 600, fontSize: '0.95rem' }}>
                 <Shield size={18} color="var(--aspen-mint)" />
@@ -1436,7 +1434,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 className="btn btn-secondary"
                 onClick={() => handleRunCompatibilityAnalysis(!!compatibility)}
                 disabled={analyzingCompatibility || loadingCompatibility}
-                style={{ fontSize: '0.75rem', padding: '5px 12px', background: 'var(--bg-surface)', color: 'var(--aspen-mint)', border: '1px solid var(--aspen-mint-border)' }}
+                style={{ color: 'var(--aspen-mint)' }}
               >
                 {analyzingCompatibility ? (
                   <>
@@ -1473,7 +1471,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Seniority assessment */}
                 {compatibility.seniority_assessment && (
-                  <div style={{ background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '0.8rem', border: '1px solid #334155' }}>
+                  <div className="compatibility-assessment">
                     <span style={{ color: 'var(--text-secondary)' }}>Seniority Alignment: </span>
                     <strong style={{ color: 'var(--primary)' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
                   </div>
@@ -1487,7 +1485,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.matched_requirements.map((m, idx) => (
-                        <div key={idx} style={{ background: 'var(--aspen-mint-subtle)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem' }}>
+                        <div key={idx} className="compatibility-row">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
                             <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
                             <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -1513,7 +1511,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.missing_requirements.map((m, idx) => (
-                        <div key={idx} style={{ background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                        <div key={idx} className="compatibility-row">
                           &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
                         </div>
                       ))}
@@ -1529,7 +1527,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.critical_gaps.map((g, idx) => (
-                        <div key={idx} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+                        <div key={idx} className="compatibility-row">
                           &bull; <strong>{g.requirement}</strong>: {g.reason}
                         </div>
                       ))}
