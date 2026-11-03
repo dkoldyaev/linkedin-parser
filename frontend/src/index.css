@@ -630,7 +630,7 @@ body {
   font-weight: 500;
   color: var(--text-muted);
   background: transparent;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius-sm);
   padding: 3px 8px;
   cursor: pointer;
@@ -640,7 +640,6 @@ body {
 .rejected-collapse-btn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.06);
-  border-color: var(--border-subtle);
 }
 
 .kanban-rejected-content {
@@ -699,7 +698,7 @@ body {
 }
 
 .column-header {
-  padding: 14px 16px;
+  padding: 14px 0 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -758,7 +757,7 @@ body {
   width: 26px;
   height: 26px;
   background: transparent;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: pointer;
@@ -773,7 +772,6 @@ body {
 .column-actions-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-  border-color: var(--border-subtle);
 }
 
 .column-menu-dropdown {

@@ -179,6 +179,8 @@ export default function KanbanBoard({
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
       const vid = parseInt(vacancyId, 10);
+      const dragged = vacancies.find(v => v.id === vid);
+      if (!dragged) return;
       if (selectedIds.includes(vid) && selectedIds.length > 1 && onStatusChangeMulti) {
         selectedIds.forEach(id => {
           trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
@@ -188,25 +190,14 @@ export default function KanbanBoard({
           });
         });
         onStatusChangeMulti(selectedIds, columnId, lane);
-      } else if (onReorder) {
-        const dragged = vacancies.find(v => v.id === vid);
-        if (!dragged) return;
-
-        let ids;
-        if (laneColumnIds.has(columnId)) {
-          ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
+      } else if (onReorder && !laneColumnIds.has(columnId)) {
+        const ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
             .filter(id => id !== vid);
-          ids.push(vid);
+        if (targetIndex !== null) {
+          ids.splice(Math.min(targetIndex, ids.length), 0, vid);
         } else {
-          ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
-            .map(v => v.id)
-            .filter(id => id !== vid);
-          if (targetIndex !== null) {
-            ids.splice(Math.min(targetIndex, ids.length), 0, vid);
-          } else {
-            ids.push(vid);
-          }
+          ids.push(vid);
         }
 
         trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
