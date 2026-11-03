@@ -55,7 +55,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
             <Edit3 size={18} color="#2563eb" />
             <span>{t('kanban.edit_column')}</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>

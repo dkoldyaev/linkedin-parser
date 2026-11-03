@@ -56,7 +56,7 @@ export default function ColumnCreateModal({ isOpen, onClose, onCreate }) {
             <Plus size={18} color="#2563eb" />
             <span>{t('kanban.add_column_title')}</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>

@@ -138,7 +138,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
             <UploadCloud size={20} color="#2563eb" />
             <span>{t('batchModal.title')}</span>
           </div>
-          <button className="btn-icon" onClick={handleClose}>
+          <button className="btn-icon modal-close-btn" onClick={handleClose}>
             <X size={18} />
           </button>
         </div>

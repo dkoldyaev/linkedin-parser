@@ -59,7 +59,7 @@ export default function ExtensionPromptModal({ isOpen, onClose, onProceed }) {
               </div>
             </div>
           </div>
-          <button className="btn-icon" onClick={handleClose} title={t('common.close')}>
+          <button className="btn-icon modal-close-btn" onClick={handleClose} title={t('common.close')}>
             <X size={18} />
           </button>
         </div>

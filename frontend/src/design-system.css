@@ -550,7 +550,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 }
 .vacancy-modal .modal-status-group { gap: 8px; height: var(--grid); }
 .vacancy-modal .modal-status-buttons { display: flex; gap: 4px; flex-wrap: wrap; }
-.vacancy-modal .modal-status-select { display: none; }
+.vacancy-modal .modal-status-select { display: none; border: 0; }
 .vacancy-modal .vacancy-status-option { border: 0 !important; border-bottom: 1px solid transparent !important; background: transparent !important; padding: 4px 8px !important; font-size: .7rem !important; font-weight: 500 !important; }
 .vacancy-modal .vacancy-status-option[aria-pressed='true'] { border-bottom-color: var(--primary) !important; color: var(--primary) !important; }
 .vacancy-modal .vacancy-status-option:hover { color: var(--primary) !important; background: var(--primary-light) !important; }
@@ -620,6 +620,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .orig-desc-header:hover .orig-desc-header-title,
 .vacancy-modal .orig-desc-header:hover .orig-desc-header-action { color: var(--primary); }
 .vacancy-modal .orig-desc-body { padding: 0 0 var(--grid-unit); background: transparent; border: 0; }
+.vacancy-modal .orig-desc-header, .vacancy-modal .orig-desc-body .form-textarea { font-family: var(--font-sans); }
 .vacancy-modal .orig-desc-actions { min-height: var(--grid); }
 
 /* The drawer shares the board's 32px grid, including the viewport's partial last cell. */
@@ -722,7 +723,8 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .header-action-badge { justify-content: center; }
 .vacancy-modal .vacancy-tabs { padding-right: var(--grid); gap: 0; }
 .vacancy-modal .vacancy-tabs .settings-tab-btn { height: var(--grid); justify-content: center; flex-shrink: 0; }
-.vacancy-modal .modal-meta-bar { padding-right: var(--grid); }
+.vacancy-modal .modal-meta-bar { position: relative; padding-right: var(--grid); box-shadow: none; }
+.vacancy-modal .modal-meta-bar::after { content: ''; position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--pixel-line); pointer-events: none; }
 .vacancy-modal .modal-body { margin-right: -1px; }
 .vacancy-modal .modal-status-group { gap: 0; min-height: var(--grid); height: auto; }
 .vacancy-modal .modal-status-group:first-child { flex: 1 0 100%; }
@@ -748,4 +750,29 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   .vacancy-modal .modal-meta-bar { padding: calc(2 * var(--grid-unit)); }
   .vacancy-modal .modal-status-group:first-child { flex-basis: 100%; }
   .vacancy-modal .modal-workplace-select { max-width: 100%; }
+}
+
+/* Compact dialog chrome: half a grid above and below headers and actions. */
+.modal-content:not(.vacancy-modal) .modal-header {
+  min-height: calc(2 * var(--grid));
+  padding: calc(var(--grid) / 2) calc(2 * var(--grid)) calc(var(--grid) / 2) var(--grid);
+}
+.modal-content:not(.vacancy-modal) .modal-footer {
+  min-height: calc(2 * var(--grid));
+  padding-block: calc(var(--grid) / 2);
+}
+.modal-content .modal-close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  width: var(--grid);
+  height: var(--grid);
+  margin: 0;
+}
+.vacancy-modal .modal-header { padding-block: calc(var(--grid) / 2); }
+.vacancy-modal .modal-header-actions { padding-right: var(--grid); }
+.vacancy-modal .modal-footer { padding-block: calc(var(--grid) / 2); }
+@media (max-width: 600px) {
+  .modal-content:not(.vacancy-modal) .modal-header { padding-left: calc(var(--grid) / 2); }
 }

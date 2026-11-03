@@ -65,7 +65,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
             <List size={20} color="#2563eb" />
             <span>Очередь обработки</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>

@@ -730,7 +730,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   })()
                 }</span>
               </a>
-              <button className="btn-icon header-action-badge header-badge" onClick={onClose} title={t('vacancyModal.close_btn')}>
+              <button className="btn-icon header-action-badge header-badge modal-close-btn" onClick={onClose} title={t('vacancyModal.close_btn')}>
                 <X size={14} />
               </button>
             </div>

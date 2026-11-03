@@ -30,7 +30,7 @@ export default function ColumnDeleteModal({
             <Trash2 size={18} />
             <span>{t('kanban.delete_column_confirm_title', { name: t(`kanban.columns.${column.id}`) })}</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
