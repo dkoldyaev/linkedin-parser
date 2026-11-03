@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Briefcase, Plus, Search, Filter, 
+  Plus, Search, Filter, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
   Globe, MapPin, RotateCcw, ChevronDown, Laptop, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
@@ -380,18 +380,20 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   }, [user]);
 
   // Handle status change from drag & drop or quick move
-  const handleStatusChange = async (vacancyId, newStatus) => {
+  const handleStatusChange = async (vacancyId, newStatus, lane = 0) => {
+    const targetCol = columns.find(c => c.id === newStatus);
+    const targetLane = targetCol?.has_lanes ? lane : 0;
     // Optimistic UI update
-    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus } : v));
+    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v));
     if (selectedVacancy && selectedVacancy.id === vacancyId) {
-      setSelectedVacancy(prev => ({ ...prev, status: newStatus }));
+      setSelectedVacancy(prev => ({ ...prev, status: newStatus, lane: targetLane }));
     }
 
     try {
       const res = await fetch(`/api/vacancies/${vacancyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, lane: targetLane })
       });
       if (!res.ok) {
         throw new Error('Update failed');
@@ -411,15 +413,37 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   };
 
   // Handle manual reorder of cards inside a column (also covers moving into a column at a position)
-  const handleReorder = async (status, ids, lane = 0) => {
+  const handleReorder = async (status, ids, lane = 0, movedId = null) => {
     const positions = new Map(ids.map((id, i) => [id, i]));
-    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, lane, sort_order: positions.get(v.id) } : v));
+    const targetCol = columns.find(c => c.id === status);
+    const hasLanes = targetCol ? Boolean(targetCol.has_lanes) : false;
+
+    setVacancies(prev => prev.map(v => {
+      if (!positions.has(v.id)) return v;
+      let newLane = v.lane || 0;
+      if (!hasLanes) {
+        newLane = 0;
+      } else if (v.id === movedId || movedId == null) {
+        newLane = lane;
+      }
+      return {
+        ...v,
+        status,
+        lane: newLane,
+        sort_order: positions.get(v.id)
+      };
+    }));
 
     try {
       const res = await fetch('/api/vacancies/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, ids, lane })
+        body: JSON.stringify({
+          status,
+          ids,
+          lane,
+          moved_id: movedId
+        })
       });
       if (!res.ok) throw new Error('Reorder failed');
       const updated = await res.json();
@@ -435,14 +459,16 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     }
   };
 
-  const handleStatusChangeMulti = async (vacancyIds, newStatus) => {
-    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus } : v));
+  const handleStatusChangeMulti = async (vacancyIds, newStatus, lane = 0) => {
+    const targetCol = columns.find(c => c.id === newStatus);
+    const targetLane = targetCol?.has_lanes ? lane : 0;
+    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v));
     try {
       await Promise.all(vacancyIds.map(vid => 
         fetch(`/api/vacancies/${vid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify({ status: newStatus, lane: targetLane })
         })
       ));
       fetchVacancies();
@@ -528,7 +554,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       <header className={`app-header ${isSearchFocused ? 'search-focused' : ''}`}>
         <div className="brand">
           <div className="brand-icon">
-            <Briefcase size={20} />
+            <span className="blueprint-mark" aria-hidden="true" />
           </div>
           <div>
             <h1 className="brand-title">{t('nav.title')}</h1>
@@ -605,6 +631,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
           <button
             className="btn btn-primary add-button plausible-event-name=Batch+Import+Open"
+            aria-label={t('nav.batch_import_btn')}
             onClick={() => {
               trackEvent(EVENTS.BATCH_IMPORT_OPEN);
               setIsBatchOpen(true);
@@ -642,7 +669,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             }}
             title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={18} aria-hidden="true" />
           </button>
         </HeaderControls>
       </header>

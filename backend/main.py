@@ -677,6 +677,8 @@ async def create_vacancy(
         vacancy_id=v.id,
         from_status=None,
         to_status=v.status,
+        from_lane=None,
+        to_lane=v.lane,
         comment=None,
         created_at=v.created_at,
     )
@@ -718,22 +720,51 @@ async def reorder_vacancies(
     ).all()
     by_id = {v.id: v for v in vacancies}
 
+    cols = get_user_columns(db, current_user.id)
+    target_col = next((c for c in cols if c.get("id") == payload.status), None)
+    has_lanes = bool(target_col and target_col.get("has_lanes"))
+
+    moved_set = set()
+    if payload.moved_id is not None:
+        moved_set.add(payload.moved_id)
+    if payload.moved_ids:
+        moved_set.update(payload.moved_ids)
+
     changed = []
     for position, vid in enumerate(payload.ids):
         v = by_id.get(vid)
         if not v:
             continue
-        if v.status != payload.status:
+        old_status = v.status
+        old_lane = v.lane
+        status_changed = (old_status != payload.status)
+
+        new_lane = old_lane
+        if not has_lanes:
+            new_lane = 0
+        else:
+            # Only update lane if this card was the moved card or moved into this column
+            if (vid in moved_set) or (status_changed and not moved_set):
+                new_lane = max(0, payload.lane)
+
+        lane_changed = has_lanes and (new_lane != old_lane)
+
+        if status_changed or lane_changed:
             db.add(VacancyStatusHistory(
                 vacancy_id=v.id,
-                from_status=v.status,
+                from_status=old_status,
                 to_status=payload.status,
+                from_lane=old_lane,
+                to_lane=new_lane,
                 comment=None,
                 created_at=datetime.datetime.utcnow(),
             ))
             v.status = payload.status
+            v.lane = new_lane
+        elif not has_lanes:
+            v.lane = 0
+
         v.sort_order = float(position)
-        v.lane = max(0, payload.lane)
         changed.append(v)
 
     db.commit()
@@ -775,26 +806,50 @@ async def update_vacancy(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
+    old_status = v.status
+    old_lane = v.lane
+    status_changed = ("status" in update_data and update_data["status"] != old_status)
+    target_status = update_data.get("status", old_status)
+
+    cols = get_user_columns(db, current_user.id)
+    target_col = next((c for c in cols if c.get("id") == target_status), None)
+    target_has_lanes = bool(target_col and target_col.get("has_lanes"))
+
+    new_lane = old_lane
+    if "lane" in update_data and update_data["lane"] is not None:
+        new_lane = max(0, update_data["lane"])
+    elif status_changed and "sort_order" not in update_data:
+        new_lane = 0
+
+    if not target_has_lanes:
+        new_lane = 0
+
+    lane_changed = target_has_lanes and (new_lane != old_lane)
+
     status_comment = update_data.pop("status_comment", None)
-    if "status" in update_data and update_data["status"] != v.status:
-        old_status = v.status
-        new_status = update_data["status"]
+    if status_changed or lane_changed:
         history_entry = VacancyStatusHistory(
             vacancy_id=v.id,
             from_status=old_status,
-            to_status=new_status,
+            to_status=target_status,
+            from_lane=old_lane,
+            to_lane=new_lane,
             comment=status_comment,
             created_at=datetime.datetime.utcnow(),
         )
         db.add(history_entry)
+        v.status = target_status
+        v.lane = new_lane
         # Moved to another column: drop manual position so the card lands on top
-        if "sort_order" not in update_data:
+        if "sort_order" not in update_data and status_changed:
             v.sort_order = None
-            v.lane = 0
 
     content_changed = any(f in update_data for f in ["title", "description", "tech_stack", "company"])
     for field, val in update_data.items():
         setattr(v, field, val)
+
+    if not target_has_lanes:
+        v.lane = 0
 
     if content_changed:
         db.query(VacancyCVAnalysis).filter(
@@ -877,14 +932,23 @@ async def add_vacancy_history_entry(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
 
+    to_lane = payload.to_lane if payload.to_lane is not None else v.lane
+    cols = get_user_columns(db, current_user.id)
+    target_col = next((c for c in cols if c.get("id") == payload.to_status), None)
+    if target_col and not target_col.get("has_lanes"):
+        to_lane = 0
+
     history_entry = VacancyStatusHistory(
         vacancy_id=v.id,
         from_status=payload.from_status if payload.from_status is not None else v.status,
         to_status=payload.to_status,
+        from_lane=payload.from_lane if payload.from_lane is not None else v.lane,
+        to_lane=to_lane,
         comment=payload.comment,
         created_at=datetime.datetime.utcnow(),
     )
     v.status = payload.to_status
+    v.lane = to_lane
     db.add(history_entry)
     db.commit()
     db.refresh(v)

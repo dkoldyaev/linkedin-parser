@@ -34,10 +34,10 @@ export default function NavDrawer({ user }) {
       <div className={`drawer-overlay ${open ? 'open' : ''}`} onClick={close} />
       <aside className={`nav-drawer ${open ? 'open' : ''}`} aria-hidden={!open} aria-label="Main navigation">
         <div className="drawer-header-meta">
-          <span className="drawer-tag">[ NAVIGATION INDEX ]</span>
+          <span className="drawer-tag">Navigation</span>
         </div>
         <nav className="drawer-links">
-          {links.map(({ to, key, icon: Icon, end }, idx) => (
+          {links.map(({ to, key, end, icon: Icon }, idx) => (
             <NavLink
               key={to}
               to={to}
@@ -48,7 +48,7 @@ export default function NavDrawer({ user }) {
               className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}
             >
               <span className="drawer-index">{String(idx + 1).padStart(2, '0')}</span>
-              <Icon size={16} className="drawer-link-icon" />
+              <Icon className="drawer-link-icon" size={18} aria-hidden="true" />
               <span className="drawer-link-text">{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : key}</span>
               <span className="drawer-link-arrow">→</span>
             </NavLink>
@@ -57,7 +57,7 @@ export default function NavDrawer({ user }) {
         <div className="drawer-footer">
           <div className="drawer-sys-status">
             <span className="sys-status-dot" />
-            <span className="sys-status-label">SYS: ONLINE</span>
+            <span className="sys-status-label">Workspace</span>
           </div>
           <button
             className="page-nav-lang"

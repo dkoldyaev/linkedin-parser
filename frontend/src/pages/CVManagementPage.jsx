@@ -222,7 +222,7 @@ export default function CVManagementPage({ user }) {
       {/* Header */}
       <div className="cv-hero-section">
         <div>
-          <div className="cv-hero-meta">[ REVISION CONTROL // CV ]</div>
+          <div className="cv-hero-meta">РЕЗЮМЕ</div>
           <h1 className="cv-title">
             <FileText size={26} style={{ color: 'var(--primary)' }} />
             {t('pages.cv.title')}

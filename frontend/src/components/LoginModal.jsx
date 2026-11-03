@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, AlertCircle, ArrowRight, User, Sparkles } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import ThemeToggle from './ThemeToggle';
 
 export default function LoginModal({ onLoginSuccess }) {
   const { t } = useTranslation();
@@ -57,6 +58,7 @@ export default function LoginModal({ onLoginSuccess }) {
   return (
     <div className="login-overlay">
       <div className="login-card">
+        <ThemeToggle />
         {/* Brand Header */}
         <div className="login-brand">
           <div className="login-logo-glow">

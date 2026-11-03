@@ -14,7 +14,7 @@ export default function HowToUsePage() {
       <div className="info-container">
         <header className="info-hero">
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: '#60a5fa', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            MANUAL_02 // SYSTEM PROCEDURES & SETUP
+            РУКОВОДСТВО
           </div>
           <h1 className="info-title">{t('pages.howto.title')}</h1>
           <p className="info-subtitle">{t('pages.howto.subtitle')}</p>
@@ -22,7 +22,7 @@ export default function HowToUsePage() {
 
         <section className="info-card" id="howto-install" style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', top: '12px', right: '16px', fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-            [ FIG_002 // INSTALL ]
+            01 / INSTALL
           </div>
           <h2 className="info-card-title"><Puzzle size={18} color="#60a5fa" />{t('pages.howto.install_title')}</h2>
           <p className="info-text">{t('pages.howto.install_intro')}</p>
@@ -37,7 +37,7 @@ export default function HowToUsePage() {
 
         <section className="info-card" id="howto-use" style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', top: '12px', right: '16px', fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-            [ FIG_003 // WORKFLOW ]
+            02 / WORKFLOW
           </div>
           <h2 className="info-card-title"><PlusCircle size={18} color="#10b981" />{t('pages.howto.use_title')}</h2>
           <ol className="steps">
@@ -47,7 +47,7 @@ export default function HowToUsePage() {
 
         <section className="info-card" id="howto-trouble" style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', top: '12px', right: '16px', fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-            [ REF_DIAGNOSTICS ]
+            03 / SUPPORT
           </div>
           <h2 className="info-card-title"><LifeBuoy size={18} color="#f59e0b" />{t('pages.howto.trouble_title')}</h2>
           <p className="info-text">{t('pages.howto.trouble_intro')}</p>

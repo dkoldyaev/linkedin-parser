@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Settings, LogOut, Menu, X } from 'lucide-react';
 import SettingsModal from './SettingsModal';
+import ThemeToggle from './ThemeToggle';
 import { useMenu } from './menuContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -13,27 +14,10 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
   const { t } = useTranslation();
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [timeStr, setTimeStr] = useState('');
-
-  React.useEffect(() => {
-    const updateTime = () => {
-      const d = new Date();
-      setTimeStr(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <div className="header-actions">
-      {timeStr && (
-        <div className="header-time-ticker" title="Local System Time">
-          <span className="time-live-indicator" />
-          <span className="time-val">{timeStr}</span>
-        </div>
-      )}
       {children}
+      <ThemeToggle />
 
       {user && (
         <>
@@ -43,7 +27,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             className="btn btn-secondary btn-icon plausible-event-name=Download+Extension"
             title="Скачать расширение (ZIP)"
           >
-            <Download size={16} />
+            <Download size={18} aria-hidden="true" />
           </a>
 
           <button
@@ -54,7 +38,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             }}
             title={t('nav.settings_btn')}
           >
-            <Settings size={16} />
+            <Settings size={18} aria-hidden="true" />
           </button>
 
           <div className="user-profile-badge">
@@ -67,7 +51,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             )}
             <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
             <button className="btn-logout" onClick={onLogout} title={t('auth.logout')}>
-              <LogOut size={15} />
+              <LogOut size={16} aria-hidden="true" />
             </button>
           </div>
 
@@ -88,7 +72,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
         aria-expanded={open}
         aria-label="Menu"
       >
-        {open ? <X size={18} /> : <Menu size={18} />}
+        {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
       </button>
     </div>
   );

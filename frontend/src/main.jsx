@@ -5,6 +5,12 @@ import './index.css'
 import App from './App.jsx'
 import { I18nProvider } from './i18n/I18nContext.jsx'
 
+try {
+  document.documentElement.dataset.theme = localStorage.getItem('workspace-theme') === 'light' ? 'light' : 'dark';
+} catch {
+  document.documentElement.dataset.theme = 'dark';
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <I18nProvider>
@@ -14,3 +20,5 @@ createRoot(document.getElementById('root')).render(
     </I18nProvider>
   </StrictMode>,
 )
+
+import "./design-system.css";

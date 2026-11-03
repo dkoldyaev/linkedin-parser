@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Settings, Check, Globe, Columns3, 
-  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Flag
+  Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -11,30 +11,18 @@ import ColumnDeleteModal from './ColumnDeleteModal';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated, onUserUpdated }) {
   const { t, locale, setLocale, salaryDisplayFormat, setSalaryDisplayFormat } = useTranslation();
-  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns' | 'features'
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns'
   const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(salaryDisplayFormat || 'month');
   const [columnsList, setColumnsList] = useState([]);
-  const [featureFlags, setFeatureFlags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [flagsSavedSuccess, setFlagsSavedSuccess] = useState(false);
 
   // Modals inside Settings for Column CRUD
   const [isCreateColOpen, setIsCreateColOpen] = useState(false);
   const [editingCol, setEditingCol] = useState(null);
   const [deletingCol, setDeletingCol] = useState(null);
 
-  const fetchUser = () => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(u => {
-        if (u && Array.isArray(u.feature_flags)) {
-          setFeatureFlags(u.feature_flags);
-        }
-      })
-      .catch(err => console.error('Failed to load user info', err));
-  };
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -58,7 +46,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   useEffect(() => {
     if (isOpen) {
       fetchSettings();
-      fetchUser();
     }
   }, [isOpen, setLocale]);
 
@@ -170,27 +157,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     await handleSaveColumn(col.id, { has_lanes: !col.has_lanes });
   };
 
-  const handleToggleFeature = async (flagName) => {
-    const nextFlags = featureFlags.includes(flagName)
-      ? featureFlags.filter(f => f !== flagName)
-      : [...featureFlags, flagName];
-    setFeatureFlags(nextFlags);
-    try {
-      const res = await fetch('/api/auth/me/feature-flags', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feature_flags: nextFlags }),
-      });
-      if (res.ok) {
-        const updatedUser = await res.json();
-        setFlagsSavedSuccess(true);
-        setTimeout(() => setFlagsSavedSuccess(false), 2000);
-        if (onUserUpdated) onUserUpdated(updatedUser);
-      }
-    } catch (err) {
-      console.error('Failed to update feature flags', err);
-    }
-  };
 
   const funnelColumns = columnsList.filter(c => c.id !== 'Отказ');
 
@@ -224,14 +190,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
           >
             <Columns3 size={15} />
             <span>{t('settingsModal.tab_columns')}</span>
-          </button>
-          <button
-            type="button"
-            className={`settings-tab-btn ${activeTab === 'features' ? 'active' : ''}`}
-            onClick={() => setActiveTab('features')}
-          >
-            <Flag size={15} />
-            <span>{t('settingsModal.tab_features')}</span>
           </button>
         </div>
 
@@ -450,91 +408,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
           </div>
         )}
 
-        {/* Feature Flags Tab */}
-        {activeTab === 'features' && (
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: 0 }}>
-              {t('settingsModal.features_desc')}
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: 'var(--bg-card, #1e293b)',
-                  border: '1px solid var(--border-subtle, #334155)',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  gap: '12px',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
-                    {t('settingsModal.feature_api_access_title')}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
-                    {t('settingsModal.feature_api_access_desc')}
-                  </div>
-                </div>
-
-                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
-                  <input
-                    type="checkbox"
-                    checked={featureFlags.includes('api_access')}
-                    onChange={() => handleToggleFeature('api_access')}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563eb' }}
-                  />
-                </label>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: 'var(--bg-card, #1e293b)',
-                  border: '1px solid var(--border-subtle, #334155)',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  gap: '12px',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary, #f8fafc)' }}>
-                    {t('settingsModal.feature_admin_title')}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', marginTop: '2px' }}>
-                    {t('settingsModal.feature_admin_desc')}
-                  </div>
-                </div>
-
-                <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', position: 'relative' }}>
-                  <input
-                    type="checkbox"
-                    checked={featureFlags.includes('admin')}
-                    onChange={() => handleToggleFeature('admin')}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563eb' }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="modal-footer" style={{ marginTop: '10px', padding: '12px 0 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                {flagsSavedSuccess && (
-                  <span style={{ color: '#10b981', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Check size={16} /> {t('settingsModal.settings_saved')}
-                  </span>
-                )}
-              </div>
-              <button type="button" className="btn btn-primary" onClick={onClose}>
-                {t('vacancyModal.close_btn')}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Internal Modals */}

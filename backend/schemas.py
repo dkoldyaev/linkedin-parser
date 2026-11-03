@@ -71,6 +71,7 @@ class VacancyUpdate(BaseModel):
     workplace_type: Optional[str] = None
     is_closed: Optional[bool] = None
     status: Optional[str] = None
+    lane: Optional[int] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_min: Optional[float] = None
@@ -88,6 +89,8 @@ class VacancyHistoryItem(BaseModel):
     vacancy_id: int
     from_status: Optional[str] = None
     to_status: str
+    from_lane: Optional[int] = None
+    to_lane: Optional[int] = None
     comment: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -101,12 +104,16 @@ class VacancyHistoryUpdate(BaseModel):
 class VacancyHistoryCreate(BaseModel):
     to_status: str
     from_status: Optional[str] = None
+    from_lane: Optional[int] = None
+    to_lane: Optional[int] = None
     comment: Optional[str] = None
 
 class VacancyReorderRequest(BaseModel):
     status: str
     ids: List[int]
     lane: int = 0
+    moved_id: Optional[int] = None
+    moved_ids: Optional[List[int]] = None
 
 class VacancyResponse(VacancyBase):
     id: int

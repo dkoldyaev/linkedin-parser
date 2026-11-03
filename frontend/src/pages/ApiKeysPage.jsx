@@ -222,7 +222,7 @@ export default function ApiKeysPage({ user }) {
                   readOnly
                   value={createdKeyToken}
                   className="form-input"
-                  style={{ fontFamily: 'monospace', fontSize: '0.875rem', padding: '8px 12px', background: 'rgba(0, 0, 0, 0.3)' }}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', padding: '8px 12px', background: 'rgba(0, 0, 0, 0.3)' }}
                   onClick={e => e.target.select()}
                 />
                 <button
@@ -315,7 +315,7 @@ export default function ApiKeysPage({ user }) {
                         {k.name}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        <span style={{ fontFamily: 'monospace', color: '#a5b4fc', fontSize: '0.8125rem' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', color: '#a5b4fc', fontSize: '0.8125rem' }}>
                           {k.key_prefix}••••••••
                         </span>
                         <span>

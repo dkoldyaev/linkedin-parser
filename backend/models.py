@@ -132,6 +132,8 @@ class VacancyStatusHistory(Base):
     vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="CASCADE"), nullable=False, index=True)
     from_status = Column(String(64), nullable=True)
     to_status = Column(String(64), nullable=False)
+    from_lane = Column(Integer, nullable=True)
+    to_lane = Column(Integer, nullable=True)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

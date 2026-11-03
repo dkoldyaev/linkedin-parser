@@ -108,16 +108,16 @@ export default function UserManagementPage({ user }) {
         <div style={{
           background: 'rgba(239, 68, 68, 0.1)',
           border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-sm)',
           padding: '32px',
           textAlign: 'center',
-          color: '#f8fafc'
+          color: 'var(--text-primary)'
         }}>
           <ShieldAlert size={48} style={{ color: '#ef4444', margin: '0 auto 16px' }} />
           <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '8px' }}>
             {t('pages.userManagement.access_denied_title')}
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             {t('pages.userManagement.access_denied_desc')}
           </p>
         </div>

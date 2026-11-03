@@ -5,15 +5,6 @@ import { useTranslation } from '../i18n/I18nContext';
 const HEATMAP_WEEKS = 26;
 const BAR_DAYS = 14;
 
-const STATUS_COLORS = {
-  'Еще не написан': 'var(--col-backlog)',
-  'Написал': 'var(--col-applied)',
-  'Собеседование': 'var(--col-interview)',
-  'Тестовое': 'var(--col-test)',
-  'Оффер': 'var(--col-offer)',
-  'Отказ': '#ef4444',
-};
-
 const iso = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -207,14 +198,14 @@ export default function StatsPage() {
                     key={c.key}
                     className={`heatmap-cell lvl-${c.future ? 'future' : level(c.count, view.max)} ${c.key === view.todayKey ? 'today' : ''}`}
                     title={`${formatDate(c.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${c.count}`}
-                  />
+                  ></div>
                 ))}
               </div>
             ))}
           </div>
           <div className="heatmap-legend">
             <span>{t('pages.stats.less')}</span>
-            {[0, 1, 2, 3, 4].map((l) => <div key={l} className={`heatmap-cell lvl-${l}`} />)}
+            {[0, 1, 2, 3, 4].map((l) => <span key={l} className={`heatmap-cell lvl-${l}`} aria-hidden="true" />)}
             <span>{t('pages.stats.more')}</span>
           </div>
         </section>
@@ -222,25 +213,22 @@ export default function StatsPage() {
         <div className="stat-two-col">
           <section className="info-card">
             <h2 className="info-card-title">{t('pages.stats.last_days', { n: BAR_DAYS })}</h2>
-            <div className="bars" id="stat-bars">
+            <div className="ascii-day-chart" id="stat-bars">
               {view.bars.map((b) => {
                 const total = b.marked + b.added;
+                const width = 20;
+                const filled = Math.round((total / view.barMax) * width);
+                const marked = total ? Math.round((b.marked / total) * filled) : 0;
                 return (
-                  <div className="bar-col" key={b.key} title={`${formatDate(b.date)}: ${t('pages.stats.marked')} ${b.marked}, ${t('pages.stats.added')} ${b.added}`}>
-                    <div className="bar-value">{total || ''}</div>
-                    <div className="bar-track">
-                      <div className="bar-seg added" style={{ height: `${(b.added / view.barMax) * 100}%` }} />
-                      <div className="bar-seg marked" style={{ height: `${(b.marked / view.barMax) * 100}%` }} />
-                    </div>
-                    <div className="bar-label">{b.date.getDate()}</div>
+                  <div className="ascii-day-row" key={b.key} title={`${formatDate(b.date)}: ${t('pages.stats.marked')} ${b.marked}, ${t('pages.stats.added')} ${b.added}`}>
+                    <span>{formatDate(b.date, { day: '2-digit', month: '2-digit' })}</span>
+                    <span className="chart-track" aria-hidden="true"><span className="chart-marked" style={{ width: `${marked / width * 100}%` }} /><span className="chart-added" style={{ width: `${(filled - marked) / width * 100}%` }} /></span>
+                    <span>{total}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="bars-legend">
-              <span><i className="dot marked" />{t('pages.stats.marked')}</span>
-              <span><i className="dot added" />{t('pages.stats.added')}</span>
-            </div>
+            <div className="bars-legend"><span><b className="chart-key chart-marked" /> {t('pages.stats.marked')}</span><span><b className="chart-key chart-added" /> {t('pages.stats.added')}</span></div>
           </section>
 
           <section className="info-card">
@@ -256,14 +244,7 @@ export default function StatsPage() {
               {view.statuses.map(([status, count]) => (
                 <div className="status-row" key={status}>
                   <span className="status-name">{t(`kanban.columns.${status}`)}</span>
-                  <div className="status-bar">
-                    <div
-                      style={{
-                        width: `${(count / Math.max(data.total, 1)) * 100}%`,
-                        background: STATUS_COLORS[status] || 'var(--primary)',
-                      }}
-                    />
-                  </div>
+                  <span className="chart-track" aria-label={`${count} / ${data.total}`}><span className="chart-marked" style={{ width: `${count / Math.max(data.total, 1) * 100}%` }} /></span>
                   <b>{count}</b>
                 </div>
               ))}

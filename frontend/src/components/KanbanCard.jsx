@@ -1,8 +1,8 @@
 import React from 'react';
 import { 
-  MapPin, Sparkles, ChevronLeft, ChevronRight, 
+  MapPin, Sparkles, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  XCircle, RotateCcw, History, Award
+  RotateCcw, History, Award
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -120,7 +120,7 @@ export default function KanbanCard({
       onClick={handleCardClick}
     >
       <div className="card-top">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+        <div className="card-heading">
           <input
             type="checkbox"
             checked={isSelected || false}
@@ -134,7 +134,6 @@ export default function KanbanCard({
           />
           <div className="card-title-container">
             <div className="card-header-meta">
-              <span className="card-ref-id">REF_{vacancy.id}</span>
               <a 
                 href={vacancy.url} 
                 target="_blank" 
@@ -153,7 +152,7 @@ export default function KanbanCard({
           </div>
 
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', right: '-10px', top: '-10px' }}>
+        <div className="card-status-indicators">
           {(laneColumns.has(vacancy.status)) && (vacancy.lane != null) && (
             <span className="card-lane-badge" title={t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}>
               {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
@@ -207,8 +206,8 @@ export default function KanbanCard({
           {vacancy.ai_summary}
         </div>
       ) : (
-        <div className="card-summary card-summary-pending" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#60a5fa', padding: '6px 8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
-          <Sparkles size={13} style={{ flexShrink: 0, animation: 'pulse 2s infinite' }} />
+        <div className="card-summary card-summary-pending">
+          <Sparkles size={13} />
           <span>{t('kanban.ai_generating')}</span>
         </div>
       )}
@@ -287,14 +286,16 @@ export default function KanbanCard({
             <button
               className="quick-move-btn"
               title={t('kanban.move_left')}
+              aria-label={t('kanban.move_left')}
               disabled={currentIndex <= 0}
               onClick={handleMoveLeft}
             >
-              <ChevronLeft size={14} />
+              <span aria-hidden="true">&lt;</span>
             </button>
             <button
               className="quick-move-btn quick-reject-btn"
               title={t('kanban.move_to_rejected')}
+              aria-label={t('kanban.move_to_rejected')}
               onClick={(e) => {
                 e.stopPropagation();
                 trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
@@ -306,15 +307,16 @@ export default function KanbanCard({
                 onStatusChange(vacancy.id, 'Отказ');
               }}
             >
-              <XCircle size={14} />
+              <span aria-hidden="true">×</span>
             </button>
             <button
               className="quick-move-btn"
               title={t('kanban.move_right')}
+              aria-label={t('kanban.move_right')}
               disabled={currentIndex >= linearColumns.length - 1}
               onClick={handleMoveRight}
             >
-              <ChevronRight size={14} />
+              <span aria-hidden="true">&gt;</span>
             </button>
           </div>
         )}

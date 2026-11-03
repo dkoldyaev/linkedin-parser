@@ -104,6 +104,13 @@ def ensure_db_schema():
                     if "match_score" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
 
+                history_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(vacancy_status_history)")).fetchall()}
+                if history_cols:
+                    if "from_lane" not in history_cols:
+                        conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN from_lane INTEGER"))
+                    if "to_lane" not in history_cols:
+                        conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN to_lane INTEGER"))
+
                 user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
                 if user_cols:
                     if "feature_flags" not in user_cols:
@@ -132,6 +139,8 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS match_score DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS from_lane INTEGER"))
+                conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS to_lane INTEGER"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))

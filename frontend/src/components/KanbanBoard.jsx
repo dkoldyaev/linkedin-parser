@@ -116,7 +116,7 @@ export default function KanbanBoard({
             method: 'drag_and_drop_multi'
           });
         });
-        onStatusChangeMulti(selectedIds, columnId);
+        onStatusChangeMulti(selectedIds, columnId, lane);
       } else if (onReorder) {
         const dragged = vacancies.find(v => v.id === vid);
         if (!dragged) return;
@@ -143,14 +143,14 @@ export default function KanbanBoard({
           to_status: columnId,
           method: dragged.status === columnId ? 'drag_reorder' : 'drag_and_drop'
         });
-        onReorder(columnId, ids, lane);
+        onReorder(columnId, ids, lane, vid);
       } else {
         trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
           vacancy_id: vid,
           to_status: columnId,
           method: 'drag_and_drop'
         });
-        onStatusChange(vid, columnId);
+        onStatusChange(vid, columnId, lane);
       }
     }
   };
@@ -266,7 +266,7 @@ export default function KanbanBoard({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="column-badge">[{columnVacancies.length}]</span>
+                  <span className="column-badge">{columnVacancies.length}</span>
 
                   <button
                     type="button"

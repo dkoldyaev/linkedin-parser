@@ -18,7 +18,7 @@ export default function AboutPage() {
       <div className="info-container">
         <header className="info-hero" style={{ position: 'relative' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: '#60a5fa', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>
-            MANUAL_01 // ARCHITECTURE & OVERVIEW
+            О ПРОЕКТЕ
           </div>
           <h1 className="info-title">{t('pages.about.title')}</h1>
           <p className="info-subtitle">{t('pages.about.subtitle')}</p>
@@ -26,7 +26,7 @@ export default function AboutPage() {
 
         <section className="info-card" style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', top: '10px', right: '14px', fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.08em' }}>
-            [ FIG_001 ]
+            01 / OVERVIEW
           </div>
           <p className="info-text">{t('pages.about.p1')}</p>
           <p className="info-text">{t('pages.about.p2')}</p>
