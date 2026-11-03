@@ -41,6 +41,7 @@ export default function KanbanBoard({
   const { t } = useTranslation();
   const snapScroll = useGridScroll();
   const wrapperRef = useRef(null);
+  const boardRef = useRef(null);
   const rejectedRef = useRef(null);
   const [boardHeight, setBoardHeight] = useState(null);
 
@@ -84,6 +85,25 @@ export default function KanbanBoard({
   const boardColumns = Array.isArray(columns) && columns.length > 0 ? columns : DEFAULT_BOARD_COLUMNS;
   const funnelColumns = boardColumns.filter(c => c.id !== REJECTED_STATUS);
   const laneColumnIds = new Set(boardColumns.filter(c => c.has_lanes).map(c => c.id));
+
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const update = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      const columnsWidth = Array.from(board.children)
+        .filter(child => !child.classList.contains('kanban-add-column'))
+        .reduce((sum, child) => sum + child.offsetWidth, 0);
+      const tail = columnsWidth + grid > board.clientWidth
+        ? ((board.clientWidth - columnsWidth - grid) % grid + grid) % grid
+        : 0;
+      board.style.setProperty('--add-column-extra-width', `${tail}px`);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(board);
+    update();
+    return () => observer.disconnect();
+  }, [columns]);
 
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
 
@@ -251,6 +271,7 @@ export default function KanbanBoard({
       {/* Funnel Columns */}
       <div
         className="kanban-board"
+        ref={boardRef}
         onScroll={event => snapScroll(event, 'x')}
         style={boardHeight ? { height: boardHeight } : undefined}
         onDragStart={(e) => {

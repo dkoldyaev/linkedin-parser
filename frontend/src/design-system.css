@@ -179,22 +179,24 @@ body { background: var(--bg-main); }
 
 /* A quiet filter rail: native selects remain fully interactive. */
 .filter-bar { gap: 0; padding: 8px 20px; }
-.filter-bar .filter-group { gap: 0; }
+.filter-bar .filter-group { gap: 0; height: 100%; }
+.filter-bar .filter-select-wrapper { height: 100%; }
 .filter-group:has(.filter-select-wrapper) + .filter-group:has(.filter-select-wrapper)::before {
   content: '/'; color: var(--text-muted); margin: 0 12px; font-family: var(--font-mono); font-size: .75rem;
 }
 .filter-bar .filter-select-icon { display: none; }
 .filter-bar .filter-select, [data-theme='light'] .filter-bar .filter-select {
   background: transparent; border: 0; border-radius: 0; padding: 5px 18px 5px 0;
-  color: var(--text-secondary); box-shadow: none; font-family: var(--font-sans); font-weight: 500;
+  color: var(--text-secondary); box-shadow: none; font-family: var(--font-mono); font-weight: 500; height: 100%;
 }
 .filter-bar .filter-select:hover, .filter-bar .filter-select.active { color: var(--primary); }
+.filter-bar .filter-select.active, [data-theme='light'] .filter-bar .filter-select.active { box-shadow: inset 0 -1px var(--primary); }
 .filter-bar .filter-select:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .filter-bar .filter-select option { background: var(--bg-surface); color: var(--text-primary); }
 .filter-bar .filter-select-chevron { right: 0; }
 .filter-bar .filter-divider { margin: 0 16px; }
 .filter-bar .filter-label { margin-right: 12px; }
-.filter-bar .tag-filter-chip { border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); padding: 5px 7px; }
+.filter-bar .tag-filter-chip { height: 100%; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); padding: 5px 7px; }
 .filter-bar .tag-filter-chip:hover, .filter-bar .tag-filter-chip.active { color: var(--primary); background: transparent; }
 .filter-bar .tag-filter-chip.active { box-shadow: inset 0 -1px var(--primary); }
 .filter-bar .filter-reset-btn, .filter-bar .filter-reject-all-btn { color: #e07575; }
@@ -392,8 +394,31 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   background-color: var(--bg-main);
   background-image: linear-gradient(var(--board-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--board-grid-line) 1px, transparent 1px);
   background-size: var(--grid) var(--grid);
+  background-attachment: fixed;
   background-blend-mode: normal;
 }
+.kanban-add-column {
+  flex: 0 0 calc(var(--grid) + var(--add-column-extra-width, 0px));
+  width: calc(var(--grid) + var(--add-column-extra-width, 0px));
+  max-width: none;
+  background-color: var(--bg-main);
+  background-image: linear-gradient(var(--board-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--board-grid-line) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+  background-attachment: fixed;
+}
+.kanban-add-column-btn {
+  height: 100%;
+  padding: var(--grid-unit) 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--board-card-fill);
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+.kanban-add-column-btn:hover { color: var(--primary); background: var(--board-header-fill); }
 .column-header, [data-theme='light'] .column-header { height: calc(1 * var(--grid)); min-height: calc(1 * var(--grid)); flex-shrink: 0; background: var(--board-header-fill); border: 0; box-shadow: inset 0 -1px var(--border-subtle); }
 .column-cards { padding: 0 0 var(--column-grid-tail, 0px); gap: 0; overflow-x: hidden; }
 .column-cards > .kanban-card { width: 100%; min-width: 0; }
@@ -453,6 +478,8 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 
 /* The filter rail and board stop on full grid lines. */
 .filter-bar { height: var(--grid); min-height: var(--grid); max-height: var(--grid); padding-block: 0; border-bottom: 0; box-shadow: inset 0 -1px var(--border-subtle); }
+.filter-bar, .filter-bar .filter-group { scrollbar-width: none; }
+.filter-bar::-webkit-scrollbar, .filter-bar .filter-group::-webkit-scrollbar { display: none; }
 .kanban-board { flex: 0 0 auto; min-height: 0; }
 
 /* Compact bulk controls match the filter rail typography. */

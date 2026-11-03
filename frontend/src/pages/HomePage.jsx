@@ -753,7 +753,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   onChange={(e) => handleCountryChange(e.target.value)}
                   title={t('nav.filter_all_countries')}
                 >
-                  <option value="">{t('nav.filter_all_countries')} ({allCountries.length})</option>
+                  <option value="">{t('nav.filter_all_countries')} [{allCountries.length}]</option>
                   {allCountries.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -780,7 +780,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   }}
                   title={t('nav.filter_all_cities')}
                 >
-                  <option value="">{t('nav.filter_all_cities')} ({allCities.length})</option>
+                  <option value="">{t('nav.filter_all_cities')} [{allCities.length}]</option>
                   {allCities.map((city) => (
                     <option key={city} value={city}>
                       {city}
@@ -830,7 +830,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   }}
                   title={t('nav.filter_all_sources')}
                 >
-                  <option value="">{t('nav.filter_all_sources')} ({allSources.length})</option>
+                  <option value="">{t('nav.filter_all_sources')} [{allSources.length}]</option>
                   {allSources.map((src) => (
                     <option key={src} value={src}>
                       {src}
@@ -880,7 +880,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   <XCircle size={12} />
                 )}
                 <span>
-                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` (${nonRejectedClosedCount})` : ''}
+                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` [${nonRejectedClosedCount}]` : ''}
                 </span>
               </button>
             );
@@ -905,7 +905,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   setSelectedTag('');
                 }}
               >
-                {t('nav.all_tags')} ({vacancies.length})
+                {t('nav.all_tags')} [{vacancies.length}]
               </button>
               {allTags.map(tag => (
                 <button
