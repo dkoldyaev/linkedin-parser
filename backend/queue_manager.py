@@ -923,6 +923,7 @@ class RedisQueueManager:
                             vacancy_text=vacancy_full_text,
                             cv_text=approved_cv.content,
                             provider=provider,
+                            language=language,
                             db=db,
                             user_id=user_id,
                         )

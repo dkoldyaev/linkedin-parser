@@ -504,6 +504,7 @@ async def evaluate_vacancy_compatibility_with_llm(
     provider: str,
     db: Optional[Session] = None,
     user_id: Optional[int] = None,
+    language: str = "ru",
 ) -> Dict[str, Any]:
     """
     Evaluates vacancy requirements vs approved CV text using configured LLM.
@@ -517,6 +518,7 @@ async def evaluate_vacancy_compatibility_with_llm(
 
     active_model = mistral_model if provider == "mistral" else gemini_model
 
+    output_language = "Russian" if language.lower().startswith("ru") else "English"
     prompt = f"""You are a strict, objective technical recruiter and job compatibility evaluator.
 Compare the following candidate CV against the Job Vacancy Description.
 
@@ -533,6 +535,7 @@ Rules:
    - optionalTechnicalSkills: coverage of nice-to-have / bonus tools.
    - domainExperience: relevance of industry/domain knowledge.
 7. Recommendations: Actionable tips for how the candidate can better showcase their REAL experience for this role. Do NOT hallucinate fake experience.
+8. Write all human-readable descriptions, requirements, reasons, seniority comments, summaries, and recommendations in {output_language}, regardless of the language of the CV or vacancy. Preserve technology names and exact CV evidence quotes in their original language. Keep JSON keys and enum values exactly as specified below.
 
 Output strictly valid JSON matching this schema:
 {{

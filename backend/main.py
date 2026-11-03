@@ -2324,6 +2324,7 @@ async def analyze_vacancy_compatibility(
             vacancy_text=vacancy_full_text,
             cv_text=approved_cv.content,
             provider=provider,
+            language=get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id),
             db=db,
             user_id=current_user.id,
         )
