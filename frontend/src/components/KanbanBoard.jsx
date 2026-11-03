@@ -87,6 +87,33 @@ export default function KanbanBoard({
 
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
 
+  // Make the scrollable end land on the same grid as the column background.
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const lists = Array.from(wrapper.querySelectorAll('.column-cards'));
+    let frame;
+    const update = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      for (const list of lists) {
+        const contentHeight = Array.from(list.children).reduce((sum, child) => sum + child.offsetHeight, 0);
+        const remainder = ((list.clientHeight - contentHeight) % grid + grid) % grid;
+        const padding = contentHeight > list.clientHeight ? remainder : 0;
+        list.style.setProperty('--column-grid-tail', `${padding}px`);
+      }
+    };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
+    const observer = new ResizeObserver(schedule);
+    lists.forEach(list => { observer.observe(list); Array.from(list.children).forEach(child => observer.observe(child)); });
+    const mutations = new MutationObserver(() => {
+      lists.forEach(list => Array.from(list.children).forEach(child => observer.observe(child)));
+      schedule();
+    });
+    lists.forEach(list => mutations.observe(list, { childList: true }));
+    update();
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); mutations.disconnect(); };
+  }, [columns, vacancies]);
+
   const computeDropIndex = (e) => {
     const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging)'));
     let index = 0;
@@ -289,11 +316,10 @@ export default function KanbanBoard({
                   <span className="column-index">{String(colIndex + 1).padStart(2, '0')}</span>
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name" title={columnName}>{columnName}</span>
+                  <span className="column-badge">[{columnVacancies.length}]</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="column-badge">{columnVacancies.length}</span>
-
                   <button
                     type="button"
                     className="column-actions-btn"
@@ -409,14 +435,8 @@ export default function KanbanBoard({
           <div className="column-title-group">
             <span className="column-dot" style={{ background: '#ef4444' }} />
             <span className="column-name">{t('kanban.rejected_title')}</span>
+            <span className="column-badge">[{rejectedVacancies.length}]</span>
           </div>
-
-          <span
-            className="column-badge"
-            style={rejectedVacancies.length > 0 ? { color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}
-          >
-            {rejectedVacancies.length}
-          </span>
 
           <button
             type="button"

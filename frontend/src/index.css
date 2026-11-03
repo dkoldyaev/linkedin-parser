@@ -1006,15 +1006,15 @@ body {
 
 /* Match Score Tiers */
 .kanban-card.card-match-high {
-  border-left: 4px solid #10b981;
+  --card-match-edge: #10b981;
 }
 
 .kanban-card.card-match-medium {
-  border-left: 4px solid #f59e0b;
+  --card-match-edge: #f59e0b;
 }
 
 .kanban-card.card-match-low {
-  border-left: 4px solid #ef4444;
+  --card-match-edge: #ef4444;
 }
 
 .card-match-badge {

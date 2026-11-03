@@ -40,7 +40,10 @@ export function useGridScroll() {
       if (position <= 0 || position >= maximum - 1) return;
       const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
       const target = Math.min(maximum, Math.max(0, Math.round(position / grid) * grid));
-      if (Math.abs(position - target) > 0.5) element.scrollTo(horizontal ? { left: target, behavior: 'instant' } : { top: target, behavior: 'instant' });
+      if (Math.abs(position - target) > 0.5) {
+        const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+        element.scrollTo(horizontal ? { left: target, behavior } : { top: target, behavior });
+      }
     };
     pending.set(element, setTimeout(settle, 180));
   }, []);
