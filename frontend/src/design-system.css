@@ -48,7 +48,7 @@ body { background: var(--bg-main); }
 .brand-title { color: var(--text-primary); font-size: 1.2rem; }
 .brand-subtitle, .filter-label, .column-name, .form-label, .drawer-tag { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
 .search-input, .form-input, .form-textarea, .form-select, .filter-select, .dev-inputs input { background: #101f35; border-color: var(--border-strong); color: var(--text-primary); }
-.search-input:focus, .form-input:focus, .form-textarea:focus, .form-select:focus, .dev-inputs input:focus { background: #101f35; box-shadow: 0 0 0 2px #2e5c95; }
+.search-input:focus, .form-input:focus, .form-textarea:focus, .form-select:focus, .dev-inputs input:focus { background-color: var(--bg-surface); box-shadow: 0 0 0 2px #2e5c95; }
 .btn, .btn-icon, .btn-dev-login, .btn-google-login { box-shadow: none; transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast); }
 .btn-primary, .btn-dev-login { background: #79aeff; color: #071729; border-color: #79aeff; }
 .btn-primary:hover, .btn-dev-login:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary); box-shadow: none; }
