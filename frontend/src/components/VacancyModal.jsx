@@ -130,8 +130,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setTitle(vacancy.title || "");
       setCompatibility(null);
       setCompatError(null);
-      setPublishedCVData(null);
-      setPublishError(null);
       setAdaptingCV(false);
       setAdaptError(null);
 

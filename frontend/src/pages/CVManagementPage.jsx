@@ -86,7 +86,7 @@ export default function CVManagementPage({ user }) {
       }
     }
     loadData();
-  }, [fetchServerApprovedCV, fetchSettings]);
+  }, [fetchServerApprovedCV]);
 
   // Handle File Upload
   const handleFileUpload = async (e) => {
@@ -218,34 +218,35 @@ export default function CVManagementPage({ user }) {
   };
 
   return (
-    <div className="cv-page-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', color: '#f8fafc' }}>
+    <div className="cv-page-container">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="cv-hero-section">
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FileText style={{ color: '#2563eb' }} size={28} />
+          <div className="cv-hero-meta">[ REVISION CONTROL // CV ]</div>
+          <h1 className="cv-title">
+            <FileText size={26} style={{ color: 'var(--primary)' }} />
             {t('pages.cv.title')}
           </h1>
-          <p style={{ color: '#94a3b8', marginTop: '4px', fontSize: '0.95rem' }}>
+          <p className="cv-subtitle">
             {t('pages.cv.subtitle')}
           </p>
         </div>
 
         {/* Sync Status Badge */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {syncStatus === 'approved' && (
-            <span style={{ background: '#05966922', color: '#10b981', border: '1px solid #059669', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CheckCircle2 size={16} /> {t('pages.cv.saved_on_server', { rev: approvedRevision })}
+            <span className="cv-sync-badge approved">
+              <CheckCircle2 size={15} /> {t('pages.cv.saved_on_server', { rev: approvedRevision })}
             </span>
           )}
           {syncStatus === 'outdated' && (
-            <span style={{ background: '#d9770622', color: '#f59e0b', border: '1px solid #d97706', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <AlertTriangle size={16} /> {t('pages.cv.modified_locally')}
+            <span className="cv-sync-badge outdated">
+              <AlertTriangle size={15} /> {t('pages.cv.modified_locally')}
             </span>
           )}
           {syncStatus === 'draft' && (
-            <span style={{ background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb', padding: '6px 14px', borderRadius: '20px', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Edit3 size={16} /> {t('pages.cv.local_draft')}
+            <span className="cv-sync-badge draft">
+              <Edit3 size={15} /> {t('pages.cv.local_draft')}
             </span>
           )}
         </div>
@@ -253,51 +254,59 @@ export default function CVManagementPage({ user }) {
 
       {/* Notifications */}
       {error && (
-        <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: '#fca5a5', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px' }}>
+        <div className="info-banner" style={{ borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5' }}>
           {error}
         </div>
       )}
       {message && (
-        <div style={{ background: '#10b98122', border: '1px solid #10b981', color: '#6ee7b7', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px' }}>
+        <div className="info-banner" style={{ borderColor: 'var(--aspen-mint-border)', background: 'var(--aspen-mint-subtle)', color: 'var(--aspen-mint-bright)' }}>
           {message}
         </div>
       )}
 
       {/* Upload & Actions Toolbar */}
       {canEditCV && (
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', background: '#0f172a', padding: '16px', borderRadius: '8px', marginBottom: '24px', border: '1px solid #334155' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563eb', color: '#ffffff', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '0.9rem' }}>
-            <Upload size={18} />
-            {sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}
+        <div className="cv-toolbar">
+          <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
+            <Upload size={16} />
+            <span>{sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}</span>
             <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
 
           {sourceText && (
             <>
               <button
+                type="button"
+                className="btn btn-primary"
                 onClick={handleApproveAndSync}
                 disabled={isSubmitting}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#059669', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }}
+                style={{ background: 'var(--aspen-mint)', borderColor: 'var(--aspen-mint-border)' }}
               >
-                <CheckCircle2 size={18} /> {t('pages.cv.save_btn')}
+                <CheckCircle2 size={16} />
+                <span>{t('pages.cv.save_btn')}</span>
               </button>
 
               <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={handleClearLocal}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#334155', color: '#f87171', border: '1px solid #475569', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', marginLeft: 'auto' }}
+                style={{ color: '#f87171', marginLeft: 'auto' }}
               >
-                <Trash2 size={16} /> {t('pages.cv.clear_draft_btn')}
+                <Trash2 size={15} />
+                <span>{t('pages.cv.clear_draft_btn')}</span>
               </button>
             </>
           )}
 
           {serverCV && (
             <button
+              type="button"
+              className="btn btn-danger"
               onClick={handleDeleteServerCV}
               disabled={isSubmitting}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#7f1d1d22', color: '#fca5a5', border: '1px solid #7f1d1d', padding: '10px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem' }}
             >
-              <Trash2 size={16} /> {t('pages.cv.delete_server_btn')}
+              <Trash2 size={15} />
+              <span>{t('pages.cv.delete_server_btn')}</span>
             </button>
           )}
         </div>
@@ -305,43 +314,37 @@ export default function CVManagementPage({ user }) {
 
       {/* Main Content Area */}
       {sourceText ? (
-        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontWeight: '600', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileText size={18} /> {t('pages.cv.content_header', { filename: filename || (locale === 'ru' ? 'Текущий документ' : 'Current Document') })}
+        <div className="cv-editor-card">
+          <div className="cv-editor-header">
+            <span style={{ fontWeight: '600', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={16} style={{ color: 'var(--primary)' }} />
+              {t('pages.cv.content_header', { filename: filename || (locale === 'ru' ? 'Текущий документ' : 'Current Document') })}
             </span>
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{t('pages.cv.revision', { rev: sourceRevision })}</span>
+            <span className="technical-stamp">{t('pages.cv.revision', { rev: sourceRevision })}</span>
           </div>
           <textarea
+            className="cv-textarea"
             value={sourceText}
             onChange={canEditCV ? handleSourceTextChange : undefined}
             readOnly={!canEditCV}
             rows={26}
-            style={{
-              width: '100%',
-              background: '#0f172a',
-              color: '#e2e8f0',
-              border: '1px solid #334155',
-              borderRadius: '6px',
-              padding: '16px',
-              fontFamily: 'monospace',
-              fontSize: '0.9rem',
-              lineHeight: '1.6',
-              resize: 'vertical',
-              opacity: canEditCV ? 1 : 0.85,
-              cursor: canEditCV ? 'text' : 'default',
-            }}
           />
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#0f172a', border: '2px dashed #334155', borderRadius: '12px' }}>
-          <FileText size={48} style={{ color: '#2563eb', margin: '0 auto 16px' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '8px' }}>{t('pages.cv.no_cv_title')}</h2>
-          <p style={{ color: '#94a3b8', maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.9rem' }}>
+        <div className="cv-dropzone">
+          <FileText size={48} style={{ color: 'var(--primary)' }} />
+          <h2 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.4rem', fontWeight: '700', letterSpacing: '-0.03em' }}>
+            {t('pages.cv.no_cv_title')}
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '480px', fontSize: '0.875rem', lineHeight: 1.6 }}>
             {t('pages.cv.no_cv_desc')}
           </p>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#2563eb', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
-            <Upload size={18} /> {t('pages.cv.choose_file')}
+          <div className="cv-dropzone-specs">
+            .PDF &nbsp;•&nbsp; .MD &nbsp;•&nbsp; .JSON &nbsp;•&nbsp; .TXT &nbsp;|&nbsp; MAX SIZE: 5MB
+          </div>
+          <label className="btn btn-primary" style={{ padding: '0 24px', height: '42px', cursor: 'pointer', marginTop: '8px' }}>
+            <Upload size={16} />
+            <span>{t('pages.cv.choose_file')}</span>
             <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>

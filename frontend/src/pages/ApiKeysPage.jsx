@@ -152,15 +152,15 @@ export default function ApiKeysPage({ user }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* OpenAPI Documentation Links Banner */}
           <div style={{
-            background: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
-            borderRadius: 'var(--radius-md)',
+            background: 'var(--primary-light)',
+            border: '1px solid var(--border-blueprint)',
+            borderRadius: 'var(--radius-sm)',
             padding: '16px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a5b4fc', fontSize: '0.95rem', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontSize: '0.95rem', fontWeight: 600 }}>
               <Code2 size={18} />
               <span>{t('settingsModal.openapi_docs_title')}</span>
             </div>
@@ -204,15 +204,15 @@ export default function ApiKeysPage({ user }) {
           {/* Newly Created Key Alert Box */}
           {createdKeyToken && (
             <div style={{
-              background: 'rgba(234, 179, 8, 0.1)',
-              border: '1px solid rgba(234, 179, 8, 0.4)',
-              borderRadius: 'var(--radius-md)',
+              background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              borderRadius: 'var(--radius-sm)',
               padding: '14px 16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#facc15', fontSize: '0.875rem', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontSize: '0.875rem', fontWeight: 600 }}>
                 <ShieldAlert size={18} />
                 <span>{t('settingsModal.new_key_warning')}</span>
               </div>

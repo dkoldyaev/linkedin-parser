@@ -85,7 +85,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
           ) : (
             <ul ref={parent} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {tasks.map(task => (
-                <li key={task.task_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <li key={task.task_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ overflow: 'hidden', marginRight: '16px' }}>
                     <div style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={task.url}>
                       {task.title ? `${task.title} at ${task.company || 'Unknown'}` : task.url}

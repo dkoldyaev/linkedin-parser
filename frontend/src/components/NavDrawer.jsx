@@ -33,8 +33,11 @@ export default function NavDrawer({ user }) {
     <>
       <div className={`drawer-overlay ${open ? 'open' : ''}`} onClick={close} />
       <aside className={`nav-drawer ${open ? 'open' : ''}`} aria-hidden={!open} aria-label="Main navigation">
+        <div className="drawer-header-meta">
+          <span className="drawer-tag">[ NAVIGATION INDEX ]</span>
+        </div>
         <nav className="drawer-links">
-          {links.map(({ to, key, icon: Icon, end }) => (
+          {links.map(({ to, key, icon: Icon, end }, idx) => (
             <NavLink
               key={to}
               to={to}
@@ -44,21 +47,29 @@ export default function NavDrawer({ user }) {
               tabIndex={open ? 0 : -1}
               className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}
             >
-              <Icon size={18} />
-              <span>{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : key}</span>
+              <span className="drawer-index">{String(idx + 1).padStart(2, '0')}</span>
+              <Icon size={16} className="drawer-link-icon" />
+              <span className="drawer-link-text">{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : key}</span>
+              <span className="drawer-link-arrow">→</span>
             </NavLink>
           ))}
         </nav>
-        <button
-          className="page-nav-lang"
-          id="nav-lang-toggle"
-          onClick={() => setLocale(targetLocale)}
-          tabIndex={open ? 0 : -1}
-          title="Language"
-        >
-          <Languages size={14} />
-          <span>{targetLocale.toUpperCase()}</span>
-        </button>
+        <div className="drawer-footer">
+          <div className="drawer-sys-status">
+            <span className="sys-status-dot" />
+            <span className="sys-status-label">SYS: ONLINE</span>
+          </div>
+          <button
+            className="page-nav-lang"
+            id="nav-lang-toggle"
+            onClick={() => setLocale(targetLocale)}
+            tabIndex={open ? 0 : -1}
+            title="Language"
+          >
+            <Languages size={14} />
+            <span>{targetLocale.toUpperCase()}</span>
+          </button>
+        </div>
       </aside>
     </>
   );

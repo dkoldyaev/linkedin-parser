@@ -59,7 +59,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     if (isOpen) {
       fetchSettings();
       fetchUser();
-      fetchApiKeys();
     }
   }, [isOpen, setLocale]);
 

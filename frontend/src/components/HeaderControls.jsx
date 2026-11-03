@@ -13,9 +13,26 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
   const { t } = useTranslation();
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [timeStr, setTimeStr] = useState('');
+
+  React.useEffect(() => {
+    const updateTime = () => {
+      const d = new Date();
+      setTimeStr(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="header-actions">
+      {timeStr && (
+        <div className="header-time-ticker" title="Local System Time">
+          <span className="time-live-indicator" />
+          <span className="time-val">{timeStr}</span>
+        </div>
+      )}
       {children}
 
       {user && (

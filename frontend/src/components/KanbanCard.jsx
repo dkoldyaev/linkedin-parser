@@ -132,20 +132,25 @@ export default function KanbanCard({
             className="card-checkbox"
             title="Выделить карточку"
           />
-          
-          <h3 className="card-title">
-            <a 
-              href={vacancy.url} 
-              target="_blank" 
-              rel="noreferrer" 
-              onClick={handleCompanyLinkClick}
-              title={vacancy.source || ''}
-            >
-              {vacancy.source && <span>{vacancy.source}</span>}
-              <ExternalLink size={10} />
-            </a>
-            {vacancy.title}
-          </h3>
+          <div className="card-title-container">
+            <div className="card-header-meta">
+              <span className="card-ref-id">REF_{vacancy.id}</span>
+              <a 
+                href={vacancy.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                onClick={handleCompanyLinkClick}
+                className="card-source-link"
+                title={vacancy.source || ''}
+              >
+                {vacancy.source && <span>{vacancy.source}</span>}
+                <ExternalLink size={10} />
+              </a>
+            </div>
+            <h3 className="card-title">
+              {vacancy.title}
+            </h3>
+          </div>
 
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', right: '-10px', top: '-10px' }}>

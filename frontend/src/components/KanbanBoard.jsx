@@ -211,7 +211,7 @@ export default function KanbanBoard({
           setDragOverLane(0);
         }}
       >
-        {funnelColumns.map(col => {
+        {funnelColumns.map((col, colIndex) => {
           const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
           const columnName = t(`kanban.columns.${col.id}`);
           const isLaneColumn = laneColumnIds.has(col.id);
@@ -260,12 +260,13 @@ export default function KanbanBoard({
             >
               <div className="column-header">
                 <div className="column-title-group">
+                  <span className="column-index">{String(colIndex + 1).padStart(2, '0')}</span>
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name" title={columnName}>{columnName}</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="column-badge">{columnVacancies.length}</span>
+                  <span className="column-badge">[{columnVacancies.length}]</span>
 
                   <button
                     type="button"

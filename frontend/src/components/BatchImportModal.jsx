@@ -160,25 +160,27 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                 {duplicateWarning.duplicates.map((dup) => (
                   <div key={dup.id} style={{
                     padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
-                    border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                   }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary, #f3f4f6)' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                       {dup.title || dup.url}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary, #9ca3af)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       <span>{dup.company || 'Unknown'}</span>
                       {dup.status && (
                         <span style={{
                           padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: 'rgba(99, 102, 241, 0.2)',
-                          color: '#a5b4fc',
-                          fontSize: '0.75rem'
+                          borderRadius: 'var(--radius-xs)',
+                          background: 'rgba(37, 99, 235, 0.15)',
+                          border: '1px solid var(--border-blueprint)',
+                          color: '#93c5fd',
+                          fontSize: '0.75rem',
+                          fontFamily: 'var(--font-mono)'
                         }}>
                           {dup.status}
                         </span>
