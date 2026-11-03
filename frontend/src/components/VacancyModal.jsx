@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
+import { useGridScroll } from '../utils/useGridScroll';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -24,6 +25,7 @@ const DEFAULT_COLUMNS = [
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
+  const snapScroll = useGridScroll();
   const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
@@ -832,7 +834,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         </div>
 
         {/* Body */}
-        <div className="modal-body" ref={detailBodyRef}>
+        <div className="modal-body" ref={detailBodyRef} onScroll={snapScroll}>
           {activeTab === 'details' && (
             <>
           {/* Status & Workplace Format Bar */}

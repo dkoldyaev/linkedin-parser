@@ -362,7 +362,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .btn-icon { width: calc(5 * var(--grid-unit)); padding: 0; }
 .filter-bar { min-height: calc(2 * var(--grid-unit)); padding: var(--grid-unit) calc(2 * var(--grid-unit)); }
 .kanban-board { gap: 0; padding: 0; }
-.kanban-column { flex: 0 0 calc(10 * var(--grid)); min-width: calc(10 * var(--grid)); }
+.kanban-column { flex: 0 0 calc(10 * var(--grid)); width: calc(10 * var(--grid)); min-width: calc(10 * var(--grid)); max-width: calc(10 * var(--grid)); }
 .column-cards { padding: calc(2 * var(--grid-unit)); gap: calc(2 * var(--grid-unit)); }
 .kanban-card, [data-theme='light'] .kanban-card { padding: calc(2 * var(--grid-unit)); gap: var(--grid-unit); }
 .card-footer { margin-top: 0; padding-top: var(--grid-unit); }

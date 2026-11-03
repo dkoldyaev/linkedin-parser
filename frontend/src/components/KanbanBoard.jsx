@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import KanbanCard from './KanbanCard';
+import { useGridScroll } from '../utils/useGridScroll';
 import { useTranslation } from '../i18n/I18nContext';
 import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -38,6 +39,7 @@ export default function KanbanBoard({
   onReorder
 }) {
   const { t } = useTranslation();
+  const snapScroll = useGridScroll();
   const wrapperRef = useRef(null);
   const rejectedRef = useRef(null);
   const [boardHeight, setBoardHeight] = useState(null);
@@ -222,6 +224,7 @@ export default function KanbanBoard({
       {/* Funnel Columns */}
       <div
         className="kanban-board"
+        onScroll={event => snapScroll(event, 'x')}
         style={boardHeight ? { height: boardHeight } : undefined}
         onDragStart={(e) => {
           const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
@@ -336,7 +339,7 @@ export default function KanbanBoard({
                 )}
               </div>
 
-              <div className="column-cards">
+              <div className="column-cards" onScroll={snapScroll}>
                 {cardsWithIndicator}
 
                 {columnVacancies.length === 0 && (
