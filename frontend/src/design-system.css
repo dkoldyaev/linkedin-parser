@@ -221,7 +221,7 @@ body { background: var(--bg-main); }
 .tag-chip { color: var(--primary); }
 .card-footer { margin-top: 2px; padding-top: 10px; }
 .card-history-indicator { padding: 0; border: 0; background: transparent; }
-.card-quick-actions { gap: 2px; }
+.card-quick-actions { gap: 2px; margin-right: -3px; }
 .quick-move-btn, .quick-restore-btn { border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); min-width: 28px; min-height: 28px; }
 .quick-move-btn:hover:not(:disabled), .quick-restore-btn:hover { background: var(--primary-light); color: var(--primary); }
 .quick-move-btn:focus-visible, .quick-restore-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
@@ -464,7 +464,9 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 /* Vacancy detail: quiet blueprint surfaces and an 8px spacing rhythm. */
 .vacancy-modal {
   --vacancy-grid-line: rgba(153, 196, 242, .09);
-  background-color: var(--bg-surface);
+  --vacancy-inset-left: var(--grid);
+  --vacancy-inset-right: calc(var(--grid) - 4px);
+  background-color: var(--board-card-fill-less-opacity);
   background-image: linear-gradient(var(--vacancy-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--vacancy-grid-line) 1px, transparent 1px);
   background-size: var(--grid) var(--grid);
 }
@@ -485,14 +487,15 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .modal-meta-bar {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--border-subtle);
   padding: 0 calc(var(--grid) - 4px) 0 var(--grid);
-  border-bottom: 1px solid var(--pixel-line);
+  border-bottom: 0; box-shadow: inset 0 -1px var(--pixel-line);
 }
 .vacancy-modal .modal-status-group { gap: 8px; height: var(--grid); }
-.vacancy-modal .modal-status-buttons { gap: 4px; flex-wrap: wrap; }
+.vacancy-modal .modal-status-buttons { display: flex; gap: 4px; flex-wrap: wrap; }
+.vacancy-modal .modal-status-select { display: none; }
 .vacancy-modal .vacancy-status-option { border: 0 !important; border-bottom: 1px solid transparent !important; background: transparent !important; padding: 4px 8px !important; font-size: .7rem !important; font-weight: 500 !important; }
 .vacancy-modal .vacancy-status-option[aria-pressed='true'] { border-bottom-color: var(--primary) !important; color: var(--primary) !important; }
 .vacancy-modal .vacancy-status-option:hover { color: var(--primary) !important; background: var(--primary-light) !important; }
-.vacancy-modal .vacancy-salary { padding: 0 0 16px; background: transparent; border: 0; border-bottom: 1px solid var(--border-subtle); gap: 8px; }
+.vacancy-modal .vacancy-salary { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); gap: 0; }
 .vacancy-modal .salary-fields-grid { gap: 8px; }
 .vacancy-modal .salary-field-input { height: 32px; font-size: .75rem; }
 .vacancy-modal .salary-field-label { font-size: .7rem; }
@@ -503,7 +506,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .btn-danger { color: #c65f66; }
 .vacancy-modal .header-badge { padding: 0 8px; }
 .vacancy-modal .header-badge.btn-icon { padding: 0; margin-left: 0; }
-.vacancy-modal .vacancy-ai-summary { border-top: 0; padding: 0 0 16px; }
+.vacancy-modal .vacancy-ai-summary { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
 .vacancy-modal .vacancy-ai-summary-header { margin-bottom: 8px; }
 .vacancy-modal .vacancy-ai-summary-title { font-size: .8125rem; }
 .vacancy-modal .vacancy-ai-summary-text { font-size: .8125rem; }
@@ -511,7 +514,11 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .modal-workplace-select { min-height: 32px; border: 0; }
 @media (max-width: 600px) {
   .vacancy-modal .modal-header, .vacancy-modal .modal-body, .vacancy-modal .modal-footer { padding-inline: 16px; }
-  .vacancy-modal .vacancy-tabs { padding-inline: 16px; }
+  .vacancy-modal .vacancy-tabs { height: calc(2 * var(--grid)); min-height: calc(2 * var(--grid)); padding: 16px; flex-shrink: 0; border-bottom: 0; box-shadow: inset 0 -1px var(--border-subtle); }
+  .vacancy-modal .vacancy-tabs .settings-tab-btn { height: var(--grid); }
+  .vacancy-modal .modal-meta-bar { padding: 16px; }
+  .vacancy-modal .modal-status-buttons { display: none; }
+  .vacancy-modal .modal-status-select { display: block; }
   .vacancy-modal .modal-header-actions { gap: 0; }
 }
 
@@ -520,3 +527,38 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .compatibility-assessment { padding: 8px 0; margin-bottom: 16px; font-size: .8rem; border-block: 1px solid var(--border-subtle); }
 .vacancy-modal .compatibility-row { padding: 8px 0; font-size: .8rem; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); }
 
+
+/* Continue the vacancy's 32px rows below the status bar. */
+.vacancy-modal .modal-body { gap: 0; padding: 0; }
+.vacancy-modal .vacancy-salary-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 8px; min-height: var(--grid); }
+.vacancy-modal .salary-fields-grid { max-width: none; gap: 0; }
+.vacancy-modal .salary-field-item { padding-right: 8px; }
+.vacancy-modal .salary-field-label { height: var(--grid); line-height: var(--grid); margin: 0; }
+.vacancy-modal .salary-field-input { height: var(--grid); }
+.vacancy-modal .salary-original { min-height: var(--grid); line-height: var(--grid); font-size: .75rem; color: var(--text-muted); }
+.vacancy-modal .vacancy-ai-summary-header { min-height: var(--grid); margin: 0; }
+.vacancy-modal .vacancy-ai-summary-text, .vacancy-modal .vacancy-ai-company { line-height: var(--grid); margin: 0; padding: 0; }
+.vacancy-modal .vacancy-tokens-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); gap: 0; }
+.vacancy-modal .vacancy-tokens-section > .form-label { min-height: var(--grid); display: flex; align-items: center; }
+.vacancy-modal .editable-token-list { min-height: var(--grid); gap: 0 16px; }
+.vacancy-modal .stage-history-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
+.vacancy-modal .vacancy-notes-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
+.vacancy-modal .vacancy-compatibility-content { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
+.vacancy-modal .modal-footer { min-height: calc(2 * var(--grid)); padding: 0 calc(var(--grid) - 4px) 0 var(--grid); }
+@media (max-width: 600px) {
+  .vacancy-modal { --vacancy-inset-left: 16px; --vacancy-inset-right: 16px; }
+  .vacancy-modal .modal-body { padding: 0; }
+  .vacancy-modal .modal-footer { padding-inline: 16px; }
+}
+
+/* Original description follows the same quiet rows as the other details. */
+.vacancy-modal .orig-desc-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); gap: 0; }
+.vacancy-modal .orig-desc-header, .vacancy-modal .orig-desc-header.is-expanded {
+  min-height: var(--grid); padding: 0; background: transparent; border: 0;
+  color: var(--text-secondary); font-size: .75rem; font-weight: 600;
+}
+.vacancy-modal .orig-desc-header:hover { background: transparent; color: var(--primary); }
+.vacancy-modal .orig-desc-header:hover .orig-desc-header-title,
+.vacancy-modal .orig-desc-header:hover .orig-desc-header-action { color: var(--primary); }
+.vacancy-modal .orig-desc-body { padding: 0 0 var(--grid-unit); background: transparent; border: 0; }
+.vacancy-modal .orig-desc-actions { min-height: var(--grid); }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
@@ -103,6 +103,28 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   // Modal navigation tab
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
+
+  const detailBodyRef = useRef(null);
+  useLayoutEffect(() => {
+    const body = detailBodyRef.current;
+    if (!isOpen || activeTab !== 'details' || !body) return;
+    const sections = Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'));
+    let frame;
+    const align = () => {
+      sections.forEach(section => {
+        section.style.minHeight = '0px';
+        section.style.minHeight = `${Math.ceil(section.offsetHeight / 32) * 32}px`;
+      });
+    };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(align); };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(body);
+    sections.forEach(section => resize.observe(section));
+    const mutation = new MutationObserver(schedule);
+    sections.forEach(section => mutation.observe(section, { childList: true, subtree: true, characterData: true }));
+    align();
+    return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
+  }, [isOpen, activeTab]);
 
 
 
@@ -810,7 +832,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         </div>
 
         {/* Body */}
-        <div className="modal-body">
+        <div className="modal-body" ref={detailBodyRef}>
           {activeTab === 'details' && (
             <>
           {/* Status & Workplace Format Bar */}
@@ -935,7 +957,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
           {/* Salary Section */}
           <div className="form-group vacancy-salary">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="vacancy-salary-header">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
                 <Banknote size={15} color="var(--aspen-mint)" />
                 <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
@@ -1016,7 +1038,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             </div>
             {currentSalaryInfo.original && (
-              <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div className="salary-original">
                 {currentSalaryInfo.original}
               </div>
             )}
@@ -1062,7 +1084,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Tech Stack */}
-          <div className="form-group">
+          <div className="form-group vacancy-tokens-section">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{t('vacancyModal.tech_stack_title')}</span>
             </label>
@@ -1083,7 +1105,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Custom Tags */}
-          <div className="form-group">
+          <div className="form-group vacancy-tokens-section">
             <label className="form-label">{t('vacancyModal.tags_title')}</label>
             <div className="editable-token-list">
               {tags.map(tagItem => (
@@ -1287,7 +1309,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Personal Notes */}
-          <div className="form-group">
+          <div className="form-group vacancy-notes-section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <StickyNote size={14} />
@@ -1396,7 +1418,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           )}
 
           {activeTab === "compatibility" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="vacancy-compatibility-content">
           {/* CV Compatibility Analysis Section */}
           <div className="vacancy-compatibility">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>

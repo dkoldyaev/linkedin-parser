@@ -3139,9 +3139,6 @@ select.salary-field-input::-ms-expand,
   max-width: 100%;
 }
 
-.modal-status-select {
-  display: none;
-}
 
 /* Salary section grid & fields */
 .salary-fields-grid {
@@ -3209,11 +3206,7 @@ select.salary-field-input {
     font-size: 1.125rem;
     padding: 2px 4px;
   }
-  .modal-status-buttons {
-    display: none !important;
-  }
   .modal-status-select {
-    display: block !important;
     font-size: 0.75rem;
     padding: 5px 30px 5px 10px !important;
     cursor: pointer;
