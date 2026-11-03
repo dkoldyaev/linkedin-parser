@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, FileText, Key } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from './menuContext';
+import { useGridScroll } from '../utils/useGridScroll';
 
 const LINKS = [
   { to: '/', key: 'home', icon: LayoutDashboard, end: true, auth: true },
@@ -17,6 +18,25 @@ const LINKS = [
 export default function NavDrawer({ user }) {
   const { t, locale, setLocale } = useTranslation();
   const { open, close } = useMenu();
+  const drawerRef = useRef(null);
+  const snapScroll = useGridScroll();
+  useLayoutEffect(() => {
+    const align = () => {
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      drawer.style.setProperty('--drawer-grid-tail', `${window.innerWidth % grid}px`);
+    };
+    align();
+    window.addEventListener('resize', align);
+    return () => window.removeEventListener('resize', align);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event) => { if (event.key === 'Escape') close(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, close]);
   const userFlags = user?.feature_flags || [];
   const isAdmin = userFlags.includes('admin');
 
@@ -32,11 +52,11 @@ export default function NavDrawer({ user }) {
   return (
     <>
       <div className={`drawer-overlay ${open ? 'open' : ''}`} onClick={close} />
-      <aside className={`nav-drawer ${open ? 'open' : ''}`} aria-hidden={!open} aria-label="Main navigation">
+      <aside ref={drawerRef} className={`nav-drawer ${open ? 'open' : ''}`} aria-hidden={!open} aria-label="Main navigation">
         <div className="drawer-header-meta">
           <span className="drawer-tag">Navigation</span>
         </div>
-        <nav className="drawer-links">
+        <nav className="drawer-links" onScroll={snapScroll}>
           {links.map(({ to, key, end, icon: Icon }, idx) => (
             <NavLink
               key={to}

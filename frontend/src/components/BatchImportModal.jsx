@@ -132,7 +132,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+      <div className="modal-content batch-import-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <UploadCloud size={20} color="#2563eb" />
@@ -144,7 +144,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         </div>
 
         {duplicateWarning ? (
-          <div>
+          <div className="batch-duplicates">
             <div className="modal-body">
               <div className="info-banner" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}>
                 <AlertCircle size={20} style={{ flexShrink: 0 }} />
@@ -264,10 +264,11 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               )}
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="batch-vacancy-urls">
                   {t('batchModal.urls_label')}
                 </label>
                 <textarea
+                  id="batch-vacancy-urls"
                   className="form-textarea"
                   rows={7}
                   placeholder={t('batchModal.urls_placeholder')}
@@ -279,10 +280,11 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               </div>
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="batch-vacancy-tags">
                   {t('batchModal.tags_label')}
                 </label>
                 <input
+                  id="batch-vacancy-tags"
                   type="text"
                   className="form-input"
                   placeholder={t('batchModal.tags_placeholder')}

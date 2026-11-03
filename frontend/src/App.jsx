@@ -42,6 +42,47 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  useEffect(() => {
+    const observed = new Set();
+    const align = (modal, remeasure = false) => {
+      if (!modal.isConnected) return;
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      if (remeasure) {
+        modal.style.width = '';
+        modal.style.height = '';
+      }
+      const maxHeight = Math.max(grid, Math.floor(Math.min(window.innerHeight * .9, window.innerHeight - 40) / grid) * grid);
+      modal.style.setProperty('--modal-grid-max-height', `${maxHeight}px`);
+      const width = modal.offsetWidth;
+      const gridWidth = Math.floor(width / grid) * grid;
+      if (gridWidth >= grid) modal.style.width = `${gridWidth}px`;
+      const height = modal.offsetHeight;
+      modal.style.height = `${Math.min(maxHeight, Math.ceil(height / grid) * grid)}px`;
+      const offset = (viewport, size) => {
+        const centered = (viewport - size) / 2;
+        const lastGridLine = Math.max(0, Math.floor((viewport - size) / grid) * grid);
+        return Math.min(lastGridLine, Math.max(0, Math.round(centered / grid) * grid)) - centered;
+      };
+      modal.style.setProperty('--modal-grid-x', `${offset(window.innerWidth, modal.offsetWidth)}px`);
+      modal.style.setProperty('--modal-grid-y', `${offset(window.innerHeight, modal.offsetHeight)}px`);
+    };
+    const resizeObserver = new ResizeObserver(entries => entries.forEach(({ target }) => align(target)));
+    const sync = () => {
+      observed.forEach(modal => {
+        if (!modal.isConnected) { resizeObserver.unobserve(modal); observed.delete(modal); }
+      });
+      document.querySelectorAll('.modal-overlay > .modal-content').forEach(modal => {
+        if (!observed.has(modal)) { observed.add(modal); resizeObserver.observe(modal); }
+        align(modal, true);
+      });
+    };
+    const mutations = new MutationObserver(sync);
+    mutations.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', sync);
+    sync();
+    return () => { mutations.disconnect(); resizeObserver.disconnect(); window.removeEventListener('resize', sync); };
+  }, []);
+
   const checkAuth = useCallback(async () => {
     try {
       setAuthLoading(true);

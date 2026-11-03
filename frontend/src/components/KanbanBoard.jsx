@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import KanbanCard from './KanbanCard';
 import { useGridScroll } from '../utils/useGridScroll';
 import { useTranslation } from '../i18n/I18nContext';
-import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2, Inbox } from 'lucide-react';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
@@ -383,7 +383,9 @@ export default function KanbanBoard({
 
                 {columnVacancies.length === 0 && (
                   <div className="empty-column">
-                    {t('kanban.empty_column')}
+                    <Inbox className="empty-column-icon" size={20} aria-hidden="true" />
+                    <span className="empty-column-title">{t('kanban.empty_column')}</span>
+                    <span className="empty-column-hint">{t('kanban.empty_column_hint')}</span>
                   </div>
                 )}
               </div>

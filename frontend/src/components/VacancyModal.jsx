@@ -107,6 +107,23 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
 
   const detailBodyRef = useRef(null);
+  const modalRef = useRef(null);
+  useLayoutEffect(() => {
+    const modal = modalRef.current;
+    if (!isOpen || !modal) return;
+    const alignControls = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      modal.querySelectorAll('.vacancy-tabs .settings-tab-btn, .vacancy-status-option, .modal-status-label, .workplace-label, .modal-header-actions .header-action-badge:not(.btn-icon)').forEach(control => {
+        control.style.width = '';
+        const width = control.offsetWidth;
+        if (width) control.style.width = `${Math.ceil((width - .01) / grid) * grid}px`;
+      });
+    };
+    alignControls();
+    window.addEventListener('resize', alignControls);
+    document.fonts?.ready.then(alignControls);
+    return () => window.removeEventListener('resize', alignControls);
+  }, [isOpen, locale, columns, activeTab]);
   useLayoutEffect(() => {
     const body = detailBodyRef.current;
     if (!isOpen || activeTab !== 'details' || !body) return;
@@ -645,7 +662,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content vacancy-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
+      <div ref={modalRef} className="modal-content vacancy-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
         {/* Header */}
         <div className="modal-header modal-header-custom" style={{ display: 'block' }}>
           <div className="modal-header-top">
@@ -905,7 +922,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </div>
 
             <div className='modal-status-group'>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
+              <span className="workplace-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
                 {t('vacancyModal.workplace_label')}
               </span>
               <select
@@ -1426,7 +1443,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--aspen-mint)', fontWeight: 600, fontSize: '0.95rem' }}>
                 <Shield size={18} color="var(--aspen-mint)" />
-                <span>CV Compatibility Match</span>
+                <span>{t('vacancyModal.compat_title')}</span>
                 {compatibility && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
@@ -1447,8 +1464,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         padding: '2px 6px',
                         borderRadius: '8px',
                         fontSize: '0.7rem',
-                      }} title="Formula-weighted deterministic score for reference">
-                        Formula: {Math.round(compatibility.calculated_score)}%
+                      }} title={t('vacancyModal.compat_formula_hint')}>
+                        {t('vacancyModal.compat_formula')}: {Math.round(compatibility.calculated_score)}%
                       </span>
                     )}
                   </div>
@@ -1463,12 +1480,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {analyzingCompatibility ? (
                   <>
                     <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Evaluating with AI...</span>
+                    <span>{t('vacancyModal.compat_loading')}</span>
                   </>
                 ) : (
                   <>
                     <RefreshCw size={12} />
-                    <span>{compatibility ? 'Re-Analyze Match' : 'Compare with My CV'}</span>
+                    <span>{t(compatibility ? 'vacancyModal.compat_reanalyze' : 'vacancyModal.compat_compare')}</span>
                   </>
                 )}
               </button>
@@ -1485,7 +1502,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {compatibility.is_outdated && (
                   <div style={{ background: '#d9770622', border: '1px solid #d97706', color: 'var(--text-primary)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.75rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <AlertCircle size={14} />
-                    <span>CV was updated since last evaluation. Showing result for Rev {compatibility.cv_revision}. Re-analyze to update.</span>
+                    <span>{t('vacancyModal.compat_outdated', { revision: compatibility.cv_revision })}</span>
                   </div>
                 )}
 
@@ -1496,7 +1513,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {/* Seniority assessment */}
                 {compatibility.seniority_assessment && (
                   <div className="compatibility-assessment">
-                    <span style={{ color: 'var(--text-secondary)' }}>Seniority Alignment: </span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
                     <strong style={{ color: 'var(--primary)' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
                   </div>
                 )}
@@ -1505,7 +1522,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {compatibility.matched_requirements?.length > 0 && (
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--aspen-mint)', marginBottom: '6px' }}>
-                      Matched Requirements ({compatibility.matched_requirements.length}):
+                      {t('vacancyModal.compat_matched', { count: compatibility.matched_requirements.length })}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.matched_requirements.map((m, idx) => (
@@ -1513,7 +1530,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
                             <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
                             <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              Evidence {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             </span>
                           </div>
                           {showEvidenceMap[`m_${idx}`] && (
@@ -1531,7 +1548,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {compatibility.missing_requirements?.length > 0 && (
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f59e0b', marginBottom: '6px' }}>
-                      Missing / Unconfirmed Requirements ({compatibility.missing_requirements.length}):
+                      {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.missing_requirements.map((m, idx) => (
@@ -1547,7 +1564,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {compatibility.critical_gaps?.length > 0 && (
                   <div style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ef4444', marginBottom: '6px' }}>
-                      Critical Incompatibilities:
+                      {t('vacancyModal.compat_gaps')}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {compatibility.critical_gaps.map((g, idx) => (
@@ -1563,7 +1580,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {compatibility.recommendations?.length > 0 && (
                   <div style={{ borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '8px', marginTop: '8px' }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '4px' }}>
-                      Recommendations for CV Presentation:
+                      {t('vacancyModal.compat_recommendations')}
                     </div>
                     <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       {compatibility.recommendations.map((rec, i) => (
@@ -1575,7 +1592,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             ) : (
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-                Compare this job description against your saved CV using your configured LLM to evaluate skill coverage, seniority alignment, and missing requirements.
+                {t('vacancyModal.compat_empty')}
               </p>
             )}
           </div>
