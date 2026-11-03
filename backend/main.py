@@ -2128,6 +2128,7 @@ async def anonymize_companies(
         replacements = await anonymize_companies_with_llm(
             companies=payload.companies,
             provider=provider,
+            language=get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id),
             db=db,
             user_id=current_user.id,
         )
