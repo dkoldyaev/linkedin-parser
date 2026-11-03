@@ -35,9 +35,7 @@ export default function CVManagementPage({ user }) {
       if (res.ok) {
         const data = await res.json();
         setServerCV(data);
-        if (data) {
-          setApprovedRevision(data.revision);
-        }
+        return data;
       }
     } catch (err) {
       console.warn('Failed to fetch server CV:', err);
@@ -62,18 +60,25 @@ export default function CVManagementPage({ user }) {
     async function loadData() {
       try {
         setLoading(true);
-        await Promise.all([fetchServerApprovedCV(), fetchCurrentUser()]);
-        const local = await getLocalCV();
-        if (local) {
+        const [server] = await Promise.all([fetchServerApprovedCV(), fetchCurrentUser()]);
+        const local = await getLocalCV().catch(() => null);
+        const hasLocalDraft = local && (local.sourceRevision > (local.approvedRevision || 0) || !server);
+        if (server && !hasLocalDraft) {
+          setSourceText(server.content || '');
+          setSourceRevision(server.revision);
+          setApprovedRevision(server.revision);
+          setFilename(local?.filename || '');
+          setSyncStatus('approved');
+        } else if (local) {
           const text = local.sourceText || local.anonymizedText || '';
           setSourceText(text);
           setSourceRevision(local.sourceRevision || 1);
-          setApprovedRevision(local.approvedRevision || 0);
+          setApprovedRevision(server?.revision || 0);
           setFilename(local.filename || '');
 
-          if (local.sourceRevision > (local.approvedRevision || 0)) {
+          if (server && local.sourceRevision > (local.approvedRevision || 0)) {
             setSyncStatus('outdated');
-          } else if (local.approvedRevision > 0) {
+          } else if (server && local.approvedRevision > 0) {
             setSyncStatus('approved');
           } else {
             setSyncStatus('draft');
@@ -86,11 +91,12 @@ export default function CVManagementPage({ user }) {
       }
     }
     loadData();
-  }, [fetchServerApprovedCV]);
+  }, [fetchServerApprovedCV, fetchCurrentUser]);
 
   // Handle File Upload
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     setError(null);
@@ -193,7 +199,8 @@ export default function CVManagementPage({ user }) {
     if (!window.confirm(t('pages.cv.confirm_delete_server'))) return;
     try {
       setIsSubmitting(true);
-      await fetch('/api/cv/approved', { method: 'DELETE' });
+      const res = await fetch('/api/cv/approved', { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete CV');
       setServerCV(null);
       setApprovedRevision(0);
       setSyncStatus(sourceText ? 'draft' : 'none');
@@ -209,11 +216,11 @@ export default function CVManagementPage({ user }) {
   const handleClearLocal = async () => {
     if (!window.confirm(t('pages.cv.confirm_clear_draft'))) return;
     await clearLocalCV();
-    setSourceText('');
-    setSourceRevision(1);
-    setApprovedRevision(0);
+    setSourceText(serverCV?.content || '');
+    setSourceRevision(serverCV?.revision || 1);
+    setApprovedRevision(serverCV?.revision || 0);
     setFilename('');
-    setSyncStatus('none');
+    setSyncStatus(serverCV ? 'approved' : 'none');
     setMessage(t('pages.cv.draft_cleared'));
   };
 
@@ -270,7 +277,7 @@ export default function CVManagementPage({ user }) {
           <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
             <Upload size={16} />
             <span>{sourceText ? t('pages.cv.replace_btn') : t('pages.cv.upload_btn')}</span>
-            <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".pdf,.md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
 
           {sourceText && (
@@ -286,7 +293,7 @@ export default function CVManagementPage({ user }) {
                 <span>{t('pages.cv.save_btn')}</span>
               </button>
 
-              <button
+              {syncStatus !== 'approved' && <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleClearLocal}
@@ -294,7 +301,7 @@ export default function CVManagementPage({ user }) {
               >
                 <Trash2 size={15} />
                 <span>{t('pages.cv.clear_draft_btn')}</span>
-              </button>
+              </button>}
             </>
           )}
 
@@ -345,7 +352,7 @@ export default function CVManagementPage({ user }) {
           <label className="btn btn-primary" style={{ padding: '0 24px', height: '42px', cursor: 'pointer', marginTop: '8px' }}>
             <Upload size={16} />
             <span>{t('pages.cv.choose_file')}</span>
-            <input type="file" accept=".md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+            <input type="file" accept=".pdf,.md,.markdown,.json,.txt" onChange={handleFileUpload} style={{ display: 'none' }} />
           </label>
         </div>
       )}
