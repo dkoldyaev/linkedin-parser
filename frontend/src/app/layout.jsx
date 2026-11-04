@@ -11,7 +11,7 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children, modal }) {
+export default function RootLayout({ children }) {
   return (
     <html lang="ru" data-theme="dark" suppressHydrationWarning>
       <head>
@@ -31,7 +31,6 @@ export default function RootLayout({ children, modal }) {
         <I18nProvider>
           <AppShell>
             {children}
-            {modal}
           </AppShell>
         </I18nProvider>
       </body>

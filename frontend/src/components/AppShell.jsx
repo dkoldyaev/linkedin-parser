@@ -114,7 +114,7 @@ export function AppShell({ children }) {
     router.push('/');
   };
 
-  const showPageHeader = pathname !== '/';
+  const showPageHeader = pathname !== '/' && !pathname?.startsWith('/vacancies/');
 
   // Public paths that do not force login
   const isPublicPage = pathname === '/howtouse' || pathname === '/about';
