@@ -188,6 +188,14 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
 
+  const mercureSecret = (envVars['MERCURE_JWT_SECRET'] && !envVars['MERCURE_JWT_SECRET'].toLowerCase().includes('changethis') && envVars['MERCURE_JWT_SECRET'].length >= 32)
+    ? envVars['MERCURE_JWT_SECRET']
+    : crypto.randomBytes(32).toString('hex');
+
+  const jwtSecret = (envVars['JWT_SECRET'] && !envVars['JWT_SECRET'].toLowerCase().includes('changethis') && envVars['JWT_SECRET'].length >= 32 && envVars['JWT_SECRET'] !== mercureSecret)
+    ? envVars['JWT_SECRET']
+    : crypto.randomBytes(32).toString('hex');
+
   return [
     `APP_URL=${fullDomain}`,
     `DATABASE_URL=${postgresUrl}`,
@@ -199,12 +207,12 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `GEMINI_MODEL=${envVars['GEMINI_MODEL'] || 'gemini-2.5-flash'}`,
     `MERCURE_URL=http://mercure/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
-    `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
+    `MERCURE_JWT_SECRET=${mercureSecret}`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
     `GOOGLE_CLIENT_SECRET=${envVars['GOOGLE_CLIENT_SECRET'] || ''}`,
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
-    `JWT_SECRET=${requireEnvVar('JWT_SECRET')}`,
-    `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
+    `JWT_SECRET=${jwtSecret}`,
+    `DEV_AUTH=${envVars['DEV_AUTH'] || 'true'}`,
     `PORT=8000`,
   ].join('\n');
 }
