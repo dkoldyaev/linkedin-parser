@@ -1,4 +1,5 @@
 import '../index.css';
+import '../design-system.css';
 import { I18nProvider } from '../i18n/I18nContext';
 import { AppShell } from '../components/AppShell';
 
@@ -12,8 +13,13 @@ export const metadata = {
 
 export default function RootLayout({ children, modal }) {
   return (
-    <html lang="ru">
+    <html lang="ru" data-theme="dark" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('workspace-theme');document.documentElement.dataset.theme=t==='light'?'light':'dark';}catch(e){document.documentElement.dataset.theme='dark';}`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
