@@ -14,6 +14,7 @@ import CVManagementPage from './pages/CVManagementPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AdminPage from './pages/AdminPage';
+import LandingPage from './pages/LandingPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
 function Layout({ user, onLogout, onUserUpdated }) {
@@ -34,7 +35,7 @@ function Layout({ user, onLogout, onUserUpdated }) {
         <div className="app-shell-content" onScroll={snapScroll}>
           <Outlet />
         </div>
-        <NavDrawer user={user} />
+        {user && <NavDrawer user={user} />}
       </div>
     </MenuContext.Provider>
   );
@@ -141,7 +142,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
-        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : loginScreen} />
+        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : <LandingPage onLoginSuccess={setUser} />} />
         <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
