@@ -29,7 +29,7 @@ export default function AboutPage() {
             <p className="info-subtitle bp-subbar-subtitle">{t('pages.about.subtitle')}</p>
           </div>
           <div className="bp-subbar-right">
-            <Link to="/howtouse" className="btn btn-primary bp-subbar-btn">
+            <Link href="/howtouse" className="btn btn-primary bp-subbar-btn">
               <span>{t('pages.about.cta')}</span>
             </Link>
           </div>

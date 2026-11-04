@@ -36,7 +36,7 @@ export async function POST(request) {
 
     for (const t of allTags) {
       if (!isCooldownActive(`tag:${t}`)) {
-        revalidateTag(t);
+        revalidateTag(t, 'max');
         revalidatedTags.push(t);
       }
     }
