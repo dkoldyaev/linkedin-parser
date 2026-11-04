@@ -4,6 +4,7 @@ import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, FileText, Key } 
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from './menuContext';
 import { useGridScroll } from '../utils/useGridScroll';
+import { trackEvent, EVENTS } from '../utils/analytics';
 
 const LINKS = [
   { to: '/', key: 'home', icon: LayoutDashboard, end: true, auth: true },
@@ -49,6 +50,22 @@ export default function NavDrawer({ user }) {
   // The switch shows the language you would switch TO.
   const targetLocale = locale === 'ru' ? 'en' : 'ru';
 
+  const handleLanguageToggle = async () => {
+    setLocale(targetLocale);
+    trackEvent(EVENTS.LANGUAGE_CHANGE, { locale: targetLocale });
+    if (user) {
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locale: targetLocale }),
+        });
+      } catch (err) {
+        console.error('Failed to save language setting', err);
+      }
+    }
+  };
+
   return (
     <>
       <div className={`drawer-overlay ${open ? 'open' : ''}`} onClick={close} />
@@ -82,7 +99,7 @@ export default function NavDrawer({ user }) {
           <button
             className="page-nav-lang"
             id="nav-lang-toggle"
-            onClick={() => setLocale(targetLocale)}
+            onClick={handleLanguageToggle}
             tabIndex={open ? 0 : -1}
             title="Language"
           >

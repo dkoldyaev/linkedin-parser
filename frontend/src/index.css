@@ -2958,7 +2958,7 @@ svg {
 
 .column-setting-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
   flex: 1;
   min-width: 0;

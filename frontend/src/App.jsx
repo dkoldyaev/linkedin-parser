@@ -5,6 +5,7 @@ import LoginModal from './components/LoginModal';
 import NavDrawer from './components/NavDrawer';
 import PageHeader from './components/PageHeader';
 import { MenuContext } from './components/menuContext';
+import { useGridScroll } from './utils/useGridScroll';
 import HomePage from './pages/HomePage';
 import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
@@ -18,6 +19,7 @@ import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 function Layout({ user, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const snapScroll = useGridScroll();
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
     [open]
@@ -29,7 +31,7 @@ function Layout({ user, onLogout, onUserUpdated }) {
     <MenuContext.Provider value={menu}>
       <div className="app-shell">
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
-        <div className="app-shell-content">
+        <div className="app-shell-content" onScroll={snapScroll}>
           <Outlet />
         </div>
         <NavDrawer user={user} />

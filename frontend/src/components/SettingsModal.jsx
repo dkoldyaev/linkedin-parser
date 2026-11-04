@@ -8,9 +8,11 @@ import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
 import ColumnDeleteModal from './ColumnDeleteModal';
+import { useGridScroll } from '../utils/useGridScroll';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated, onUserUpdated }) {
   const { t, locale, setLocale, salaryDisplayFormat, setSalaryDisplayFormat } = useTranslation();
+  const snapScroll = useGridScroll();
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns'
   const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(salaryDisplayFormat || 'month');
@@ -42,6 +44,10 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
       })
       .catch(err => console.error('Failed to load settings', err));
   };
+
+  useEffect(() => {
+    setSelectedLocale(locale || 'ru');
+  }, [locale]);
 
   useEffect(() => {
     if (isOpen) {
@@ -162,7 +168,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '576px' : '448px' }}>
+      <div className="modal-content settings-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '576px' : '448px' }}>
         <div className="modal-header">
           <div className="modal-title">
             <Settings size={20} color="#2563eb" />
@@ -195,61 +201,28 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
         {/* General Tab */}
         {activeTab === 'general' && (
-          <form onSubmit={handleSaveGeneral}>
-            <div className="modal-body">
+          <form className="settings-general-form" onSubmit={handleSaveGeneral}>
+            <div className="modal-body" onScroll={snapScroll}>
               {/* Language Selector */}
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group settings-language-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Globe size={15} />
                   <span>{t('settingsModal.language_section_title')}</span>
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '8px' }}>
-                  <div
-                    onClick={() => setSelectedLocale('ru')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid',
-                      borderColor: selectedLocale === 'ru' ? 'var(--primary)' : 'var(--border-subtle)',
-                      background: selectedLocale === 'ru' ? 'var(--primary-light)' : 'var(--bg-card)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <strong style={{ color: selectedLocale === 'ru' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
-                      🇷🇺 {t('settingsModal.language_ru')}
-                    </strong>
-                    {selectedLocale === 'ru' && <Check size={16} color="#2563eb" />}
-                  </div>
-
-                  <div
-                    onClick={() => setSelectedLocale('en')}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid',
-                      borderColor: selectedLocale === 'en' ? 'var(--primary)' : 'var(--border-subtle)',
-                      background: selectedLocale === 'en' ? 'var(--primary-light)' : 'var(--bg-card)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <strong style={{ color: selectedLocale === 'en' ? '#a5b4fc' : 'var(--text-primary)', fontSize: '0.875rem' }}>
-                      🇬🇧 {t('settingsModal.language_en')}
-                    </strong>
-                    {selectedLocale === 'en' && <Check size={16} color="#2563eb" />}
-                  </div>
+                <div className="settings-language-options">
+                  <button type="button" className={`settings-language-option ${selectedLocale === 'ru' ? 'is-selected' : ''}`} aria-pressed={selectedLocale === 'ru'} onClick={() => setSelectedLocale('ru')}>
+                    <strong>🇷🇺 {t('settingsModal.language_ru')}</strong>
+                    {selectedLocale === 'ru' && <Check size={16} />}
+                  </button>
+                  <button type="button" className={`settings-language-option ${selectedLocale === 'en' ? 'is-selected' : ''}`} aria-pressed={selectedLocale === 'en'} onClick={() => setSelectedLocale('en')}>
+                    <strong>🇬🇧 {t('settingsModal.language_en')}</strong>
+                    {selectedLocale === 'en' && <Check size={16} />}
+                  </button>
                 </div>
               </div>
 
               {/* Salary Format Selector */}
-              <div className="form-group" style={{ marginTop: '16px', marginBottom: 0 }}>
+              <div className="form-group settings-salary-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Globe size={15} />
                   <span>{t('settingsModal.salary_format_title')}</span>
@@ -258,7 +231,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   className="form-input"
                   value={selectedSalaryFormat}
                   onChange={e => setSelectedSalaryFormat(e.target.value)}
-                  style={{ marginTop: '8px' }}
                 >
                   <option value="month">{t('settingsModal.salary_format_month')}</option>
                   <option value="hour">{t('settingsModal.salary_format_hour')}</option>
@@ -287,12 +259,13 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
         {/* Columns Tab */}
         {activeTab === 'columns' && (
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+          <div className="modal-form settings-columns-form">
+          <div className="modal-body settings-columns-body" onScroll={snapScroll}>
+            <p className="settings-columns-description">
               {t('settingsModal.columns_desc')}
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="settings-columns-actions">
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -353,7 +326,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                       <button
                         type="button"
                         className="btn btn-secondary btn-icon"
-                        style={{ width: '26px', height: '26px' }}
+                        
                         disabled={isFirst}
                         onClick={() => handleMoveColumn(index, -1)}
                         title={t('settingsModal.col_move_up')}
@@ -363,7 +336,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                       <button
                         type="button"
                         className="btn btn-secondary btn-icon"
-                        style={{ width: '26px', height: '26px' }}
+                        
                         disabled={isLast}
                         onClick={() => handleMoveColumn(index, 1)}
                         title={t('settingsModal.col_move_down')}
@@ -375,7 +348,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                       <button
                         type="button"
                         className="btn btn-secondary btn-icon"
-                        style={{ width: '26px', height: '26px' }}
+                        
                         onClick={() => setEditingCol(col)}
                         title={t('kanban.edit_column')}
                       >
@@ -387,7 +360,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                         <button
                           type="button"
                           className="btn btn-secondary btn-icon"
-                          style={{ width: '26px', height: '26px', color: '#f87171' }}
+                          style={{ color: '#f87171' }}
                           onClick={() => setDeletingCol(col)}
                           title={t('kanban.delete_column')}
                         >
@@ -400,7 +373,8 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
               })}
             </div>
 
-            <div className="modal-footer" style={{ marginTop: '10px', padding: '12px 0 0 0' }}>
+          </div>
+            <div className="modal-footer">
               <button type="button" className="btn btn-primary" onClick={onClose}>
                 {t('vacancyModal.close_btn')}
               </button>

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Flame, Trophy, CalendarCheck, PlusCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { useBlueprintGrid } from '../utils/useBlueprintGrid';
+import { useGridScroll } from '../utils/useGridScroll';
 
 const HEATMAP_WEEKS = 26;
 const BAR_DAYS = 14;
@@ -24,7 +26,6 @@ const addDays = (d, n) => {
 };
 
 function computeStreaks(activity, todayDate) {
-  // Current streak: counts back from today; if today is still empty, starts from yesterday.
   let cursor = activity[iso(todayDate)] ? todayDate : addDays(todayDate, -1);
   let current = 0;
   while (activity[iso(cursor)]) {
@@ -55,9 +56,12 @@ function level(count, max) {
 }
 
 export default function StatsPage() {
-  const { t, formatDate } = useTranslation();
+  const { t, formatDate, locale } = useTranslation();
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
+
+  const pageRef = useBlueprintGrid([data, error, locale]);
+  const snapScroll = useGridScroll();
 
   useEffect(() => {
     let cancelled = false;
@@ -134,12 +138,18 @@ export default function StatsPage() {
   }, [data]);
 
   if (error) {
-    return <div className="info-page"><div className="info-card">{t('pages.stats.error')}</div></div>;
+    return (
+      <div ref={pageRef} className="info-page bp-page">
+        <div className="info-card bp-cell bp-snap" data-min-grids="2">
+          {t('pages.stats.error')}
+        </div>
+      </div>
+    );
   }
   if (!view) {
     return (
-      <div className="info-page" style={{ alignItems: 'center' }}>
-        <Loader2 size={32} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
+      <div ref={pageRef} className="info-page bp-page" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 size={28} className="spin" style={{ color: 'var(--primary)' }} />
       </div>
     );
   }
@@ -147,104 +157,181 @@ export default function StatsPage() {
   const doneToday = view.markedToday + view.addedToday > 0;
 
   return (
-    <div className="info-page">
-      <div className="info-container">
-        <header className="info-hero">
-          <h1 className="info-title">{t('pages.stats.title')}</h1>
-          <p className="info-subtitle">{t('pages.stats.subtitle')}</p>
+    <div ref={pageRef} className="info-page bp-page">
+      <div className="info-container bp-container">
+        {/* Top Blueprint Rail */}
+        <header className="info-hero bp-subbar bp-snap" data-min-grids="1">
+          <div className="bp-subbar-left">
+            <span className="column-dot" style={{ background: 'var(--aspen-mint)' }} />
+            <h1 className="info-title bp-subbar-title">{t('pages.stats.title')}</h1>
+            <span className="bp-subbar-sep">/</span>
+            <p className="info-subtitle bp-subbar-subtitle">{t('pages.stats.subtitle')}</p>
+          </div>
+          <div className="bp-subbar-right">
+            <span className={`bp-streak-pill ${doneToday ? 'done' : ''}`}>
+              <Flame size={13} />
+              <span>{doneToday ? t('pages.stats.streak_done') : t('pages.stats.streak_todo')}</span>
+            </span>
+          </div>
         </header>
 
-        <section className="stat-grid">
-          <div className={`stat-card stat-streak ${doneToday ? 'done' : ''}`} id="stat-current-streak">
-            <div className="stat-icon"><Flame size={22} /></div>
-            <div>
-              <div className="stat-value">{view.streaks.current}</div>
-              <div className="stat-label">{t('pages.stats.current_streak')}</div>
+        {/* 4-Column KPI Grid Strip */}
+        <section className="stat-grid bp-grid-row" data-cols="4">
+          <div className={`stat-card stat-streak ${doneToday ? 'done' : ''} bp-snap`} data-min-grids="2" id="stat-current-streak">
+            <div className="stat-icon"><Flame size={18} /></div>
+            <div className="stat-card-body">
+              <div className="stat-card-top">
+                <span className="stat-label">{t('pages.stats.current_streak')}</span>
+                <span className="stat-value">{view.streaks.current}</span>
+              </div>
               <div className="stat-hint">
                 {doneToday ? t('pages.stats.streak_done') : t('pages.stats.streak_todo')}
               </div>
             </div>
           </div>
-          <div className="stat-card" id="stat-best-streak">
-            <div className="stat-icon gold"><Trophy size={22} /></div>
-            <div>
-              <div className="stat-value">{view.streaks.best}</div>
-              <div className="stat-label">{t('pages.stats.best_streak')}</div>
+
+          <div className="stat-card bp-snap" data-min-grids="2" id="stat-best-streak">
+            <div className="stat-icon gold"><Trophy size={18} /></div>
+            <div className="stat-card-body">
+              <div className="stat-card-top">
+                <span className="stat-label">{t('pages.stats.best_streak')}</span>
+                <span className="stat-value">{view.streaks.best}</span>
+              </div>
+              <div className="stat-hint">{t('pages.stats.active_days')}: {view.activeDays}</div>
             </div>
           </div>
-          <div className="stat-card" id="stat-marked-today">
-            <div className="stat-icon green"><CalendarCheck size={22} /></div>
-            <div>
-              <div className="stat-value">{view.markedToday}</div>
-              <div className="stat-label">{t('pages.stats.marked_today')}</div>
+
+          <div className="stat-card bp-snap" data-min-grids="2" id="stat-marked-today">
+            <div className="stat-icon green"><CalendarCheck size={18} /></div>
+            <div className="stat-card-body">
+              <div className="stat-card-top">
+                <span className="stat-label">{t('pages.stats.marked_today')}</span>
+                <span className="stat-value">{view.markedToday}</span>
+              </div>
+              <div className="stat-hint">{t('pages.stats.last7')}: {view.last7}</div>
             </div>
           </div>
-          <div className="stat-card" id="stat-added-today">
-            <div className="stat-icon cyan"><PlusCircle size={22} /></div>
-            <div>
-              <div className="stat-value">{view.addedToday}</div>
-              <div className="stat-label">{t('pages.stats.added_today')}</div>
+
+          <div className="stat-card bp-snap" data-min-grids="2" id="stat-added-today">
+            <div className="stat-icon cyan"><PlusCircle size={18} /></div>
+            <div className="stat-card-body">
+              <div className="stat-card-top">
+                <span className="stat-label">{t('pages.stats.added_today')}</span>
+                <span className="stat-value">{view.addedToday}</span>
+              </div>
+              <div className="stat-hint">{t('pages.stats.last30')}: {view.last30}</div>
             </div>
           </div>
         </section>
 
-        <section className="info-card">
-          <h2 className="info-card-title">{t('pages.stats.activity')}</h2>
-          <div className="heatmap" id="stat-heatmap">
-            {view.weeks.map((col, i) => (
-              <div className="heatmap-col" key={i}>
-                {col.map((c) => (
-                  <div
-                    key={c.key}
-                    className={`heatmap-cell lvl-${c.future ? 'future' : level(c.count, view.max)} ${c.key === view.todayKey ? 'today' : ''}`}
-                    title={`${formatDate(c.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${c.count}`}
-                  ></div>
+        {/* 3-Column Board Layout: [01 Activity + Summary] | [02 Last 14 Days] | [03 By Status] */}
+        <div className="stat-board-cols bp-grid-row" data-cols="3">
+          {/* Column 1: Heatmap + Summary */}
+          <section className="info-card bp-col">
+            <div className="column-header">
+              <div className="column-title-group">
+                <span className="column-index">01</span>
+                <span className="column-dot" style={{ background: 'var(--aspen-mint)' }} />
+                <h2 className="column-name info-card-title">{t('pages.stats.activity')}</h2>
+                <span className="column-badge">[{HEATMAP_WEEKS}w]</span>
+              </div>
+              <div className="heatmap-legend">
+                <span>{t('pages.stats.less')}</span>
+                {[0, 1, 2, 3, 4].map((l) => (
+                  <span key={l} className={`heatmap-cell lvl-${l}`} aria-hidden="true" />
+                ))}
+                <span>{t('pages.stats.more')}</span>
+              </div>
+            </div>
+
+            <div className="bp-heatmap-box bp-snap" data-min-grids="4">
+              <div className="heatmap" id="stat-heatmap" onScroll={(event) => snapScroll(event, 'x')}>
+                {view.weeks.map((col, i) => (
+                  <div className="heatmap-col" key={i}>
+                    {col.map((c) => (
+                      <div
+                        key={c.key}
+                        className={`heatmap-cell lvl-${c.future ? 'future' : level(c.count, view.max)} ${c.key === view.todayKey ? 'today' : ''}`}
+                        title={`${formatDate(c.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${c.count}`}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-          <div className="heatmap-legend">
-            <span>{t('pages.stats.less')}</span>
-            {[0, 1, 2, 3, 4].map((l) => <span key={l} className={`heatmap-cell lvl-${l}`} aria-hidden="true" />)}
-            <span>{t('pages.stats.more')}</span>
-          </div>
-        </section>
-
-        <div className="stat-two-col">
-          <section className="info-card">
-            <h2 className="info-card-title">{t('pages.stats.last_days', { n: BAR_DAYS })}</h2>
-            <div className="ascii-day-chart" id="stat-bars">
-              {view.bars.map((b) => {
-                const total = b.marked + b.added;
-                const width = 20;
-                const filled = Math.round((total / view.barMax) * width);
-                const marked = total ? Math.round((b.marked / total) * filled) : 0;
-                return (
-                  <div className="ascii-day-row" key={b.key} title={`${formatDate(b.date)}: ${t('pages.stats.marked')} ${b.marked}, ${t('pages.stats.added')} ${b.added}`}>
-                    <span>{formatDate(b.date, { day: '2-digit', month: '2-digit' })}</span>
-                    <span className="chart-track" aria-hidden="true"><span className="chart-marked" style={{ width: `${marked / width * 100}%` }} /><span className="chart-added" style={{ width: `${(filled - marked) / width * 100}%` }} /></span>
-                    <span>{total}</span>
-                  </div>
-                );
-              })}
             </div>
-            <div className="bars-legend"><span><b className="chart-key chart-marked" /> {t('pages.stats.marked')}</span><span><b className="chart-key chart-added" /> {t('pages.stats.added')}</span></div>
-          </section>
 
-          <section className="info-card">
-            <h2 className="info-card-title">{t('pages.stats.summary')}</h2>
+            <div className="column-header">
+              <div className="column-title-group">
+                <span className="column-index">02</span>
+                <span className="column-dot" style={{ background: 'var(--primary)' }} />
+                <h2 className="column-name info-card-title">{t('pages.stats.summary')}</h2>
+              </div>
+            </div>
+
             <ul className="summary-list">
               <li><span>{t('pages.stats.total_vacancies')}</span><b>{data.total}</b></li>
               <li><span>{t('pages.stats.last7')}</span><b>{view.last7}</b></li>
               <li><span>{t('pages.stats.last30')}</span><b>{view.last30}</b></li>
               <li><span>{t('pages.stats.active_days')}</span><b>{view.activeDays}</b></li>
             </ul>
-            <h3 className="info-card-subtitle">{t('pages.stats.by_status')}</h3>
-            <div className="status-rows">
+          </section>
+
+          {/* Column 2: Last 14 Days */}
+          <section className="info-card bp-col">
+            <div className="column-header">
+              <div className="column-title-group">
+                <span className="column-index">03</span>
+                <span className="column-dot" style={{ background: '#0284c7' }} />
+                <h2 className="column-name info-card-title">{t('pages.stats.last_days', { n: BAR_DAYS })}</h2>
+              </div>
+              <div className="bars-legend">
+                <span><b className="chart-key chart-marked" /> {t('pages.stats.marked')}</span>
+                <span><b className="chart-key chart-added" /> {t('pages.stats.added')}</span>
+              </div>
+            </div>
+
+            <div className="ascii-day-chart" id="stat-bars" onScroll={(event) => snapScroll(event, 'x')}>
+              {view.bars.map((b) => {
+                const total = b.marked + b.added;
+                const width = 20;
+                const filled = Math.round((total / view.barMax) * width);
+                const marked = total ? Math.round((b.marked / total) * filled) : 0;
+                return (
+                  <div
+                    className="ascii-day-row"
+                    key={b.key}
+                    title={`${formatDate(b.date)}: ${t('pages.stats.marked')} ${b.marked}, ${t('pages.stats.added')} ${b.added}`}
+                  >
+                    <span className="ascii-day-date">{formatDate(b.date, { day: '2-digit', month: '2-digit' })}</span>
+                    <span className="chart-track" aria-hidden="true">
+                      <span className="chart-marked" style={{ width: `${(marked / width) * 100}%` }} />
+                      <span className="chart-added" style={{ width: `${((filled - marked) / width) * 100}%` }} />
+                    </span>
+                    <span className="ascii-day-total">{total}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Column 3: By Status */}
+          <section className="info-card bp-col">
+            <div className="column-header">
+              <div className="column-title-group">
+                <span className="column-index">04</span>
+                <span className="column-dot" style={{ background: '#9333ea' }} />
+                <h3 className="column-name info-card-subtitle">{t('pages.stats.by_status')}</h3>
+                <span className="column-badge">[{data.total}]</span>
+              </div>
+            </div>
+
+            <div className="status-rows" onScroll={(event) => snapScroll(event, 'x')}>
               {view.statuses.map(([status, count]) => (
                 <div className="status-row" key={status}>
                   <span className="status-name">{t(`kanban.columns.${status}`)}</span>
-                  <span className="chart-track" aria-label={`${count} / ${data.total}`}><span className="chart-marked" style={{ width: `${count / Math.max(data.total, 1) * 100}%` }} /></span>
+                  <span className="chart-track" aria-label={`${count} / ${data.total}`}>
+                    <span className="chart-marked" style={{ width: `${(count / Math.max(data.total, 1)) * 100}%` }} />
+                  </span>
                   <b>{count}</b>
                 </div>
               ))}

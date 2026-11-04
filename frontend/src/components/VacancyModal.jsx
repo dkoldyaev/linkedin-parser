@@ -123,7 +123,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     window.addEventListener('resize', alignControls);
     document.fonts?.ready.then(alignControls);
     return () => window.removeEventListener('resize', alignControls);
-  }, [isOpen, locale, columns, activeTab]);
+  }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
   useLayoutEffect(() => {
     const body = detailBodyRef.current;
     if (!isOpen || activeTab !== 'details' || !body) return;
@@ -981,15 +981,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 <Banknote size={15} color="var(--aspen-mint)" />
                 <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {currentSalaryInfo.hasSalary && (
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--aspen-mint)', fontWeight: 600 }}>
-                    {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
-                  </span>
-                )}
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary vacancy-salary-save"
                   onClick={handleSaveSalary}
                   disabled={savingSalary}
                   style={{ fontSize: '0.75rem', padding: '4px 10px' }}
@@ -1003,8 +997,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <span>{t('vacancyModal.save_salary')}</span>
                   )}
                 </button>
-              </div>
             </div>
+            {currentSalaryInfo.hasSalary && (
+              <div className="vacancy-salary-total">
+                {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
+              </div>
+            )}
             <div className="salary-fields-grid">
               <div className="salary-field-item">
                 <span className="salary-field-label">{t('vacancyModal.min')}</span>
@@ -1440,17 +1438,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             <div className="vacancy-compatibility-content">
           {/* CV Compatibility Analysis Section */}
           <div className="vacancy-compatibility">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--aspen-mint)', fontWeight: 600, fontSize: '0.95rem' }}>
+            <div className="compatibility-header">
+              <div className="compatibility-header-title">
                 <Shield size={18} color="var(--aspen-mint)" />
                 <span>{t('vacancyModal.compat_title')}</span>
                 {compatibility && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="compatibility-scores">
                     <span style={{
                       background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
                       color: '#ffffff',
                       padding: '2px 8px',
-                      borderRadius: '12px',
+                      borderRadius: '0',
                       fontSize: '0.8rem',
                       fontWeight: '700',
                       marginLeft: '4px'
@@ -1459,10 +1457,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </span>
                     {compatibility.calculated_score != null && (
                       <span style={{
-                        background: 'rgba(51, 65, 85, 0.6)',
+                        background: 'var(--bg-subtle)',
                         color: 'var(--text-secondary)',
                         padding: '2px 6px',
-                        borderRadius: '8px',
+                        borderRadius: '0',
                         fontSize: '0.7rem',
                       }} title={t('vacancyModal.compat_formula_hint')}>
                         {t('vacancyModal.compat_formula')}: {Math.round(compatibility.calculated_score)}%
@@ -1472,7 +1470,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 )}
               </div>
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary compatibility-analyze"
                 onClick={() => handleRunCompatibilityAnalysis(!!compatibility)}
                 disabled={analyzingCompatibility || loadingCompatibility}
                 style={{ color: 'var(--aspen-mint)' }}
@@ -1492,7 +1490,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             </div>
 
             {compatError && (
-              <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginBottom: '10px' }}>
+              <div className="compatibility-notice is-error">
                 {compatError}
               </div>
             )}
@@ -1500,13 +1498,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             {compatibility ? (
               <div>
                 {compatibility.is_outdated && (
-                  <div style={{ background: '#d9770622', border: '1px solid #d97706', color: 'var(--text-primary)', padding: '6px 10px', borderRadius: '4px', fontSize: '0.75rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="compatibility-notice is-outdated">
                     <AlertCircle size={14} />
                     <span>{t('vacancyModal.compat_outdated', { revision: compatibility.cv_revision })}</span>
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: '12px' }}>
+                <p className="compatibility-summary">
                   {compatibility.summary}
                 </p>
 
@@ -1520,11 +1518,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Matched Requirements with Evidence toggles */}
                 {compatibility.matched_requirements?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--aspen-mint)', marginBottom: '6px' }}>
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-matched">
                       {t('vacancyModal.compat_matched', { count: compatibility.matched_requirements.length })}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.matched_requirements.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
@@ -1534,7 +1532,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                             </span>
                           </div>
                           {showEvidenceMap[`m_${idx}`] && (
-                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>
+                            <div className="compatibility-evidence">
                               {m.evidence}
                             </div>
                           )}
@@ -1546,11 +1544,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Missing Requirements */}
                 {compatibility.missing_requirements?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f59e0b', marginBottom: '6px' }}>
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-missing">
                       {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.missing_requirements.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
                           &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
@@ -1562,11 +1560,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Critical Gaps */}
                 {compatibility.critical_gaps?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ef4444', marginBottom: '6px' }}>
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-critical">
                       {t('vacancyModal.compat_gaps')}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.critical_gaps.map((g, idx) => (
                         <div key={idx} className="compatibility-row">
                           &bull; <strong>{g.requirement}</strong>: {g.reason}
@@ -1578,11 +1576,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Grounded Actionable Recommendations */}
                 {compatibility.recommendations?.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '8px', marginTop: '8px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '4px' }}>
+                  <div className="compatibility-recommendations">
+                    <div className="compatibility-group-title is-recommendations">
                       {t('vacancyModal.compat_recommendations')}
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <ul className="compatibility-recommendation-list">
                       {compatibility.recommendations.map((rec, i) => (
                         <li key={i}>{rec}</li>
                       ))}
@@ -1591,7 +1589,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 )}
               </div>
             ) : (
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+              <p className="compatibility-empty">
                 {t('vacancyModal.compat_empty')}
               </p>
             )}
