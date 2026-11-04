@@ -214,6 +214,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `JWT_SECRET=${jwtSecret}`,
     `DEV_AUTH=true`,
     `PORT=8000`,
+    `BACKEND_INTERNAL_URL=http://app:8000`,
   ].join('\n');
 }
 

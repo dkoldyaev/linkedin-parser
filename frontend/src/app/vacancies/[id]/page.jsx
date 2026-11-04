@@ -30,6 +30,7 @@ export default async function VacancyStandalonePage({ params }) {
   const { id } = await params;
   let vacancy = null;
   let columns = [];
+  let isUnauthorized = false;
 
   try {
     const [vacRes, colRes] = await Promise.all([
@@ -43,8 +44,12 @@ export default async function VacancyStandalonePage({ params }) {
       }),
     ]);
 
-    if (vacRes && vacRes.ok) {
-      vacancy = await vacRes.json();
+    if (vacRes) {
+      if (vacRes.ok) {
+        vacancy = await vacRes.json();
+      } else if (vacRes.status === 401 || vacRes.status === 403) {
+        isUnauthorized = true;
+      }
     }
     if (colRes && colRes.ok) {
       columns = await colRes.json();
@@ -53,9 +58,16 @@ export default async function VacancyStandalonePage({ params }) {
     console.error('Failed to SSR vacancy page', err);
   }
 
-  if (!vacancy) {
+  if (!vacancy && !isUnauthorized) {
     return notFound();
   }
 
-  return <StandaloneVacancyView initialVacancy={vacancy} initialColumns={columns} />;
+  return (
+    <StandaloneVacancyView
+      vacancyId={id}
+      initialVacancy={vacancy}
+      initialColumns={columns}
+      isUnauthorized={isUnauthorized}
+    />
+  );
 }
