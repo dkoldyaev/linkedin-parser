@@ -212,7 +212,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `GOOGLE_CLIENT_SECRET=${envVars['GOOGLE_CLIENT_SECRET'] || ''}`,
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
     `JWT_SECRET=${jwtSecret}`,
-    `DEV_AUTH=${envVars['DEV_AUTH'] || 'true'}`,
+    `DEV_AUTH=true`,
     `PORT=8000`,
   ].join('\n');
 }
