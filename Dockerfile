@@ -3,6 +3,10 @@
 # ==========================================
 FROM node:24-alpine AS extension-builder
 WORKDIR /app
+
+ARG APP_URL
+ENV APP_URL=${APP_URL:-http://localhost:8000}
+
 RUN apk add --no-cache zip
 COPY package*.json ./
 COPY packages/ ./packages/
