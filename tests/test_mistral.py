@@ -1,15 +1,16 @@
-import urllib.request
+"""Provider contract without sending paid requests or embedding credentials."""
+import asyncio
 import json
+from unittest.mock import AsyncMock, patch
+from backend.llm import analyze_vacancy_with_llm
 
-key = "nOKbvR0ZFtGuOGLZAG22eiDD5QP07p1O"
-for model in ["open-mistral-7b", "open-mistral-nemo", "ministral-8b-latest"]:
-    req = urllib.request.Request(
-        "https://api.mistral.ai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        data=json.dumps({"model": model, "messages": [{"role": "user", "content": "hi"}]}).encode("utf-8")
-    )
-    try:
-        with urllib.request.urlopen(req) as resp:
-            print(f"Model {model}: SUCCESS {resp.status}")
-    except urllib.error.HTTPError as e:
-        print(f"Model {model}: HTTP {e.code} - {e.read().decode('utf-8')[:120]}")
+
+def test_mistral_analysis_contract(monkeypatch):
+    monkeypatch.setenv("MISTRAL_API_KEY", "test-only-not-a-real-key")
+    with patch("backend.llm.call_mistral", new_callable=AsyncMock,
+               return_value=json.dumps({"summary": "Test", "tech_stack": ["Python"]})) as call:
+        result = asyncio.run(analyze_vacancy_with_llm(
+            title="Engineer", company="Test", location="Remote", description="Python role",
+            provider="mistral", language="en"))
+    call.assert_awaited_once()
+    assert result["summary"] == "Test"

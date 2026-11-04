@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
+from .query_helpers import filter_tag, duplicate_response
 from .database import get_db
 from .models import User, Vacancy, VacancyStatusHistory, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, VALID_STATUSES
 from .schemas import (
@@ -99,19 +100,8 @@ def list_vacancies(
             )
         )
 
-    query = query.order_by(Vacancy.updated_at.desc())
-
-    if tag:
-        # If tag filter is provided, fetch all and filter before slicing
-        vacancies = query.all()
-        tag_lower = tag.strip().lower()
-        filtered = [
-            v for v in vacancies
-            if any(t.lower() == tag_lower for t in (v.tags or []))
-        ]
-        return filtered[offset : offset + limit]
-
-    return query.offset(offset).limit(limit).all()
+    query = filter_tag(query, db, tag)
+    return query.order_by(Vacancy.updated_at.desc(), Vacancy.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.get("/vacancies/{vacancy_id}", response_model=VacancyResponse, summary="Get vacancy details")
@@ -267,8 +257,7 @@ async def create_vacancy(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_CREATED,
             data={
                 "message_code": MSG_VACANCY_CREATED,
@@ -277,7 +266,6 @@ async def create_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -325,8 +313,7 @@ async def update_vacancy(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -334,7 +321,6 @@ async def update_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -354,8 +340,7 @@ async def delete_vacancy(
     db.commit()
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_DELETED,
             data={
                 "message_code": MSG_VACANCY_DELETED,
@@ -364,7 +349,6 @@ async def delete_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return None
 
 
@@ -375,46 +359,7 @@ async def check_duplicates(
     db: Session = Depends(get_db),
 ):
     """Check if links already exist in the user's database."""
-    duplicates: List[DuplicateVacancyInfo] = []
-    seen_ids = set()
-
-    for raw_url in payload.urls:
-        u = raw_url.strip()
-        if not u:
-            continue
-        canonical_url = normalize_url(u) or u
-        job_id = extract_job_id(canonical_url) or extract_job_id(u)
-
-        existing = None
-        if job_id:
-            existing = db.query(Vacancy).filter(
-                Vacancy.job_id == job_id,
-                Vacancy.user_id == current_user.id,
-            ).first()
-        if not existing:
-            existing = db.query(Vacancy).filter(
-                (Vacancy.url == canonical_url) | (Vacancy.url == u),
-                Vacancy.user_id == current_user.id,
-            ).first()
-
-        if existing and existing.id not in seen_ids:
-            seen_ids.add(existing.id)
-            duplicates.append(
-                DuplicateVacancyInfo(
-                    id=existing.id,
-                    url=existing.url,
-                    input_url=u,
-                    job_id=existing.job_id,
-                    title=existing.title,
-                    company=existing.company,
-                    status=existing.status,
-                )
-            )
-
-    return CheckDuplicatesResponse(
-        has_duplicates=len(duplicates) > 0,
-        duplicates=duplicates,
-    )
+    return duplicate_response(db, current_user.id, payload.urls)
 
 
 @router.post("/vacancies/batch", response_model=AsyncBatchImportResponse, summary="Batch import vacancies")
@@ -485,10 +430,10 @@ def list_tags(
     db: Session = Depends(get_db),
 ):
     """List all distinct tag labels across user vacancies."""
-    vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
+    vacancies = db.query(Vacancy.tags).filter(Vacancy.user_id == current_user.id).all()
     all_tags = set()
     for v in vacancies:
-        for t in (v.tags or []):
+        for t in (v[0] or []):
             if t and t.strip():
                 all_tags.add(t.strip())
     return sorted(list(all_tags))

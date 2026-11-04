@@ -6,6 +6,7 @@ import re
 from typing import Any, Dict, Optional
 
 import httpx
+from ..safe_http import PublicWebClient
 from bs4 import BeautifulSoup
 
 from ..location_parser import parse_location
@@ -219,7 +220,7 @@ class LinkedInParser(BaseParser):
         job_id = self._extract_job_id(url)
 
         if not html:
-            async with httpx.AsyncClient(headers=HEADERS, follow_redirects=True, timeout=20.0) as client:
+            async with PublicWebClient(headers=HEADERS, follow_redirects=True, timeout=20.0) as client:
                 if job_id:
                     api_url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
                     try:

@@ -3,6 +3,8 @@ import { API_BASE } from "./config.js";
 
 let eventSource = null;
 let mercureConfig = null;
+let mercureRefreshTimer = null;
+let mercureConnecting = false;
 
 // ─── Captcha / block detection ────────────────────────────────────────────
 //
@@ -600,18 +602,23 @@ async function processAllPendingTasks() {
 }
 
 async function connectMercure() {
+  if (mercureConnecting) return;
+  mercureConnecting = true;
+  clearTimeout(mercureRefreshTimer);
   if (eventSource) eventSource.close();
 
   mercureConfig = await fetchMercureConfig();
+  mercureConnecting = false;
   if (!mercureConfig) {
-    setTimeout(connectMercure, 10000);
+    mercureRefreshTimer = setTimeout(connectMercure, 10000);
     return;
   }
 
-  const url = new URL(mercureConfig.mercure_hub_url);
+  const url = new URL(mercureConfig.mercure_hub_url, API_BASE);
   url.searchParams.append("topic", mercureConfig.topic);
-  eventSource = new EventSource(url.toString());
+  eventSource = new EventSource(url.toString(), { withCredentials: true });
 
+  mercureRefreshTimer = setTimeout(connectMercure, 50 * 60 * 1000);
   eventSource.onopen = () => {
     console.log("Mercure connected");
     processAllPendingTasks();
@@ -631,7 +638,8 @@ async function connectMercure() {
   eventSource.onerror = () => {
     eventSource.close();
     eventSource = null;
-    setTimeout(connectMercure, 5000);
+    clearTimeout(mercureRefreshTimer);
+    mercureRefreshTimer = setTimeout(connectMercure, 5000);
   };
 }
 

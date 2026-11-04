@@ -1,13 +1,14 @@
 import os
 import json
 import logging
+import time
 from typing import Any, Dict, Optional
 import httpx
 import jwt
 
 logger = logging.getLogger("linkedin_tracker.mercure")
 
-DEFAULT_MERCURE_SECRET = "!ChangeThisMercureHubJWTSecretKey!"
+from .security_config import require_secret
 DEFAULT_TOPIC = "vacancies"
 
 # Mercure Event Types
@@ -39,7 +40,7 @@ ERR_UNKNOWN = "ERR_UNKNOWN"
 
 
 def get_mercure_secret() -> str:
-    return os.getenv("MERCURE_JWT_SECRET", DEFAULT_MERCURE_SECRET)
+    return require_secret("MERCURE_JWT_SECRET")
 
 
 def get_mercure_publish_url() -> str:
@@ -47,18 +48,36 @@ def get_mercure_publish_url() -> str:
 
 
 def get_mercure_public_url() -> str:
-    return os.getenv("MERCURE_PUBLIC_URL", "http://localhost:3000/.well-known/mercure")
+    return os.getenv("MERCURE_PUBLIC_URL", "/.well-known/mercure")
 
 
 def generate_publisher_jwt(secret: Optional[str] = None) -> str:
     """Generate a JWT token allowing publishing to any Mercure topic."""
     secret_key = secret or get_mercure_secret()
     payload = {
+        "exp": int(time.time()) + 300,
         "mercure": {
             "publish": ["*"]
         }
     }
     return jwt.encode(payload, secret_key, algorithm="HS256")
+
+
+MERCURE_COOKIE = "mercureAuthorization"  # Hub v0.16 (Mercure 0.x protocol)
+SUBSCRIBER_TTL = 3600
+
+
+def generate_subscriber_jwt(user_id: int) -> str:
+    return jwt.encode({"sub": str(user_id), "exp": int(time.time()) + SUBSCRIBER_TTL,
+                       "mercure": {"subscribe": [f"vacancies:{user_id}"]}},
+                      get_mercure_secret(), algorithm="HS256")
+
+
+def set_subscriber_cookie(response, user_id: int):
+    response.set_cookie(MERCURE_COOKIE, generate_subscriber_jwt(user_id),
+                        max_age=SUBSCRIBER_TTL, httponly=True,
+                        secure=os.getenv("APP_URL", "").startswith("https://"),
+                        samesite="lax", path="/.well-known/mercure")
 
 
 async def publish_mercure_event(
@@ -74,7 +93,6 @@ async def publish_mercure_event(
     Never raises an exception so background workers are not interrupted.
     """
     url = mercure_url or get_mercure_publish_url()
-    token = generate_publisher_jwt(secret)
 
     payload = {
         "type": event_type,
@@ -82,11 +100,13 @@ async def publish_mercure_event(
     }
 
     try:
+        token = generate_publisher_jwt(secret)
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.post(
                 url,
                 data={
                     "topic": topic,
+                    "private": "on",
                     "data": json.dumps(payload, ensure_ascii=False),
                 },
                 headers={
@@ -100,7 +120,7 @@ async def publish_mercure_event(
                 return True
             else:
                 logger.warning(
-                    f"Mercure Hub returned status {resp.status_code} for topic '{topic}': {resp.text}"
+                    f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}"
                 )
                 return False
 

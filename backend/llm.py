@@ -88,7 +88,7 @@ async def call_mistral(prompt: str, api_key: str, model: str = "open-mistral-nem
                 data = resp.json()
                 return data["choices"][0]["message"]["content"]
             else:
-                last_error = f"Mistral API error ({resp.status_code}) on model {m}: {resp.text}"
+                last_error = f"Mistral API error ({resp.status_code}) on model {m}"
                 logger.warning(last_error)
                 # If rate limited (429), try next free-tier model
                 if resp.status_code == 429:
@@ -104,31 +104,23 @@ async def call_gemini(prompt: str, api_key: str, model: str = "gemini-2.5-flash"
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=api_key)
-    
     config_kwargs = {
         "temperature": 0.2,
         "response_mime_type": "application/json",
         "system_instruction": system_prompt,
     }
     if response_schema:
-        config_kwargs["response_schema"] = response_schema
-        
+        # These contracts are JSON Schema, including nullable type unions.
+        config_kwargs["response_json_schema"] = response_schema
     config = types.GenerateContentConfig(**config_kwargs)
-    
-    # Run in thread pool since genai client is synchronous
-    import asyncio
-    loop = asyncio.get_running_loop()
-    
-    def _run():
-        response = client.models.generate_content(
-            model=model or "gemini-2.5-flash",
-            contents=prompt,
-            config=config,
-        )
-        return response.text
-
-    return await loop.run_in_executor(None, _run)
+    client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=45000))
+    try:
+        async with client.aio as async_client:
+            response = await async_client.models.generate_content(
+                model=model or "gemini-2.5-flash", contents=prompt, config=config)
+            return response.text
+    finally:
+        client.close()
 
 
 async def analyze_vacancy_with_llm(

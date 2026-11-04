@@ -199,11 +199,11 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `GEMINI_MODEL=${envVars['GEMINI_MODEL'] || 'gemini-2.5-flash'}`,
     `MERCURE_URL=http://mercure/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
-    `MERCURE_JWT_SECRET=${envVars['MERCURE_JWT_SECRET'] || '!ChangeThisMercureHubJWTSecretKey!'}`,
+    `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
     `GOOGLE_CLIENT_SECRET=${envVars['GOOGLE_CLIENT_SECRET'] || ''}`,
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
-    `JWT_SECRET=${envVars['JWT_SECRET'] || '!ChangeThisAppJWTSecretKeyForUserSessions!'}`,
+    `JWT_SECRET=${requireEnvVar('JWT_SECRET')}`,
     `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
     `PORT=8000`,
   ].join('\n');

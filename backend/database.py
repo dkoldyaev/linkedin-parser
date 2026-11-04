@@ -26,14 +26,15 @@ if DATABASE_URL:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
+        hide_parameters=True,
     )
     logger.info("Using PostgreSQL database")
 else:
     DATA_DIR = os.getenv("DATA_DIR", "./data")
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(DATA_DIR, mode=0o700, exist_ok=True)
         # Attempt to ensure directory is writable
-        os.chmod(DATA_DIR, 0o777)
+        os.chmod(DATA_DIR, 0o700)
     except Exception as e:
         logger.warning(f"Could not ensure permissions on DATA_DIR '{DATA_DIR}': {e}")
 
@@ -43,6 +44,7 @@ else:
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         connect_args={"check_same_thread": False, "timeout": 30},
+        hide_parameters=True,
     )
 
     # Enable WAL mode and busy_timeout for SQLite for better concurrency
@@ -54,7 +56,13 @@ else:
     except Exception as e:
         logger.warning(f"Could not execute SQLite PRAGMAs: {e}")
 
-    logger.info(f"Using SQLite database at {DB_PATH}")
+    os.chmod(DB_PATH, 0o600)
+    logger.info("Using SQLite database")
+
+# SQL shapes and request counts are opt-in; never log parameter values.
+if os.getenv("SQL_DIAGNOSTICS", "false").lower() in ("1", "true", "yes"):
+    from .diagnostics import install_sql_diagnostics
+    install_sql_diagnostics(engine)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -302,3 +310,13 @@ def ensure_db_schema():
         logger.warning(f"Cleanup legacy cv_service_token settings: {e}")
 
 
+
+
+def ensure_query_indexes():
+    """create_all does not add indexes to tables that already exist."""
+    from .models import Vacancy, VacancyStatusHistory
+    for table in (Vacancy.__table__, VacancyStatusHistory.__table__):
+        for index in table.indexes:
+            if index.name in {"ix_vacancies_user_updated", "ix_vacancies_user_created",
+                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created"}:
+                index.create(bind=engine, checkfirst=True)

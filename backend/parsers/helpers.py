@@ -8,6 +8,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
+from ..safe_http import PublicWebClient
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
@@ -257,7 +258,7 @@ async def fetch_html(url: str, timeout: float = 15.0, headers: Optional[Dict[str
     if headers:
         h.update(headers)
     try:
-        async with httpx.AsyncClient(headers=h, timeout=timeout, follow_redirects=True) as client:
+        async with PublicWebClient(headers=h, timeout=timeout, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             return resp.text

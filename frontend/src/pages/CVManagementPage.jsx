@@ -64,7 +64,7 @@ export default function CVManagementPage({ user }) {
       try {
         setLoading(true);
         const [server] = await Promise.all([fetchServerApprovedCV(), fetchCurrentUser()]);
-        const local = await getLocalCV().catch(() => null);
+        const local = await getLocalCV(user?.id).catch(() => null);
         const hasLocalDraft = local && (local.sourceRevision > (local.approvedRevision || 0) || !server);
         if (server && !hasLocalDraft) {
           setSourceText(server.content || '');
@@ -94,7 +94,7 @@ export default function CVManagementPage({ user }) {
       }
     }
     loadData();
-  }, [fetchServerApprovedCV, fetchCurrentUser]);
+  }, [fetchServerApprovedCV, fetchCurrentUser, user?.id]);
 
   // Handle File Upload
   const handleFileUpload = async (e) => {
@@ -121,7 +121,7 @@ export default function CVManagementPage({ user }) {
         sourceRevision: newRev,
         approvedRevision: 0,
         filename: file.name,
-      });
+      }, user?.id);
 
       setMessage(t('pages.cv.loaded_success', { filename: file.name }));
     } catch (err) {
@@ -147,7 +147,7 @@ export default function CVManagementPage({ user }) {
       sourceRevision: newRev,
       approvedRevision,
       filename,
-    });
+    }, user?.id).catch(err => setError(err.message));
   };
 
   // Server save
@@ -188,7 +188,7 @@ export default function CVManagementPage({ user }) {
         sourceRevision,
         approvedRevision: saved.revision,
         filename,
-      });
+      }, user?.id);
 
       setMessage(t('pages.cv.save_success'));
     } catch (err) {
@@ -218,7 +218,7 @@ export default function CVManagementPage({ user }) {
   // Clear local storage
   const handleClearLocal = async () => {
     if (!window.confirm(t('pages.cv.confirm_clear_draft'))) return;
-    await clearLocalCV();
+    await clearLocalCV(user?.id);
     setSourceText(serverCV?.content || '');
     setSourceRevision(serverCV?.revision || 1);
     setApprovedRevision(serverCV?.revision || 0);

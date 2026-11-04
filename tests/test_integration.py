@@ -1,7 +1,12 @@
 from fastapi.testclient import TestClient
 from backend.main import app
+from unittest.mock import AsyncMock
 
-def run_test():
+def test_batch_import_and_card_lifecycle(monkeypatch):
+    monkeypatch.setattr('backend.main.scrape_job', AsyncMock(return_value={
+        'title': 'Engineer', 'company': 'Test', 'description': 'Python role', 'source': 'LinkedIn'}))
+    monkeypatch.setattr('backend.main.analyze_vacancy_with_llm', AsyncMock(return_value={
+        'summary': 'Test summary', 'tech_stack': ['Python']}))
     client = TestClient(app)
     login_res = client.post("/api/auth/dev-login", json={"email": "integration_test@local.user"})
     token = login_res.json()["token"]
@@ -13,6 +18,8 @@ def run_test():
         "urls": [url],
         "default_tags": ["python", "remote-eu"]
     })
+    assert import_resp.status_code == 200
+    assert import_resp.json()["imported"] == 1
     print("Import status:", import_resp.status_code)
     print("Import result:", import_resp.json())
 
@@ -48,4 +55,4 @@ def run_test():
     print("ALL TESTS PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":
-    run_test()
+    test_batch_import_and_card_lifecycle()

@@ -78,7 +78,9 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const handleLogout = onLogout;
 
+  const vacancyRequest = useRef(0);
   const fetchVacancies = useCallback(async () => {
+    const requestId = ++vacancyRequest.current;
     if (!user) return;
     try {
       let url = '/api/vacancies';
@@ -95,7 +97,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setVacancies(data);
+        if (requestId === vacancyRequest.current) setVacancies(data);
       }
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
@@ -204,14 +206,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   useEffect(() => {
     if (!user) return;
-    fetchVacancies();
     fetchColumns();
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
     fetchSources();
     fetchQueueStatus();
-  }, [user, fetchVacancies, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchVacancies, 150);
+    return () => { clearTimeout(timer); vacancyRequest.current += 1; };
+  }, [fetchVacancies]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
@@ -223,6 +229,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     fetchSources,
     selectedCountry,
     selectedClosed,
+    hasFilters: Boolean(search.trim() || selectedTag || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed),
+    fetchQueueStatus,
     showToast,
     t
   };
@@ -232,34 +240,40 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     if (!user) return;
     let eventSource = null;
     let isSubscribed = true;
+    let refreshTimer;
+    let reconcileTimer;
+    const scheduleRefresh = () => {
+      clearTimeout(reconcileTimer);
+      reconcileTimer = setTimeout(() => {
+        if (!isSubscribed) return;
+        const cb = callbacksRef.current;
+        cb.fetchVacancies();
+        cb.fetchTags();
+        cb.fetchCountries();
+        cb.fetchCities(cb.selectedCountry);
+        cb.fetchSources();
+        cb.fetchQueueStatus();
+      }, 150);
+    };
 
     const initMercure = async () => {
       try {
         setMercureStatus('connecting');
-        let hubUrl = 'http://localhost:3000/.well-known/mercure';
-        let topic = `vacancies:${user.id}`;
-
-        try {
-          const configRes = await fetch('/api/config');
-          if (configRes.ok) {
-            const cfg = await configRes.json();
-            if (cfg.mercure_hub_url) hubUrl = cfg.mercure_hub_url;
-            if (cfg.mercure_topic) topic = cfg.mercure_topic;
-          }
-        } catch (e) {
-          console.warn('Could not fetch /api/config, fallback to default Mercure hub', e);
-        }
-
+        const configRes = await fetch('/api/config', { credentials: 'include' });
+        if (!configRes.ok) throw new Error(`Mercure config HTTP ${configRes.status}`);
+        const cfg = await configRes.json();
         if (!isSubscribed) return;
-
-        const sseUrl = new URL(hubUrl);
-        sseUrl.searchParams.append('topic', topic);
-
-        eventSource = new EventSource(sseUrl.toString());
+        const sseUrl = new URL(cfg.mercure_hub_url, window.location.origin);
+        sseUrl.searchParams.append('topic', cfg.mercure_topic);
+        if (eventSource) eventSource.close();
+        eventSource = new EventSource(sseUrl.toString(), { withCredentials: true });
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(initMercure, 50 * 60 * 1000);
 
         eventSource.onopen = () => {
           if (isSubscribed) {
             setMercureStatus('connected');
+            scheduleRefresh();
           }
         };
 
@@ -292,6 +306,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
             if (type === 'vacancy_created' && vacancy) {
               setVacancies(prev => {
+                if (callbacksRef.current.hasFilters) return prev;
                 if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
                 if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
                 const exists = prev.some(v => v.id === vacancy.id);
@@ -301,12 +316,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 return [vacancy, ...prev];
               });
               currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => {
+                if (callbacksRef.current.hasFilters) return prev;
                 if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
                 if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
                 const exists = prev.some(v => v.id === vacancy.id);
@@ -317,10 +330,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               });
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             } else if (type === 'compatibility_analyzed') {
               const matchedId = vacancy_id || data.vacancy_id;
               const newScore = data.match_score !== undefined ? data.match_score : data.overall_score;
@@ -338,10 +348,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 if (delTitle) {
                   currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
                 }
-                currentFetchTags();
-                currentFetchCountries();
-                currentFetchCities(currentSelectedCountry);
-                currentFetchSources();
+                scheduleRefresh();
               }
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
@@ -353,11 +360,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
               currentShowToast(currentT('mercure.queue_idle'));
-              currentFetchVacancies();
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -365,7 +368,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         };
       } catch (err) {
         console.error('Failed to initialize Mercure EventSource', err);
-        if (isSubscribed) setMercureStatus('connecting');
+        if (isSubscribed) {
+          setMercureStatus('connecting');
+          refreshTimer = setTimeout(initMercure, 5000);
+        }
       }
     };
 
@@ -373,6 +379,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
     return () => {
       isSubscribed = false;
+      clearTimeout(refreshTimer);
+      clearTimeout(reconcileTimer);
       if (eventSource) {
         eventSource.close();
       }

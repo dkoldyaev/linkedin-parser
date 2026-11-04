@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -77,6 +77,12 @@ class UserSetting(Base):
 
 class Vacancy(Base):
     __tablename__ = "vacancies"
+    __table_args__ = (
+        Index("ix_vacancies_user_updated", "user_id", "updated_at", "id"),
+        Index("ix_vacancies_user_created", "user_id", "created_at"),
+        Index("ix_vacancies_user_job", "user_id", "job_id"),
+        Index("ix_vacancies_user_url", "user_id", "url"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True)
@@ -127,6 +133,7 @@ class Vacancy(Base):
 
 class VacancyStatusHistory(Base):
     __tablename__ = "vacancy_status_history"
+    __table_args__ = (Index("ix_history_vacancy_created", "vacancy_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, index=True)
     vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="CASCADE"), nullable=False, index=True)

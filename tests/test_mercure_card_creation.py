@@ -100,6 +100,7 @@ def test_card_crud_mercure_events():
                 "url": ext_url,
                 "title": "Extension Card Title",
                 "company": "Extension Corp",
+                "source": "LinkedIn",
                 "description": "Some description",
             })
             assert res.status_code == 200

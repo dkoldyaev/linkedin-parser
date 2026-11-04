@@ -1,0 +1,118 @@
+{
+  "requests": 120,
+  "concurrency": 4,
+  "errors": 0,
+  "rounds": [
+    {
+      "/api/vacancies": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 732277
+      },
+      "/api/tags": {
+        "requests": 8,
+        "sql_counts": [
+          3
+        ],
+        "max_response_bytes": 10
+      },
+      "/api/stats": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 4379
+      },
+      "/api/settings": {
+        "requests": 8,
+        "sql_counts": [
+          7
+        ],
+        "max_response_bytes": 529
+      },
+      "/api/queue/status": {
+        "requests": 8,
+        "sql_counts": [
+          2
+        ],
+        "max_response_bytes": 165
+      }
+    },
+    {
+      "/api/vacancies": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 732277
+      },
+      "/api/tags": {
+        "requests": 8,
+        "sql_counts": [
+          3
+        ],
+        "max_response_bytes": 10
+      },
+      "/api/stats": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 4379
+      },
+      "/api/settings": {
+        "requests": 8,
+        "sql_counts": [
+          7
+        ],
+        "max_response_bytes": 529
+      },
+      "/api/queue/status": {
+        "requests": 8,
+        "sql_counts": [
+          2
+        ],
+        "max_response_bytes": 165
+      }
+    },
+    {
+      "/api/vacancies": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 732277
+      },
+      "/api/tags": {
+        "requests": 8,
+        "sql_counts": [
+          3
+        ],
+        "max_response_bytes": 10
+      },
+      "/api/stats": {
+        "requests": 8,
+        "sql_counts": [
+          5
+        ],
+        "max_response_bytes": 4379
+      },
+      "/api/settings": {
+        "requests": 8,
+        "sql_counts": [
+          7
+        ],
+        "max_response_bytes": 529
+      },
+      "/api/queue/status": {
+        "requests": 8,
+        "sql_counts": [
+          2
+        ],
+        "max_response_bytes": 165
+      }
+    }
+  ]
+}

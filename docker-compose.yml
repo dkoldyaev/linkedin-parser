@@ -12,6 +12,8 @@ services:
       - APP_URL=${APP_URL}
       - DATA_DIR=/app/data
       - SQL_DIAGNOSTICS=${SQL_DIAGNOSTICS:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:8000}
       - DATABASE_URL=${DATABASE_URL:-}
       - BROKER_URL=${BROKER_URL}
       - STATIC_DIR=/app/static
@@ -21,12 +23,12 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
       - MERCURE_URL=${MERCURE_URL:-http://mercure/.well-known/mercure}
-      - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-http://localhost:3000/.well-known/mercure}
-      - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-/.well-known/mercure}
+      - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
-      - JWT_SECRET=${JWT_SECRET:-!ChangeThisAppJWTSecretKeyForUserSessions!}
+      - JWT_SECRET=${JWT_SECRET:?Set a random JWT_SECRET}
       - DEV_AUTH=${DEV_AUTH:-false}
       - CREATE_MOCK_DATA=${CREATE_MOCK_DATA:-false}
       - EXTENSION_ID=${EXTENSION_ID:-}
@@ -46,11 +48,10 @@ services:
     restart: unless-stopped
     environment:
       SERVER_NAME: ':80'
-      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
-      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-!ChangeThisMercureHubJWTSecretKey!}
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
       MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins *
-        anonymous
+        cors_origins ${APP_URL:-http://localhost:8000}
 
   parser-api:
     build:

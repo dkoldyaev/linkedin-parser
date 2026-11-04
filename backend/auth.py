@@ -22,7 +22,8 @@ logger = logging.getLogger("linkedin_tracker.auth")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
-JWT_SECRET = os.getenv("JWT_SECRET", os.getenv("MERCURE_JWT_SECRET", "linkedin-tracker-jwt-secret-key-32chars!"))
+from .security_config import require_secret
+JWT_SECRET = require_secret("JWT_SECRET")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 COOKIE_NAME = "access_token"
@@ -285,8 +286,8 @@ async def exchange_google_code(code: str, redirect_uri: str) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
         res = await client.post(GOOGLE_TOKEN_ENDPOINT, data=data)
         if res.status_code != 200:
-            logger.error(f"Google token exchange failed: {res.status_code} {res.text}")
-            raise HTTPException(status_code=400, detail=f"Google token exchange failed: {res.text}")
+            logger.warning("Google token exchange failed status=%s", res.status_code)
+            raise HTTPException(status_code=400, detail="Google token exchange failed")
         return res.json()
 
 
@@ -295,15 +296,13 @@ async def get_google_user_info(access_token: str) -> dict:
     async with httpx.AsyncClient(timeout=15.0) as client:
         res = await client.get(GOOGLE_USERINFO_ENDPOINT, headers=headers)
         if res.status_code != 200:
-            logger.error(f"Google userinfo request failed: {res.status_code} {res.text}")
-            raise HTTPException(status_code=400, detail=f"Failed to fetch Google user profile: {res.text}")
+            logger.warning("Google userinfo request failed status=%s", res.status_code)
+            raise HTTPException(status_code=400, detail="Failed to fetch Google user profile")
         return res.json()
 
 
 def is_admin_email(email: str) -> bool:
     email_clean = email.strip().lower()
-    if email_clean == "dkoldyaev@gmail.com":
-        return True
     admin_emails_env = os.getenv("ADMIN_EMAILS", "")
     if not admin_emails_env:
         return False
@@ -346,13 +345,9 @@ def get_or_create_user(
                     db.add(UserFeatureFlag(user_id=user.id, flag=flag_name))
                 db.commit()
 
-            # Check if any orphan vacancies exist without user_id; attach them to this first user
-            orphans = db.query(Vacancy).filter(Vacancy.user_id.is_(None)).all()
-            if orphans:
-                for v in orphans:
-                    v.user_id = user.id
-                db.commit()
-                logger.info(f"Associated {len(orphans)} legacy orphan vacancies with user {user.id} ({user.email})")
+            # Legacy unowned data must be migrated explicitly by an administrator.
+            # Never expose it to the next person who registers.
+
     else:
         # Update user profile info if changed
         changed = False

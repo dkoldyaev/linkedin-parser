@@ -147,7 +147,7 @@ def test_cv_and_analysis_isolation(users_fixture):
     # User B cannot get or adapt CV analysis for User A's vacancy
     assert client.get(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
     assert client.post(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 404
+    assert client.post(f"/api/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 403
 
 def test_stats_and_metadata_isolation(users_fixture):
     user_a, user_b = users_fixture

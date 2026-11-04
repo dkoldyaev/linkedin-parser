@@ -32,7 +32,7 @@ def test_compatibility_prompt_uses_interface_language(language, instruction, doc
 
 @pytest.mark.parametrize(('language', 'instruction'), [
     ('ru', 'Оба поля должны быть на русском языке'),
-    ('en', 'Write both in English'),
+    ('en', 'clear English'),
 ])
 def test_vacancy_prompt_uses_interface_language(language, instruction):
     with patch.dict('os.environ', {'MISTRAL_API_KEY': 'test-key'}), patch(
@@ -45,7 +45,7 @@ def test_vacancy_prompt_uses_interface_language(language, instruction):
 
 @pytest.mark.parametrize(('language', 'instruction'), [
     ('ru', 'replacement пишите на русском языке'),
-    ('en', 'generalized industry description'),
+    ('en', 'Write each replacement in English'),
 ])
 def test_anonymization_prompt_uses_interface_language(language, instruction):
     with patch.dict('os.environ', {'MISTRAL_API_KEY': 'test-key'}), patch(

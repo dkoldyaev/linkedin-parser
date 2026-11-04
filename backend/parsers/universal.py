@@ -13,6 +13,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
+from ..safe_http import PublicWebClient
 from bs4 import BeautifulSoup
 
 from .registry import BaseParser, registry
@@ -55,7 +56,7 @@ class UniversalParser(BaseParser):
 
         if not html:
             try:
-                async with httpx.AsyncClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
+                async with PublicWebClient(timeout=15.0, headers=HEADERS, follow_redirects=True) as client:
                     resp = await client.get(url)
                     resp.raise_for_status()
                     html = resp.text

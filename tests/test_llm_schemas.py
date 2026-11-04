@@ -15,7 +15,7 @@ class ResponseSchemasTest(unittest.TestCase):
         for schema in (vacancy_schema('ru'), vacancy_schema('en'), anonymization_schema('ru'),
                        compatibility_schema('en'), adapted_cv_schema()):
             with self.subTest(schema=schema):
-                types.GenerateContentConfig(response_mime_type='application/json', response_schema=schema)
+                types.GenerateContentConfig(response_mime_type='application/json', response_json_schema=schema)
 
     def test_schema_details(self):
         vacancy = vacancy_schema('ru')
@@ -70,3 +70,27 @@ class ResponseSchemasTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_gemini_client_resources_close_on_success_and_error():
+    from types import SimpleNamespace
+    from backend.llm import call_gemini
+    for fails in (False, True):
+        with patch('google.genai.Client') as factory:
+            client = factory.return_value
+            context = client.aio
+            context.__aenter__ = AsyncMock(return_value=context)
+            context.__aexit__ = AsyncMock(return_value=False)
+            context.models.generate_content = AsyncMock(
+                side_effect=RuntimeError('provider unavailable') if fails else None,
+                return_value=SimpleNamespace(text='{}'))
+            async def scenario():
+                if fails:
+                    import pytest
+                    with pytest.raises(RuntimeError):
+                        await call_gemini('prompt', 'test', response_schema=vacancy_schema('en'))
+                else:
+                    assert await call_gemini('prompt', 'test', response_schema=vacancy_schema('en')) == '{}'
+            asyncio.run(scenario())
+            client.close.assert_called_once()
+            context.__aexit__.assert_awaited_once()

@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class UserResponse(BaseModel):
     id: int
@@ -10,8 +10,7 @@ class UserResponse(BaseModel):
     feature_flags: List[str] = Field(default_factory=list)
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserUpdateFeatureFlagsRequest(BaseModel):
     feature_flags: List[str] = Field(default_factory=list)
@@ -25,7 +24,7 @@ class AdminUserUpdate(BaseModel):
 class AuthConfigResponse(BaseModel):
     google_configured: bool
     google_client_id: Optional[str] = None
-    dev_mode: bool = True
+    dev_mode: bool = False
 
 class DevLoginRequest(BaseModel):
     email: Optional[str] = "dev@local.user"
@@ -95,8 +94,7 @@ class VacancyHistoryItem(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class VacancyHistoryUpdate(BaseModel):
     comment: Optional[str] = None
@@ -123,11 +121,10 @@ class VacancyResponse(VacancyBase):
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class BatchImportRequest(BaseModel):
-    urls: List[str]
+    urls: List[str] = Field(..., max_length=200)
     default_tags: List[str] = Field(default_factory=list)
 
 class DuplicateVacancyInfo(BaseModel):
@@ -140,7 +137,7 @@ class DuplicateVacancyInfo(BaseModel):
     status: Optional[str] = None
 
 class CheckDuplicatesRequest(BaseModel):
-    urls: List[str]
+    urls: List[str] = Field(..., max_length=200)
 
 class CheckDuplicatesResponse(BaseModel):
     has_duplicates: bool
@@ -257,8 +254,7 @@ class ApprovedCVResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MatchedRequirementItem(BaseModel):
     requirement: str
@@ -300,8 +296,7 @@ class VacancyCVAnalysisResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdaptedCVVersionResponse(BaseModel):
@@ -313,8 +308,7 @@ class AdaptedCVVersionResponse(BaseModel):
     parent_version_id: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdaptCVRequest(BaseModel):
@@ -335,8 +329,7 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     last_used_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApiKeyCreatedResponse(ApiKeyResponse):

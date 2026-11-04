@@ -48,8 +48,7 @@ SAMPLE_FILES_BY_PARSER = {
 
 
 class TestParsersCodebaseIntegration(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    def setUp(cls):
         ensure_db_schema()
         parser_registry._auto_discover()
         cls.client = TestClient(app)

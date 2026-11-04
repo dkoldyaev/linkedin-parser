@@ -11,11 +11,11 @@ from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Res
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import or_, func
 
 import json
-from .database import engine, Base, get_db, ensure_db_schema
+from .database import engine, Base, get_db, ensure_db_schema, ensure_query_indexes
 from .models import (
     Vacancy,
     VacancyStatusHistory,
@@ -96,6 +96,7 @@ from .auth import (
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
+from .query_helpers import filter_tag, duplicate_response, local_date
 from .location_parser import parse_location
 from .llm import (
     analyze_vacancy_with_llm,
@@ -107,6 +108,7 @@ from .llm import (
 import asyncio
 from .mercure import (
     get_mercure_public_url,
+    set_subscriber_cookie, MERCURE_COOKIE,
     publish_mercure_event,
     EVENT_VACANCY_CREATED,
     EVENT_VACANCY_UPDATED,
@@ -128,19 +130,20 @@ from .queue_manager import (
     RECENT_LIST,
 )
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
 logger = logging.getLogger("linkedin_tracker")
 
 # Create database tables and ensure schema columns
 Base.metadata.create_all(bind=engine)
 ensure_db_schema()
+ensure_query_indexes()
 
 def backfill_missing_locations():
     """Backfill city and country for vacancies where city is NULL or needs update."""
     from .database import SessionLocal
     db = SessionLocal()
     try:
-        vacancies = db.query(Vacancy).filter(Vacancy.location.isnot(None)).all()
+        vacancies = db.query(Vacancy).filter(Vacancy.location.isnot(None), or_(Vacancy.city.is_(None), Vacancy.country.is_(None))).yield_per(200)
         updated = 0
         for v in vacancies:
             if v.location:
@@ -273,8 +276,10 @@ seed_mock_data_if_enabled()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await queue_manager.start()
-    yield
-    await queue_manager.stop()
+    try:
+        yield
+    finally:
+        await queue_manager.stop()
 
 
 # System app has NO public documentation: docs_url=None, redoc_url=None, openapi_url=None
@@ -285,6 +290,27 @@ app = FastAPI(
     openapi_url=None,
     lifespan=lifespan
 )
+
+if os.getenv("SQL_DIAGNOSTICS", "false").lower() in ("1", "true", "yes"):
+    from .diagnostics import request_metrics
+    @app.middleware("http")
+    async def diagnostic_requests(request: Request, call_next):
+        metrics = {"request_id": uuid.uuid4().hex, "sql_count": 0}
+        token = request_metrics.set(metrics)
+        try:
+            response = await call_next(request)
+            route = request.scope.get("route")
+            logger.info("HTTP request_id=%s method=%s route=%s status=%s sql_count=%s",
+                        metrics["request_id"], request.method, getattr(route, "path", "unmatched"),
+                        response.status_code, metrics["sql_count"])
+            response.headers["X-Request-ID"] = metrics["request_id"]
+            response.headers["X-SQL-Queries"] = str(metrics["sql_count"])
+            return response
+        except Exception as exc:
+            logger.error("HTTP request_id=%s failed error_type=%s", metrics["request_id"], type(exc).__name__)
+            raise
+        finally:
+            request_metrics.reset(token)
 
 # Public API v1 sub-application with OpenAPI documentation strictly for Public API
 public_app = FastAPI(
@@ -318,7 +344,9 @@ def redirect_openapi():
 # CORS middleware for local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(filter(None, [os.getenv("APP_URL", "").rstrip("/"),
+        *os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:8000").split(","),
+        f"chrome-extension://{os.getenv('EXTENSION_ID')}" if os.getenv("EXTENSION_ID") else ""])),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -327,6 +355,13 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health_check():
+    static_dir = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(static_dir) and not os.path.isfile(index_path):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Frontend index.html is not ready",
+        )
     return {"status": "ok"}
 
 
@@ -376,6 +411,8 @@ def update_my_feature_flags(
     db: Session = Depends(get_db),
 ):
     """Update current user's feature flags."""
+    if "admin" in payload.feature_flags and "admin" not in (current_user.feature_flags or []):
+        raise HTTPException(status_code=403, detail="Only administrators can grant admin")
     saved_flags = _sync_user_flags_table(db, current_user.id, payload.feature_flags)
     current_user.feature_flags = saved_flags
     return current_user
@@ -393,10 +430,10 @@ def list_users(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
-    users = db.query(User).order_by(User.id.asc()).all()
+    users = db.query(User).options(selectinload(User.flags)).order_by(User.id.asc()).all()
     # Populate flags from UserFeatureFlag
     for u in users:
-        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+        u.feature_flags = [f.flag for f in u.flags]
     return users
 
 
@@ -419,6 +456,8 @@ def update_user_feature_flags(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if "admin" in payload.feature_flags and not is_admin:
+        raise HTTPException(status_code=403, detail="Only administrators can grant admin")
     saved_flags = _sync_user_flags_table(db, user.id, payload.feature_flags)
     user.feature_flags = saved_flags
     return user
@@ -439,7 +478,7 @@ def google_login(request: Request):
     state = uuid.uuid4().hex
     auth_url = get_google_auth_url(redirect_uri=redirect_uri, state=state)
     response = RedirectResponse(url=auth_url)
-    response.set_cookie("oauth_state", state, max_age=600, httponly=True, samesite="lax")
+    response.set_cookie("oauth_state", state, max_age=600, httponly=True, samesite="lax", secure=os.getenv("APP_URL", "").startswith("https://"))
     return response
 
 
@@ -451,9 +490,10 @@ async def google_callback(
     db: Session = Depends(get_db),
 ):
     cookie_state = request.cookies.get("oauth_state")
-    if cookie_state and state and cookie_state != state:
-        logger.warning(f"OAuth state mismatch: expected {cookie_state}, got {state}")
-    
+    import secrets
+    if not cookie_state or not state or not secrets.compare_digest(cookie_state, state):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state")
+
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
         redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/google/callback"
@@ -469,7 +509,7 @@ async def google_callback(
     name = user_info.get("name", "")
     picture = user_info.get("picture")
 
-    if not google_id or not email:
+    if not google_id or not email or user_info.get("email_verified") is not True:
         raise HTTPException(status_code=400, detail="Incomplete user profile from Google")
 
     user = get_or_create_user(db, google_id=google_id, email=email, name=name, picture=picture)
@@ -481,6 +521,7 @@ async def google_callback(
         value=token,
         max_age=86400 * ACCESS_TOKEN_EXPIRE_DAYS,
         httponly=True,
+        secure=os.getenv("APP_URL", "").startswith("https://"),
         samesite="lax",
         path="/",
     )
@@ -490,7 +531,7 @@ async def google_callback(
 
 @app.post("/api/auth/dev-login")
 def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depends(get_db)):
-    dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
     if not dev_enabled:
         raise HTTPException(status_code=403, detail="Dev login is disabled in production")
     
@@ -501,6 +542,7 @@ def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depend
         value=token,
         max_age=86400 * ACCESS_TOKEN_EXPIRE_DAYS,
         httponly=True,
+        secure=os.getenv("APP_URL", "").startswith("https://"),
         samesite="lax",
         path="/",
     )
@@ -513,6 +555,7 @@ def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depend
 @app.post("/api/auth/logout")
 def logout(response: Response):
     response.delete_cookie(key=COOKIE_NAME, path="/")
+    response.delete_cookie(key=MERCURE_COOKIE, path="/.well-known/mercure")
     return {"status": "ok"}
 
 
@@ -525,9 +568,9 @@ def admin_get_users(
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    users = db.query(User).order_by(User.id.asc()).all()
+    users = db.query(User).options(selectinload(User.flags)).order_by(User.id.asc()).all()
     for u in users:
-        u.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == u.id).all()]
+        u.feature_flags = [f.flag for f in u.flags]
     return users
 
 
@@ -553,7 +596,9 @@ def admin_update_user(
 
 
 @app.get("/api/config")
-def get_config(current_user: Optional[User] = Depends(get_optional_user)):
+def get_config(response: Response, current_user: User = Depends(get_current_user)):
+    set_subscriber_cookie(response, current_user.id)
+    response.headers["Cache-Control"] = "no-store"
     """Return Mercure public hub URL and topics for frontend SSE connection."""
     topic = f"vacancies:{current_user.id}" if current_user else "vacancies"
     return {
@@ -630,16 +675,8 @@ def list_vacancies(
             )
         )
 
-    vacancies = query.order_by(Vacancy.updated_at.desc()).all()
-
-    if tag:
-        tag_lower = tag.strip().lower()
-        vacancies = [
-            v for v in vacancies
-            if any(t.lower() == tag_lower for t in (v.tags or []))
-        ]
-
-    return vacancies
+    query = filter_tag(query, db, tag)
+    return query.order_by(Vacancy.updated_at.desc(), Vacancy.id.desc()).all()
 
 
 @app.get("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
@@ -688,8 +725,7 @@ async def create_vacancy(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_CREATED,
             data={
                 "message_code": MSG_VACANCY_CREATED,
@@ -697,7 +733,6 @@ async def create_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -774,8 +809,7 @@ async def reorder_vacancies(
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     for v in changed:
         vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-        asyncio.create_task(
-            publish_mercure_event(
+        await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
                     "message_code": MSG_VACANCY_UPDATED,
@@ -783,7 +817,6 @@ async def reorder_vacancies(
                 },
                 topic=mercure_topic,
             )
-        )
     return [VacancyResponse.model_validate(v) for v in changed]
 
 
@@ -862,8 +895,7 @@ async def update_vacancy(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -871,7 +903,6 @@ async def update_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -901,8 +932,7 @@ async def update_vacancy_history_comment(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -910,7 +940,6 @@ async def update_vacancy_history_comment(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -955,8 +984,7 @@ async def add_vacancy_history_entry(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -964,7 +992,6 @@ async def add_vacancy_history_entry(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -992,8 +1019,7 @@ async def delete_vacancy_history_entry(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -1001,7 +1027,6 @@ async def delete_vacancy_history_entry(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -1020,8 +1045,7 @@ async def delete_vacancy(
     db.commit()
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_DELETED,
             data={
                 "message_code": MSG_VACANCY_DELETED,
@@ -1030,7 +1054,6 @@ async def delete_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return None
 
 
@@ -1044,46 +1067,7 @@ async def check_duplicates(
     Check if any of the incoming URLs already exist as vacancies for current_user.
     All URLs are normalized first.
     """
-    duplicates: List[DuplicateVacancyInfo] = []
-    seen_ids = set()
-
-    for raw_url in payload.urls:
-        u = raw_url.strip()
-        if not u:
-            continue
-        canonical_url = normalize_url(u) or u
-        job_id = extract_job_id(canonical_url) or extract_job_id(u)
-
-        existing = None
-        if job_id:
-            existing = db.query(Vacancy).filter(
-                Vacancy.job_id == job_id,
-                Vacancy.user_id == current_user.id,
-            ).first()
-        if not existing:
-            existing = db.query(Vacancy).filter(
-                (Vacancy.url == canonical_url) | (Vacancy.url == u),
-                Vacancy.user_id == current_user.id,
-            ).first()
-
-        if existing and existing.id not in seen_ids:
-            seen_ids.add(existing.id)
-            duplicates.append(
-                DuplicateVacancyInfo(
-                    id=existing.id,
-                    url=existing.url,
-                    input_url=u,
-                    job_id=existing.job_id,
-                    title=existing.title,
-                    company=existing.company,
-                    status=existing.status,
-                )
-            )
-
-    return CheckDuplicatesResponse(
-        has_duplicates=len(duplicates) > 0,
-        duplicates=duplicates,
-    )
+    return duplicate_response(db, current_user.id, payload.urls)
 
 
 @app.post("/api/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse])
@@ -1107,22 +1091,17 @@ async def batch_import_vacancies(
                 seen.add(canonical_u)
                 unique_urls.append(canonical_u)
 
+    job_ids = {extract_job_id(url) for url in unique_urls} - {None}
+    matches = db.query(Vacancy.id, Vacancy.job_id, Vacancy.url).filter(
+        Vacancy.user_id == current_user.id,
+        or_(Vacancy.url.in_(unique_urls), Vacancy.job_id.in_(job_ids))).all() if unique_urls else []
+    ids_by_job = {row.job_id: row.id for row in matches if row.job_id}
+    ids_by_url = {row.url: row.id for row in matches}
     vacancy_ids = []
     for url in unique_urls:
         job_id = extract_job_id(url)
-        existing = None
-        if job_id:
-            existing = db.query(Vacancy).filter(
-                Vacancy.job_id == job_id,
-                Vacancy.user_id == current_user.id,
-            ).first()
-        if not existing:
-            existing = db.query(Vacancy).filter(
-                Vacancy.url == url,
-                Vacancy.user_id == current_user.id,
-            ).first()
-
-        if not existing:
+        existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
+        if not existing_id:
             v = Vacancy(
                 user_id=current_user.id,
                 job_id=job_id,
@@ -1145,11 +1124,13 @@ async def batch_import_vacancies(
             db.commit()
             db.refresh(v)
             vacancy_ids.append(v.id)
+            ids_by_url[url] = v.id
+            if job_id:
+                ids_by_job[job_id] = v.id
 
             mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
             vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-            asyncio.create_task(
-                publish_mercure_event(
+            await publish_mercure_event(
                     event_type=EVENT_VACANCY_CREATED,
                     data={
                         "message_code": MSG_VACANCY_CREATED,
@@ -1158,9 +1139,8 @@ async def batch_import_vacancies(
                     },
                     topic=mercure_topic,
                 )
-            )
         else:
-            vacancy_ids.append(existing.id)
+            vacancy_ids.append(existing_id)
 
     if not wait:
         # Default: Asynchronous queue processing
@@ -1184,18 +1164,8 @@ async def batch_import_vacancies(
         try:
             job_id = extract_job_id(url)
             
-            # Check if vacancy with same job_id or url already exists for current_user
-            existing = None
-            if job_id:
-                existing = db.query(Vacancy).filter(
-                    Vacancy.job_id == job_id,
-                    Vacancy.user_id == current_user.id,
-                ).first()
-            if not existing:
-                existing = db.query(Vacancy).filter(
-                    Vacancy.url == url,
-                    Vacancy.user_id == current_user.id,
-                ).first()
+            existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
+            existing = db.get(Vacancy, existing_id) if existing_id else None
 
             # Scrape vacancy via parser registry
             scraped = await scrape_job(url)
@@ -1307,8 +1277,7 @@ async def batch_import_vacancies(
 
                 mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
                 vacancy_data = VacancyResponse.model_validate(new_v).model_dump(mode="json")
-                asyncio.create_task(
-                    publish_mercure_event(
+                await publish_mercure_event(
                         event_type=EVENT_VACANCY_CREATED,
                         data={
                             "message_code": MSG_VACANCY_CREATED,
@@ -1317,7 +1286,6 @@ async def batch_import_vacancies(
                         },
                         topic=mercure_topic,
                     )
-                )
 
                 results.append(ImportItemResult(
                     url=url,
@@ -1403,8 +1371,7 @@ async def resummarize_vacancy(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
                 "message_code": MSG_VACANCY_UPDATED,
@@ -1412,7 +1379,6 @@ async def resummarize_vacancy(
             },
             topic=mercure_topic,
         )
-    )
     return v
 
 
@@ -1477,10 +1443,10 @@ def list_unique_tags(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
+    vacancies = db.query(Vacancy.tags).filter(Vacancy.user_id == current_user.id).all()
     all_tags = set()
     for v in vacancies:
-        for t in (v.tags or []):
+        for t in (v[0] or []):
             if t and t.strip():
                 all_tags.add(t.strip())
     return sorted(list(all_tags))
@@ -1841,7 +1807,7 @@ async def get_extension_tasks(current_user: User = Depends(get_current_user)):
     task_ids = await redis.lrange("queue:extension", 0, -1)
     tasks = []
     for tid in task_ids:
-        raw = await redis.get(f"queue:task:{tid.decode()}")
+        raw = await redis.get(f"{TASK_KEY_PREFIX}{tid}")
         if raw:
             t = JobTask.from_dict(json.loads(raw))
             if t.status == "pending_extension" and t.user_id == current_user.id:
@@ -1849,9 +1815,11 @@ async def get_extension_tasks(current_user: User = Depends(get_current_user)):
     return tasks
 
 @app.get("/api/extension/mercure_config")
-async def get_extension_mercure_config(current_user: User = Depends(get_current_user)):
+async def get_extension_mercure_config(response: Response, current_user: User = Depends(get_current_user)):
+    set_subscriber_cookie(response, current_user.id)
+    response.headers["Cache-Control"] = "no-store"
     return {
-        "mercure_hub_url": os.getenv("MERCURE_PUBLIC_URL", "http://localhost:3000/.well-known/mercure"),
+        "mercure_hub_url": get_mercure_public_url(),
         "topic": f"vacancies:{current_user.id}"
     }
 
@@ -1980,8 +1948,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
 
         mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
-        asyncio.create_task(
-            publish_mercure_event(
+        await publish_mercure_event(
                 event_type=EVENT_VACANCY_CREATED,
                 data={
                     "message_code": MSG_VACANCY_CREATED,
@@ -1990,7 +1957,6 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
                 },
                 topic=mercure_topic,
             )
-        )
         
     # If link requires browser extension to scrape and no HTML was supplied (e.g. context menu on a link),
     # enqueue into scrape pipeline so extension will open tab and extract DOM.
@@ -2023,6 +1989,11 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
         async with queue_manager.redis.pipeline(transaction=True) as pipe:
             pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
             pipe.rpush(AI_QUEUE_KEY, task_id)
+            pipe.sadd(f"linkedin:active:user:{current_user.id}", task_id)
+            pipe.expire(f"linkedin:active:user:{current_user.id}", TASK_TTL)
+            pipe.lpush(f"{RECENT_LIST}:{current_user.id}", task_id)
+            pipe.ltrim(f"{RECENT_LIST}:{current_user.id}", 0, 99)
+            pipe.expire(f"{RECENT_LIST}:{current_user.id}", TASK_TTL)
             pipe.lpush(RECENT_LIST, task_id)
             pipe.ltrim(RECENT_LIST, 0, 99)
             await pipe.execute()
@@ -2030,8 +2001,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
         total_remaining = await queue_manager._calculate_total_remaining(user_id=current_user.id)
         mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
-        asyncio.create_task(
-            publish_mercure_event(
+        await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
                     "message_code": MSG_VACANCY_UPDATED,
@@ -2043,9 +2013,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
                 },
                 topic=mercure_topic,
             )
-        )
-        asyncio.create_task(
-            publish_mercure_event(
+        await publish_mercure_event(
                 event_type=EVENT_QUEUE_UPDATED,
                 data={
                     "message_code": MSG_QUEUE_UPDATED,
@@ -2055,7 +2023,6 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
                 },
                 topic=mercure_topic,
             )
-        )
     
     return {"status": "queued_for_ai", "vacancy_id": vacancy.id, "task_id": task_id}
 
@@ -2073,24 +2040,31 @@ def get_stats(
     def local_day(dt: datetime.datetime) -> str:
         return (dt + delta).date().isoformat()
 
-    vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
+    today = (datetime.datetime.utcnow() + delta).date()
+    cutoff_date = today - datetime.timedelta(days=days - 1)
+    cutoff = cutoff_date.isoformat()
+    utc_cutoff = datetime.datetime.combine(cutoff_date, datetime.time.min) - delta
     daily: Dict[str, Dict[str, int]] = {}
-
     def bucket(day: str) -> Dict[str, int]:
         return daily.setdefault(day, {"added": 0, "marked": 0})
 
-    status_counts: Dict[str, int] = {}
-    for v in vacancies:
-        status_counts[v.status] = status_counts.get(v.status, 0) + 1
-        if v.created_at:
-            bucket(local_day(v.created_at))["added"] += 1
-        for h in v.history:
-            # Entries without from_status are the initial record created together with the vacancy.
-            if h.from_status is not None and h.created_at:
-                bucket(local_day(h.created_at))["marked"] += 1
+    status_counts = dict(db.query(Vacancy.status, func.count(Vacancy.id)).filter(
+        Vacancy.user_id == current_user.id).group_by(Vacancy.status).all())
+    total = sum(status_counts.values())
+    added_day = local_date(Vacancy.created_at, db.bind.dialect.name, tz_offset)
+    added_dates = db.query(added_day, func.count()).filter(
+        Vacancy.user_id == current_user.id, Vacancy.created_at >= utc_cutoff).group_by(added_day)
+    for day, count in added_dates:
+        bucket(str(day))["added"] = count
+    marked_day = local_date(VacancyStatusHistory.created_at, db.bind.dialect.name, tz_offset)
+    marked_dates = db.query(marked_day, func.count()).join(
+        Vacancy, Vacancy.id == VacancyStatusHistory.vacancy_id).filter(
+        Vacancy.user_id == current_user.id,
+        VacancyStatusHistory.from_status.isnot(None),
+        VacancyStatusHistory.created_at >= utc_cutoff).group_by(marked_day)
+    for day, count in marked_dates:
+        bucket(str(day))["marked"] = count
 
-    today = (datetime.datetime.utcnow() + delta).date()
-    cutoff = (today - datetime.timedelta(days=days - 1)).isoformat()
     series = [
         {"date": d, **counts}
         for d, counts in sorted(daily.items())
@@ -2099,7 +2073,7 @@ def get_stats(
 
     return {
         "today": today.isoformat(),
-        "total": len(vacancies),
+        "total": total,
         "by_status": status_counts,
         "daily": series,
     }
@@ -2391,15 +2365,12 @@ async def analyze_vacancy_compatibility(
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
     vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={"vacancy": vacancy_data, "message_code": MSG_VACANCY_UPDATED},
             topic=mercure_topic,
         )
-    )
-    asyncio.create_task(
-        publish_mercure_event(
+    await publish_mercure_event(
             event_type=EVENT_COMPATIBILITY_ANALYZED,
             data={
                 "message_code": MSG_COMPATIBILITY_ANALYZED,
@@ -2417,7 +2388,6 @@ async def analyze_vacancy_compatibility(
             },
             topic=mercure_topic,
         )
-    )
 
     return VacancyCVAnalysisResponse(
         id=analysis_record.id,

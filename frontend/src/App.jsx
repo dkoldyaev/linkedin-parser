@@ -142,7 +142,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
         <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : loginScreen} />
-        <Route path="/cv" element={user ? <CVManagementPage user={user} /> : loginScreen} />
+        <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
