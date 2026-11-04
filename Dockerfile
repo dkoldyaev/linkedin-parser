@@ -83,9 +83,12 @@ ENV NODE_ENV=production \
 # Copy standalone build and static assets
 COPY --from=frontend-builder /app/frontend/.next/standalone ./
 COPY --from=frontend-builder /app/frontend/.next/static ./frontend/.next/static
+COPY --from=frontend-builder /app/frontend/.next/static ./.next/static
 COPY --from=frontend-builder /app/frontend/public ./frontend/public
+COPY --from=frontend-builder /app/frontend/public ./public
 COPY --from=extension-builder /app/extension.zip ./frontend/public/extension.zip
+COPY --from=extension-builder /app/extension.zip ./public/extension.zip
 
 EXPOSE 3000
 
-CMD ["node", "frontend/server.js"]
+CMD ["sh", "-c", "if [ -f frontend/server.js ]; then node frontend/server.js; elif [ -f server.js ]; then node server.js; else find . -name 'server.js' -exec node {} \\;; fi"]
