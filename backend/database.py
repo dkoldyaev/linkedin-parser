@@ -224,6 +224,15 @@ def ensure_db_schema():
                         last_used_at DATETIME
                     );
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS revalidation_queue (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        item_type VARCHAR(16) NOT NULL,
+                        item_value VARCHAR(512) NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_revalidation_type_val UNIQUE (item_type, item_value)
+                    );
+                """))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -273,6 +282,15 @@ def ensure_db_schema():
                         key_prefix VARCHAR(16) NOT NULL,
                         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                         last_used_at TIMESTAMP WITH TIME ZONE
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS revalidation_queue (
+                        id SERIAL PRIMARY KEY,
+                        item_type VARCHAR(16) NOT NULL,
+                        item_value VARCHAR(512) NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                        CONSTRAINT uq_revalidation_type_val UNIQUE (item_type, item_value)
                     );
                 """))
     except Exception as e:
