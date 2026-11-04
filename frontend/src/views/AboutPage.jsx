@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Sparkles, Columns3, Flame, Puzzle } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useBlueprintGrid } from '../utils/useBlueprintGrid';
@@ -78,7 +80,7 @@ export default function AboutPage() {
 
         {/* Footer CTA Bar */}
         <div className="about-cta-bar bp-snap" data-min-grids="2">
-          <Link to="/howtouse" className="btn btn-secondary">
+          <Link href="/howtouse" className="btn btn-secondary">
             <span>{t('pages.about.cta')}</span>
           </Link>
         </div>

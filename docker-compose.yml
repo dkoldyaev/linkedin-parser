@@ -1,8 +1,27 @@
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-runner
+      args:
+        - APP_URL=${APP_URL}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - BACKEND_INTERNAL_URL=http://app:8000
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      app:
+        condition: service_healthy
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: backend
       args:
         - APP_URL=${APP_URL}
     restart: unless-stopped

@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import HeaderControls from './HeaderControls';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -8,7 +10,7 @@ export default function PageHeader({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
   return (
     <header className="app-header">
-      <Link to="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Link href="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
         <div className="brand-icon"><span className="blueprint-mark" aria-hidden="true" /></div>
         <div>
           <div className="brand-title">{t('nav.title')}</div>

@@ -129,6 +129,7 @@ from .queue_manager import (
     TASK_TTL,
     RECENT_LIST,
 )
+from .revalidation import revalidation_worker, enqueue_revalidation
 
 logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
 logger = logging.getLogger("linkedin_tracker")
@@ -276,9 +277,11 @@ seed_mock_data_if_enabled()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await queue_manager.start()
+    await revalidation_worker.start()
     try:
         yield
     finally:
+        await revalidation_worker.stop()
         await queue_manager.stop()
 
 
@@ -720,6 +723,8 @@ async def create_vacancy(
         created_at=v.created_at,
     )
     db.add(history_entry)
+    enqueue_revalidation(db, item_type="tag", item_value="vacancies")
+    enqueue_revalidation(db, item_type="path", item_value="/")
     db.commit()
     db.refresh(v)
 
@@ -802,6 +807,8 @@ async def reorder_vacancies(
         v.sort_order = float(position)
         changed.append(v)
 
+    enqueue_revalidation(db, item_type="tag", item_value="vacancies")
+    enqueue_revalidation(db, item_type="path", item_value="/")
     db.commit()
     for v in changed:
         db.refresh(v)
@@ -979,6 +986,8 @@ async def add_vacancy_history_entry(
     v.status = payload.to_status
     v.lane = to_lane
     db.add(history_entry)
+    enqueue_revalidation(db, item_type="tag", item_value="vacancies")
+    enqueue_revalidation(db, item_type="path", item_value="/")
     db.commit()
     db.refresh(v)
 
@@ -1041,6 +1050,8 @@ async def delete_vacancy(
         raise HTTPException(status_code=404, detail="Vacancy not found")
     
     title = v.title
+    enqueue_revalidation(db, item_type="tag", item_value="vacancies")
+    enqueue_revalidation(db, item_type="path", item_value="/")
     db.delete(v)
     db.commit()
 

@@ -229,3 +229,16 @@ class ApiKey(Base):
 
 
 
+
+
+class RevalidationQueue(Base):
+    __tablename__ = "revalidation_queue"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_type = Column(String(16), nullable=False)  # 'tag' or 'path'
+    item_value = Column(String(512), nullable=False)  # e.g. 'vacancies', '/vacancies/123'
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('item_type', 'item_value', name='uq_revalidation_type_val'),
+    )
