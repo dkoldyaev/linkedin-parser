@@ -8,8 +8,9 @@ export async function extractTextFromFile(file) {
     const pdfjs = await import('pdfjs-dist');
     const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
     pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-    const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+    const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() });
     try {
+      const pdf = await loadingTask.promise;
       const pages = [];
       for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
         const page = await pdf.getPage(pageNumber);
@@ -20,7 +21,7 @@ export async function extractTextFromFile(file) {
       if (!text) throw new Error('PDF does not contain selectable text.');
       return text;
     } finally {
-      await pdf.destroy();
+      await loadingTask.destroy();
     }
   }
 

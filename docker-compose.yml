@@ -11,6 +11,7 @@ services:
     environment:
       - APP_URL=${APP_URL}
       - DATA_DIR=/app/data
+      - SQL_DIAGNOSTICS=${SQL_DIAGNOSTICS:-false}
       - DATABASE_URL=${DATABASE_URL:-}
       - BROKER_URL=${BROKER_URL}
       - STATIC_DIR=/app/static
@@ -34,10 +35,11 @@ services:
     depends_on:
       - mercure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ | grep -q '<div id=\"root\"></div>'"]
+      interval: 5s
+      timeout: 5s
       retries: 3
+      start_period: 15s
 
   mercure:
     image: dunglas/mercure:v0.16
