@@ -358,13 +358,6 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health_check():
-    static_dir = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))
-    index_path = os.path.join(static_dir, "index.html")
-    if os.path.exists(static_dir) and not os.path.isfile(index_path):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Frontend index.html is not ready",
-        )
     return {"status": "ok"}
 
 
