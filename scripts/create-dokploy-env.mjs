@@ -400,6 +400,7 @@ async function main() {
   });
 
   const serviceNetworks = [
+    { serviceName: 'frontend', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'app', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'mercure', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'browser', networkIds: [envNet.networkId], detachDokployNetwork: false },
@@ -444,7 +445,8 @@ async function main() {
   const existingDomains = (await dokployRequest(`/domain.byComposeId?composeId=${composeId}`)) || [];
 
   const requiredDomains = [
-    { host: domainHost, path: '/', port: 8000, serviceName: 'app', label: 'App (Backend+Frontend)' },
+    { host: domainHost, path: '/', port: 3000, serviceName: 'frontend', label: 'Next.js Frontend' },
+    { host: domainHost, path: '/api', port: 8000, serviceName: 'app', label: 'FastAPI Backend API' },
     { host: domainHost, path: '/.well-known/mercure', port: 80, serviceName: 'mercure', label: 'Mercure SSE' },
   ];
 
@@ -551,9 +553,9 @@ async function main() {
     }
   }
 
-  // 10. Wait for app container to start and become ready
+  // 10. Wait for app and frontend containers to start and become ready
   if (!skipDeploy) {
-    console.log('\n\x1b[34m🔍 Waiting for app container to start up...\x1b[0m');
+    console.log('\n\x1b[34m🔍 Waiting for app containers to start up...\x1b[0m');
     const containerWaitStart = Date.now();
     let appContainerId = null;
 
@@ -561,41 +563,41 @@ async function main() {
     while (Date.now() - containerWaitStart < 120000) {
       const containers = (await dokployRequest('/docker.getContainers')) || [];
       const running = containers.find(
-        (c) => c.name && c.name.includes(composeApp.appName) && c.name.includes('-app-') && c.state === 'running'
+        (c) => c.name && c.name.includes(composeApp.appName) && (c.name.includes('-app-') || c.name.includes('-frontend-')) && c.state === 'running'
       );
       if (running) {
         appContainerId = running.containerId;
-        console.log(`  ✅ Found running app container: ${running.name}`);
+        console.log(`  ✅ Found running container: ${running.name}`);
         break;
       }
       await new Promise((r) => setTimeout(r, 3000));
     }
 
     if (!appContainerId) {
-      throw new Error(`Failed to find running app container for compose app "${composeApp.appName}" within 2 minutes.`);
-    }
+      console.log(`⚠️  Could not find running app/frontend container for compose app "${composeApp.appName}" within 2 minutes.`);
+    } else {
+      // 10.2 Tail logs until startup complete
+      console.log('  ⏳ Waiting for application startup log...');
+      let startupComplete = false;
+      const startupWaitStart = Date.now();
 
-    // 10.2 Tail logs until startup complete
-    console.log('  ⏳ Waiting for application startup log...');
-    let startupComplete = false;
-    const startupWaitStart = Date.now();
-
-    while (Date.now() - startupWaitStart < 120000) {
-      try {
-        const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
-        if (logs && (logs.includes('Application startup complete') || logs.includes('Uvicorn running on'))) {
-          startupComplete = true;
-          console.log('\n\x1b[32m✅ Application successfully started!\x1b[0m');
-          break;
+      while (Date.now() - startupWaitStart < 120000) {
+        try {
+          const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
+          if (logs && (logs.includes('Application startup complete') || logs.includes('Uvicorn running on') || logs.includes('Ready in') || logs.includes('Listening on port'))) {
+            startupComplete = true;
+            console.log('\n\x1b[32m✅ Application successfully started!\x1b[0m');
+            break;
+          }
+        } catch (err) {
+          // ignore log reading errors
         }
-      } catch (err) {
-        // ignore log reading errors
+        await new Promise((r) => setTimeout(r, 4000));
       }
-      await new Promise((r) => setTimeout(r, 4000));
-    }
 
-    if (!startupComplete) {
-      console.log('\n\x1b[33m⚠️ Application startup log not found within 2 minutes. The app might still be starting, or there might be an error.\x1b[0m');
+      if (!startupComplete) {
+        console.log('\n\x1b[33m⚠️ Application startup log not found within 2 minutes. The app might still be starting, or there might be an error.\x1b[0m');
+      }
     }
   }
 
