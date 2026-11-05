@@ -74,8 +74,8 @@ export default function App() {
     } catch (err) {
       console.error('Logout failed', err);
     }
-    setUser(null);
-    setAnalyticsUser(null);
+    // Refresh auth state to automatically issue a clean anonymous guest session
+    await checkAuth();
   };
 
   if (authLoading) {

@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import hashlib
 import logging
 from urllib.parse import urlencode
@@ -13,7 +14,9 @@ from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .models import User, Vacancy, ApiKey, UserFeatureFlag, KNOWN_FEATURE_FLAGS
+from .models import (
+    User, Vacancy, ApiKey, UserFeatureFlag, UserSetting, ApprovedCV, VacancyCVAnalysis, KNOWN_FEATURE_FLAGS
+)
 
 api_key_header_scheme = APIKeyHeader(name="X-API-Key", auto_error=False, description="Personal API Key")
 
@@ -461,3 +464,84 @@ def get_or_create_dev_user(db: Session, email: str = "dev@local.user", name: str
         name=name,
         picture="https://api.dicebear.com/7.x/bottts/svg?seed=dev",
     )
+
+
+def create_anonymous_user(db: Session) -> User:
+    """Create a new anonymous guest user with an isolated workspace."""
+    anon_id = uuid.uuid4().hex[:12]
+    user = User(
+        google_id=f"anon_{uuid.uuid4().hex}",
+        email=f"guest_{anon_id}@guest.local",
+        name="Гость",
+        picture="https://api.dicebear.com/7.x/bottts/svg?seed=guest_" + anon_id,
+        is_anonymous=True,
+        feature_flags=[],
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    user.feature_flags = []
+    return user
+
+
+def migrate_anonymous_user_data(db: Session, anon_user_id: int, target_user: User):
+    """
+    Migrate vacancies, settings, and CV data from an anonymous guest user to a permanent user.
+    Called when a guest logs in via Google or dev login.
+    """
+    if not anon_user_id or anon_user_id == target_user.id:
+        return
+
+    anon_user = db.query(User).filter(User.id == anon_user_id, User.is_anonymous.is_(True)).first()
+    if not anon_user:
+        return
+
+    logger.info(f"Migrating anonymous user {anon_user.id} ({anon_user.email}) data to user {target_user.id} ({target_user.email})")
+
+    # 1. Vacancies
+    db.query(Vacancy).filter(Vacancy.user_id == anon_user.id).update(
+        {Vacancy.user_id: target_user.id}, synchronize_session=False
+    )
+
+    # 2. ApprovedCV (if target user has no CV, transfer it)
+    anon_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == anon_user.id).first()
+    if anon_cv:
+        target_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == target_user.id).first()
+        if not target_cv:
+            anon_cv.user_id = target_user.id
+        else:
+            db.delete(anon_cv)
+
+    # 3. VacancyCVAnalysis (migrate analyses for non-conflicting vacancy_id)
+    anon_analyses = db.query(VacancyCVAnalysis).filter(VacancyCVAnalysis.user_id == anon_user.id).all()
+    for analysis in anon_analyses:
+        existing = db.query(VacancyCVAnalysis).filter(
+            VacancyCVAnalysis.user_id == target_user.id,
+            VacancyCVAnalysis.vacancy_id == analysis.vacancy_id
+        ).first()
+        if not existing:
+            analysis.user_id = target_user.id
+        else:
+            db.delete(analysis)
+
+    # 4. Settings
+    anon_settings = db.query(UserSetting).filter(UserSetting.user_id == anon_user.id).all()
+    for setting in anon_settings:
+        existing = db.query(UserSetting).filter(
+            UserSetting.user_id == target_user.id,
+            UserSetting.key == setting.key
+        ).first()
+        if not existing:
+            setting.user_id = target_user.id
+        else:
+            db.delete(setting)
+
+    # 5. Delete or cleanup the temporary anonymous user record
+    try:
+        db.delete(anon_user)
+        db.commit()
+        logger.info(f"Successfully migrated data from guest {anon_user_id} to user {target_user.id}")
+    except Exception as e:
+        logger.error(f"Error finalizing anonymous user migration: {e}")
+        db.rollback()
+

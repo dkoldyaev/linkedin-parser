@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Download, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Download, Settings, LogOut, LogIn, Menu, X } from 'lucide-react';
 import SettingsModal from './SettingsModal';
+import LoginModal from './LoginModal';
 import { useMenu } from './menuContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
@@ -13,6 +14,7 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
   const { t } = useTranslation();
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   return (
     <div className="header-actions">
@@ -40,19 +42,30 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             <Settings size={16} />
           </button>
 
-          <div className="user-profile-badge">
-            {user.picture ? (
-              <img src={user.picture} alt={user.name} className="user-avatar" />
-            ) : (
-              <div className="user-avatar-placeholder">
-                {(user.name || user.email || 'U')[0].toUpperCase()}
-              </div>
-            )}
-            <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
-            <button className="btn-logout" onClick={onLogout} title={t('auth.logout')}>
-              <LogOut size={15} />
+          {user.is_anonymous ? (
+            <button
+              className="btn btn-primary btn-guest-login"
+              onClick={() => setIsLoginModalOpen(true)}
+              title={t('auth.guest_login_tooltip') || 'Войти в аккаунт'}
+            >
+              <LogIn size={15} />
+              <span className="guest-login-text">{t('auth.login_btn') || 'Войти'}</span>
             </button>
-          </div>
+          ) : (
+            <div className="user-profile-badge">
+              {user.picture ? (
+                <img src={user.picture} alt={user.name} className="user-avatar" />
+              ) : (
+                <div className="user-avatar-placeholder">
+                  {(user.name || user.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
+              <button className="btn-logout" onClick={onLogout} title={t('auth.logout')}>
+                <LogOut size={15} />
+              </button>
+            </div>
+          )}
 
           <SettingsModal
             isOpen={isSettingsOpen}
@@ -61,6 +74,18 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
             onColumnsUpdated={onColumnsUpdated}
             onUserUpdated={onUserUpdated}
           />
+
+          {isLoginModalOpen && (
+            <LoginModal
+              isOpen={isLoginModalOpen}
+              onClose={() => setIsLoginModalOpen(false)}
+              onLoginSuccess={(updatedUser) => {
+                setIsLoginModalOpen(false);
+                if (onUserUpdated) onUserUpdated(updatedUser);
+              }}
+              isGuestPromotion={true}
+            />
+          )}
         </>
       )}
 

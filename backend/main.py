@@ -89,6 +89,8 @@ from .auth import (
     get_google_user_info,
     get_or_create_user,
     get_or_create_dev_user,
+    create_anonymous_user,
+    migrate_anonymous_user_data,
     create_access_token,
     COOKIE_NAME,
     ACCESS_TOKEN_EXPIRE_DAYS,
@@ -373,7 +375,26 @@ def get_auth_config():
 
 
 @app.get("/api/auth/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_me(request: Request, response: Response, db: Session = Depends(get_db)):
+    # If explicit API key or Authorization header was provided but invalid/unrecognized, reject with 401
+    api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+    auth_header = request.headers.get("Authorization")
+    if api_key_header or (auth_header and auth_header.startswith("Bearer ak_")):
+        # Explicit API key check
+        return get_current_user_from_api_key(request=request, api_key_param=None, db=db)
+
+    current_user = get_optional_user(request, db)
+    if not current_user:
+        current_user = create_anonymous_user(db)
+        token = create_access_token({"sub": str(current_user.id), "email": current_user.email, "name": current_user.name})
+        response.set_cookie(
+            key=COOKIE_NAME,
+            value=token,
+            max_age=86400 * ACCESS_TOKEN_EXPIRE_DAYS,
+            httponly=True,
+            samesite="lax",
+            path="/",
+        )
     current_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == current_user.id).all()]
     return current_user
 
@@ -504,7 +525,14 @@ async def google_callback(
     if not google_id or not email:
         raise HTTPException(status_code=400, detail="Incomplete user profile from Google")
 
+    # If the user previously had an anonymous guest session, migrate data
+    prev_user = get_optional_user(request, db)
+    prev_anon_id = prev_user.id if (prev_user and prev_user.is_anonymous) else None
+
     user = get_or_create_user(db, google_id=google_id, email=email, name=name, picture=picture)
+    if prev_anon_id:
+        migrate_anonymous_user_data(db, anon_user_id=prev_anon_id, target_user=user)
+
     token = create_access_token({"sub": str(user.id), "email": user.email, "name": user.name})
 
     response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
@@ -521,12 +549,19 @@ async def google_callback(
 
 
 @app.post("/api/auth/dev-login")
-def dev_login(payload: DevLoginRequest, response: Response, db: Session = Depends(get_db)):
+def dev_login(payload: DevLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     dev_enabled = os.getenv("DEV_AUTH", "true").lower() in ("true", "1", "yes")
     if not dev_enabled:
         raise HTTPException(status_code=403, detail="Dev login is disabled in production")
     
+    # If the user previously had an anonymous guest session, migrate data
+    prev_user = get_optional_user(request, db)
+    prev_anon_id = prev_user.id if (prev_user and prev_user.is_anonymous) else None
+
     user = get_or_create_dev_user(db, email=payload.email or "dev@local.user", name=payload.name or "Dev User")
+    if prev_anon_id:
+        migrate_anonymous_user_data(db, anon_user_id=prev_anon_id, target_user=user)
+
     token = create_access_token({"sub": str(user.id), "email": user.email, "name": user.name})
     response.set_cookie(
         key=COOKIE_NAME,
@@ -2421,13 +2456,14 @@ async def adapt_cv_for_vacancy(
     Triggers adaptation or re-adaptation of the candidate's CV for this specific vacancy.
     Currently disabled.
     """
+    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="CV adaptation feature is temporarily disabled.",
     )
-    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
-    if not vacancy:
-        raise HTTPException(status_code=404, detail="Vacancy not found")
 
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if not approved_cv or not approved_cv.content.strip():
