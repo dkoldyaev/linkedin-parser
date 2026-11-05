@@ -34,7 +34,7 @@ function Layout({ user, onLogout, onUserUpdated }) {
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
         <div
           className={`app-shell-content${pathname === '/' && !user ? ' is-landing' : ''}`}
-          onScroll={user ? snapScroll : undefined}
+          onScroll={user || pathname === '/' ? snapScroll : undefined}
         >
           <Outlet />
         </div>

@@ -1,83 +1,139 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, ChevronRight, Search, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowDown, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, ExternalLink, Sparkles } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
+import { useBlueprintGrid } from '../utils/useBlueprintGrid';
 import './LandingPage.css';
 
 const stages = [
-  { name: 'Сохранено', color: '#5b8cff', jobs: [['Product Designer', 'Linear', '€65–80k'], ['UX Designer', 'Miro', 'Remote']] },
-  { name: 'Отклик', color: '#46b7c8', jobs: [['Senior Product Designer', 'Loom', '€72–90k']] },
-  { name: 'Интервью', color: '#e6a94b', jobs: [['Design Lead', 'Vercel', '€90–110k']] },
-  { name: 'Оффер', color: '#42c697', jobs: [['Product Designer', 'Northstar', '€85k']] },
+  { name: 'Сохранено', status: '01', color: 'var(--primary)', jobs: [['Product Designer', 'Linear'], ['UX Designer', 'Miro']] },
+  { name: 'Отклик', status: '02', color: 'var(--col-applied)', jobs: [['Senior Product Designer', 'Loom']] },
+  { name: 'Интервью', status: '03', color: 'var(--col-interview)', jobs: [['Design Lead', 'Vercel']] },
+  { name: 'Оффер', status: '04', color: 'var(--col-offer)', jobs: [['Product Designer', 'Northstar']] },
 ];
 
 const features = [
-  { n: '01', title: 'Собирайте вакансии в одном месте', copy: 'Сохраняйте подходящие роли с LinkedIn и других площадок. Условия, источник и ссылка остаются рядом.', mark: '01 / СБОР' },
-  { n: '02', title: 'Переводим с LinkedIn-овского на человеческий', copy: 'AI-саммари убирает корпоративный жаргон и коротко объясняет суть: чем заниматься и какие требования указаны в вакансии.', mark: '02 / ПЕРЕВОД' },
-  { n: '03', title: 'Держите поиск под контролем', copy: 'Перемещайте вакансии по этапам, добавляйте заметки и быстро находите нужное с помощью фильтров.', mark: '03 / ПРОЦЕСС' },
-  { n: '04', title: 'Находите точное совпадение', copy: 'Сопоставляйте требования вакансии со своим резюме и готовьтесь к отклику с полной картиной.', mark: '04 / ФОКУС' },
+  { n: '01', title: 'Собирайте вакансии в одном месте', copy: 'Сохраняйте роли из LinkedIn и других площадок. Ссылка, источник и условия остаются рядом.', mark: 'СБОР' },
+  { n: '02', title: 'Переводим с LinkedIn-овского на человеческий', copy: 'AI-саммари коротко объясняет суть вакансии: обязанности и требования, которые прямо указаны в описании.', mark: 'AI-САММАРИ' },
+  { n: '03', title: 'Держите поиск под контролем', copy: 'Перемещайте вакансии по этапам, добавляйте заметки и находите нужное с помощью фильтров.', mark: 'ПРОЦЕСС' },
+  { n: '04', title: 'Находите точное совпадение', copy: 'Сопоставляйте требования вакансии со своим резюме и готовьтесь к следующему шагу.', mark: 'РЕЗЮМЕ' },
 ];
 
 export default function LandingPage({ onLoginSuccess }) {
   const [loginOpen, setLoginOpen] = useState(false);
-  useEffect(() => {
-    const nodes = document.querySelectorAll('.landing-reveal');
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
-    }), { threshold: 0.14, rootMargin: '0px 0px -5% 0px' });
-    nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, []);
-
+  const pageRef = useBlueprintGrid();
   const start = () => setLoginOpen(true);
+
   return (
-    <main className="landing-page">
-      <nav className="landing-nav">
-        <a className="landing-brand" href="#top" aria-label="LinkedIn Vacancies — наверх"><span className="brand-glyph"><BriefcaseBusiness size={17} /></span><span>vacancy<span className="brand-light">.work</span></span></a>
-        <div className="landing-links"><a href="#workflow">Как это работает</a><a href="#features">Возможности</a><a href="/howtouse">Инструкция <ArrowUpRight size={13} /></a></div>
-        <button className="landing-nav-cta" onClick={start}>Открыть приложение <ArrowRight size={14} /></button>
-      </nav>
+    <main ref={pageRef} className="landing-page bp-page">
+      <div className="bp-container">
+        <header className="app-header landing-nav">
+          <a href="#top" className="brand" aria-label="LinkedIn Vacancies — наверх">
+            <span className="brand-icon"><span className="blueprint-mark" aria-hidden="true" /></span>
+            <span className="landing-brand-copy"><span className="brand-title">LinkedIn Vacancies</span><span className="brand-subtitle">ПОИСК РАБОТЫ / WORKSPACE</span></span>
+          </a>
+          <nav className="landing-nav-links" aria-label="Навигация по лендингу">
+            <a href="#workflow" className="btn btn-secondary">Процесс</a>
+            <a href="#features" className="btn btn-secondary">Возможности</a>
+            <button className="btn btn-primary" onClick={start}>Открыть приложение <ArrowRight size={14} /></button>
+          </nav>
+        </header>
 
-      <section className="landing-hero" id="top">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="live-dot" /> ВАШ ПОИСК РАБОТЫ — В ОДНОМ ПРОСТРАНСТВЕ</div>
-          <h1>Меньше вкладок.<br /><span>Больше</span> движения.</h1>
-          <p className="hero-lede">Соберите вакансии, отклики и интервью в понятную систему. А LinkedIn-овский язык вакансий мы переведём на человеческий.</p>
-          <div className="hero-actions"><button className="button-primary" onClick={start}>Начать поиск <ArrowRight size={16} /></button><a className="button-quiet" href="#workflow"><span className="play-mark"><ArrowDown size={14} /></span> Посмотреть, как работает</a></div>
-          <div className="hero-proof"><div className="avatar-stack"><i>А</i><i>М</i><i>И</i><i>+</i></div><span>Для тех, кто ищет работу<br /><b>осознанно и без хаоса</b></span></div>
-        </div>
-        <div className="hero-visual" aria-label="Пример доски вакансий">
-          <div className="orbit orbit-one" /><div className="orbit orbit-two" />
-          <div className="board-window">
-            <div className="window-top"><div className="window-lights"><i /><i /><i /></div><span>MY JOB SEARCH / BOARD</span><div className="window-avatar">A</div></div>
-            <div className="board-toolbar"><div><span className="board-title">Мой поиск</span><span className="board-date"> · обновлено сегодня</span></div><div className="board-tools"><Search size={14} /><span className="board-filter">Фильтры <span>2</span></span><span className="board-add">+</span></div></div>
-            <div className="board-grid">{stages.map((stage, i) => <div className="board-column" key={stage.name} style={{ '--stage-color': stage.color, '--column-delay': `${i * 90}ms` }}><div className="column-label"><span className="stage-dot" />{stage.name}<span className="column-count">0{stage.jobs.length}</span></div>{stage.jobs.map(([title, company, salary]) => <article className="job-card" key={title}><div className="job-company"><span className="company-monogram">{company[0]}</span><span>{company}</span><ArrowUpRight size={11} /></div><h3>{title}</h3><div className="job-meta"><span>{salary}</span><span>↗ Remote</span></div></article>)}</div>)}</div>
-            <div className="board-status"><span><span className="live-dot" /> Все изменения сохранены</span><span>5 вакансий <span className="status-separator">/</span> 4 этапа</span></div>
+        <section className="landing-hero bp-grid-row" id="top" data-cols="2">
+          <div className="hero-copy bp-snap" data-min-grids="14">
+            <div className="landing-kicker"><span className="sys-status-dot" /> ПОИСК РАБОТЫ / ВАШ ПРОЦЕСС</div>
+            <h1 className="info-title">Меньше вкладок.<br /><span>Больше</span> движения.</h1>
+            <p className="info-text hero-lede">Соберите вакансии и отклики в одном месте. А LinkedIn-овский язык вакансий мы переведём на человеческий.</p>
+            <div className="hero-actions">
+              <button className="btn btn-primary" onClick={start}>Начать поиск <ArrowRight size={14} /></button>
+              <a className="btn btn-secondary" href="#workflow"><ArrowDown size={13} /> Как это работает</a>
+            </div>
+            <div className="hero-proof"><span className="column-index">ПОИСК</span><span>Вакансии, этапы и резюме — в одной доске.</span></div>
           </div>
-          <div className="floating-note note-match"><span className="note-icon"><Sparkles size={15} /></span><span><b>Совпадение найдено</b><small>Резюме подходит на 86%</small></span><span className="match-score">86</span></div>
-          <div className="floating-note note-source"><span className="source-in">in</span><span><b>Вакансия сохранена</b><small>LinkedIn · 2 минуты назад</small></span><Check size={15} className="note-check" /></div>
-          <span className="visual-index">FIG 01 — ВАША СИСТЕМА ПОИСКА</span>
-        </div>
-        <a className="hero-scroll" href="#workflow"><span>ЛИСТАЙТЕ, ЧТОБЫ УЗНАТЬ</span><ArrowDown size={13} /></a>
-      </section>
 
-      <section className="signal-strip"><div className="signal-inner"><span>ОДНО МЕСТО</span><i /><span>ПОНЯТНЫЕ ЭТАПЫ</span><i /><span>ВАЖНОЕ ПОД РУКОЙ</span><i /><span>ВАШ ТЕМП</span></div></section>
+          <div className="hero-board bp-snap" data-min-grids="14" aria-label="Пример доски вакансий">
+            <div className="column-header landing-board-header">
+              <div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">МОЙ ПОИСК</span></div>
+              <span className="column-badge">5 вакансий</span>
+            </div>
+            <div className="kanban-board landing-demo-board">
+              {stages.map((stage) => (
+                <section className="kanban-column landing-demo-column" key={stage.name}>
+                  <header className="column-header landing-stage-header">
+                    <div className="column-title-group"><span className="column-index">{stage.status}</span><span className="column-dot" style={{ background: stage.color }} /><span className="column-name">{stage.name}</span></div>
+                    <span className="column-badge">{stage.jobs.length}</span>
+                  </header>
+                  <div className="column-cards landing-demo-cards">
+                    {stage.jobs.map(([title, company]) => (
+                      <article className="kanban-card landing-demo-card" key={title}>
+                        <div className="card-grid-content"><div className="card-grid-body-content">
+                          <div className="card-header-meta"><span className="card-source-link">LINKEDIN <ExternalLink size={10} /></span></div>
+                          <h3 className="card-title">{title}</h3>
+                          <span className="landing-company">{company} <span>·</span> Remote</span>
+                        </div></div>
+                        <div className="card-footer"><span>ОБНОВЛЕНО СЕГОДНЯ</span><ArrowUpRight size={12} /></div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+            <div className="landing-board-status"><span><span className="sys-status-dot" /> ИЗМЕНЕНИЯ СОХРАНЕНЫ</span><span>ДОСКА / 04 ЭТАПА</span></div>
+          </div>
+        </section>
 
-      <section className="workflow-section" id="workflow">
-        <div className="section-heading landing-reveal"><div className="eyebrow"><span className="section-number">01</span> ПРОСТОЙ ПРОЦЕСС</div><h2>От первой находки<br />до <em>новой работы.</em></h2><p>Хороший поиск — это последовательность маленьких шагов. Мы собрали их в одном месте.</p></div>
-        <div className="workflow-line"><div className="workflow-progress" /></div>
-        <div className="workflow-steps">{[['Сохраняйте', 'Добавьте интересную вакансию из источника или вручную.'], ['Раскладывайте', 'Назначьте этап, чтобы понимать, что уже сделано и что дальше.'], ['Действуйте', 'Сравните требования с резюме и подготовьтесь к следующему шагу.']].map(([title, copy], i) => <article className="workflow-step landing-reveal" key={title}><div className="step-marker"><span>0{i + 1}</span></div><h3>{title}</h3><p>{copy}</p><span className="step-arrow"><ChevronRight size={15} /></span></article>)}</div>
-      </section>
+        <div className="landing-signal column-header"><span>ОДНО МЕСТО</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span>ПОНЯТНЫЕ ЭТАПЫ</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span>ВАЖНОЕ ПОД РУКОЙ</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span>ВАШ ТЕМП</span></div>
 
-      <section className="features-section" id="features">
-        <div className="features-head landing-reveal"><div><div className="eyebrow"><span className="section-number">02</span> ПРОДУМАНО ДЛЯ ПОИСКА</div><h2>Всё важное.<br /><em>Ничего лишнего.</em></h2></div><p>Инструменты, которые помогают держать фокус на следующем хорошем шаге.</p></div>
-        <div className="feature-list">{features.map((item) => <article className="feature-row landing-reveal" key={item.n}><span className="feature-n">{item.n}</span><div className="feature-title"><h3>{item.title}</h3><p>{item.copy}</p></div><span className="feature-mark">{item.mark}</span><ArrowUpRight size={17} className="feature-arrow" /></article>)}</div>
-      </section>
+        <section className="landing-section" id="workflow">
+          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ПРОСТОЙ ПРОЦЕСС</span></div><span className="bp-col-tag">ОТ НАХОДКИ ДО ОТКЛИКА</span></header>
+          <div className="landing-section-intro bp-snap" data-min-grids="6"><h2 className="info-title">От первой находки<br />до <span>новой работы.</span></h2><p className="info-text">Хороший поиск — это последовательность понятных шагов, собранных в одном месте.</p></div>
+          <div className="landing-steps bp-grid-row" data-cols="3">
+            {[
+              ['01', 'Сохраняйте', 'Добавьте вакансию из LinkedIn или другой площадки. Источник и ссылка сохранятся вместе с ней.'],
+              ['02', 'Разбирайтесь', 'Читайте короткое AI-саммари вместо длинного корпоративного описания вакансии.'],
+              ['03', 'Действуйте', 'Отслеживайте отклики, интервью и следующие шаги на своей доске.'],
+            ].map(([n, title, copy]) => (
+              <article className="bp-col landing-step" key={n}>
+                <div className="column-header"><div className="column-title-group"><span className="column-index">{n}</span><span className="column-dot" style={{ background: n === '02' ? 'var(--aspen-mint)' : 'var(--primary)' }} /><span className="column-name">{title}</span></div></div>
+                <div className="bp-cell-intro bp-snap landing-step-copy" data-min-grids="4"><p className="info-text">{copy}</p></div>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      <section className="focus-section"><div className="focus-grid"><div className="focus-copy landing-reveal"><div className="eyebrow"><span className="section-number">03</span> ВАШЕ ПРЕИМУЩЕСТВО</div><h2>Не просто список.<br /><em>Видимый прогресс.</em></h2><p>Когда вакансии, источники, этапы и резюме связаны, проще увидеть приоритеты, не упустить ответ и направить энергию туда, где шанс выше.</p><button className="text-link" onClick={start}>Собрать свой процесс <ArrowRight size={15} /></button></div><div className="focus-visual landing-reveal"><div className="focus-grid-bg" /><div className="focus-card"><span className="focus-card-kicker">ПОИСК / ИТОГО</span><div className="focus-stat"><b>04</b><span>активных<br />этапа</span></div><div className="focus-divider" /><div className="focus-bars"><div><span>Сохранено</span><i><b style={{width:'78%'}} /></i><small>08</small></div><div><span>Отклик</span><i><b style={{width:'55%'}} /></i><small>05</small></div><div><span>Интервью</span><i><b style={{width:'30%'}} /></i><small>02</small></div></div><span className="focus-card-foot"><span className="live-dot" /> ПОИСК ИДЁТ</span></div><div className="focus-orb">↗</div></div></div></section>
+        <section className="landing-section" id="features">
+          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">02</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ИНСТРУМЕНТЫ ПОИСКА</span></div><span className="bp-col-tag">СОБРАНО В ОДНОМ WORKSPACE</span></header>
+          <div className="landing-section-intro bp-snap" data-min-grids="5"><h2 className="info-title">Всё важное.<br /><span>Без лишнего.</span></h2><p className="info-text">Больше ясности в каждой вакансии и каждом следующем шаге.</p></div>
+          <div className="landing-features">
+            {features.map((item) => (
+              <article className="landing-feature" key={item.n}>
+                <div className="column-title-group"><span className="column-index">{item.n}</span><span className="column-dot" style={{ background: item.n === '02' ? 'var(--aspen-mint)' : 'var(--primary)' }} /></div>
+                <div className="landing-feature-copy"><h3 className="column-name">{item.title}</h3><p className="info-text">{item.copy}</p></div>
+                <span className="bp-col-tag">{item.mark}</span>
+              </article>
+            ))}
+          </div>
+        </section>
 
-      <section className="landing-cta"><div className="cta-glow" /><div className="eyebrow"><span className="live-dot" /> СЛЕДУЮЩИЙ ШАГ ЗА ВАМИ</div><h2>Пусть поиск<br />работает <em>на вас.</em></h2><p>Начните собирать свой процесс в одном месте.</p><button className="button-primary button-cta" onClick={start}>Открыть приложение <ArrowRight size={16} /></button><span className="cta-foot">LINKEDIN VACANCIES <span>·</span> ВАША КАРЬЕРА, ВАШ РИТМ</span></section>
+        <section className="landing-section landing-advantage">
+          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">03</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ВАШЕ ПРЕИМУЩЕСТВО</span></div><span className="bp-col-tag">ПОИСК / ИТОГО</span></header>
+          <div className="landing-advantage-grid bp-grid-row" data-cols="2">
+            <div className="landing-section-intro bp-snap" data-min-grids="8"><h2 className="info-title">Не просто список.<br /><span>Видимый прогресс.</span></h2><p className="info-text">Когда вакансии, источники, этапы и резюме связаны, проще увидеть приоритеты и направить внимание на следующий шаг.</p><button className="btn btn-primary" onClick={start}>Собрать свой процесс <ArrowRight size={14} /></button></div>
+            <div className="kanban-column landing-summary-column">
+              <div className="column-header"><div className="column-title-group"><span className="column-index">СЕЙЧАС</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ПОИСК ИДЁТ</span></div></div>
+              <div className="column-cards landing-summary-cards">
+                {stages.slice(0, 3).map((stage, i) => <div className="landing-summary-row" key={stage.status}><span className="column-index">{stage.status}</span><span className="column-name">{stage.name}</span><span className="column-badge">{['08', '05', '02'][i]}</span></div>)}
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <footer className="landing-footer"><a className="landing-brand" href="#top"><span className="brand-glyph"><BriefcaseBusiness size={16} /></span><span>vacancy<span className="brand-light">.work</span></span></a><span>Соберите поиск. Сохраните фокус.</span><div><a href="/about">О проекте</a><a href="/howtouse">Как пользоваться</a><span>© 2026</span></div></footer>
+        <section className="landing-cta bp-snap" data-min-grids="10">
+          <div className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">04</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">СЛЕДУЮЩИЙ ШАГ ЗА ВАМИ</span></div><span className="bp-col-tag">LINKEDIN VACANCIES</span></div>
+          <div className="landing-cta-content"><h2 className="info-title">Пусть поиск<br />работает <span>на вас.</span></h2><p className="info-text">Начните собирать свой процесс в одном месте.</p><button className="btn btn-primary" onClick={start}>Открыть приложение <ArrowRight size={14} /></button></div>
+        </section>
+
+        <footer className="landing-footer"><a href="#top" className="brand"><span className="brand-icon"><span className="blueprint-mark" aria-hidden="true" /></span><span className="brand-title">LinkedIn Vacancies</span></a><span className="landing-footer-copy">ПОИСК РАБОТЫ / WORKSPACE</span><a className="btn btn-secondary" href="/about">О проекте <ArrowUpRight size={13} /></a></footer>
+      </div>
       {loginOpen && <div className="landing-login"><button className="login-dismiss" aria-label="Закрыть" onClick={() => setLoginOpen(false)}>×</button><LoginModal onLoginSuccess={onLoginSuccess} /></div>}
     </main>
   );
