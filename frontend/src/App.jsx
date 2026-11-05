@@ -8,7 +8,6 @@ import { MenuContext } from './components/menuContext';
 import { useGridScroll } from './utils/useGridScroll';
 import HomePage from './pages/HomePage';
 import StatsPage from './pages/StatsPage';
-import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import CVManagementPage from './pages/CVManagementPage';
 import ApiKeysPage from './pages/ApiKeysPage';
@@ -21,13 +20,14 @@ function Layout({ user, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const snapScroll = useGridScroll();
-  const landingRoute = pathname === '/landing' || (pathname === '/' && !user);
+  const landingRoute =
+    pathname === '/howtouse' || pathname === '/landing' || (pathname === '/' && !user);
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
     [open]
   );
-  // The board ("/") renders its own header with search; other pages use the shared one.
-  const showPageHeader = pathname !== '/' && pathname !== '/landing';
+  // The board ("/" when authenticated) renders its own header with search; all other pages (including LandingPage) use the shared PageHeader.
+  const showPageHeader = !(pathname === '/' && user);
 
   return (
     <MenuContext.Provider value={menu}>
@@ -35,11 +35,15 @@ function Layout({ user, onLogout, onUserUpdated }) {
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
         <div
           className={`app-shell-content${landingRoute ? ' is-landing' : ''}`}
-          onScroll={user || pathname === '/' || pathname === '/landing' ? snapScroll : undefined}
+          onScroll={
+            user || pathname === '/' || pathname === '/landing' || pathname === '/howtouse'
+              ? snapScroll
+              : undefined
+          }
         >
           <Outlet />
         </div>
-        {user && <NavDrawer user={user} />}
+        <NavDrawer user={user} />
       </div>
     </MenuContext.Provider>
   );
@@ -146,14 +150,14 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
-        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : <LandingPage onLoginSuccess={setUser} />} />
-        <Route path="/landing" element={<LandingPage onLoginSuccess={setUser} />} />
+        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : <LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
         <Route path="/admin" element={user ? <AdminPage user={user} /> : loginScreen} />
-        <Route path="/howtouse" element={<HowToUsePage />} />
+        <Route path="/howtouse" element={<LandingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

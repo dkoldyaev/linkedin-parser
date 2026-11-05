@@ -91,18 +91,51 @@ export default function KanbanBoard({
     if (!board) return;
     const update = () => {
       const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
-      const columnsWidth = Array.from(board.children)
-        .filter(child => !child.classList.contains('kanban-add-column'))
-        .reduce((sum, child) => sum + child.offsetWidth, 0);
-      const tail = columnsWidth + grid > board.clientWidth
-        ? ((board.clientWidth - columnsWidth - grid) % grid + grid) % grid
-        : 0;
-      board.style.setProperty('--add-column-extra-width', `${tail}px`);
+      const colEls = Array.from(board.children).filter(
+        child => !child.classList.contains('kanban-add-column')
+      );
+      const count = colEls.length;
+      if (count === 0) return;
+
+      const isMobile = window.innerWidth <= 700;
+      const minUnits = isMobile ? 10 : 8;
+      const totalUnits = Math.floor(board.clientWidth / grid);
+      const availUnits = totalUnits - 1;
+
+      if (!isMobile && availUnits >= count * minUnits) {
+        const baseUnits = Math.floor(availUnits / count);
+        const remUnits = availUnits % count;
+        colEls.forEach((el, idx) => {
+          const w = (baseUnits + (idx < remUnits ? 1 : 0)) * grid;
+          el.style.flex = `0 0 ${w}px`;
+          el.style.width = `${w}px`;
+          el.style.minWidth = `${w}px`;
+          el.style.maxWidth = `${w}px`;
+        });
+        board.style.setProperty('--add-column-extra-width', '0px');
+      } else {
+        const w = minUnits * grid;
+        colEls.forEach(el => {
+          el.style.flex = `0 0 ${w}px`;
+          el.style.width = `${w}px`;
+          el.style.minWidth = `${w}px`;
+          el.style.maxWidth = `${w}px`;
+        });
+        const columnsWidth = count * w;
+        const tail = columnsWidth + grid > board.clientWidth
+          ? ((board.clientWidth - columnsWidth - grid) % grid + grid) % grid
+          : 0;
+        board.style.setProperty('--add-column-extra-width', `${tail}px`);
+      }
     };
     const observer = new ResizeObserver(update);
     observer.observe(board);
+    window.addEventListener('resize', update);
     update();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
   }, [columns]);
 
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));

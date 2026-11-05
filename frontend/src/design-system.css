@@ -229,6 +229,9 @@ body { background: var(--bg-main); }
     padding: 0;
     text-align: center;
 }
+.card-closed-badge {
+  width: auto;
+}
 .card-meta { gap: 6px 12px; }
 .card-workplace-badge, .card-workplace-badge.remote, .card-workplace-badge.hybrid, .card-workplace-badge.onsite,
 .card-salary-badge, .card-match-badge { padding: 0; border: 0; background: transparent; border-radius: 0; }
@@ -390,7 +393,6 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .btn-icon { width: calc(5 * var(--grid-unit)); padding: 0; }
 .filter-bar { min-height: calc(2 * var(--grid-unit)); padding: var(--grid-unit) calc(2 * var(--grid-unit)); }
 .kanban-board { gap: 0; padding: 0; }
-.kanban-column { flex: 0 0 calc(10 * var(--grid)); width: calc(10 * var(--grid)); min-width: calc(10 * var(--grid)); max-width: calc(10 * var(--grid)); }
 .column-cards { padding: calc(2 * var(--grid-unit)); gap: calc(2 * var(--grid-unit)); }
 .kanban-card, [data-theme='light'] .kanban-card { padding: calc(2 * var(--grid-unit)); gap: var(--grid-unit); }
 .card-footer { margin-top: 0; padding-top: var(--grid-unit); }
@@ -421,8 +423,9 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   background-blend-mode: normal;
 }
 .kanban-add-column {
-  flex: 0 0 calc(var(--grid) + var(--add-column-extra-width, 0px));
-  width: calc(var(--grid) + var(--add-column-extra-width, 0px));
+  flex: 1 0 calc(var(--grid) + var(--add-column-extra-width, 0px));
+  width: auto;
+  min-width: calc(var(--grid) + var(--add-column-extra-width, 0px));
   max-width: none;
   background-color: var(--bg-main);
   background-image: linear-gradient(var(--board-grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--board-grid-line) 1px, transparent 1px);
