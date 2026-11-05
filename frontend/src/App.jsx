@@ -32,7 +32,10 @@ function Layout({ user, onLogout, onUserUpdated }) {
     <MenuContext.Provider value={menu}>
       <div className="app-shell">
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
-        <div className="app-shell-content" onScroll={snapScroll}>
+        <div
+          className={`app-shell-content${pathname === '/' && !user ? ' is-landing' : ''}`}
+          onScroll={user ? snapScroll : undefined}
+        >
           <Outlet />
         </div>
         {user && <NavDrawer user={user} />}

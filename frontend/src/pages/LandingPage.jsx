@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, ChevronRight, Circle, Command, Search, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, ChevronRight, Search, Sparkles } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import './LandingPage.css';
 
@@ -64,7 +64,7 @@ export default function LandingPage({ onLoginSuccess }) {
       <section className="workflow-section" id="workflow">
         <div className="section-heading landing-reveal"><div className="eyebrow"><span className="section-number">01</span> ПРОСТОЙ ПРОЦЕСС</div><h2>От первой находки<br />до <em>новой работы.</em></h2><p>Хороший поиск — это последовательность маленьких шагов. Мы собрали их в одном месте.</p></div>
         <div className="workflow-line"><div className="workflow-progress" /></div>
-        <div className="workflow-steps">{[['Сохраняйте', 'Добавьте интересную вакансию из источника или вручную.'], ['Раскладывайте', 'Назначьте этап, чтобы понимать, что уже сделано и что дальше.'], ['Действуйте', 'Сравните требования с резюме и подготовьтесь к следующему шагу.']].map(([title, copy], i) => <article className="workflow-step landing-reveal" key={title}><div className="step-marker"><span>0{i + 1}</span><Circle size={13} /></div><h3>{title}</h3><p>{copy}</p><span className="step-arrow"><ChevronRight size={15} /></span></article>)}</div>
+        <div className="workflow-steps">{[['Сохраняйте', 'Добавьте интересную вакансию из источника или вручную.'], ['Раскладывайте', 'Назначьте этап, чтобы понимать, что уже сделано и что дальше.'], ['Действуйте', 'Сравните требования с резюме и подготовьтесь к следующему шагу.']].map(([title, copy], i) => <article className="workflow-step landing-reveal" key={title}><div className="step-marker"><span>0{i + 1}</span></div><h3>{title}</h3><p>{copy}</p><span className="step-arrow"><ChevronRight size={15} /></span></article>)}</div>
       </section>
 
       <section className="features-section" id="features">
