@@ -32,7 +32,8 @@ export function useBlueprintGrid(deps = []) {
         if (vw <= 700) {
           cols = 1;
         } else if (vw <= 1024) {
-          cols = Math.min(maxCols, 2);
+          const tabletCols = parseInt(row.getAttribute('data-tablet-cols'), 10);
+          cols = Math.min(maxCols, tabletCols || 2);
         }
 
         if (cols <= 1) {
@@ -50,13 +51,32 @@ export function useBlueprintGrid(deps = []) {
       for (const el of snaps) {
         el.style.minHeight = '';
       }
-      const heights = snaps.map((el) => {
+      // Size nested headers/copy before their containing cards, so a parent's
+      // measured height includes the final grid-aligned dimensions of its children.
+      snaps.sort((a, b) => {
+        let depthA = 0;
+        let depthB = 0;
+        for (let node = a; node && node !== root; node = node.parentElement) depthA++;
+        for (let node = b; node && node !== root; node = node.parentElement) depthB++;
+        return depthB - depthA;
+      });
+      for (const el of snaps) {
         const minGrids = parseInt(el.getAttribute('data-min-grids'), 10) || 1;
         const h = el.offsetHeight;
-        return Math.max(minGrids * grid, Math.ceil(h / grid) * grid);
-      });
-      for (let i = 0; i < snaps.length; i++) {
-        snaps[i].style.minHeight = `${heights[i]}px`;
+        const height = Math.max(minGrids * grid, Math.ceil(h / grid) * grid);
+        el.style.minHeight = `${height}px`;
+      }
+
+      // Align selected content edges (for example, hero actions) to the fixed
+      // viewport grid without changing the dimensions of their controls.
+      const topAligned = Array.from(root.querySelectorAll('[data-grid-top]'));
+      for (const el of topAligned) {
+        el.style.marginTop = '';
+        const baseMargin = parseFloat(getComputedStyle(el).marginTop) || 0;
+        const top = el.getBoundingClientRect().top;
+        const remainder = ((top % grid) + grid) % grid;
+        const offset = (grid - remainder) % grid;
+        if (offset > 0.5) el.style.marginTop = `${baseMargin + offset}px`;
       }
 
       // 3. If there is a full-height editor area (.bp-fill-grid), snap its height to remaining viewport grid rows
@@ -86,6 +106,9 @@ export function useBlueprintGrid(deps = []) {
     };
 
     align();
+    // Web fonts can load after the first layout and change text wrapping.
+    // Re-run the grid pass once their final metrics are available.
+    document.fonts?.ready?.then(schedule);
 
     let lastWidth = root.clientWidth;
     let lastHeight = root.clientHeight;
