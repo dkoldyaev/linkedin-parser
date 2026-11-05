@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check, ExternalLink, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, Inbox } from 'lucide-react';
 import LoginModal from '../components/LoginModal';
 import { useBlueprintGrid } from '../utils/useBlueprintGrid';
+import { useGridScroll } from '../utils/useGridScroll';
 import './LandingPage.css';
 
 const stages = [
-  { name: 'Сохранено', status: '01', color: 'var(--primary)', jobs: [['Product Designer', 'Linear'], ['UX Designer', 'Miro']] },
-  { name: 'Отклик', status: '02', color: 'var(--col-applied)', jobs: [['Senior Product Designer', 'Loom']] },
-  { name: 'Интервью', status: '03', color: 'var(--col-interview)', jobs: [['Design Lead', 'Vercel']] },
-  { name: 'Оффер', status: '04', color: 'var(--col-offer)', jobs: [['Product Designer', 'Northstar']] },
+  { name: 'Еще не написан', status: '01', color: '#2563eb' },
+  { name: 'Написал', status: '02', color: '#0284c7' },
+  { name: 'Собеседование', status: '03', color: '#d97706' },
+  { name: 'Тестовое', status: '04', color: '#9333ea' },
+  { name: 'Оффер', status: '05', color: '#059669' },
 ];
 
 const features = [
@@ -21,6 +23,7 @@ const features = [
 export default function LandingPage({ onLoginSuccess }) {
   const [loginOpen, setLoginOpen] = useState(false);
   const pageRef = useBlueprintGrid();
+  const snapBoardScroll = useGridScroll();
   const start = () => setLoginOpen(true);
 
   return (
@@ -50,41 +53,35 @@ export default function LandingPage({ onLoginSuccess }) {
             <div className="hero-proof"><span className="column-index">ПОИСК</span><span>Вакансии, этапы и резюме — в одной доске.</span></div>
           </div>
 
-          <div className="hero-board bp-snap" data-min-grids="14" aria-label="Пример доски вакансий">
-            <div className="column-header landing-board-header">
-              <div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">МОЙ ПОИСК</span></div>
-              <span className="column-badge">5 вакансий</span>
+          <div className="hero-board bp-snap" data-min-grids="14" aria-label="Этапы доски вакансий">
+            <div className="column-header landing-board-header" data-min-grids="2">
+              <div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ВОРОНКА ПОИСКА</span></div>
+              <span className="bp-col-tag">ЭТАПЫ / ВАКАНСИИ</span>
             </div>
-            <div className="kanban-board landing-demo-board">
+            <div className="kanban-board landing-demo-board" onScroll={(event) => snapBoardScroll(event, 'x')}>
               {stages.map((stage) => (
                 <section className="kanban-column landing-demo-column" key={stage.name}>
-                  <header className="column-header landing-stage-header">
+                  <header className="column-header landing-stage-header" data-min-grids="2">
                     <div className="column-title-group"><span className="column-index">{stage.status}</span><span className="column-dot" style={{ background: stage.color }} /><span className="column-name">{stage.name}</span></div>
-                    <span className="column-badge">{stage.jobs.length}</span>
                   </header>
                   <div className="column-cards landing-demo-cards">
-                    {stage.jobs.map(([title, company]) => (
-                      <article className="kanban-card landing-demo-card" key={title}>
-                        <div className="card-grid-content"><div className="card-grid-body-content">
-                          <div className="card-header-meta"><span className="card-source-link">LINKEDIN <ExternalLink size={10} /></span></div>
-                          <h3 className="card-title">{title}</h3>
-                          <span className="landing-company">{company} <span>·</span> Remote</span>
-                        </div></div>
-                        <div className="card-footer"><span>ОБНОВЛЕНО СЕГОДНЯ</span><ArrowUpRight size={12} /></div>
-                      </article>
-                    ))}
+                    <div className="empty-column">
+                      <Inbox className="empty-column-icon" size={20} aria-hidden="true" />
+                      <span className="empty-column-title">Пока нет карточек</span>
+                      <span className="empty-column-hint">Перетащите карточку сюда</span>
+                    </div>
                   </div>
                 </section>
               ))}
             </div>
-            <div className="landing-board-status"><span><span className="sys-status-dot" /> ИЗМЕНЕНИЯ СОХРАНЕНЫ</span><span>ДОСКА / 04 ЭТАПА</span></div>
+            <div className="landing-board-status"><span><span className="sys-status-dot" /> ЭТАПЫ ПОИСКА</span><span>ДОСКА / 05 ЭТАПОВ</span></div>
           </div>
         </section>
 
         <div className="landing-signal column-header"><span>ОДНО МЕСТО</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span>ПОНЯТНЫЕ ЭТАПЫ</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span>ВАЖНОЕ ПОД РУКОЙ</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span>ВАШ ТЕМП</span></div>
 
         <section className="landing-section" id="workflow">
-          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ПРОСТОЙ ПРОЦЕСС</span></div><span className="bp-col-tag">ОТ НАХОДКИ ДО ОТКЛИКА</span></header>
+          <header className="column-header landing-section-header" data-min-grids="2"><div className="column-title-group"><span className="column-index">01</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ПРОСТОЙ ПРОЦЕСС</span></div><span className="bp-col-tag">ОТ НАХОДКИ ДО ОТКЛИКА</span></header>
           <div className="landing-section-intro bp-snap" data-min-grids="6"><h2 className="info-title">От первой находки<br />до <span>новой работы.</span></h2><p className="info-text">Хороший поиск — это последовательность понятных шагов, собранных в одном месте.</p></div>
           <div className="landing-steps bp-grid-row" data-cols="3">
             {[
@@ -101,25 +98,27 @@ export default function LandingPage({ onLoginSuccess }) {
         </section>
 
         <section className="landing-section" id="features">
-          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">02</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ИНСТРУМЕНТЫ ПОИСКА</span></div><span className="bp-col-tag">СОБРАНО В ОДНОМ WORKSPACE</span></header>
+          <header className="column-header landing-section-header" data-min-grids="2"><div className="column-title-group"><span className="column-index">02</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ИНСТРУМЕНТЫ ПОИСКА</span></div><span className="bp-col-tag">СОБРАНО В ОДНОМ WORKSPACE</span></header>
           <div className="landing-section-intro bp-snap" data-min-grids="5"><h2 className="info-title">Всё важное.<br /><span>Без лишнего.</span></h2><p className="info-text">Больше ясности в каждой вакансии и каждом следующем шаге.</p></div>
-          <div className="landing-features">
+          <div className="landing-features bp-grid-row" data-cols="2">
             {features.map((item) => (
-              <article className="landing-feature" key={item.n}>
-                <div className="column-title-group"><span className="column-index">{item.n}</span><span className="column-dot" style={{ background: item.n === '02' ? 'var(--aspen-mint)' : 'var(--primary)' }} /></div>
-                <div className="landing-feature-copy"><h3 className="column-name">{item.title}</h3><p className="info-text">{item.copy}</p></div>
-                <span className="bp-col-tag">{item.mark}</span>
+              <article className="landing-feature bp-snap" data-min-grids="4" key={item.n}>
+                <header className="column-header landing-feature-header" data-min-grids="2">
+                  <div className="column-title-group"><span className="column-index">{item.n}</span><span className="column-dot" style={{ background: item.n === '02' ? 'var(--aspen-mint)' : 'var(--primary)' }} /><span className="column-name">{item.title}</span></div>
+                  <span className="bp-col-tag">{item.mark}</span>
+                </header>
+                <div className="landing-feature-copy"><p className="info-text">{item.copy}</p></div>
               </article>
             ))}
           </div>
         </section>
 
         <section className="landing-section landing-advantage">
-          <header className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">03</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ВАШЕ ПРЕИМУЩЕСТВО</span></div><span className="bp-col-tag">ПОИСК / ИТОГО</span></header>
+          <header className="column-header landing-section-header" data-min-grids="2"><div className="column-title-group"><span className="column-index">03</span><span className="column-dot" style={{ background: 'var(--primary)' }} /><span className="column-name">ВАШЕ ПРЕИМУЩЕСТВО</span></div><span className="bp-col-tag">ПОИСК / ИТОГО</span></header>
           <div className="landing-advantage-grid bp-grid-row" data-cols="2">
             <div className="landing-section-intro bp-snap" data-min-grids="8"><h2 className="info-title">Не просто список.<br /><span>Видимый прогресс.</span></h2><p className="info-text">Когда вакансии, источники, этапы и резюме связаны, проще увидеть приоритеты и направить внимание на следующий шаг.</p><button className="btn btn-primary" onClick={start}>Собрать свой процесс <ArrowRight size={14} /></button></div>
             <div className="kanban-column landing-summary-column">
-              <div className="column-header"><div className="column-title-group"><span className="column-index">СЕЙЧАС</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ПОИСК ИДЁТ</span></div></div>
+              <div className="column-header" data-min-grids="2"><div className="column-title-group"><span className="column-index">СЕЙЧАС</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">ПОИСК ИДЁТ</span></div></div>
               <div className="column-cards landing-summary-cards">
                 {stages.slice(0, 3).map((stage, i) => <div className="landing-summary-row" key={stage.status}><span className="column-index">{stage.status}</span><span className="column-name">{stage.name}</span><span className="column-badge">{['08', '05', '02'][i]}</span></div>)}
               </div>
@@ -128,7 +127,7 @@ export default function LandingPage({ onLoginSuccess }) {
         </section>
 
         <section className="landing-cta bp-snap" data-min-grids="10">
-          <div className="column-header landing-section-header"><div className="column-title-group"><span className="column-index">04</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">СЛЕДУЮЩИЙ ШАГ ЗА ВАМИ</span></div><span className="bp-col-tag">LINKEDIN VACANCIES</span></div>
+          <div className="column-header landing-section-header" data-min-grids="2"><div className="column-title-group"><span className="column-index">04</span><span className="column-dot" style={{ background: 'var(--aspen-mint)' }} /><span className="column-name">СЛЕДУЮЩИЙ ШАГ ЗА ВАМИ</span></div><span className="bp-col-tag">LINKEDIN VACANCIES</span></div>
           <div className="landing-cta-content"><h2 className="info-title">Пусть поиск<br />работает <span>на вас.</span></h2><p className="info-text">Начните собирать свой процесс в одном месте.</p><button className="btn btn-primary" onClick={start}>Открыть приложение <ArrowRight size={14} /></button></div>
         </section>
 

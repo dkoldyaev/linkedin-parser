@@ -21,20 +21,21 @@ function Layout({ user, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const snapScroll = useGridScroll();
+  const landingRoute = pathname === '/landing' || (pathname === '/' && !user);
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
     [open]
   );
   // The board ("/") renders its own header with search; other pages use the shared one.
-  const showPageHeader = pathname !== '/';
+  const showPageHeader = pathname !== '/' && pathname !== '/landing';
 
   return (
     <MenuContext.Provider value={menu}>
       <div className="app-shell">
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
         <div
-          className={`app-shell-content${pathname === '/' && !user ? ' is-landing' : ''}`}
-          onScroll={user || pathname === '/' ? snapScroll : undefined}
+          className={`app-shell-content${landingRoute ? ' is-landing' : ''}`}
+          onScroll={user || pathname === '/' || pathname === '/landing' ? snapScroll : undefined}
         >
           <Outlet />
         </div>
@@ -146,6 +147,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
         <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : <LandingPage onLoginSuccess={setUser} />} />
+        <Route path="/landing" element={<LandingPage onLoginSuccess={setUser} />} />
         <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
