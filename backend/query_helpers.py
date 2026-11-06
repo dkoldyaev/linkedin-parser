@@ -36,7 +36,18 @@ def duplicate_response(db, user_id, urls):
             seen.add(row.id)
             found.append(DuplicateVacancyInfo(id=row.id, url=row.url, input_url=raw, job_id=row.job_id,
                                              title=row.title, company=row.company, status=row.status))
-    return CheckDuplicatesResponse(has_duplicates=bool(found), duplicates=found)
+    from backend.parsers.registry import registry as parser_registry
+    requires_extension = False
+    for raw, canonical in inputs:
+        p = parser_registry.find(canonical) or parser_registry.find(raw)
+        if p and getattr(p, "needs_extension", False):
+            requires_extension = True
+            break
+    return CheckDuplicatesResponse(
+        has_duplicates=bool(found),
+        duplicates=found,
+        requires_extension=requires_extension,
+    )
 
 
 def local_date(column, dialect, tz_offset):

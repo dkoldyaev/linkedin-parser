@@ -10,8 +10,6 @@ import { useGridScroll } from '../utils/useGridScroll';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
-import ExtensionPromptModal from './ExtensionPromptModal';
 import { computeCVDiff } from '../utils/cvDiff';
 
 const DEFAULT_COLUMNS = [
@@ -73,7 +71,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [reparsing, setReparsing] = useState(false);
   const [reparseError, setReparseError] = useState(null);
   const [reparseSuccess, setReparseSuccess] = useState(false);
-  const [showExtModal, setShowExtModal] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
@@ -626,12 +623,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleReparse = async () => {
     if (!vacancy?.id || reparsing) return;
-    const needsPrompt = await shouldShowExtensionPrompt();
-    if (needsPrompt) {
-      setShowExtModal(true);
-    } else {
-      await executeReparse();
-    }
+    await executeReparse();
   };
 
   const handleDelete = async () => {
@@ -1610,12 +1602,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </button>
         </div>
       </div>
-
-      <ExtensionPromptModal
-        isOpen={showExtModal}
-        onClose={() => setShowExtModal(false)}
-        onProceed={executeReparse}
-      />
     </div>
   );
 }

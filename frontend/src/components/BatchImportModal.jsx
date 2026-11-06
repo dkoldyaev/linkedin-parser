@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
+import { shouldShowExtensionPrompt, anyUrlRequiresExtension } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
@@ -14,6 +14,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   const [error, setError] = useState(null);
   const [showExtModal, setShowExtModal] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [pendingSubmit, setPendingSubmit] = useState(null);
 
   if (!isOpen) return null;
 
@@ -87,6 +88,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
     setLoading(true);
     setError(null);
+    let requiresExt = anyUrlRequiresExtension(urls);
     try {
       const dupRes = await fetch('/api/vacancies/check-duplicates', {
         method: 'POST',
@@ -95,12 +97,16 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       });
       if (dupRes.ok) {
         const dupData = await dupRes.json();
+        if (typeof dupData.requires_extension === 'boolean') {
+          requiresExt = dupData.requires_extension;
+        }
         if (dupData.has_duplicates && dupData.duplicates.length > 0) {
           setLoading(false);
           setDuplicateWarning({
             duplicates: dupData.duplicates,
             urls,
             defaultTags,
+            requiresExtension: requiresExt,
           });
           return;
         }
@@ -111,12 +117,16 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       setLoading(false);
     }
 
-    const needsPrompt = await shouldShowExtensionPrompt();
-    if (needsPrompt) {
-      setShowExtModal(true);
-    } else {
-      await performSubmit(urls, defaultTags);
+    if (requiresExt) {
+      const needsPrompt = await shouldShowExtensionPrompt();
+      if (needsPrompt) {
+        setPendingSubmit(() => () => performSubmit(urls, defaultTags));
+        setShowExtModal(true);
+        return;
+      }
     }
+
+    await performSubmit(urls, defaultTags);
   };
 
   const handleClose = () => {
@@ -125,6 +135,8 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     setUrlsText('');
     setTagsInput('');
     setDuplicateWarning(null);
+    setPendingSubmit(null);
+    setShowExtModal(false);
     onClose();
   };
 
@@ -208,13 +220,19 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                 className="btn btn-warning"
                 style={{ background: '#f59e0b', color: '#111827', fontWeight: 600, border: 'none' }}
                 onClick={async () => {
-                  const { urls, defaultTags } = duplicateWarning;
-                  const needsPrompt = await shouldShowExtensionPrompt();
-                  if (needsPrompt) {
-                    setShowExtModal(true);
-                  } else {
-                    await performSubmit(urls, defaultTags);
+                  const { urls, defaultTags, requiresExtension } = duplicateWarning;
+                  const needsExt = typeof requiresExtension === 'boolean'
+                    ? requiresExtension
+                    : anyUrlRequiresExtension(urls);
+                  if (needsExt) {
+                    const needsPrompt = await shouldShowExtensionPrompt();
+                    if (needsPrompt) {
+                      setPendingSubmit(() => () => performSubmit(urls, defaultTags));
+                      setShowExtModal(true);
+                      return;
+                    }
                   }
+                  await performSubmit(urls, defaultTags);
                 }}
                 disabled={loading}
               >
@@ -319,17 +337,26 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
       <ExtensionPromptModal
         isOpen={showExtModal}
-        onClose={() => setShowExtModal(false)}
+        onClose={() => {
+          setShowExtModal(false);
+          setPendingSubmit(null);
+        }}
         onProceed={() => {
-          const urls = urlsText
-            .split('\n')
-            .map(u => u.trim())
-            .filter(u => u.length > 0);
-          const defaultTags = tagsInput
-            .split(',')
-            .map(t => t.trim())
-            .filter(t => t.length > 0);
-          performSubmit(urls, defaultTags);
+          setShowExtModal(false);
+          if (pendingSubmit) {
+            pendingSubmit();
+            setPendingSubmit(null);
+          } else {
+            const urls = urlsText
+              .split('\n')
+              .map(u => u.trim())
+              .filter(u => u.length > 0);
+            const defaultTags = tagsInput
+              .split(',')
+              .map(t => t.trim())
+              .filter(t => t.length > 0);
+            performSubmit(urls, defaultTags);
+          }
         }}
       />
     </div>

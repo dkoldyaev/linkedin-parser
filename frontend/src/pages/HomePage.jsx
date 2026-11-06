@@ -10,10 +10,8 @@ import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
 import HeaderControls from '../components/HeaderControls';
 import QueueModal from '../components/QueueModal';
-import ExtensionPromptModal from '../components/ExtensionPromptModal';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
 
 export default function HomePage({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
@@ -85,8 +83,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState([]);
-  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
-  const [extensionOnProceed, setExtensionOnProceed] = useState(null);
   const [bulkTagInput, setBulkTagInput] = useState('');
   const [isMovingAllRejected, setIsMovingAllRejected] = useState(false);
 
@@ -676,29 +672,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
-            onClick={() => {
+            onClick={async () => {
               trackEvent(EVENTS.REFRESH_CLICK);
-              const doRefresh = async () => {
-                try {
-                  if (selectedIds.length > 0) {
-                    await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
-                  } else {
-                    await fetch('/api/vacancies/reparse_all', { method: 'POST' });
-                  }
-                  fetchVacancies();
-                } catch (e) {
-                  console.error(e);
-                }
-              };
-
-              shouldShowExtensionPrompt().then((needsPrompt) => {
-                if (needsPrompt) {
-                  setExtensionOnProceed(() => doRefresh);
-                  setIsExtensionModalOpen(true);
+              try {
+                if (selectedIds.length > 0) {
+                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
                 } else {
-                  doRefresh();
+                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
                 }
-              });
+                fetchVacancies();
+              } catch (e) {
+                console.error(e);
+              }
             }}
             title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
@@ -1010,19 +995,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         onClose={() => setIsQueueOpen(false)}
         queueRemaining={queueRemaining}
         onRefreshQueue={fetchQueueStatus}
-      />
-
-      <ExtensionPromptModal
-        isOpen={isExtensionModalOpen}
-        onClose={() => {
-          setIsExtensionModalOpen(false);
-          setExtensionOnProceed(null);
-        }}
-        onProceed={() => {
-          if (extensionOnProceed) extensionOnProceed();
-          setIsExtensionModalOpen(false);
-          setExtensionOnProceed(null);
-        }}
       />
 
       {/* Toast Notifications */}

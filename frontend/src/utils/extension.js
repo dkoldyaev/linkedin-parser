@@ -69,6 +69,24 @@ export async function shouldShowExtensionPrompt() {
 }
 
 /**
+ * Checks whether a given URL requires the browser extension to scrape.
+ * Kept in sync with backend parsers where `needs_extension = True` (Upwork, Indeed).
+ */
+export function urlRequiresExtension(url) {
+  if (!url || typeof url !== 'string') return false;
+  const lower = url.trim().toLowerCase();
+  return lower.includes('upwork.com') || lower.includes('indeed.');
+}
+
+/**
+ * Checks whether any URL in a list requires the browser extension to scrape.
+ */
+export function anyUrlRequiresExtension(urls) {
+  if (!Array.isArray(urls)) return false;
+  return urls.some(urlRequiresExtension);
+}
+
+/**
  * Dismisses the extension prompt.
  * If permanent is true, persists to localStorage.
  */

@@ -142,6 +142,7 @@ class CheckDuplicatesRequest(BaseModel):
 class CheckDuplicatesResponse(BaseModel):
     has_duplicates: bool
     duplicates: List[DuplicateVacancyInfo]
+    requires_extension: bool = False
 
 class ImportItemResult(BaseModel):
     url: str

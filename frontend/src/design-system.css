@@ -454,7 +454,9 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 }
 .card-grid-content { display: flex; flex-direction: column; gap: var(--grid-unit); padding: calc(2 * var(--grid-unit)); }
 .kanban-rejected-cards { padding: 0; gap: 0; }
-.kanban-rejected-cards .kanban-card { width: calc(10 * var(--grid)); min-width: calc(10 * var(--grid)); max-width: calc(10 * var(--grid)); border: 0; }
+.kanban-rejected-cards .kanban-card {
+  width: calc(10 * var(--grid)); min-width: calc(10 * var(--grid));
+  max-width: calc(10 * var(--grid)); border: 0; }
 .column-actions-btn, .quick-move-btn, .quick-restore-btn { min-width: var(--grid); min-height: var(--grid); }
 @media (max-width: 700px) {
   .kanban-column { flex-basis: calc(10 * var(--grid)); min-width: calc(10 * var(--grid)); }
@@ -484,7 +486,13 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .quick-move-btn:hover:not(:disabled), .quick-restore-btn:hover { outline-offset: -2px; }
 .quick-move-btn:focus-visible, .quick-restore-btn:focus-visible { outline-offset: -3px; }
 .quick-restore-btn { width: auto; padding-inline: var(--grid-unit); }
-.kanban-rejected-cards .kanban-card { border: 0; box-shadow: inset -1px 0 var(--border-subtle), inset 0 -1px var(--border-subtle), inset 4px 0 0 var(--card-match-edge, transparent); }
+.kanban-rejected-cards .kanban-card { 
+  display: flex;
+  flex-direction: row;
+  border: 0; box-shadow: inset -1px 0 var(--border-subtle), inset 0 -1px var(--border-subtle), inset 4px 0 0 var(--card-match-edge, transparent); }
+.kanban-rejected-cards .kanban-card .card-grid-body {
+  flex-grow: 1;
+}
 .kanban-rejected-cards .kanban-card:hover, .kanban-rejected-cards .kanban-card.is-selected { box-shadow: 0 5px 14px rgba(0, 0, 0, .16), inset 0 0 0 1px var(--border-subtle), inset 4px 0 0 var(--card-match-edge, transparent); }
 .kanban-rejected-header { border: 0; box-shadow: inset 0 -1px var(--border-subtle); }
 .kanban-rejected-block.is-collapsed .kanban-rejected-header { box-shadow: none; }
