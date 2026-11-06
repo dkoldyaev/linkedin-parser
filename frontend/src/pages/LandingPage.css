@@ -259,18 +259,20 @@
    ========================================================================== */
 .landing-split-layout {
   display: grid;
-  grid-template-columns: var(--landing-left-width) minmax(0, 1fr);
+  grid-template-columns: var(--landing-left-current-width, var(--landing-left-width)) minmax(0, 1fr);
   align-items: stretch;
   width: 100%;
   position: relative;
 }
 
-/* Left scroll track: 9.8x stage height drives all 10 sub-steps and sequential funnel hops smoothly */
+/* Left scroll track: 9.3x stage height drives all 8 sub-steps and the seamless exit zone smoothly */
 .landing-left-narrative {
   position: relative;
   min-width: 0;
-  height: calc(9.8 * var(--stage-h));
+  width: var(--landing-left-current-width, var(--landing-left-width));
+  height: calc(9.3 * var(--stage-h));
   box-shadow: inset -1px 0 var(--column-divider, var(--border-strong));
+  overflow: visible;
 }
 
 .landing-left-narrative::after {
@@ -290,11 +292,14 @@
   position: sticky;
   top: 0;
   height: var(--stage-h);
-  width: 100%;
+  width: var(--landing-left-width);
   display: flex;
   flex-direction: row;
   align-items: stretch;
   overflow: hidden;
+  transform: translateX(calc(-100% * var(--exit-progress, 0)));
+  opacity: calc(1 - var(--exit-progress, 0));
+  will-change: transform, opacity;
 }
 
 /* Vertical Screen & Sub-Step Bullet Navigator Rail */
@@ -646,7 +651,9 @@
   position: absolute;
   left: 50%;
   bottom: 14px;
-  transform: translateX(-50%);
+  transform: translate(-50%, calc(150% * var(--exit-progress, 0)));
+  opacity: calc(1 - var(--exit-progress, 0) * 1.8);
+  pointer-events: auto;
   z-index: 45;
   width: min(calc(14.5 * var(--grid)), calc(100% - 32px));
   padding: 0;
@@ -934,19 +941,9 @@
   overflow: hidden !important;
 }
 
-.landing-kanban-column:not(:last-child) {
-  flex: 0 0 var(--landing-col-width, calc(8 * var(--grid))) !important;
-  width: var(--landing-col-width, calc(8 * var(--grid))) !important;
-  min-width: var(--landing-col-width, calc(8 * var(--grid))) !important;
-  max-width: var(--landing-col-width, calc(8 * var(--grid))) !important;
-  padding: 0 !important;
-  border: 0 !important;
-  overflow: visible !important;
-}
-
-.landing-kanban-column:last-child {
+.landing-kanban-column {
   flex: 1 1 0 !important;
-  width: auto !important;
+  width: 25% !important;
   min-width: 0 !important;
   max-width: none !important;
   padding: 0 !important;
@@ -1665,6 +1662,7 @@
   justify-content: center;
   padding: calc(1.5 * var(--grid));
   pointer-events: none !important;
+  opacity: calc(1 - var(--exit-progress, 0) * 2.5);
   animation: fadeIn 180ms ease-out;
 }
 
@@ -1942,186 +1940,14 @@
 }
 
 /* ==========================================================================
-   5. Screen 04: Offer Column Celebration & Finale Launchpad Card
+   5. Seamless Exit Transition to Real Kanban Board
    ========================================================================== */
-.landing-kanban-column.is-offer-celebrated > .column-header {
-  background: rgba(16, 185, 129, 0.1) !important;
-  box-shadow:
-    inset 0 -2px 0 var(--aspen-mint),
-    inset 0 1px 0 rgba(16, 185, 129, 0.25) !important;
-  transition: background 240ms ease, box-shadow 240ms ease;
+.landing-page.is-exiting .landing-left-sticky-viewport {
+  pointer-events: none;
 }
 
-.landing-kanban-column.is-offer-celebrated > .column-header .column-name,
-.landing-kanban-column.is-offer-celebrated > .column-header .column-badge {
-  color: var(--aspen-mint) !important;
-}
-
-.landing-finale-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 38;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: calc(1.5 * var(--grid));
-  background: rgba(8, 13, 24, 0.56);
-  backdrop-filter: blur(5px);
-  animation: landingFinaleBackdropIn 320ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-[data-theme='light'] .landing-finale-overlay {
-  background: rgba(241, 245, 249, 0.68);
-}
-
-@keyframes landingFinaleBackdropIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.landing-finale-card,
-.landing-finale-card * {
-  pointer-events: auto !important;
-  user-select: auto !important;
-}
-
-.landing-finale-card {
-  width: min(calc(18 * var(--grid)), 100%);
-  background: var(--bg-surface);
-  border: 1px solid var(--primary);
-  box-shadow:
-    0 24px 56px rgba(2, 6, 23, 0.45),
-    inset 0 0 0 1px rgba(59, 130, 246, 0.2),
-    inset 0 3px 0 var(--aspen-mint);
-  padding: calc(1.25 * var(--grid)) calc(1.5 * var(--grid));
-  display: flex;
-  flex-direction: column;
-  gap: calc(1.5 * var(--grid-unit));
-  animation: landingFinaleCardPop 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes landingFinaleCardPop {
-  0% {
-    opacity: 0;
-    transform: translateY(16px) scale(0.97);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.landing-finale-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--grid-unit);
-}
-
-.landing-finale-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--aspen-mint);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  padding: 3px 9px;
-}
-
-.landing-finale-step-tag {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.landing-finale-title {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 1.38rem;
-  font-weight: 700;
-  line-height: 1.24;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-}
-
-.landing-finale-subtitle {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 0.86rem;
-  line-height: 1.48;
-  color: var(--text-secondary);
-}
-
-.landing-finale-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  border: 1px solid var(--border-subtle);
-  background: var(--board-card-fill);
-}
-
-.landing-finale-metric {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  box-shadow: inset -1px 0 0 var(--border-subtle);
-}
-
-.landing-finale-metric:last-child {
-  box-shadow: none;
-}
-
-.landing-finale-metric-val {
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.landing-finale-metric-val.is-emerald {
-  color: var(--aspen-mint);
-}
-
-.landing-finale-metric-val.is-blue {
-  color: var(--primary);
-}
-
-.landing-finale-metric-val.is-indigo {
-  color: #818cf8;
-}
-
-.landing-finale-metric-lbl {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--text-secondary);
-}
-
-.landing-finale-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--grid-unit);
-  padding-top: 4px;
-}
-
-.landing-finale-actions .btn {
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.landing-finale-primary-btn {
-  padding-inline: 16px !important;
-  font-weight: 700 !important;
+.landing-page.is-exiting .landing-scroll-hint-bar {
+  pointer-events: none;
 }
 
 /* ==========================================================================

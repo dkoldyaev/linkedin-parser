@@ -1731,3 +1731,110 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   }
 }
 
+/* ==========================================================================
+   Enticing Attention Animation on "Add Vacancies" Button after Landing Tour
+   (Subtle, tactile micro-lift and sleek glass shimmer without cartoonish deformation)
+   ========================================================================== */
+.add-button.is-tour-attention {
+  position: relative;
+  overflow: hidden;
+  animation:
+    tourAttentionBounce 3s cubic-bezier(0.2, 0.8, 0.4, 1) infinite,
+    tourAttentionGlow 3s ease-in-out infinite;
+  z-index: 10;
+}
+
+.add-button.is-tour-attention::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 220%;
+  height: 200%;
+  background: linear-gradient(
+    115deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.08) 38%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.08) 62%,
+    transparent 75%
+  );
+  transform: translateX(-100%) rotate(15deg);
+  animation: tourAttentionShine 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+[data-theme='light'] .add-button.is-tour-attention {
+  animation:
+    tourAttentionBounce 3s cubic-bezier(0.2, 0.8, 0.4, 1) infinite,
+    tourAttentionGlowLight 3s ease-in-out infinite;
+}
+
+[data-theme='light'] .add-button.is-tour-attention::after {
+  background: linear-gradient(
+    115deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.1) 38%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.1) 62%,
+    transparent 75%
+  );
+}
+
+@keyframes tourAttentionBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  8% {
+    transform: translateY(-3px);
+  }
+  16% {
+    transform: translateY(0);
+  }
+  22% {
+    transform: translateY(-1px);
+  }
+  28% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes tourAttentionGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(121, 174, 255, 0.4), 0 2px 6px rgba(37, 99, 235, 0.2);
+    border-color: #79aeff;
+  }
+  10% {
+    box-shadow: 0 0 0 3px rgba(121, 174, 255, 0.28), 0 4px 14px rgba(59, 130, 246, 0.35);
+    border-color: #93c5fd;
+  }
+  24% {
+    box-shadow: 0 0 8px rgba(147, 197, 253, 0.25);
+    border-color: #79aeff;
+  }
+}
+
+@keyframes tourAttentionGlowLight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.3), 0 2px 6px rgba(34, 35, 33, 0.15);
+  }
+  10% {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2), 0 4px 14px rgba(37, 99, 235, 0.25);
+  }
+  24% {
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.18);
+  }
+}
+
+@keyframes tourAttentionShine {
+  0% {
+    transform: translateX(-100%) rotate(15deg);
+  }
+  20% {
+    transform: translateX(120%) rotate(15deg);
+  }
+  100% {
+    transform: translateX(120%) rotate(15deg);
+  }
+}
+

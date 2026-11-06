@@ -188,12 +188,6 @@ const FUNNEL_STEP_POSITIONS = [
     102: { status: 'Написал', lane: null, historyCount: 1 },
     103: { status: 'Оффер', lane: null, historyCount: 3 },
   },
-  // Stage 7 (Screen 4.1+: Stripe wins the Offer and moves 03 -> 04 "Оффер")
-  {
-    101: { status: 'Оффер', lane: null, historyCount: 3 },
-    102: { status: 'Написал', lane: null, historyCount: 1 },
-    103: { status: 'Оффер', lane: null, historyCount: 3 },
-  },
 ];
 
 const LINKEDIN_CORPORATE_BLOAT = [
@@ -395,30 +389,6 @@ const SUB_SCREENS = [
     captionTextEn:
       'Next, it prints location or work-format dealbreakers (Critical) and actionable edits (Recommendations) to tailor your CV before applying.',
   },
-  {
-    id: '4.1',
-    screen: 4,
-    indexLabel: '04.1',
-    dotColor: '#10b981',
-    captionLabel: 'ШАГ 01 · ОЖИВШАЯ ДОСКА И ПЕРЕЕЗД В «ОФФЕР»',
-    captionLabelEn: 'STEP 01 · FULL BOARD UNLOCKED & OFFER WON',
-    captionText:
-      'Карточка закрывается: все скелетоны и фильтры на доске оживают, а вакансия Stripe ($12,000 – $14,000 / мес · 84% Match) совершает финальный переход в колонку «04 Оффер».',
-    captionTextEn:
-      'The modal closes: all board skeletons and filters come alive, and the Stripe role ($12,000 – $14,000/mo · 84% Match) makes its final hop into "04 Offer".',
-  },
-  {
-    id: '4.2',
-    screen: 4,
-    indexLabel: '04.2',
-    dotColor: '#2563eb',
-    captionLabel: 'ШАГ 02 · ВОРОНКА СОБРАНА · ПЕРЕХОД К ДОСКЕ',
-    captionLabelEn: 'STEP 02 · FUNNEL COMPLETE · OPEN YOUR BOARD',
-    captionText:
-      'От сырых ссылок из LinkedIn до прозрачной воронки с понятной зарплатой в месяц, выжимкой без воды и оценкой CV. Откройте доску и начните вести свои отклики.',
-    captionTextEn:
-      'From raw LinkedIn links to a clear funnel with monthly pay, fluff-free summaries, and CV matching. Open the board and start tracking your roles.',
-  },
 ];
 
 const SCREENS_BLOCKS = [
@@ -430,8 +400,8 @@ const SCREENS_BLOCKS = [
     headerTitleEn: 'SCREEN 01 · ADDING LINKS TO THE BOARD',
     tag: 'LINKEDIN → КАНБАН',
     tagEn: 'LINKEDIN → KANBAN',
-    kicker: 'ЭКРАН 01 / 04 · ИМПОРТ И ВОРОНКА',
-    kickerEn: 'SCREEN 01 / 04 · IMPORT & FUNNEL',
+    kicker: 'ЭКРАН 01 / 03 · ИМПОРТ И ВОРОНКА',
+    kickerEn: 'SCREEN 01 / 03 · IMPORT & FUNNEL',
     title: 'Добавляйте ссылки пачкой и ведите вакансии по доске',
     titleEn: 'Batch-import LinkedIn links and track roles across the board',
     lead:
@@ -448,8 +418,8 @@ const SCREENS_BLOCKS = [
     headerTitleEn: 'SCREEN 02 · SMART CARD AUTOFILL',
     tag: 'ЗП & AI-САММАРИ',
     tagEn: 'SALARY & AI SUMMARY',
-    kicker: 'ЭКРАН 02 / 04 · РАЗБОР ВАКАНСИИ',
-    kickerEn: 'SCREEN 02 / 04 · VACANCY BREAKDOWN',
+    kicker: 'ЭКРАН 02 / 03 · РАЗБОР ВАКАНСИИ',
+    kickerEn: 'SCREEN 02 / 03 · VACANCY BREAKDOWN',
     title: 'Карточка сама считает зарплату и убирает воду из описания',
     titleEn: 'Normalizes salary to monthly and strips fluff from descriptions',
     lead:
@@ -466,8 +436,8 @@ const SCREENS_BLOCKS = [
     headerTitleEn: 'SCREEN 03 · CV COMPATIBILITY CHECK',
     tag: 'АНАЛИЗ РЕЗЮМЕ',
     tagEn: 'RESUME MATCH',
-    kicker: 'ЭКРАН 03 / 04 · ПРОВЕРКА ПЕРЕД ОТКЛИКОМ',
-    kickerEn: 'SCREEN 03 / 04 · PRE-APPLY CHECK',
+    kicker: 'ЭКРАН 03 / 03 · ПРОВЕРКА ПЕРЕД ОТКЛИКОМ',
+    kickerEn: 'SCREEN 03 / 03 · PRE-APPLY CHECK',
     title: 'Точная сверка вакансии с вашим резюме по 4 блокам',
     titleEn: 'Instant 4-part compatibility check against your CV',
     lead:
@@ -475,24 +445,6 @@ const SCREENS_BLOCKS = [
     leadEn:
       'Check your real odds before applying: see which requirements are backed by quotes from your CV, what is missing, and what to tweak.',
     subIds: ['3.1', '3.2'],
-  },
-  {
-    screen: 4,
-    num: '04',
-    color: '#059669',
-    headerTitle: 'ЭКРАН 04 · ОФФЕР И ГОТОВАЯ ДОСКА',
-    headerTitleEn: 'SCREEN 04 · OFFER WON & FULL BOARD',
-    tag: 'ФИНАЛ · СТАРТ',
-    tagEn: 'FINALE · LAUNCH',
-    kicker: 'ЭКРАН 04 / 04 · ПОЛНАЯ КАРТИНА ПОИСКА',
-    kickerEn: 'SCREEN 04 / 04 · COMPLETE JOB SEARCH BOARD',
-    title: 'Все вакансии оцифрованы, сравнены и доведены до оффера',
-    titleEn: 'Every role parsed, compared, and tracked all the way to an offer',
-    lead:
-      'На доске больше нет слепых пятен: фильтры, зарплаты в месяц, двухстрочная суть и процент совпадения с вашим CV собраны на одном чертежном экране.',
-    leadEn:
-      'No more blind spots on your board: filters, monthly pay, two-sentence summaries, and CV match scores are all unified on one blueprint workspace.',
-    subIds: ['4.1', '4.2'],
   },
 ];
 
@@ -893,9 +845,6 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
             <UploadCloud size={15} color="#2563eb" />
             <span>{isEn ? 'Batch Import Vacancies' : 'Пакетный импорт вакансий'}</span>
           </div>
-          <span className="btn-icon modal-close-btn">
-            <X size={13} />
-          </span>
         </div>
 
         <div className="modal-body landing-batch-body">
@@ -1525,9 +1474,9 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
 }
 
 /**
- * Scroll-ratio mapping (ratio = scrollTop / stageH, total track = 9.8 * stageH, max ratio = 8.8)
+ * Scroll-ratio mapping (ratio = scrollTop / stageH, total track = 9.3 * stageH, max ratio = 8.3)
  */
-const SUB_SCROLL_TARGETS = [0, 1.5, 2.05, 3.7, 4.5, 5.3, 6.1, 6.8, 7.55, 8.35];
+const SUB_SCROLL_TARGETS = [0, 1.5, 2.05, 3.7, 4.5, 5.3, 6.1, 6.85];
 
 function getSubScreenIdxFromRatio(r) {
   if (r < 1.35) return 0; // 1.1
@@ -1537,9 +1486,7 @@ function getSubScreenIdxFromRatio(r) {
   if (r < 5.15) return 4; // 2.2
   if (r < 5.95) return 5; // 2.3
   if (r < 6.65) return 6; // 3.1
-  if (r < 7.35) return 7; // 3.2
-  if (r < 8.1) return 8; // 4.1 (BACK TO BOARD: STRIPE MOVES TO OFFER)
-  return 9; // 4.2 (READY TO LAUNCH: FINALE CARD)
+  return 7; // 3.2
 }
 
 function getImportStageFromRatio(r) {
@@ -1557,14 +1504,22 @@ function getFunnelStageFromRatio(r) {
   if (r < 2.73) return 3; // Step 3: Linear 01 -> 02
   if (r < 2.99) return 4; // Step 4: Cloudflare 01 -> 02
   if (r < 3.25) return 5; // Step 5: Cloudflare 02 -> 03
-  if (r < 7.35) return 6; // Step 6: Cloudflare 03 -> 04 (held through Screens 2 & 3)
-  return 7; // Step 7 (Screen 4.1+): Stripe 03 -> 04 (Offer!)
+  return 6; // Step 6: Cloudflare 03 -> 04 (held through Screens 2 & 3)
 }
 
-export default function LandingPage() {
+export default function LandingPage({ onFinish }) {
   const { t, locale } = useTranslation();
   const navigate = useNavigate();
   const isEn = locale === 'en';
+  const transitionedRef = useRef(false);
+
+  const finishToBoard = useCallback(() => {
+    try {
+      sessionStorage.setItem('highlight_add_vacancy', 'true');
+    } catch {}
+    onFinish?.();
+    navigate('/', { replace: true, state: { highlightAddVacancy: true } });
+  }, [navigate, onFinish]);
 
   const [scrollState, setScrollState] = useState({
     idx: 0,
@@ -1593,6 +1548,7 @@ export default function LandingPage() {
     if (!root) return;
     const updateGridWidths = () => {
       if (window.innerWidth <= 1024) {
+        root.dataset.baseLeftWidth = '0';
         root.style.removeProperty('--landing-left-width');
         root.style.removeProperty('--landing-col-width');
         return;
@@ -1606,8 +1562,10 @@ export default function LandingPage() {
       const leftUnits =
         candidates.find((L) => (totalUnits - L) % 4 === 0) ?? idealLeft;
       const colUnits = Math.max(5, Math.floor((totalUnits - leftUnits) / 4));
+      const leftPx = leftUnits * grid;
 
-      root.style.setProperty('--landing-left-width', `${leftUnits * grid}px`);
+      root.dataset.baseLeftWidth = String(leftPx);
+      root.style.setProperty('--landing-left-width', `${leftPx}px`);
       root.style.setProperty('--landing-col-width', `${colUnits * grid}px`);
     };
     const observer = new ResizeObserver(updateGridWidths);
@@ -1639,6 +1597,30 @@ export default function LandingPage() {
       const nextIdx = getSubScreenIdxFromRatio(ratio);
       const nextImportStage = getImportStageFromRatio(ratio);
       const nextTargetFunnel = getFunnelStageFromRatio(ratio);
+
+      // Exit transition progress: from ratio 7.25 to 8.15
+      const exitProgress =
+        ratio <= 7.25 ? 0 : Math.min(1, Math.max(0, (ratio - 7.25) / 0.9));
+
+      root.style.setProperty('--exit-progress', exitProgress.toFixed(3));
+
+      if (exitProgress > 0) {
+        root.classList.add('is-exiting');
+        const baseLeftWidth = parseFloat(root.dataset.baseLeftWidth || '0');
+        const curLeftPx = Math.max(0, Math.round(baseLeftWidth * (1 - exitProgress)));
+        root.style.setProperty('--landing-left-current-width', `${curLeftPx}px`);
+
+        if (exitProgress >= 0.98 && !transitionedRef.current) {
+          transitionedRef.current = true;
+          finishToBoard();
+        }
+      } else {
+        root.classList.remove('is-exiting');
+        root.style.removeProperty('--landing-left-current-width');
+        if (ratio < 7.0) {
+          transitionedRef.current = false;
+        }
+      }
 
       setScrollState((prev) => {
         if (
@@ -1683,7 +1665,7 @@ export default function LandingPage() {
       scroller.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
     };
-  }, [getStageHeightPx]);
+  }, [getStageHeightPx, finishToBoard]);
 
   // Sequential stepper: if targetFunnelStage jumped ahead/behind by >1 step,
   // step through each intermediate column every 260ms so cards never skip columns.
@@ -1726,19 +1708,18 @@ export default function LandingPage() {
   // In 1.1 (initial state), the board is completely empty!
   // In 1.2 (funnelStage = 0), all 3 cards appear in Column 01.
   // In 1.3 (funnelStage = 1..6), cards move one by one and strictly one column at a time!
-  // In 4.1+ (funnelStage = 7), Stripe makes its final move from 03 Собеседование to 04 Оффер!
   const boardVacancies = useMemo(() => {
     if (currentSub.id === '1.1') return [];
     const effectiveStage =
       currentSub.id === '1.2'
         ? 0
-        : currentSub.screen === 1 || currentSub.screen === 4
+        : currentSub.screen === 1
           ? funnelStage
           : 6;
     const prevEffectiveStage =
       currentSub.id === '1.2'
         ? prevFunnelStage
-        : currentSub.screen === 1 || currentSub.screen === 4
+        : currentSub.screen === 1
           ? prevFunnelStage
           : 6;
 
@@ -1778,9 +1759,6 @@ export default function LandingPage() {
   const showCardMatch = activeSubIdx >= 6; // 3.1+
 
   const isModalVisible = currentScreen === 2 || currentScreen === 3;
-  const isBoardUnlocked = currentScreen === 4;
-  const isFinaleCardVisible = currentSub.id === '4.2';
-  const startApp = () => navigate('/');
 
   return (
     <main ref={pageRef} className="landing-page bp-page">
@@ -1977,38 +1955,31 @@ export default function LandingPage() {
                               })}
                             </div>
 
-                            {/* CTA Buttons at the bottom of Block 4 */}
-                            {block.screen === 4 && (
+                            {/* CTA Buttons at the bottom of Screen 03 */}
+                            {block.screen === 3 && (
                               <div className="landing-block-cta">
-                                {activeSubIdx >= SUB_SCREENS.length - 1 ? (
-                                  <div className="landing-final-actions">
-                                    <button
-                                      type="button"
-                                      className="btn btn-primary"
-                                      onClick={startApp}
-                                    >
-                                      <span>{isEn ? 'Open Board' : 'Перейти к доске'}</span>
-                                      <ArrowRight size={14} />
-                                    </button>
-                                    <a
-                                      href="/extension.zip"
-                                      download
-                                      className="btn btn-secondary"
-                                    >
-                                      <Download size={14} />
-                                      <span>{isEn ? 'Download Extension' : 'Скачать расширение'}</span>
-                                    </a>
-                                    <Link to="/about" className="btn btn-secondary">
-                                      <span>{isEn ? 'About' : 'О проекте'}</span>
-                                      <ArrowUpRight size={13} />
-                                    </Link>
-                                  </div>
-                                ) : (
-                                  <div className="landing-final-actions" aria-hidden="true">
-                                    <SkeletonBar width={160} height={32} />
-                                    <SkeletonBar width={150} height={32} />
-                                  </div>
-                                )}
+                                <div className="landing-final-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={finishToBoard}
+                                  >
+                                    <span>{isEn ? 'Open Board' : 'Перейти к доске'}</span>
+                                    <ArrowRight size={14} />
+                                  </button>
+                                  <a
+                                    href="/extension.zip"
+                                    download
+                                    className="btn btn-secondary"
+                                  >
+                                    <Download size={14} />
+                                    <span>{isEn ? 'Download Extension' : 'Скачать расширение'}</span>
+                                  </a>
+                                  <Link to="/about" className="btn btn-secondary">
+                                    <span>{isEn ? 'About' : 'О проекте'}</span>
+                                    <ArrowUpRight size={13} />
+                                  </Link>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2021,54 +1992,26 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Sticky Kanban & Modal Preview (interactive Finale Card in 4.2) */}
-          <div className="landing-right-preview-col" aria-hidden={!isFinaleCardVisible}>
+          {/* RIGHT COLUMN: Sticky Kanban & Modal Preview */}
+          <div className="landing-right-preview-col">
             <div className="landing-sticky-stage">
               <div className="landing-stage-frame">
-                {/* Filter Bar: Skeleton on Screens 1–3, Unlocked Blueprint Filter Bar on Screen 4 */}
-                <div
-                  className={`filter-bar landing-filter-bar ${
-                    isBoardUnlocked ? 'landing-filter-unlocked' : 'landing-filter-skeleton'
-                  }`}
-                >
-                  {isBoardUnlocked ? (
-                    <>
-                      <div className="landing-filter-skel-group">
-                        <span className="landing-unlocked-filter-pill">
-                          {isEn ? 'Sort: Match % ↓' : 'Сортировка: Match % ↓'}
-                        </span>
-                        <span className="landing-unlocked-filter-pill">
-                          {isEn ? 'Salary: / mo ($)' : 'Зарплата: в месяц ($)'}
-                        </span>
-                        <span className="landing-unlocked-filter-pill is-highlight">
-                          {isEn ? 'Offers: 2' : 'Офферы: 2'}
-                        </span>
-                      </div>
-                      <div className="filter-divider" />
-                      <div className="landing-filter-skel-group">
-                        <span className="landing-unlocked-tag-pill">#fintech</span>
-                        <span className="landing-unlocked-tag-pill">#remote</span>
-                        <span className="landing-unlocked-tag-pill">#highload</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="landing-filter-skel-group">
-                        <SkeletonBar width={96} height={18} />
-                        <SkeletonBar width={112} height={18} />
-                        <SkeletonBar width={84} height={18} />
-                      </div>
-                      <div className="filter-divider" />
-                      <div className="landing-filter-skel-group">
-                        <SkeletonBar width={48} height={16} className="is-pill" />
-                        <SkeletonBar width={58} height={16} className="is-pill" />
-                        <SkeletonBar width={52} height={16} className="is-pill" />
-                      </div>
-                    </>
-                  )}
+                {/* Filter Bar */}
+                <div className="filter-bar landing-filter-bar landing-filter-skeleton">
+                  <div className="landing-filter-skel-group">
+                    <SkeletonBar width={96} height={18} />
+                    <SkeletonBar width={112} height={18} />
+                    <SkeletonBar width={84} height={18} />
+                  </div>
+                  <div className="filter-divider" />
+                  <div className="landing-filter-skel-group">
+                    <SkeletonBar width={48} height={16} className="is-pill" />
+                    <SkeletonBar width={58} height={16} className="is-pill" />
+                    <SkeletonBar width={52} height={16} className="is-pill" />
+                  </div>
                 </div>
 
-                {/* Main Stage Area: Kanban Board + LinkedIn & BatchImportModal Overlay + Open Vacancy Modal + Finale Card */}
+                {/* Main Stage Area: Kanban Board + LinkedIn & BatchImportModal Overlay + Open Vacancy Modal */}
                 <div className="landing-stage-canvas">
                   {/* Screen 1.1 / 1.2 LinkedIn Screen & Batch Import Modal */}
                   <LandingLinkedInOverlay
@@ -2081,13 +2024,10 @@ export default function LandingPage() {
                   <div className="kanban-board landing-kanban-board">
                     {BOARD_COLUMNS.map((col) => {
                       const colCards = boardVacancies.filter((v) => v.currentStatus === col.id);
-                      const isOfferColCelebrated = isBoardUnlocked && col.index === '04';
                       return (
                         <div
                           key={col.id}
-                          className={`kanban-column landing-kanban-column ${
-                            isOfferColCelebrated ? 'is-offer-celebrated' : ''
-                          }`}
+                          className="kanban-column landing-kanban-column"
                         >
                           <div className="column-header">
                             <div className="column-title-group">
@@ -2110,10 +2050,7 @@ export default function LandingPage() {
                                 justArrived={vacancy.justArrived}
                                 justMoved={vacancy.justMoved}
                                 justMovedBack={vacancy.justMovedBack}
-                                isSelected={
-                                  (vacancy.id === 101 && isModalVisible) ||
-                                  (vacancy.id === 101 && currentSub.id === '4.1')
-                                }
+                                isSelected={vacancy.id === 101 && isModalVisible}
                                 showSalary={showCardSalary}
                                 showSummary={showCardSummary}
                                 showMatch={showCardMatch}
@@ -2147,81 +2084,7 @@ export default function LandingPage() {
                     />
                   )}
 
-                  {/* Screen 4.2: Final Blueprint Launchpad Card over the completed Kanban Board */}
-                  {isFinaleCardVisible && (
-                    <div className="landing-finale-overlay">
-                      <div className="landing-finale-card">
-                        <div className="landing-finale-topbar">
-                          <span className="landing-finale-kicker">
-                            <Award size={13} />
-                            <span>
-                              {isEn
-                                ? 'PIPELINE READY · ZERO SKELETONS LEFT'
-                                : 'ВОРОНКА СОБРАНА · ВСЕ ДАННЫЕ РАСКРЫТЫ'}
-                            </span>
-                          </span>
-                          <span className="landing-finale-step-tag">[04.2]</span>
-                        </div>
-
-                        <h2 className="landing-finale-title">
-                          {isEn
-                            ? 'From 3 raw LinkedIn links to 2 Offers on your board'
-                            : 'От 3 сырых ссылок с LinkedIn до 2 офферов на вашей доске'}
-                        </h2>
-                        <p className="landing-finale-subtitle">
-                          {isEn
-                            ? 'All salaries are normalized to monthly $, HR boilerplate is collapsed into 2 factual lines, and every vacancy is scored against your CV.'
-                            : 'Зарплаты приведены к $/мес, HR-вода схлопнута до 2 фактологических строк, а каждая вакансия проверена на Match с вашим резюме.'}
-                        </p>
-
-                        <div className="landing-finale-metrics">
-                          <div className="landing-finale-metric">
-                            <span className="landing-finale-metric-val is-emerald">
-                              {isEn ? '3 → 2 OFFERS' : '3 → 2 ОФФЕРА'}
-                            </span>
-                            <span className="landing-finale-metric-lbl">
-                              {isEn ? 'Stripe & Cloudflare in col 04' : 'Stripe и Cloudflare в колонке 04'}
-                            </span>
-                          </div>
-                          <div className="landing-finale-metric">
-                            <span className="landing-finale-metric-val is-blue">
-                              {isEn ? '−94% FLUFF' : '−94% ВОДЫ'}
-                            </span>
-                            <span className="landing-finale-metric-lbl">
-                              {isEn ? '2-sentence AI summary' : 'AI-выжимка в 2 строки'}
-                            </span>
-                          </div>
-                          <div className="landing-finale-metric">
-                            <span className="landing-finale-metric-val is-indigo">84% MATCH</span>
-                            <span className="landing-finale-metric-lbl">
-                              {isEn ? 'CV verified & gaps found' : 'Сверка с CV и пробелами'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="landing-finale-actions">
-                          <button
-                            type="button"
-                            className="btn btn-primary landing-finale-primary-btn"
-                            onClick={startApp}
-                          >
-                            <span>{isEn ? 'Open Board' : 'Перейти к доске'}</span>
-                            <ArrowRight size={15} />
-                          </button>
-                          <a href="/extension.zip" download className="btn btn-secondary">
-                            <Download size={14} />
-                            <span>{isEn ? 'Download Extension' : 'Скачать расширение'}</span>
-                          </a>
-                          <Link to="/about" className="btn btn-secondary">
-                            <span>{isEn ? 'About' : 'О проекте'}</span>
-                            <ArrowUpRight size={13} />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bottom-Center Scroll Prompt (moved from left column to the center of the right stage) */}
+                  {/* Bottom-Center Scroll Prompt */}
                   <div className="landing-scroll-hint-bar landing-stage-center-scroll">
                     {activeSubIdx < SUB_SCREENS.length - 1 ? (
                       <div
@@ -2264,25 +2127,33 @@ export default function LandingPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="landing-scroll-hint-btn is-completed">
+                      <div className="landing-scroll-hint-btn is-final-step">
                         <div className="landing-scroll-hint-left">
-                          <ChevronUp size={15} />
+                          <span className="landing-scroll-mouse" aria-hidden="true">
+                            <span className="landing-scroll-mouse-wheel" />
+                          </span>
                           <div className="landing-scroll-hint-copy">
                             <span className="landing-scroll-hint-title">
                               {isEn
-                                ? 'TOUR COMPLETED · SCROLL UP'
-                                : 'ДЕМОНСТРАЦИЯ ЗАВЕРШЕНА · ВВЕРХ'}
+                                ? 'SCROLL DOWN · OPEN BOARD'
+                                : 'SCROLL DOWN · ПЕРЕХОД К ДОСКЕ'}
                             </span>
                             <span className="landing-scroll-hint-sub">
                               {isEn
-                                ? 'Scroll up to return to the beginning [01.1]'
-                                : 'Прокрутите вверх, чтобы вернуться к началу [01.1]'}
+                                ? 'Scroll down to enter your Kanban workspace'
+                                : 'Крутите вниз для бесшовного перехода к рабочей доске'}
                             </span>
                           </div>
                         </div>
-                        <span className="landing-scroll-step-badge">
-                          {SUB_SCREENS.length}/{SUB_SCREENS.length}
-                        </span>
+                        <div className="landing-scroll-hint-right">
+                          <span className="landing-scroll-step-badge">
+                            {SUB_SCREENS.length}/{SUB_SCREENS.length}
+                          </span>
+                          <span className="landing-scroll-chevrons" aria-hidden="true">
+                            <ChevronDown size={13} />
+                            <ChevronDown size={13} />
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

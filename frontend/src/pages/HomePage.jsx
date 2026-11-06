@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Plus, Search, Filter, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
@@ -56,6 +57,31 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
+
+  // Attention highlight for "Add Vacancies" button when arriving from landing tour
+  const location = useLocation();
+  const [shouldHighlightAdd, setShouldHighlightAdd] = useState(() => {
+    try {
+      if (location.state?.highlightAddVacancy) return true;
+      return sessionStorage.getItem('highlight_add_vacancy') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAddVacanciesClick = useCallback(() => {
+    if (shouldHighlightAdd) {
+      setShouldHighlightAdd(false);
+      try {
+        sessionStorage.removeItem('highlight_add_vacancy');
+      } catch {}
+      if (window.history?.replaceState) {
+        window.history.replaceState({}, document.title);
+      }
+    }
+    trackEvent(EVENTS.BATCH_IMPORT_OPEN);
+    setIsBatchOpen(true);
+  }, [shouldHighlightAdd]);
 
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState([]);
@@ -638,12 +664,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           )}
 
           <button
-            className="btn btn-primary add-button plausible-event-name=Batch+Import+Open"
+            className={`btn btn-primary add-button plausible-event-name=Batch+Import+Open ${
+              shouldHighlightAdd ? 'is-tour-attention' : ''
+            }`}
             aria-label={t('nav.batch_import_btn')}
-            onClick={() => {
-              trackEvent(EVENTS.BATCH_IMPORT_OPEN);
-              setIsBatchOpen(true);
-            }}
+            onClick={handleAddVacanciesClick}
           >
             <Plus size={16} />
             <span>{t('nav.batch_import_btn')}</span>

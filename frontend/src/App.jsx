@@ -16,18 +16,19 @@ import AdminPage from './pages/AdminPage';
 import LandingPage from './pages/LandingPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
-function Layout({ user, onLogout, onUserUpdated }) {
+function Layout({ user, guestBoard, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const snapScroll = useGridScroll();
+  const isBoardRoute = pathname === '/' && (user || guestBoard);
   const landingRoute =
-    pathname === '/howtouse' || pathname === '/landing' || (pathname === '/' && !user);
+    pathname === '/howtouse' || pathname === '/landing' || (pathname === '/' && !user && !guestBoard);
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
     [open]
   );
-  // The board ("/" when authenticated) renders its own header with search; all other pages (including LandingPage) use the shared PageHeader.
-  const showPageHeader = !(pathname === '/' && user);
+  // The board ("/" when authenticated or unlocked) renders its own header with search; all other pages (including LandingPage) use the shared PageHeader.
+  const showPageHeader = !isBoardRoute;
 
   return (
     <MenuContext.Provider value={menu}>
@@ -119,6 +120,21 @@ export default function App() {
     checkAuth();
   }, [checkAuth]);
 
+  const [guestBoard, setGuestBoard] = useState(() => {
+    try {
+      return localStorage.getItem('unlocked_board') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleUnlockBoard = useCallback(() => {
+    try {
+      localStorage.setItem('unlocked_board', 'true');
+    } catch {}
+    setGuestBoard(true);
+  }, []);
+
   const handleLogout = async () => {
     trackEvent(EVENTS.LOGOUT);
     try {
@@ -149,15 +165,26 @@ export default function App() {
 
   return (
     <Routes>
-      <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
-        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : <LandingPage />} />
-        <Route path="/landing" element={<LandingPage />} />
+      <Route element={<Layout user={user} guestBoard={guestBoard} onLogout={handleLogout} onUserUpdated={setUser} />}>
+        <Route
+          path="/"
+          element={
+            user ? (
+              <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} />
+            ) : guestBoard ? (
+              loginScreen
+            ) : (
+              <LandingPage onFinish={handleUnlockBoard} />
+            )
+          }
+        />
+        <Route path="/landing" element={<LandingPage onFinish={handleUnlockBoard} />} />
         <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
         <Route path="/admin" element={user ? <AdminPage user={user} /> : loginScreen} />
-        <Route path="/howtouse" element={<LandingPage />} />
+        <Route path="/howtouse" element={<LandingPage onFinish={handleUnlockBoard} />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
