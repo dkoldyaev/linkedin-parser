@@ -52,26 +52,42 @@ def api_user_fixture():
         db.commit()
     db.close()
 
-def test_system_vs_public_api_docs():
+def test_system_vs_public_api_docs(api_user_fixture):
+    user, raw_api_key, jwt_token = api_user_fixture
     client = TestClient(app)
 
-    # 1. System API documentation is NOT exposed; /docs, /redoc, /openapi.json redirect to public API
-    r_docs = client.get("/docs", follow_redirects=False)
+    # 1. Unauthenticated or user without api_access cannot view docs or schema
+    res_no_auth = client.get("/api/v1/docs")
+    assert res_no_auth.status_code == 401
+
+    res_no_auth_json = client.get("/api/v1/openapi.json")
+    assert res_no_auth_json.status_code == 401
+
+    res_no_auth_root = client.get("/docs", follow_redirects=False)
+    assert res_no_auth_root.status_code == 401
+
+    # 2. Authenticated user with api_access flag can access via JWT session or API key
+    # Via API key
+    res_pub_schema = client.get("/api/v1/openapi.json", headers={"X-API-Key": raw_api_key})
+    assert res_pub_schema.status_code == 200
+    schema = res_pub_schema.json()
+
+    # Via JWT session cookie/token
+    res_docs_jwt = client.get("/api/v1/docs", headers={"Authorization": f"Bearer {jwt_token}"})
+    assert res_docs_jwt.status_code == 200
+
+    # Root redirects work for authorized users
+    r_docs = client.get("/docs", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_docs.status_code == 307
     assert r_docs.headers["location"] == "/api/v1/docs"
 
-    r_redoc = client.get("/redoc", follow_redirects=False)
+    r_redoc = client.get("/redoc", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_redoc.status_code == 307
     assert r_redoc.headers["location"] == "/api/v1/redoc"
 
-    r_schema = client.get("/openapi.json", follow_redirects=False)
+    r_schema = client.get("/openapi.json", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_schema.status_code == 307
     assert r_schema.headers["location"] == "/api/v1/openapi.json"
-
-    # 2. Public API OpenAPI documentation at /api/v1/openapi.json exists
-    res_pub_schema = client.get("/api/v1/openapi.json")
-    assert res_pub_schema.status_code == 200
-    schema = res_pub_schema.json()
 
     # Documentation must be specifically for Public API
     assert "Job Vacancies Public API" in schema["info"]["title"]
@@ -104,6 +120,20 @@ def test_system_vs_public_api_docs():
     # Verify security schemes define API Key
     sec_schemes = schema.get("components", {}).get("securitySchemes", {})
     assert "APIKeyHeader" in sec_schemes or any(v.get("type") == "apiKey" for v in sec_schemes.values())
+
+    # 3. User WITHOUT api_access flag gets 403 Forbidden
+    db = SessionLocal()
+    db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id, UserFeatureFlag.flag == "api_access").delete()
+    db.commit()
+    db.close()
+
+    res_forbidden_docs = client.get("/api/v1/docs", headers={"Authorization": f"Bearer {jwt_token}"})
+    assert res_forbidden_docs.status_code == 403
+    assert "api_access" in res_forbidden_docs.json()["detail"]
+
+    res_forbidden_schema = client.get("/api/v1/openapi.json", headers={"X-API-Key": raw_api_key})
+    assert res_forbidden_schema.status_code == 403
+    assert "api_access" in res_forbidden_schema.json()["detail"]
 
 def test_public_api_access_control(api_user_fixture):
     user, raw_api_key, jwt_token = api_user_fixture

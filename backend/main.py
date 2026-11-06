@@ -317,28 +317,60 @@ public_app = FastAPI(
     title="Job Vacancies Public API",
     description="Public API for accessing and managing job vacancies. Access is granted strictly via Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 from .public_api import router as public_router
+from .auth import get_current_user_with_api_access
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+
 public_app.include_router(public_router)
+
+@public_app.get("/openapi.json", include_in_schema=False)
+def get_public_openapi_json(current_user: User = Depends(get_current_user_with_api_access)):
+    """Return OpenAPI schema protected by api_access feature flag."""
+    schema = get_openapi(
+        title=public_app.title,
+        version=public_app.version,
+        description=public_app.description,
+        routes=public_app.routes,
+    )
+    return JSONResponse(schema)
+
+@public_app.get("/docs", include_in_schema=False)
+def get_public_docs_html(current_user: User = Depends(get_current_user_with_api_access)):
+    """Swagger UI protected by api_access feature flag."""
+    return get_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title=f"{public_app.title} - Swagger UI",
+    )
+
+@public_app.get("/redoc", include_in_schema=False)
+def get_public_redoc_html(current_user: User = Depends(get_current_user_with_api_access)):
+    """ReDoc protected by api_access feature flag."""
+    return get_redoc_html(
+        openapi_url="/api/v1/openapi.json",
+        title=f"{public_app.title} - ReDoc",
+    )
 
 # Mount public API at /api/v1
 app.mount("/api/v1", public_app)
 
 # Convenience redirects for root docs/openapi pointing directly to the Public API documentation
 @app.get("/docs", include_in_schema=False)
-def redirect_docs():
+def redirect_docs(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/docs")
 
 @app.get("/redoc", include_in_schema=False)
-def redirect_redoc():
+def redirect_redoc(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/redoc")
 
 @app.get("/openapi.json", include_in_schema=False)
-def redirect_openapi():
+def redirect_openapi(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/openapi.json")
 
 # CORS middleware for local dev
