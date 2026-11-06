@@ -36,20 +36,23 @@ Options:
   --branch <name>          Git branch to deploy (default: current git branch)
   --app-name <name>        Compose application name in Dokploy (default: app)
   --reset-db               Reset database volumes on deploy (freshVolumes)
+  --mock-data              Enable fake mock vacancies generation on startup (CREATE_MOCK_DATA=true)
   --skip-deploy            Create and configure environment without triggering deploy
   --check                  Perform HTTP check of deployed services
   -h, --help               Show help
 
 Examples:
   npm run dokploy:deploy
+  npm run dokploy:deploy -- --mock-data
   npm run dokploy:deploy -- dev
   npm run dokploy:deploy -- feature-quiz --branch feature-quiz
-  npm run dokploy:deploy -- feature-quiz --skip-deploy
+  npm run dokploy:deploy -- feature-quiz --mock-data
 `);
   process.exit(0);
 }
 
 const resetDb = args.includes('--reset-db') || args.includes('--recreate-db') || args.includes('--fresh-volumes');
+const enableMockData = args.includes('--mock-data') || args.includes('--mocks') || args.includes('--create-mock-data');
 const skipDeploy = args.includes('--skip-deploy') || args.includes('--no-deploy');
 const runCheck = args.includes('--check');
 const customBranch = getArgValue('--branch');
@@ -187,6 +190,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
   const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
+  const createMockData = enableMockData ? 'true' : (envVars['CREATE_MOCK_DATA'] || 'false');
 
   return [
     `APP_URL=${fullDomain}`,
@@ -205,6 +209,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
     `JWT_SECRET=${requireEnvVar('JWT_SECRET')}`,
     `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
+    `CREATE_MOCK_DATA=${createMockData}`,
     `PORT=8000`,
   ].join('\n');
 }
@@ -213,6 +218,9 @@ async function main() {
   console.log(`\n\x1b[36m=== Dokploy Deployment: "${envName}" ===\x1b[0m\n`);
   console.log(`📌 Git branch: \x1b[32m${gitBranch}\x1b[0m`);
   console.log(`📌 Environment name: \x1b[32m${envName}\x1b[0m`);
+  if (enableMockData) {
+    console.log(`📌 Mock data generation: \x1b[33mENABLED (CREATE_MOCK_DATA=true)\x1b[0m`);
+  }
 
   // 1. Fetch Project and GitHub provider
   console.log(`🔍 Connecting to Dokploy and searching for project "${projectName}"...`);

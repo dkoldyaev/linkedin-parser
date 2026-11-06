@@ -8,6 +8,7 @@ class UserResponse(BaseModel):
     name: str
     picture: Optional[str] = None
     feature_flags: List[str] = Field(default_factory=list)
+    is_anonymous: bool = False
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

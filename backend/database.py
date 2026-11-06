@@ -123,6 +123,8 @@ def ensure_db_schema():
                 if user_cols:
                     if "feature_flags" not in user_cols:
                         conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
+                    if "is_anonymous" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN is_anonymous BOOLEAN DEFAULT 0 NOT NULL"))
 
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
@@ -153,6 +155,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE NOT NULL"))
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
                         id SERIAL PRIMARY KEY,

@@ -10,6 +10,7 @@ import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
 import HeaderControls from '../components/HeaderControls';
 import QueueModal from '../components/QueueModal';
+import LoginModal from '../components/LoginModal';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 
@@ -92,6 +93,29 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   // Toast notifications
   const [toast, setToast] = useState(null);
+
+  // Guest save prompt modal & banner dismissed state
+  const [isGuestAuthModalOpen, setIsGuestAuthModalOpen] = useState(false);
+  const [guestBannerDismissed, setGuestBannerDismissed] = useState(() => {
+    return sessionStorage.getItem('guest_banner_dismissed') === 'true';
+  });
+
+  // Track initial vacancy count to detect when guest uploads cards
+  const prevVacancyCountRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.is_anonymous && vacancies.length >= 2) {
+      const alreadyPrompted = sessionStorage.getItem('guest_auth_prompt_shown');
+      if (!alreadyPrompted) {
+        // If cards were just added in this session or user already has >= 2 cards
+        if (prevVacancyCountRef.current !== null && vacancies.length > prevVacancyCountRef.current) {
+          setIsGuestAuthModalOpen(true);
+          sessionStorage.setItem('guest_auth_prompt_shown', 'true');
+        }
+      }
+    }
+    prevVacancyCountRef.current = vacancies.length;
+  }, [vacancies.length, user?.is_anonymous]);
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
@@ -692,6 +716,37 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         </HeaderControls>
       </header>
 
+      {/* Guest Mode Banner: informs the user they can save their progress across devices */}
+      {user?.is_anonymous && vacancies.length >= 2 && !guestBannerDismissed && (
+        <div className="guest-banner">
+          <div className="guest-banner-content">
+            <span className="guest-banner-icon">💡</span>
+            <span className="guest-banner-text">
+              {t('auth.guest_banner_text') || 'Вы пользуетесь гостевым доступом. Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу на другом компьютере или телефоне.'}
+            </span>
+          </div>
+          <div className="guest-banner-actions">
+            <button
+              className="btn btn-primary btn-sm guest-banner-btn"
+              onClick={() => setIsGuestAuthModalOpen(true)}
+            >
+              {t('auth.guest_banner_btn') || 'Сохранить прогресс'}
+            </button>
+            <button
+              className="btn btn-secondary btn-icon btn-sm guest-banner-close"
+              onClick={() => {
+                setGuestBannerDismissed(true);
+                sessionStorage.setItem('guest_banner_dismissed', 'true');
+              }}
+              title={t('common.close') || 'Закрыть'}
+              aria-label="Dismiss banner"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter bar for Country, City, Workplace & Tags */}
       {selectedIds.length > 0 ? (
         <div className="filter-bar filter-bar-bulk" style={{ justifyContent: 'space-between' }}>
@@ -997,6 +1052,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         onRefreshQueue={fetchQueueStatus}
       />
 
+      {isGuestAuthModalOpen && (
+        <LoginModal
+          isOpen={isGuestAuthModalOpen}
+          onClose={() => setIsGuestAuthModalOpen(false)}
+          onLoginSuccess={(updatedUser) => {
+            setIsGuestAuthModalOpen(false);
+            if (onUserUpdated) onUserUpdated(updatedUser);
+            fetchVacancies();
+          }}
+          isGuestPromotion={true}
+        />
+      )}
       {/* Toast Notifications */}
       {toast && (
         <div className="toast-container">

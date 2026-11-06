@@ -35,6 +35,7 @@ class User(Base):
     picture = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    is_anonymous = Column(Boolean, default=False, nullable=False)
     # Kept for backward compatibility if needed, but primary storage is user_feature_flags table
     feature_flags = Column(JSON, default=list)
 
