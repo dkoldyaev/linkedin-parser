@@ -1948,27 +1948,35 @@
 
 .landing-page.is-exiting .landing-scroll-hint-bar {
   pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 40px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.landing-page.is-exiting .landing-modal-backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
 /* ==========================================================================
-   6. Responsive Layout for Tablet & Mobile
+   6. Responsive Layout for Tablet & Mobile (Compact Scaled Objects)
    ========================================================================== */
 @media (max-width: 1024px) {
+  :root,
+  .landing-page {
+    --mobile-stage-h: 285px;
+    --stage-h: calc(100vh - var(--mobile-stage-h) - 48px);
+  }
+
   .landing-header-dynamic {
     display: none;
   }
 
   .landing-split-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .landing-left-narrative {
-    order: 2;
-    box-shadow: none;
-  }
-
-  .landing-left-narrative::after {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 
   .landing-right-preview-col {
@@ -1976,42 +1984,776 @@
     position: sticky;
     top: 0;
     z-index: 25;
-    box-shadow: inset 0 -1px var(--border-strong);
+    width: 100% !important;
+    height: var(--mobile-stage-h) !important;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-strong);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    overflow: hidden !important;
   }
 
   .landing-sticky-stage {
     position: relative;
     top: 0;
-    height: calc(14 * var(--grid));
+    height: 100% !important;
     padding: 0;
+    overflow: hidden !important;
+  }
+
+  .landing-left-narrative {
+    order: 2;
+    width: 100% !important;
+    height: calc(9.3 * var(--stage-h)) !important;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .landing-left-narrative::after {
+    display: none;
+  }
+
+  .landing-left-sticky-viewport {
+    position: sticky;
+    top: var(--mobile-stage-h) !important;
+    height: var(--stage-h) !important;
+    width: 100% !important;
+    overflow: hidden;
+  }
+
+  .landing-left-full-block {
+    height: var(--stage-h) !important;
+    min-height: var(--stage-h) !important;
+    max-height: var(--stage-h) !important;
+    width: 100% !important;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .landing-header {
     padding-inline: var(--grid-unit);
   }
 
-  .landing-brand-copy .brand-subtitle {
-    display: none;
-  }
-
+  .landing-brand-copy .brand-subtitle,
   .landing-screen-tabs {
     display: none;
   }
 
-  .landing-li-scene {
-    flex-direction: column;
-    inset: var(--grid-unit);
+  /* Filter Bar */
+  .landing-filter-bar {
+    height: 20px !important;
+    min-height: 20px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
   }
 
-  .landing-li-window,
-  .landing-batch-modal {
+  .landing-filter-skel-group {
+    gap: 4px !important;
+  }
+
+  /* Screen 1.1: Scaled-down LinkedIn Window & Batch Import Modal */
+  .landing-li-scene {
+    position: absolute;
+    inset: 0;
+    padding: 4px 6px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .landing-li-window {
     width: 100% !important;
     max-width: 100% !important;
+    flex-shrink: 0;
+    border-radius: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .landing-li-navbar {
+    height: 20px !important;
+    min-height: 20px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+  }
+
+  .landing-li-logo {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.6rem !important;
+  }
+
+  .landing-li-searchbox {
+    height: 14px !important;
+    padding: 0 5px !important;
+    font-size: 0.5rem !important;
+    gap: 3px !important;
+  }
+
+  .landing-li-nav-icons {
+    gap: 4px !important;
+  }
+
+  .li-nav-dot {
+    width: 5px !important;
+    height: 5px !important;
+  }
+
+  .li-nav-jobs-active {
+    font-size: 0.5rem !important;
+    padding-bottom: 1px !important;
+  }
+
+  .landing-li-filters {
+    height: 18px !important;
+    padding: 0 6px !important;
+    gap: 3px !important;
+  }
+
+  .li-filter-pill {
+    padding: 1px 4px !important;
+    font-size: 0.48rem !important;
+  }
+
+  /* Single Column on mobile: hide squeezed right detail pane */
+  .landing-li-split {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
+  .landing-li-detail-pane {
+    display: none !important;
+  }
+
+  .landing-li-list {
+    border-right: 0 !important;
+    width: 100% !important;
+  }
+
+  .landing-li-job-row {
+    padding: 3px 6px !important;
+    gap: 5px !important;
+  }
+
+  .landing-li-job-avatar {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.55rem !important;
+  }
+
+  .landing-li-job-title {
+    font-size: 0.58rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .landing-li-job-meta {
+    font-size: 0.48rem !important;
+    gap: 3px !important;
+  }
+
+  .landing-li-job-url {
+    font-size: 0.46rem !important;
+  }
+
+  .landing-li-row-status {
+    font-size: 0.56rem !important;
+    width: 12px !important;
   }
 
   .landing-li-flight-bridge {
-    display: none;
+    display: none !important;
+  }
+
+  /* Batch Import Modal */
+  .landing-batch-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .landing-batch-header {
+    height: 20px !important;
+    min-height: 20px !important;
+    padding: 0 6px !important;
+  }
+
+  .landing-batch-title {
+    font-size: 0.62rem !important;
+    gap: 4px !important;
+  }
+
+  .landing-batch-title svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .landing-batch-body {
+    padding: 4px 6px !important;
+    gap: 2px !important;
+  }
+
+  .landing-batch-label-row {
+    margin-bottom: 2px !important;
+    gap: 4px !important;
+  }
+
+  .landing-batch-label-row .form-label {
+    font-size: 0.52rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .landing-batch-counter {
+    font-size: 0.52rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .landing-batch-textarea {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 2px 4px !important;
+    font-size: 0.48rem !important;
+    line-height: 1.3 !important;
+    gap: 2px !important;
+  }
+
+  .landing-textarea-url-line {
+    font-size: 0.48rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .landing-batch-tags-row {
+    display: none !important;
+  }
+
+  .landing-batch-footer {
+    padding: 3px 6px !important;
+    gap: 5px !important;
+  }
+
+  .landing-batch-cancel-btn {
+    height: 18px !important;
+    padding: 0 5px !important;
+    font-size: 0.52rem !important;
+  }
+
+  .landing-batch-submit-btn {
+    height: 18px !important;
+    padding: 0 7px !important;
+    font-size: 0.54rem !important;
+    gap: 3px !important;
+  }
+
+  .landing-batch-submit-btn svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  /* Compact Floating Scroll Hint Pill */
+  .landing-scroll-hint-bar.landing-stage-center-scroll {
+    bottom: 2px !important;
+    width: auto !important;
+    max-width: calc(100% - 16px) !important;
+    left: 50% !important;
+    transform: translate(-50%, 0) !important;
+  }
+
+  .landing-scroll-hint-btn {
+    height: 18px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+    border-radius: 2px !important;
+    background: rgba(14, 34, 59, 0.94) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid var(--primary) !important;
+  }
+
+  [data-theme='light'] .landing-scroll-hint-btn {
+    background: rgba(255, 255, 255, 0.94) !important;
+  }
+
+  .landing-scroll-hint-left {
+    gap: 4px !important;
+  }
+
+  .landing-scroll-mouse,
+  .landing-scroll-hint-sub {
+    display: none !important;
+  }
+
+  .landing-scroll-hint-title {
+    font-size: 0.5rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .landing-scroll-step-badge {
+    font-size: 0.48rem !important;
+    padding: 0 3px !important;
+  }
+
+  .landing-scroll-chevrons svg {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  /* 4-Column Kanban Board */
+  .landing-kanban-board {
+    height: 100% !important;
+  }
+
+  .landing-kanban-column .column-header {
+    height: 18px !important;
+    min-height: 18px !important;
+    padding: 0 2px !important;
+  }
+
+  .landing-kanban-column .column-title-group {
+    gap: 2px !important;
+  }
+
+  .landing-kanban-column .column-index {
+    font-size: 0.5rem !important;
+  }
+
+  .landing-kanban-column .column-dot {
+    width: 4px !important;
+    height: 4px !important;
+  }
+
+  .landing-kanban-column .column-name {
+    font-size: 0.48rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .landing-kanban-column .column-badge {
+    font-size: 0.46rem !important;
+  }
+
+  .landing-kanban-card .card-grid-body-content {
+    padding: 2px 4px !important;
+    gap: 1px !important;
+  }
+
+  .landing-kanban-card .card-header-meta {
+    margin-bottom: 0 !important;
+    gap: 2px !important;
+  }
+
+  .landing-kanban-card .card-company {
+    font-size: 0.48rem !important;
+  }
+
+  .landing-kanban-card .card-company svg {
+    width: 8px !important;
+    height: 8px !important;
+  }
+
+  .landing-kanban-card .card-title {
+    font-size: 0.55rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .landing-kanban-card .card-meta {
+    gap: 2px !important;
+    margin-top: 1px !important;
+  }
+
+  .landing-kanban-card .card-salary-badge,
+  .landing-kanban-card .card-match-badge,
+  .landing-kanban-card .card-workplace-badge,
+  .landing-kanban-card .card-location {
+    font-size: 0.46rem !important;
+    padding: 0 3px !important;
+    height: 12px !important;
+    line-height: 12px !important;
+  }
+
+  .landing-kanban-card .card-salary-badge svg,
+  .landing-kanban-card .card-match-badge svg,
+  .landing-kanban-card .card-workplace-badge svg,
+  .landing-kanban-card .card-location svg {
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .landing-kanban-card .card-summary,
+  .landing-kanban-card .card-footer {
+    display: none !important;
+  }
+
+  .landing-kanban-card .tech-chip {
+    font-size: 0.44rem !important;
+    padding: 0 3px !important;
+    height: 11px !important;
+    line-height: 11px !important;
+  }
+
+  .landing-empty-column {
+    min-height: 50px !important;
+    padding: 6px 3px !important;
+  }
+
+  .landing-empty-column-title {
+    font-size: 0.48rem !important;
+  }
+
+  /* Vacancy Modal */
+  .landing-modal-backdrop {
+    padding: 4px !important;
+  }
+
+  .landing-vacancy-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100% !important;
+  }
+
+  .landing-vacancy-modal .modal-header.landing-modal-header {
+    padding: 5px 6px !important;
+    gap: 2px !important;
+  }
+
+  .landing-modal-meta-row {
+    gap: 3px !important;
+  }
+
+  .landing-modal-meta-left,
+  .landing-modal-meta-right {
+    gap: 3px !important;
+    font-size: 0.5rem !important;
+  }
+
+  .landing-modal-meta-left svg,
+  .landing-modal-meta-right svg {
+    width: 9px !important;
+    height: 9px !important;
+  }
+
+  .landing-modal-meta-right .card-salary-badge,
+  .landing-modal-meta-right .card-match-badge {
+    font-size: 0.5rem !important;
+    padding: 0 3px !important;
+    height: 14px !important;
+    line-height: 14px !important;
+  }
+
+  .landing-modal-title-static {
+    font-size: 0.7rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .settings-tabs.vacancy-tabs {
+    height: 20px !important;
+    min-height: 20px !important;
+  }
+
+  .settings-tab-btn {
+    height: 20px !important;
+    padding: 0 5px !important;
+    font-size: 0.52rem !important;
+    gap: 3px !important;
+  }
+
+  .settings-tab-btn svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .landing-tab-score-pill {
+    font-size: 0.5rem !important;
+    padding: 0 3px !important;
+  }
+
+  .modal-body.landing-modal-body {
+    padding: 6px 8px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    max-height: calc(100vh - 140px) !important;
+  }
+
+  .vacancy-salary-header {
+    margin-bottom: 2px !important;
+    font-size: 0.52rem !important;
+  }
+
+  .salary-fields-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  .salary-field-label {
+    font-size: 0.48rem !important;
+    margin-bottom: 1px !important;
+  }
+
+  .salary-field-input {
+    height: 18px !important;
+    padding: 1px 3px !important;
+    font-size: 0.52rem !important;
+  }
+
+  .orig-desc-header {
+    padding: 2px 4px !important;
+    font-size: 0.52rem !important;
+  }
+
+  .landing-compression-badge {
+    font-size: 0.48rem !important;
+    padding: 0 3px !important;
+  }
+
+  .landing-bloat-paragraph {
+    padding: 2px 4px !important;
+    font-size: 0.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .landing-bloat-tag {
+    font-size: 0.44rem !important;
+  }
+
+  .vacancy-ai-summary {
+    padding: 4px 6px !important;
+    margin-top: 3px !important;
+  }
+
+  .vacancy-ai-summary-title {
+    font-size: 0.52rem !important;
+    gap: 3px !important;
+  }
+
+  .vacancy-ai-summary-text {
+    font-size: 0.5rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .editable-token {
+    font-size: 0.46rem !important;
+    padding: 0 3px !important;
+    height: 13px !important;
+  }
+
+  .compatibility-group-title {
+    font-size: 0.52rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .landing-compat-row {
+    font-size: 0.5rem !important;
+    line-height: 1.2 !important;
+    padding: 1px 0 !important;
+  }
+
+  .compatibility-evidence {
+    font-size: 0.46rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .compatibility-recommendation-list li {
+    font-size: 0.48rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Narrative Column & Screen Blocks on Mobile */
+  .landing-vnav {
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+  }
+
+  .landing-vnav-track {
+    gap: 8px !important;
+  }
+
+  .landing-vnav-screen-bullet {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.48rem !important;
+  }
+
+  .landing-vnav-sub-bullets {
+    gap: 2px !important;
+  }
+
+  .landing-vnav-dot {
+    width: 3px !important;
+    height: 3px !important;
+  }
+
+  .landing-full-block-body {
+    padding: 6px 8px 32px !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .landing-full-block-hero {
+    gap: 3px !important;
+  }
+
+  .landing-block-kicker {
+    font-size: 0.5rem !important;
+  }
+
+  .landing-block-title {
+    font-size: 0.9rem !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .landing-block-lead {
+    font-size: 0.65rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .landing-block-captions {
+    gap: 3px !important;
+    padding-top: 3px !important;
+  }
+
+  .landing-block-captions-title {
+    font-size: 0.5rem !important;
+  }
+
+  .landing-captions-list {
+    gap: 2px !important;
+  }
+
+  .landing-caption-item {
+    padding: 2px 4px !important;
+    gap: 2px !important;
+  }
+
+  .landing-caption-meta {
+    gap: 3px !important;
+  }
+
+  .landing-caption-label {
+    font-size: 0.52rem !important;
+  }
+
+  .landing-caption-text {
+    font-size: 0.6rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .landing-block-cta {
+    padding-top: 3px !important;
+  }
+
+  .landing-final-actions {
+    gap: 3px !important;
+  }
+
+  .landing-final-actions .btn {
+    height: 22px !important;
+    padding: 0 6px !important;
+    font-size: 0.56rem !important;
+    gap: 3px !important;
+  }
+
+  /* On the last step (exit transition to dashboard) on mobile:
+     Width becomes min 320px with horizontal scroll, matching the real dashboard */
+  .landing-page.is-exiting .landing-right-preview-col {
+    position: sticky !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: calc(100vh - 48px) !important;
+    z-index: 25 !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    transition: height 0.3s ease !important;
+  }
+
+  .landing-page.is-exiting .landing-left-narrative {
+    box-shadow: none !important;
+  }
+
+  .landing-page.is-exiting .landing-left-sticky-viewport {
+    opacity: 0 !important;
+    transform: translateY(20px) !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+  }
+
+  .landing-page.is-exiting .landing-modal-backdrop {
+    display: none !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-board {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-column {
+    min-width: 320px !important;
+    width: 320px !important;
+    flex: 0 0 320px !important;
+    flex-basis: 320px !important;
+    height: 100% !important;
+    box-shadow: inset -1px 0 var(--column-divider, var(--border-strong)), inset 0 -1px var(--border-subtle) !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-column .column-header {
+    height: var(--grid, 32px) !important;
+    min-height: var(--grid, 32px) !important;
+    padding: 0 8px !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-column .column-index {
+    font-size: 0.75rem !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-column .column-name {
+    font-size: 0.75rem !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-column .column-badge {
+    font-size: 0.75rem !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-card .card-grid-body-content {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-card .card-company {
+    font-size: 0.75rem !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-card .card-title {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-card .card-meta {
+    margin-top: 4px !important;
+    gap: 6px !important;
+  }
+
+  .landing-page.is-exiting .landing-kanban-card .card-salary-badge,
+  .landing-page.is-exiting .landing-kanban-card .card-match-badge,
+  .landing-page.is-exiting .landing-kanban-card .card-workplace-badge,
+  .landing-page.is-exiting .landing-kanban-card .card-location {
+    font-size: 0.7rem !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    padding: 0 6px !important;
   }
 }

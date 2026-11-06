@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
-  ArrowUpRight,
   Award,
   Banknote,
   Building,
   Building2,
   ChevronDown,
   ChevronUp,
-  Download,
   ExternalLink,
   FileText,
   History,
@@ -753,6 +751,28 @@ function LandingVacancyModal({
   const [visibleCriticalCount, setVisibleCriticalCount] = useState(1);
   const [visibleRecsCount, setVisibleRecsCount] = useState(3);
 
+  const modalBodyRef = useRef(null);
+  const bloatSectionRef = useRef(null);
+
+  // Auto-scroll inside modal on mobile for Step 2.2 ("БОЛЬШОЕ МУТНОЕ ОПИСАНИЕ ИЗ LINKEDIN")
+  useEffect(() => {
+    if (subScreenId === '2.2') {
+      const bloatEl = bloatSectionRef.current;
+      const body = modalBodyRef.current;
+      if (bloatEl) {
+        bloatEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (body) {
+          const targetTop = bloatEl.offsetTop - body.offsetTop;
+          body.scrollTo({ top: Math.max(0, targetTop - 8), behavior: 'smooth' });
+        }
+      }
+    } else if (subScreenId === '2.1') {
+      if (modalBodyRef.current) {
+        modalBodyRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [subScreenId]);
+
   // Animate Salary typing in Sub-screen 2.1
   useEffect(() => {
     if (subScreenId !== '2.1') {
@@ -955,8 +975,8 @@ function LandingVacancyModal({
           </span>
         </div>
 
-        {/* Modal Body (Non-scrolling, uncluttered layout) */}
-        <div className="modal-body landing-modal-body">
+        {/* Modal Body (Non-scrolling on desktop, auto-scrolled on mobile) */}
+        <div ref={modalBodyRef} className="modal-body landing-modal-body">
           {activeTab === 'details' ? (
             <>
               {/* Section 1: Salary Auto-Fill & Monthly Normalization (Presented in 2.1) */}
@@ -1058,6 +1078,7 @@ function LandingVacancyModal({
                 <>
                   {/* Original LinkedIn-speak (Expanded in 2.2, Collapsed in 2.3) */}
                   <div
+                    ref={bloatSectionRef}
                     className={`form-group orig-desc-section landing-bloat-section ${
                       isBloatCollapsed ? 'is-collapsed' : 'is-expanded'
                     }`}
@@ -1424,6 +1445,11 @@ export default function LandingPage({ onFinish }) {
   const getStageHeightPx = useCallback(() => {
     const grid =
       parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+    if (window.innerWidth <= 1024) {
+      const mobileStageH = 285;
+      const headerH = 48;
+      return Math.max(240, window.innerHeight - mobileStageH - headerH);
+    }
     return Math.max(grid * 12, window.innerHeight - grid * 2);
   }, []);
 
@@ -1440,6 +1466,7 @@ export default function LandingPage({ onFinish }) {
       const nextIdx = getSubScreenIdxFromRatio(ratio);
       const nextImportStage = getImportStageFromRatio(ratio);
       const nextTargetFunnel = getFunnelStageFromRatio(ratio);
+      root.dataset.subScreen = SUB_SCREENS[nextIdx]?.id || '1.1';
 
       // Exit transition progress: from ratio 7.25 to 8.15
       const exitProgress =
@@ -1798,34 +1825,6 @@ export default function LandingPage({ onFinish }) {
                                 );
                               })}
                             </div>
-
-                            {/* CTA Buttons at the bottom of Screen 03 */}
-                            {block.screen === 3 && (
-                              <div className="landing-block-cta">
-                                <div className="landing-final-actions">
-                                  <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={finishToBoard}
-                                  >
-                                    <span>{isEn ? 'Open Board' : 'Перейти к доске'}</span>
-                                    <ArrowRight size={14} />
-                                  </button>
-                                  <a
-                                    href="/extension.zip"
-                                    download
-                                    className="btn btn-secondary"
-                                  >
-                                    <Download size={14} />
-                                    <span>{isEn ? 'Download Extension' : 'Скачать расширение'}</span>
-                                  </a>
-                                  <Link to="/about" className="btn btn-secondary">
-                                    <span>{isEn ? 'About' : 'О проекте'}</span>
-                                    <ArrowUpRight size={13} />
-                                  </Link>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </section>

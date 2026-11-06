@@ -453,6 +453,13 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   background: var(--board-card-fill); box-shadow: none; transform: none;
 }
 .card-grid-content { display: flex; flex-direction: column; gap: var(--grid-unit); padding: calc(2 * var(--grid-unit)); }
+/* .landing-kanban-card .card-grid-content {
+  height: 64px;
+  overflow: hidden;
+} */
+.landing-kanban-card .card-grid-content .card-status-indicators {
+  display: none;
+}
 .kanban-rejected-cards { padding: 0; gap: 0; }
 .kanban-rejected-cards .kanban-card {
   width: calc(10 * var(--grid)); min-width: calc(10 * var(--grid));
