@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -21,11 +21,11 @@ import {
   Shield,
   Sparkles,
   UploadCloud,
-  X,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
+import { resolveRolePreset } from './landingPresets';
 import './LandingPage.css';
 
 const BOARD_COLUMNS = [
@@ -35,122 +35,20 @@ const BOARD_COLUMNS = [
   { id: 'Оффер', labelEn: 'Offer', index: '04', color: '#059669' },
 ];
 
-const LINKEDIN_EXTRACTED_LINKS = [
-  {
-    id: 'li-4409',
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4409263207/',
-    shortUrl: 'linkedin.com/jobs/view/4409263207',
-    title: 'Senior Backend Engineer (Payments)',
-    company: 'Stripe',
-    location: 'Berlin · Hybrid',
-  },
-  {
-    id: 'li-4410',
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4410891023/',
-    shortUrl: 'linkedin.com/jobs/view/4410891023',
-    title: 'Staff Product Engineer',
-    company: 'Linear',
-    location: 'EU · Remote',
-  },
-  {
-    id: 'li-4412',
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4412004911/',
-    shortUrl: 'linkedin.com/jobs/view/4412004911',
-    title: 'Systems & Edge SRE',
-    company: 'Cloudflare',
-    location: 'Lisbon · Remote',
-  },
-];
-
-const DEMO_VACANCIES = [
-  {
-    id: 101,
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4409263207/',
-    title: 'Senior Backend Engineer (Payments)',
-    company: 'Stripe',
-    location: 'Berlin, Germany',
-    workplace_type: 'hybrid',
-    salary_min: 144000,
-    salary_max: 168000,
-    salary_currency: '$',
-    salary_period: 'year',
-    match_score: 84,
-    ai_summary:
-      'Разработка высоконагруженного ядра платежей и распределенного леджера (до 15 000 RPS). Требуется от 5 лет опыта с Go, PostgreSQL, Kafka, gRPC и эксплуатацией микросервисов в Kubernetes.',
-    ai_summary_en:
-      'Build high-throughput payment core and distributed ledger (up to 15,000 RPS). Requires 5+ years of experience with Go, PostgreSQL, Kafka, gRPC, and running microservices in Kubernetes.',
-    company_info: 'Глобальная инфраструктура приема онлайн-платежей и финансового процессинга.',
-    tech_stack: ['Go', 'PostgreSQL', 'Kafka', 'gRPC', 'Kubernetes'],
-    tags: ['fintech', 'highload'],
-    created_at: '14 мая',
-    created_at_en: 'May 14',
-    history_count: 2,
-    has_comment: true,
-  },
-  {
-    id: 102,
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4410891023/',
-    title: 'Staff Product Engineer',
-    company: 'Linear',
-    location: 'Remote, EU',
-    workplace_type: 'remote',
-    salary_min: 9500,
-    salary_max: 11500,
-    salary_currency: '€',
-    salary_period: 'month',
-    match_score: 79,
-    ai_summary:
-      'Развитие клиентского движка синхронизации данных и локального хранилища IndexedDB. Опыт от 5 лет с TypeScript, React и оптимизацией рендеринга.',
-    ai_summary_en:
-      'Develop client-side sync engine and local IndexedDB storage. Requires 5+ years with TypeScript, React, and rendering performance optimization.',
-    tech_stack: ['TypeScript', 'React', 'GraphQL'],
-    tags: ['remote', 'product'],
-    created_at: '14 мая',
-    created_at_en: 'May 14',
-    history_count: 1,
-    has_comment: false,
-  },
-  {
-    id: 103,
-    source: 'LINKEDIN',
-    url: 'https://www.linkedin.com/jobs/view/4412004911/',
-    title: 'Systems & Edge SRE',
-    company: 'Cloudflare',
-    location: 'Lisbon, Portugal',
-    workplace_type: 'remote',
-    salary_min: 8000,
-    salary_max: 10000,
-    salary_currency: '€',
-    salary_period: 'month',
-    match_score: 91,
-    ai_summary:
-      'Поддержка и автоматизация глобальной anycast-сети и балансировщиков трафика на границе сети. Стек: Go, Rust, Linux eBPF, BGP, Terraform.',
-    ai_summary_en:
-      'Operate and automate global anycast network and edge load balancers. Stack: Go, Rust, Linux eBPF, BGP, Terraform.',
-    tech_stack: ['Go', 'Rust', 'Linux', 'Terraform'],
-    tags: ['remote', 'infra'],
-    created_at: '13 мая',
-    created_at_en: 'May 13',
-    history_count: 3,
-    has_comment: true,
-  },
-];
+const DEFAULT_BACKEND_PRESET = resolveRolePreset('backend');
+const LINKEDIN_EXTRACTED_LINKS = DEFAULT_BACKEND_PRESET.extractedLinks;
+const LINKEDIN_CORPORATE_BLOAT = DEFAULT_BACKEND_PRESET.bloatItems;
+const COMPATIBILITY_DATA = DEFAULT_BACKEND_PRESET.compatibility;
 
 /**
- * Sequential single-column hops between 1.2 (CARDS APPEAR ON THE BOARD) and 1.3 (MOVING RIGHT ACROSS THE FUNNEL).
- * Each card moves one by one and strictly one column at a time (01 -> 02 -> 03 -> 04):
+ * 6 Sequential Steps of card movement across the Kanban funnel (Screen 1.3):
  * - Stage 0 (1.2): All 3 cards in Column 01 ("Еще не написан")
- * - Stage 1 (1.3): Card 1 (Stripe) moves 01 -> 02 ("Написал")
- * - Stage 2 (1.3): Card 1 (Stripe) moves 02 -> 03 ("Собеседование", stage 2)
- * - Stage 3 (1.3): Card 2 (Linear) moves 01 -> 02 ("Написал")
- * - Stage 4 (1.3): Card 3 (Cloudflare) moves 01 -> 02 ("Написал")
- * - Stage 5 (1.3): Card 3 (Cloudflare) moves 02 -> 03 ("Собеседование", stage 1)
- * - Stage 6 (1.3+): Card 3 (Cloudflare) moves 03 -> 04 ("Оффер")
+ * - Stage 1 (1.3): Card 1 (id 101) moves 01 -> 02 ("Написал")
+ * - Stage 2 (1.3): Card 1 (id 101) moves 02 -> 03 ("Собеседование", lane 1)
+ * - Stage 3 (1.3): Card 2 (id 102) moves 01 -> 02 ("Написал")
+ * - Stage 4 (1.3): Card 3 (id 103) moves 01 -> 02 ("Написал")
+ * - Stage 5 (1.3): Card 3 (id 103) moves 02 -> 03 ("Собеседование", lane 0)
+ * - Stage 6 (1.3+): Card 3 (id 103) moves 03 -> 04 ("Оффер")
  */
 const FUNNEL_STEP_POSITIONS = [
   {
@@ -189,108 +87,6 @@ const FUNNEL_STEP_POSITIONS = [
     103: { status: 'Оффер', lane: null, historyCount: 3 },
   },
 ];
-
-const LINKEDIN_CORPORATE_BLOAT = [
-  {
-    id: 'bloat-1',
-    isBloat: true,
-    label: 'КОРПОРАТИВНАЯ ВОДА · О КОМПАНИИ',
-    labelEn: 'CORPORATE FLUFF · WHO WE ARE',
-    text: '🚀 Мы — гиперрастущий финтех-единорог, меняющий глобальную парадигму B2B-платежей! Мы верим в радикальную синергию, семейную атмосферу, проактивный майндсет и ищем визионера с горящими глазами.',
-    textEn:
-      '🚀 We are a hyper-growth fintech unicorn disrupting the global B2B payment paradigm! We believe in radical synergy, a fast-paced family culture, and bringing your 100% authentic visionary self.',
-  },
-  {
-    id: 'bloat-2',
-    isBloat: true,
-    label: 'КОРПОРАТИВНАЯ ВОДА · КОГО МЫ ИЩЕМ',
-    labelEn: 'CORPORATE FLUFF · WHO YOU ARE',
-    text: '🌟 Ты — 10x рок-звезда и ниндзя кода, который обожает выходить из зоны комфорта, жонглировать приоритетами в условиях неопределенности и драйвить инсайты вместе с лидерами индустрии.',
-    textEn:
-      '🌟 You are a 10x rockstar ninja who thrives in ambiguity, loves stepping outside your comfort zone, wears multiple hats, and wakes up excited to move the needle with thought leaders.',
-  },
-  {
-    id: 'bloat-3',
-    isBloat: true,
-    label: 'КОРПОРАТИВНАЯ ВОДА · ПЛЮШКИ',
-    labelEn: 'CORPORATE FLUFF · PERKS',
-    text: '🍕 У нас: молодой дружный коллектив, смузи, настольный футбол, пятничные ретроспективы, безлимитные печеньки и уникальная культура открытого фидбека!',
-    textEn:
-      '🍕 Perks: young vibrant team, smoothies, foosball tables, Friday retros, unlimited artisanal snacks, and a unique culture of radical candor!',
-  },
-  {
-    id: 'core-4',
-    isBloat: false,
-    label: 'ЕДИНСТВЕННЫЙ АБЗАЦ ПО ДЕЛУ (СПРЯТАН В КОНЦЕ)',
-    labelEn: 'THE ONLY REAL ENGINEERING PARAGRAPH (BURIED AT THE BOTTOM)',
-    text: '🛠 Задачи и стек: разработка распределенного реестра транзакций на Go и PostgreSQL (до 15 000 RPS), шина событий Apache Kafka и gRPC, деплой в Kubernetes.',
-    textEn:
-      '🛠 Scope & Stack: build distributed payment ledgers in Go & PostgreSQL (up to 15,000 RPS), event streaming via Apache Kafka & gRPC, production deployment in Kubernetes.',
-  },
-];
-
-const COMPATIBILITY_DATA = {
-  overall_score: 84,
-  calculated_score: 82,
-  matched_requirements: [
-    {
-      requirement: 'Go и микросервисная архитектура (5+ лет опыта)',
-      requirementEn: 'Go & microservice architecture (5+ years experience)',
-      evidence:
-        'Цитата из CV: «Спроектировал и вывел в продакшен 14 микросервисов процессинга на Go 1.22 с пиковой нагрузкой до 12 000 RPS».',
-      evidenceEn:
-        'CV quote: "Designed and shipped 14 payment microservices in Go 1.22 handling up to 12,000 RPS peak load."',
-    },
-    {
-      requirement: 'PostgreSQL: оптимизация запросов и партиционирование',
-      requirementEn: 'PostgreSQL: query optimization & table partitioning',
-      evidence:
-        'Цитата из CV: «Партиционирование таблиц транзакций (4+ ТБ) в PostgreSQL 16, снижение p99 latency с 85 мс до 9 мс».',
-      evidenceEn:
-        'CV quote: "Partitioned 4+ TB transaction tables in PostgreSQL 16, cutting p99 latency from 85ms to 9ms."',
-    },
-    {
-      requirement: 'Асинхронная шина Apache Kafka и контракты gRPC',
-      requirementEn: 'Event streaming with Apache Kafka & gRPC contracts',
-    },
-  ],
-  missing_requirements: [
-    {
-      requirement: 'Terraform / Infrastructure as Code',
-      requirementEn: 'Terraform / Infrastructure as Code',
-      severity: 'medium',
-      reason: 'В резюме описана работа с Kubernetes и Helm, но Terraform явно не упомянут.',
-      reasonEn: 'CV mentions Kubernetes and Helm, but Terraform is not explicitly listed.',
-    },
-    {
-      requirement: 'Сертификация и аудит по стандарту PCI DSS',
-      requirementEn: 'PCI DSS compliance & security audits',
-      severity: 'low',
-      reason: 'Указан опыт разработки платежного шлюза, но стандарт безопасности не назван.',
-      reasonEn: 'Payment gateway experience is described, but PCI DSS is not named.',
-    },
-  ],
-  critical_gaps: [
-    {
-      requirement: 'Гибридный график в офисе Берлина (3 дня в неделю)',
-      requirementEn: 'Hybrid schedule in Berlin office (3 days/week)',
-      reason:
-        'В вашем CV указана локация Лиссабон и формат Full Remote — потребуется релокация или согласование удаленки.',
-      reasonEn:
-        'Your CV states Lisbon and Full Remote — relocation or remote approval will be required.',
-    },
-  ],
-  recommendations: [
-    'Вынесите метрики нагрузки (RPS и объем БД PostgreSQL) в первую строчку последнего места работы.',
-    'Добавьте упоминание Terraform рядом с Kubernetes и CI/CD в блоке инфраструктурных навыков.',
-    'Укажите стандарт PCI DSS в описании платежного проекта для прохождения ATS-скрининга.',
-  ],
-  recommendationsEn: [
-    'Highlight throughput metrics (RPS and PostgreSQL DB size) in the first bullet of your latest role.',
-    'Add Terraform next to Kubernetes and CI/CD in your infrastructure skills section.',
-    'Mention PCI DSS explicitly in your payment gateway project to pass ATS screening.',
-  ],
-};
 
 const SUB_SCREENS = [
   {
@@ -706,7 +502,13 @@ function LandingKanbanCard({
  * Right: Simplified copy of BatchImportModal.jsx where the textarea fills with links one by one as the user scrolls,
  *        and then the "Импортировать" button lights up before the cards appear on the board in 1.2!
  */
-function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
+function LandingLinkedInOverlay({
+  subScreenId,
+  importStage,
+  isEn,
+  links = LINKEDIN_EXTRACTED_LINKS,
+  roleLabel = 'Backend Engineer',
+}) {
   const isFlying = subScreenId === '1.1';
   const isDocked = subScreenId === '1.2';
   if (!isFlying && !isDocked) return null;
@@ -717,7 +519,7 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
   const isButtonLit = effectiveStage >= 4;
 
   const activeJob =
-    LINKEDIN_EXTRACTED_LINKS[flyingIdx !== null ? flyingIdx : 2] || LINKEDIN_EXTRACTED_LINKS[0];
+    links[flyingIdx !== null ? flyingIdx : 2] || links[0];
 
   return (
     <div className={`landing-li-scene ${isDocked ? 'is-docked' : 'is-active'}`} aria-hidden="true">
@@ -729,7 +531,7 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
             <span className="landing-li-logo">in</span>
             <div className="landing-li-searchbox">
               <Search size={10} />
-              <span>Backend Engineer</span>
+              <span>{roleLabel}</span>
             </div>
           </div>
           <div className="landing-li-nav-icons">
@@ -750,7 +552,7 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
         {/* LinkedIn 2-Pane Split: Left Job List | Right Selected Job Preview */}
         <div className="landing-li-split">
           <div className="landing-li-list">
-            {LINKEDIN_EXTRACTED_LINKS.map((item, idx) => {
+            {links.map((item, idx) => {
               const isExtracted = idx < filledCount;
               const isFlyingNow = idx === flyingIdx;
 
@@ -831,7 +633,7 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
             className={`landing-flying-single-pill from-row-${flyingIdx}`}
           >
             <span className="flying-pill-url">
-              {LINKEDIN_EXTRACTED_LINKS[flyingIdx].shortUrl}
+              {links[flyingIdx]?.shortUrl || ''}
             </span>
             <ArrowRight size={10} />
           </div>
@@ -866,7 +668,7 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
                   https://www.linkedin.com/jobs/view/...
                 </span>
               ) : (
-                LINKEDIN_EXTRACTED_LINKS.slice(0, filledCount).map((item, idx) => (
+                links.slice(0, filledCount).map((item, idx) => (
                   <div
                     key={item.id}
                     className={`landing-textarea-url-line ${
@@ -914,7 +716,15 @@ function LandingLinkedInOverlay({ subScreenId, importStage, isEn }) {
  * Recognizable, non-interactive, non-scrolling copy of VacancyModal.jsx for Screens 2 and 3.
  * Elements that haven't been presented yet are rendered as clean skeletons!
  */
-function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
+function LandingVacancyModal({
+  vacancy,
+  subScreenId,
+  isReverse,
+  isEn,
+  t,
+  bloatItems = LINKEDIN_CORPORATE_BLOAT,
+  compatibility = COMPATIBILITY_DATA,
+}) {
   const isScreen3 = subScreenId === '3.1' || subScreenId === '3.2';
   const activeTab = isScreen3 ? 'compatibility' : 'details';
 
@@ -925,6 +735,9 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
   const isCriticalPresented = subScreenId === '3.2';
 
   const summaryText = isEn && vacancy.ai_summary_en ? vacancy.ai_summary_en : vacancy.ai_summary;
+
+  const vMin = vacancy?.salary_min ? String(vacancy.salary_min) : '144000';
+  const vMax = vacancy?.salary_max ? String(vacancy.salary_max) : '168000';
 
   // Screen 2.1: animated salary typing state
   const [salaryMin, setSalaryMin] = useState('');
@@ -944,22 +757,27 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
   useEffect(() => {
     if (subScreenId !== '2.1') {
       const resetTimer = setTimeout(() => {
-        setSalaryMin('144000');
-        setSalaryMax('168000');
+        setSalaryMin(vMin);
+        setSalaryMax(vMax);
         setSalaryTypingStep(10);
       }, 0);
       return () => clearTimeout(resetTimer);
     }
 
+    const minPart1 = vMin.slice(0, Math.max(1, Math.floor(vMin.length / 3)));
+    const minPart2 = vMin.slice(0, Math.max(2, Math.floor((2 * vMin.length) / 3)));
+    const maxPart1 = vMax.slice(0, Math.max(1, Math.floor(vMax.length / 3)));
+    const maxPart2 = vMax.slice(0, Math.max(2, Math.floor((2 * vMax.length) / 3)));
+
     const sequence = [
       { delay: 0, min: '', max: '', step: 1 },
-      { delay: 180, min: '14', max: '', step: 1 },
-      { delay: 340, min: '1440', max: '', step: 2 },
-      { delay: 500, min: '144000', max: '', step: 3 },
-      { delay: 700, min: '144000', max: '16', step: 4 },
-      { delay: 860, min: '144000', max: '1680', step: 5 },
-      { delay: 1020, min: '144000', max: '168000', step: 6 },
-      { delay: 1200, min: '144000', max: '168000', step: 10 },
+      { delay: 180, min: minPart1, max: '', step: 1 },
+      { delay: 340, min: minPart2, max: '', step: 2 },
+      { delay: 500, min: vMin, max: '', step: 3 },
+      { delay: 700, min: vMin, max: maxPart1, step: 4 },
+      { delay: 860, min: vMin, max: maxPart2, step: 5 },
+      { delay: 1020, min: vMin, max: vMax, step: 6 },
+      { delay: 1200, min: vMin, max: vMax, step: 10 },
     ];
 
     const timers = sequence.map((item) =>
@@ -971,7 +789,7 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
     );
 
     return () => timers.forEach(clearTimeout);
-  }, [subScreenId]);
+  }, [subScreenId, vMin, vMax]);
 
   // Animate 2-sentence AI summary typing in Sub-screen 2.3 after bloat collapses
   useEffect(() => {
@@ -1058,15 +876,17 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
     {
       salary_min: salaryMin !== '' ? salaryMin : null,
       salary_max: salaryMax !== '' ? salaryMax : null,
-      salary_currency: '$',
-      salary_period: 'year',
+      salary_currency: vacancy?.salary_currency || '$',
+      salary_period: vacancy?.salary_period || 'year',
     },
     t,
     'month'
   );
 
-  const modalWorkplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
-  const recsList = isEn ? COMPATIBILITY_DATA.recommendationsEn : COMPATIBILITY_DATA.recommendations;
+  const modalWorkplaceInfo = getWorkplaceInfo(vacancy?.workplace_type, t);
+  const recsList = isEn
+    ? (compatibility?.recommendationsEn || compatibility?.recommendations || [])
+    : (compatibility?.recommendations || []);
 
   return (
     <div className="landing-modal-backdrop" aria-hidden="true">
@@ -1103,7 +923,7 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
               {isScreen3 ? (
                 <span className="card-match-badge match-high">
                   <Award size={11} />
-                  <span>Match {COMPATIBILITY_DATA.overall_score}%</span>
+                  <span>Match {compatibility.overall_score}%</span>
                 </span>
               ) : (
                 <SkeletonBar width={68} height={18} className="is-pill" />
@@ -1128,7 +948,7 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
             <Shield size={14} color="#34d399" />
             <span>{isEn ? 'CV Compatibility' : 'Совместимость с CV'}</span>
             {isScreen3 ? (
-              <span className="landing-tab-score-pill">{COMPATIBILITY_DATA.overall_score}%</span>
+              <span className="landing-tab-score-pill">{compatibility.overall_score}%</span>
             ) : (
               <SkeletonBar width={34} height={16} className="is-pill" />
             )}
@@ -1169,7 +989,7 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                         salaryTypingStep >= 1 && salaryTypingStep <= 3 ? 'is-typing-input' : ''
                       }`}
                     >
-                      {salaryMin || <span className="landing-input-placeholder">100000</span>}
+                      {salaryMin || <span className="landing-input-placeholder">{vacancy.salary_min || 100000}</span>}
                     </div>
                   </div>
                   <div className="salary-field-item">
@@ -1179,17 +999,31 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                         salaryTypingStep >= 4 && salaryTypingStep <= 6 ? 'is-typing-input' : ''
                       }`}
                     >
-                      {salaryMax || <span className="landing-input-placeholder">140000</span>}
+                      {salaryMax || <span className="landing-input-placeholder">{vacancy.salary_max || 140000}</span>}
                     </div>
                   </div>
                   <div className="salary-field-item">
                     <span className="salary-field-label">{isEn ? 'Currency' : 'Валюта'}</span>
-                    <div className="form-input salary-field-input landing-static-input">$ (USD)</div>
+                    <div className="form-input salary-field-input landing-static-input">
+                      {vacancy.salary_currency === '€'
+                        ? '€ (EUR)'
+                        : vacancy.salary_currency === '₽'
+                        ? '₽ (RUB)'
+                        : vacancy.salary_currency === '£'
+                        ? '£ (GBP)'
+                        : '$ (USD)'}
+                    </div>
                   </div>
                   <div className="salary-field-item">
                     <span className="salary-field-label">{isEn ? 'Period' : 'Период'}</span>
                     <div className="form-input salary-field-input landing-static-input">
-                      {isEn ? 'per year (/ 12)' : 'в год (/ 12)'}
+                      {vacancy.salary_period === 'month'
+                        ? isEn
+                          ? 'per month'
+                          : 'в месяц'
+                        : isEn
+                        ? 'per year (/ 12)'
+                        : 'в год (/ 12)'}
                     </div>
                   </div>
                 </div>
@@ -1256,7 +1090,7 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                     </div>
 
                     <div className="landing-bloat-collapsible">
-                      {LINKEDIN_CORPORATE_BLOAT.map((block) => (
+                      {bloatItems.map((block) => (
                         <div
                           key={block.id}
                           className={`landing-bloat-paragraph ${
@@ -1333,12 +1167,12 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                   <div className="compatibility-group-title is-matched">
                     <span>
                       {isEn
-                        ? `MATCH / Confirmed Requirements (${COMPATIBILITY_DATA.matched_requirements.length}):`
-                        : `MATCH / Подтверждённые требования (${COMPATIBILITY_DATA.matched_requirements.length}):`}
+                        ? `MATCH / Confirmed Requirements (${compatibility.matched_requirements.length}):`
+                        : `MATCH / Подтверждённые требования (${compatibility.matched_requirements.length}):`}
                     </span>
                   </div>
                   <div className="compatibility-list">
-                    {COMPATIBILITY_DATA.matched_requirements.map((m, idx) => {
+                    {compatibility.matched_requirements.map((m, idx) => {
                       const isShown = idx < visibleMatchCount;
                       const showQuote = idx === 0 && subScreenId === '3.1';
                       const reqText = isEn ? m.requirementEn : m.requirement;
@@ -1369,12 +1203,12 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                   <div className="compatibility-group-title is-missing">
                     <span>
                       {isEn
-                        ? `MISSING / Unconfirmed Requirements (${COMPATIBILITY_DATA.missing_requirements.length}):`
-                        : `MISSING / Неподтверждённые требования (${COMPATIBILITY_DATA.missing_requirements.length}):`}
+                        ? `MISSING / Unconfirmed Requirements (${compatibility.missing_requirements.length}):`
+                        : `MISSING / Неподтверждённые требования (${compatibility.missing_requirements.length}):`}
                     </span>
                   </div>
                   <div className="compatibility-list">
-                    {COMPATIBILITY_DATA.missing_requirements.map((m, idx) => {
+                    {compatibility.missing_requirements.map((m, idx) => {
                       const isShown = idx < visibleMissingCount;
                       return (
                         <div
@@ -1412,12 +1246,12 @@ function LandingVacancyModal({ vacancy, subScreenId, isReverse, isEn, t }) {
                       <div className="compatibility-group-title is-critical">
                         <span>
                           {isEn
-                            ? `CRITICAL / Critical Mismatches (${COMPATIBILITY_DATA.critical_gaps.length}):`
-                            : `CRITICAL / Критические несоответствия (${COMPATIBILITY_DATA.critical_gaps.length}):`}
+                            ? `CRITICAL / Critical Mismatches (${compatibility.critical_gaps.length}):`
+                            : `CRITICAL / Критические несоответствия (${compatibility.critical_gaps.length}):`}
                         </span>
                       </div>
                       <div className="compatibility-list">
-                        {COMPATIBILITY_DATA.critical_gaps.map((g, idx) => {
+                        {compatibility.critical_gaps.map((g, idx) => {
                           const isShown = idx < visibleCriticalCount;
                           return (
                             <div
@@ -1510,8 +1344,17 @@ function getFunnelStageFromRatio(r) {
 export default function LandingPage({ onFinish }) {
   const { t, locale } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEn = locale === 'en';
   const transitionedRef = useRef(false);
+
+  // Content preset resolved strictly from the URL GET parameter (e.g. ?role=frontend)
+  const roleParam = searchParams.get('role');
+  const activePreset = resolveRolePreset(roleParam);
+  const currentLinks = activePreset.extractedLinks;
+  const currentDemoVacancies = activePreset.vacancies;
+  const currentBloat = activePreset.bloatItems;
+  const currentCompatibility = activePreset.compatibility;
 
   const finishToBoard = useCallback(() => {
     try {
@@ -1726,9 +1569,10 @@ export default function LandingPage({ onFinish }) {
     const currentMap = FUNNEL_STEP_POSITIONS[effectiveStage] || FUNNEL_STEP_POSITIONS[6];
     const prevMap = FUNNEL_STEP_POSITIONS[prevEffectiveStage] || FUNNEL_STEP_POSITIONS[0];
 
-    return DEMO_VACANCIES.map((v) => {
-      const stagePos = currentMap[v.id];
-      const prevPos = prevMap[v.id];
+    return currentDemoVacancies.map((v, vIdx) => {
+      const demoId = v.id || (101 + vIdx);
+      const stagePos = currentMap[demoId] || currentMap[101 + vIdx];
+      const prevPos = prevMap[demoId] || prevMap[101 + vIdx];
       if (!stagePos) return null;
 
       const curColIdx = BOARD_COLUMNS.findIndex((c) => c.id === stagePos.status);
@@ -1751,7 +1595,7 @@ export default function LandingPage({ onFinish }) {
         justMovedBack: movedLeft,
       };
     }).filter(Boolean);
-  }, [currentSub, funnelStage, prevFunnelStage, isReverse]);
+  }, [currentSub, funnelStage, prevFunnelStage, isReverse, currentDemoVacancies]);
 
   // Progressive feature flags for cards on the board
   const showCardSalary = activeSubIdx >= 3; // 2.1+
@@ -2018,6 +1862,8 @@ export default function LandingPage({ onFinish }) {
                     subScreenId={currentSub.id}
                     importStage={importStage}
                     isEn={isEn}
+                    links={currentLinks}
+                    roleLabel={isEn ? activePreset.labelEn : activePreset.label}
                   />
 
                   {/* Kanban Funnel Columns */}
@@ -2076,11 +1922,13 @@ export default function LandingPage({ onFinish }) {
                   {/* Screens 2 & 3: Open Vacancy Modal over the Kanban Board */}
                   {isModalVisible && (
                     <LandingVacancyModal
-                      vacancy={DEMO_VACANCIES[0]}
+                      vacancy={currentDemoVacancies[0]}
                       subScreenId={currentSub.id}
                       isReverse={isReverse}
                       isEn={isEn}
                       t={t}
+                      bloatItems={currentBloat}
+                      compatibility={currentCompatibility}
                     />
                   )}
 
