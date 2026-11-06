@@ -33,10 +33,13 @@ def test_user():
     db.commit()
     db.close()
 
-def test_openapi_endpoints():
+def test_openapi_endpoints(test_user):
     client = TestClient(app)
-    # /openapi.json redirects to public API openapi.json
-    res = client.get("/openapi.json")
+    jwt_token = create_access_token({"sub": str(test_user.id)})
+    headers = {"Authorization": f"Bearer {jwt_token}"}
+
+    # /openapi.json redirects to public API openapi.json (requires api_access flag)
+    res = client.get("/openapi.json", headers=headers)
     assert res.status_code == 200
     schema = res.json()
     assert "openapi" in schema
@@ -46,12 +49,12 @@ def test_openapi_endpoints():
     assert "/api/api-keys" not in schema["paths"]
 
     # /docs
-    res_docs = client.get("/docs")
+    res_docs = client.get("/docs", headers=headers)
     assert res_docs.status_code == 200
     assert "swagger" in res_docs.text.lower() or "html" in res_docs.text.lower()
 
     # /redoc
-    res_redoc = client.get("/redoc")
+    res_redoc = client.get("/redoc", headers=headers)
     assert res_redoc.status_code == 200
     assert "redoc" in res_redoc.text.lower() or "html" in res_redoc.text.lower()
 
