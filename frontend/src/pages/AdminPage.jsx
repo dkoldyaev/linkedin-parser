@@ -22,8 +22,6 @@ export default function AdminPage({ user }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const availableFlags = [
-    { key: 'cv_edit', label: t('settingsModal.feature_cv_edit_title') || 'cv_edit' },
-    { key: 'user_management', label: t('settingsModal.feature_user_mgmt_title') || 'user_management' },
     { key: 'api_access', label: t('settingsModal.feature_api_access_title') || 'api_access' },
     { key: 'admin', label: t('settingsModal.feature_admin_title') || 'admin' },
   ];

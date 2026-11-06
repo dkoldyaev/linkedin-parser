@@ -31,8 +31,6 @@ from .models import (
     DEFAULT_COLUMNS,
     BASE_STATUSES,
     KNOWN_FEATURE_FLAGS,
-    FEATURE_FLAG_CV_EDIT,
-    FEATURE_FLAG_USER_MANAGEMENT,
     FEATURE_FLAG_API_ACCESS,
     FEATURE_FLAG_ADMIN,
 )
@@ -293,28 +291,60 @@ public_app = FastAPI(
     title="Job Vacancies Public API",
     description="Public API for accessing and managing job vacancies. Access is granted strictly via Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 from .public_api import router as public_router
+from .auth import get_current_user_with_api_access
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+
 public_app.include_router(public_router)
+
+@public_app.get("/openapi.json", include_in_schema=False)
+def get_public_openapi_json(current_user: User = Depends(get_current_user_with_api_access)):
+    """Return OpenAPI schema protected by api_access feature flag."""
+    schema = get_openapi(
+        title=public_app.title,
+        version=public_app.version,
+        description=public_app.description,
+        routes=public_app.routes,
+    )
+    return JSONResponse(schema)
+
+@public_app.get("/docs", include_in_schema=False)
+def get_public_docs_html(current_user: User = Depends(get_current_user_with_api_access)):
+    """Swagger UI protected by api_access feature flag."""
+    return get_swagger_ui_html(
+        openapi_url="/api/v1/openapi.json",
+        title=f"{public_app.title} - Swagger UI",
+    )
+
+@public_app.get("/redoc", include_in_schema=False)
+def get_public_redoc_html(current_user: User = Depends(get_current_user_with_api_access)):
+    """ReDoc protected by api_access feature flag."""
+    return get_redoc_html(
+        openapi_url="/api/v1/openapi.json",
+        title=f"{public_app.title} - ReDoc",
+    )
 
 # Mount public API at /api/v1
 app.mount("/api/v1", public_app)
 
 # Convenience redirects for root docs/openapi pointing directly to the Public API documentation
 @app.get("/docs", include_in_schema=False)
-def redirect_docs():
+def redirect_docs(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/docs")
 
 @app.get("/redoc", include_in_schema=False)
-def redirect_redoc():
+def redirect_redoc(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/redoc")
 
 @app.get("/openapi.json", include_in_schema=False)
-def redirect_openapi():
+def redirect_openapi(current_user: User = Depends(get_current_user_with_api_access)):
     return RedirectResponse(url="/api/v1/openapi.json")
 
 # CORS middleware for local dev
@@ -388,12 +418,12 @@ def list_users(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all users (requires user_management or admin permission/feature flag)."""
+    """List all users (requires admin permission/feature flag)."""
     user_flags = current_user.feature_flags or []
-    if "user_management" not in user_flags and "admin" not in user_flags:
+    if "admin" not in user_flags:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User management access required (missing feature flag user_management)",
+            detail="Admin access required",
         )
     users = db.query(User).order_by(User.id.asc()).all()
     # Populate flags from UserFeatureFlag
@@ -409,13 +439,13 @@ def update_user_feature_flags(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update feature flags for a specified user (requires user_management permission or admin permission or self-update)."""
+    """Update feature flags for a specified user (requires admin permission or self-update)."""
     user_flags = current_user.feature_flags or []
-    can_manage_users = "user_management" in user_flags or "admin" in user_flags
-    if user_id != current_user.id and not can_manage_users:
+    is_admin = "admin" in user_flags
+    if user_id != current_user.id and not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User management access required (missing feature flag user_management)",
+            detail="Admin access required",
         )
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -1480,18 +1510,11 @@ def get_settings(
     salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
     columns_raw = get_user_columns(db, current_user.id)
     columns = [ColumnItem(**c) for c in columns_raw]
-    cv_token_setting = db.query(UserSetting).filter(
-        UserSetting.user_id == current_user.id,
-        UserSetting.key == "cv_service_token"
-    ).first()
-    cv_token = cv_token_setting.value.strip() if cv_token_setting and cv_token_setting.value else None
 
     return SettingsResponse(
         locale=locale,
         salary_display_format=salary_display_format,
         columns=columns,
-        cv_service_token_set=bool(cv_token),
-        cv_service_token=cv_token,
     )
 
 
@@ -1522,18 +1545,6 @@ def update_settings(
             db.add(setting)
         else:
             setting.value = payload.salary_display_format.strip().lower()
-
-    if payload.cv_service_token is not None:
-        token_val = payload.cv_service_token.strip()
-        setting = db.query(UserSetting).filter(
-            UserSetting.user_id == current_user.id,
-            UserSetting.key == "cv_service_token"
-        ).first()
-        if not setting:
-            setting = UserSetting(user_id=current_user.id, key="cv_service_token", value=token_val)
-            db.add(setting)
-        else:
-            setting.value = token_val
 
     if payload.columns is not None:
         cols_data = [c.model_dump() for c in payload.columns]
@@ -2120,15 +2131,7 @@ def save_approved_cv(
     """
     Stores or replaces the user's approved anonymized CV.
     Marks any existing compatibility analyses as outdated since the CV revision changed.
-    Requires user to have 'cv_edit' or 'cv_editing' feature flag.
     """
-    user_flags = current_user.feature_flags or []
-    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="CV editing is not enabled for your account (missing feature flag)",
-        )
-
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     now = datetime.datetime.utcnow()
 
@@ -2164,13 +2167,6 @@ def delete_approved_cv(
     db: Session = Depends(get_db),
 ):
     """Deletes the approved CV and associated analyses for the authenticated user."""
-    user_flags = current_user.feature_flags or []
-    if "cv_edit" not in user_flags and "cv_editing" not in user_flags:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="CV editing is not enabled for your account (missing feature flag)",
-        )
-
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if approved_cv:
         db.delete(approved_cv)
@@ -2311,22 +2307,8 @@ async def analyze_vacancy_compatibility(
     model_id = str(eval_data.get("model", provider))
     now = datetime.datetime.utcnow()
 
+    # Adaptation is currently disabled
     adapted_cv_payload = None
-    if overall_score >= 75.0:
-        try:
-            logger.info(f"Generating adapted anonymized DeveloperCV for vacancy #{vacancy.id} (score {overall_score}%)...")
-            mistral_key = get_setting_or_env(db, "mistral_api_key", "MISTRAL_API_KEY", user_id=current_user.id)
-            gemini_key = get_setting_or_env(db, "gemini_api_key", "GEMINI_API_KEY", user_id=current_user.id)
-            adapted_cv_payload = await adapt_cv_for_vacancy_with_llm(
-                anonymized_cv_text=approved_cv.content,
-                vacancy_text=vacancy_full_text,
-                mistral_key=mistral_key,
-                gemini_key=gemini_key,
-                active_provider=provider,
-                active_model=eval_data.get("model"),
-            )
-        except Exception as e_adapt:
-            logger.warning(f"CV adaptation failed for vacancy #{vacancy.id}: {e_adapt}")
 
     if existing:
         existing.cv_revision = approved_cv.revision
@@ -2437,8 +2419,12 @@ async def adapt_cv_for_vacancy(
 ):
     """
     Triggers adaptation or re-adaptation of the candidate's CV for this specific vacancy.
-    Supports user comments/instructions and versioning.
+    Currently disabled.
     """
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="CV adaptation feature is temporarily disabled.",
+    )
     vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not vacancy:
         raise HTTPException(status_code=404, detail="Vacancy not found")
@@ -2571,73 +2557,6 @@ async def adapt_cv_for_vacancy(
         created_at=analysis_record.created_at,
         updated_at=analysis_record.updated_at,
     )
-
-
-@app.post("/api/cv/publish-proxy")
-async def publish_cv_proxy(
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Transparent CORS reverse proxy for publishing the DeveloperCV payload
-    to the external CV service (https://cv.build.dkoldyaev.com/api/cv).
-    Strictly uses the user's personal CV service token stored in DB for their account,
-    or falls back to an explicit client-provided Authorization header.
-    """
-    try:
-        payload = await request.json()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {e}")
-
-    # Determine user token from DB setting first
-    token_setting = db.query(UserSetting).filter(
-        UserSetting.user_id == current_user.id,
-        UserSetting.key == "cv_service_token"
-    ).first()
-    user_token = token_setting.value.strip() if token_setting and token_setting.value else None
-
-    auth_header = request.headers.get("authorization") or request.headers.get("x-api-key")
-
-    final_token = None
-    if user_token:
-        final_token = user_token
-    elif auth_header:
-        final_token = auth_header.replace("Bearer ", "").strip()
-
-    if not final_token:
-        raise HTTPException(
-            status_code=400,
-            detail="CV publishing token is not configured. Please save your API token (cvt_...) in Settings or CV Management."
-        )
-
-    logger.info(
-        f"Publishing CV for user {current_user.id} ({current_user.email}) "
-        f"using token: {final_token[:8]}... (length: {len(final_token)})"
-    )
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {final_token}",
-        "x-api-key": final_token,
-    }
-
-    target_url = "https://cv.build.dkoldyaev.com/api/cv"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            resp = await client.post(target_url, json=payload, headers=headers)
-        except httpx.RequestError as exc:
-            logger.error(f"Failed to forward CV publishing request to {target_url}: {exc}")
-            raise HTTPException(status_code=502, detail=f"Failed to reach CV service: {exc}")
-
-    if resp.is_error:
-        try:
-            err_json = resp.json()
-        except Exception:
-            err_json = {"error": resp.text}
-        raise HTTPException(status_code=resp.status_code, detail=err_json)
-
-    return resp.json()
 
 
 

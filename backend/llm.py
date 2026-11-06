@@ -636,7 +636,7 @@ async def adapt_cv_for_vacancy_with_llm(
     Only reorganize, rephrase, tailor summary/highlights to emphasize relevant skills,
     and incorporate user guidance/feedback if provided.
     
-    Returns a structured dictionary strictly adhering to the DeveloperCV schema (https://cv.build.dkoldyaev.com/openapi.json).
+    Returns a structured dictionary adhering to the DeveloperCV schema.
     """
     provider = (active_provider or os.getenv("LLM_PROVIDER") or "mistral").lower()
     mistral_model = active_model or os.getenv("MISTRAL_MODEL", "mistral-small-latest")

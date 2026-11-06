@@ -10,6 +10,7 @@ import StatsPage from './pages/StatsPage';
 import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import CVManagementPage from './pages/CVManagementPage';
+import ApiKeysPage from './pages/ApiKeysPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AdminPage from './pages/AdminPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
@@ -100,6 +101,7 @@ export default function App() {
         <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : loginScreen} />
         <Route path="/cv" element={user ? <CVManagementPage user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
+        <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
         <Route path="/admin" element={user ? <AdminPage user={user} /> : loginScreen} />
         <Route path="/howtouse" element={<HowToUsePage />} />

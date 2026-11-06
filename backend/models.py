@@ -17,14 +17,10 @@ BASE_STATUSES = ["Еще не написан", "Отказ"]
 VALID_STATUSES = [col["id"] for col in DEFAULT_COLUMNS]
 
 # Predefined constant feature flags
-FEATURE_FLAG_CV_EDIT = "cv_edit"
-FEATURE_FLAG_USER_MANAGEMENT = "user_management"
 FEATURE_FLAG_API_ACCESS = "api_access"
 FEATURE_FLAG_ADMIN = "admin"
 
 KNOWN_FEATURE_FLAGS = [
-    FEATURE_FLAG_CV_EDIT,
-    FEATURE_FLAG_USER_MANAGEMENT,
     FEATURE_FLAG_API_ACCESS,
     FEATURE_FLAG_ADMIN,
 ]

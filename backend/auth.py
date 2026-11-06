@@ -216,6 +216,78 @@ def get_current_user_from_api_key(
     return user
 
 
+def get_current_user_with_api_access(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Authenticate user via session cookie or Personal API Key,
+    and verify they have either the 'api_access' or 'admin' feature flag.
+    Used for accessing API documentation and endpoints.
+    """
+    # 1. Try API Key first
+    api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+    auth_header = request.headers.get("Authorization")
+    candidate_api_key = None
+    if api_key_header:
+        candidate_api_key = api_key_header.strip()
+    elif auth_header and auth_header.startswith("Bearer "):
+        bearer_val = auth_header[7:].strip()
+        if bearer_val.startswith("ak_"):
+            candidate_api_key = bearer_val
+
+    if candidate_api_key:
+        return get_current_user_from_api_key(request, db=db)
+
+    # 2. Try user session cookie or standard Bearer JWT token
+    token = None
+    if COOKIE_NAME in request.cookies:
+        token = request.cookies[COOKIE_NAME]
+    if not token and auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required (API key or session cookie)",
+            headers={"WWW-Authenticate": "ApiKey, Bearer"},
+        )
+
+    payload = decode_access_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        user_id_int = int(payload.get("sub"))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    user = db.query(User).filter(User.id == user_id_int).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    user_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+    user.feature_flags = user_flags
+
+    if "api_access" not in user_flags and "admin" not in user_flags:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API access is disabled for this user (missing feature flag api_access)",
+        )
+
+    return user
+
+
 def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     try:
         api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")

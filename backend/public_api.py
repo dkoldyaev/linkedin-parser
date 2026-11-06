@@ -2,44 +2,41 @@
 Access is restricted strictly to Personal API Keys (via header X-API-Key or Authorization: Bearer ak_...).
 This router is mounted under /api/v1 and provides full OpenAPI documentation.
 """
-from typing import List, Optional, Union
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from .database import get_db
-from .models import User, Vacancy, VacancyStatusHistory, VALID_STATUSES
+from .models import User, Vacancy, VacancyStatusHistory, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, VALID_STATUSES
 from .schemas import (
     VacancyResponse,
     VacancyCreate,
     VacancyUpdate,
     VacancyHistoryItem,
-    VacancyHistoryCreate,
     CheckDuplicatesRequest,
     CheckDuplicatesResponse,
     DuplicateVacancyInfo,
     BatchImportRequest,
-    BatchImportResponse,
     AsyncBatchImportResponse,
-    ImportItemResult,
+    TaskInfo,
     ColumnItem,
+    ApprovedCVResponse,
+    VacancyCVAnalysisResponse,
+    AdaptedCVVersionResponse,
 )
 from .auth import get_current_user_from_api_key
 from .scraper import extract_job_id, normalize_url
-from .main import get_user_valid_statuses, get_user_columns, queue_manager, JobTask, TASK_KEY_PREFIX, TASK_TTL, AI_QUEUE_KEY, RECENT_LIST
-import uuid
-import time
+from .main import get_user_valid_statuses, get_user_columns, queue_manager
 import asyncio
 from .mercure import (
     publish_mercure_event,
     EVENT_VACANCY_CREATED,
     EVENT_VACANCY_UPDATED,
     EVENT_VACANCY_DELETED,
-    EVENT_QUEUE_UPDATED,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
     MSG_VACANCY_DELETED,
-    MSG_QUEUE_UPDATED,
 )
 import datetime
 
@@ -60,10 +57,12 @@ def list_vacancies(
     source: Optional[str] = Query(None, description="Filter by source board name"),
     is_closed: Optional[bool] = Query(None, description="Filter by active/closed status"),
     search: Optional[str] = Query(None, description="Search keyword in title, company, stack, description"),
+    limit: int = Query(50, ge=1, le=200, description="Max number of items to return"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
     current_user: User = Depends(get_current_user_from_api_key),
     db: Session = Depends(get_db),
 ):
-    """Retrieve all vacancies belonging to the authenticated API key user with optional filtering."""
+    """Retrieve vacancies belonging to the authenticated API key user with optional filtering and pagination."""
     query = db.query(Vacancy).filter(Vacancy.user_id == current_user.id)
 
     valid_statuses = get_user_valid_statuses(db, current_user.id)
@@ -100,16 +99,19 @@ def list_vacancies(
             )
         )
 
-    vacancies = query.order_by(Vacancy.updated_at.desc()).all()
+    query = query.order_by(Vacancy.updated_at.desc())
 
     if tag:
+        # If tag filter is provided, fetch all and filter before slicing
+        vacancies = query.all()
         tag_lower = tag.strip().lower()
-        vacancies = [
+        filtered = [
             v for v in vacancies
             if any(t.lower() == tag_lower for t in (v.tags or []))
         ]
+        return filtered[offset : offset + limit]
 
-    return vacancies
+    return query.offset(offset).limit(limit).all()
 
 
 @router.get("/vacancies/{vacancy_id}", response_model=VacancyResponse, summary="Get vacancy details")
@@ -125,15 +127,123 @@ def get_vacancy(
     return v
 
 
+@router.get(
+    "/vacancies/{vacancy_id}/history",
+    response_model=List[VacancyHistoryItem],
+    summary="Get vacancy status history",
+)
+def get_vacancy_history(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user_from_api_key),
+    db: Session = Depends(get_db),
+):
+    """Retrieve status change and movement history for a vacancy."""
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    history = (
+        db.query(VacancyStatusHistory)
+        .filter(VacancyStatusHistory.vacancy_id == vacancy_id)
+        .order_by(VacancyStatusHistory.created_at.desc())
+        .all()
+    )
+    return history
+
+
+@router.get(
+    "/vacancies/{vacancy_id}/compatibility",
+    response_model=Optional[VacancyCVAnalysisResponse],
+    summary="Get vacancy CV compatibility score",
+)
+def get_vacancy_compatibility(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user_from_api_key),
+    db: Session = Depends(get_db),
+):
+    """Returns the latest compatibility analysis between the vacancy and user's approved CV."""
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    analysis = db.query(VacancyCVAnalysis).filter(
+        VacancyCVAnalysis.vacancy_id == vacancy_id,
+        VacancyCVAnalysis.user_id == current_user.id,
+    ).first()
+
+    if not analysis:
+        return None
+
+    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    is_outdated = analysis.is_outdated or (approved_cv is not None and analysis.cv_revision != approved_cv.revision)
+
+    res_data = analysis.result or {}
+    versions_list = db.query(AdaptedCVVersion).filter(
+        AdaptedCVVersion.analysis_id == analysis.id
+    ).order_by(AdaptedCVVersion.version_number.desc()).all()
+
+    return VacancyCVAnalysisResponse(
+        id=analysis.id,
+        user_id=analysis.user_id,
+        vacancy_id=analysis.vacancy_id,
+        cv_revision=analysis.cv_revision,
+        scoring_policy_version=analysis.scoring_policy_version,
+        model_id=analysis.model_id,
+        overall_score=analysis.overall_score,
+        llm_score=res_data.get("llmScore"),
+        calculated_score=res_data.get("calculatedScore"),
+        is_outdated=is_outdated,
+        summary=res_data.get("summary", ""),
+        matched_requirements=res_data.get("matchedRequirements", []),
+        missing_requirements=res_data.get("missingRequirements", []),
+        critical_gaps=res_data.get("criticalGaps", []),
+        seniority_assessment=res_data.get("seniorityAssessment"),
+        recommendations=res_data.get("recommendations", []),
+        dimension_scores=res_data.get("dimensionScores"),
+        adapted_cv=analysis.adapted_cv,
+        versions=[AdaptedCVVersionResponse.model_validate(ver) for ver in versions_list],
+        created_at=analysis.created_at,
+        updated_at=analysis.updated_at,
+    )
+
+
 @router.post("/vacancies", response_model=VacancyResponse, summary="Create vacancy")
 async def create_vacancy(
     payload: VacancyCreate,
     current_user: User = Depends(get_current_user_from_api_key),
     db: Session = Depends(get_db),
 ):
-    """Create a new vacancy card."""
+    """Create a new vacancy card. Checks for duplicate job_id or url."""
     data = payload.model_dump()
     data["user_id"] = current_user.id
+
+    raw_url = (data.get("url") or "").strip()
+    if raw_url:
+        canonical_url = normalize_url(raw_url) or raw_url
+        data["url"] = canonical_url
+        extracted_job_id = extract_job_id(canonical_url) or extract_job_id(raw_url)
+        if extracted_job_id and not data.get("job_id"):
+            data["job_id"] = extracted_job_id
+
+        # Duplicate check by job_id or url for this user
+        existing = None
+        if data.get("job_id"):
+            existing = db.query(Vacancy).filter(
+                Vacancy.job_id == data["job_id"],
+                Vacancy.user_id == current_user.id,
+            ).first()
+        if not existing:
+            existing = db.query(Vacancy).filter(
+                (Vacancy.url == canonical_url) | (Vacancy.url == raw_url),
+                Vacancy.user_id == current_user.id,
+            ).first()
+
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Vacancy already exists with ID {existing.id} ('{existing.title}')",
+            )
+
     valid_statuses = get_user_valid_statuses(db, current_user.id)
     if data.get("status") and data["status"] not in valid_statuses:
         raise HTTPException(
@@ -307,120 +417,62 @@ async def check_duplicates(
     )
 
 
-@router.post("/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse], summary="Batch import vacancies")
+@router.post("/vacancies/batch", response_model=AsyncBatchImportResponse, summary="Batch import vacancies")
 async def batch_import_vacancies(
     payload: BatchImportRequest,
-    async_mode: bool = Query(True, description="Queue links asynchronously or process synchronously"),
     current_user: User = Depends(get_current_user_from_api_key),
     db: Session = Depends(get_db),
 ):
-    """Enqueue multiple vacancy URLs for parsing and AI analysis."""
+    """Enqueue multiple vacancy URLs for parsing and AI analysis asynchronously."""
     urls = [u.strip() for u in payload.urls if u.strip()]
     if not urls:
         raise HTTPException(status_code=400, detail="No URLs provided")
 
     initial_tags = [t.strip() for t in payload.default_tags if t.strip()]
 
-    if async_mode:
-        batch_id, tasks = await queue_manager.enqueue(
-            urls=urls,
-            default_tags=initial_tags,
-            user_id=current_user.id,
-        )
-        task_infos = [t.to_task_info() for t in tasks]
-        return AsyncBatchImportResponse(
-            status="queued",
-            queued=len(task_infos),
-            batch_id=batch_id,
-            message=f"Queued {len(task_infos)} tasks for asynchronous processing",
-            tasks=task_infos,
-        )
-
-    # Synchronous processing fallback
-    from .scraper import scrape_job
-    from .llm import analyze_vacancy_with_llm
-    results = []
-    imported_count = 0
-    failed_count = 0
-
-    for url in urls:
-        canonical_url = normalize_url(url) or url
-        job_id = extract_job_id(canonical_url) or extract_job_id(url)
-        try:
-            scraped = await scrape_job(canonical_url)
-            if not scraped or not scraped.get("title"):
-                failed_count += 1
-                results.append(ImportItemResult(url=url, success=False, error="Failed to scrape page"))
-                continue
-
-            llm_res = await analyze_vacancy_with_llm(
-                title=scraped.get("title", ""),
-                company=scraped.get("company", ""),
-                location=scraped.get("location", ""),
-                description=scraped.get("description", ""),
-                db=db,
-                user_id=current_user.id,
-            )
-
-            new_v = Vacancy(
-                user_id=current_user.id,
-                job_id=scraped.get("job_id"),
-                source=scraped.get("source"),
-                url=canonical_url,
-                title=scraped.get("title") or "Untitled",
-                company=scraped.get("company") or "Unknown",
-                company_url=scraped.get("company_url"),
-                company_info=llm_res.get("company_info") or scraped.get("company_info"),
-                location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped.get("location"),
-                city=scraped.get("city"),
-                country=scraped.get("country"),
-                description=scraped.get("description"),
-                workplace_type=llm_res.get("workplace_type") or scraped.get("workplace_type"),
-                is_closed=scraped.get("is_closed", False),
-                salary_min=llm_res.get("salary_min"),
-                salary_max=llm_res.get("salary_max"),
-                salary_currency=llm_res.get("salary_currency"),
-                salary_period=llm_res.get("salary_period"),
-                ai_summary=llm_res.get("summary"),
-                tech_stack=llm_res.get("tech_stack", []),
-                tags=initial_tags,
-                status="Еще не написан",
-            )
-            db.add(new_v)
-            db.flush()
-            db.add(VacancyStatusHistory(
-                vacancy_id=new_v.id,
-                from_status=None,
-                to_status=new_v.status,
-                created_at=new_v.created_at,
-            ))
-            db.commit()
-            db.refresh(new_v)
-            imported_count += 1
-            results.append(ImportItemResult(
-                url=url,
-                job_id=job_id,
-                success=True,
-                title=new_v.title,
-                company=new_v.company,
-                vacancy_id=new_v.id,
-            ))
-        except Exception as e:
-            failed_count += 1
-            results.append(ImportItemResult(url=url, success=False, error=str(e)))
-
-    return BatchImportResponse(
-        total=len(urls),
-        imported=imported_count,
-        failed=failed_count,
-        results=results,
+    batch_id, tasks = await queue_manager.enqueue(
+        urls=urls,
+        default_tags=initial_tags,
+        user_id=current_user.id,
     )
+    task_infos = [t.to_info() for t in tasks]
+    return AsyncBatchImportResponse(
+        status="queued",
+        queued=len(task_infos),
+        batch_id=batch_id,
+        message=f"Queued {len(task_infos)} tasks for asynchronous processing",
+        tasks=task_infos,
+    )
+
+
+@router.get("/queue/tasks/{task_id}", response_model=TaskInfo, tags=["Queue"], summary="Get queue task status")
+async def get_queue_task_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user_from_api_key),
+):
+    """Check status and progress of an asynchronous queue task."""
+    task = await queue_manager.get_task(task_id=task_id, user_id=current_user.id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found or access denied")
+    return task.to_info()
+
+
+@router.get("/cv", response_model=Optional[ApprovedCVResponse], tags=["CV"], summary="Get approved CV")
+def get_user_approved_cv(
+    current_user: User = Depends(get_current_user_from_api_key),
+    db: Session = Depends(get_db),
+):
+    """Retrieve the current authenticated user's approved CV."""
+    cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
+    if not cv:
+        return None
+    return ApprovedCVResponse.model_validate(cv)
 
 
 @router.get("/columns", response_model=List[ColumnItem], tags=["Kanban"], summary="List Kanban columns")
 def list_columns(
     current_user: User = Depends(get_current_user_from_api_key),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List Kanban columns and stages configured for the user."""
     cols = get_user_columns(db, current_user.id)
@@ -430,7 +482,7 @@ def list_columns(
 @router.get("/tags", response_model=List[str], tags=["Metadata"], summary="List unique tags")
 def list_tags(
     current_user: User = Depends(get_current_user_from_api_key),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all distinct tag labels across user vacancies."""
     vacancies = db.query(Vacancy).filter(Vacancy.user_id == current_user.id).all()
@@ -442,10 +494,41 @@ def list_tags(
     return sorted(list(all_tags))
 
 
+@router.get("/countries", response_model=List[str], tags=["Metadata"], summary="List unique countries")
+def list_countries(
+    current_user: User = Depends(get_current_user_from_api_key),
+    db: Session = Depends(get_db),
+):
+    """Return distinct countries present in current user's vacancies."""
+    vacancies = (
+        db.query(Vacancy.country)
+        .filter(Vacancy.user_id == current_user.id, Vacancy.country.isnot(None))
+        .distinct()
+        .all()
+    )
+    countries = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
+    return sorted(list(countries))
+
+
+@router.get("/cities", response_model=List[str], tags=["Metadata"], summary="List unique cities")
+def list_cities(
+    country: Optional[str] = Query(None, description="Optional country filter"),
+    current_user: User = Depends(get_current_user_from_api_key),
+    db: Session = Depends(get_db),
+):
+    """Return distinct cities present in current user's vacancies, optionally filtered by country."""
+    query = db.query(Vacancy.city).filter(Vacancy.user_id == current_user.id, Vacancy.city.isnot(None))
+    if country and country.strip():
+        query = query.filter(Vacancy.country.ilike(country.strip()))
+    vacancies = query.distinct().all()
+    cities = {v[0].strip() for v in vacancies if v[0] and v[0].strip() and v[0].strip().lower() not in ('null', 'none', 'n/a')}
+    return sorted(list(cities))
+
+
 @router.get("/sources", response_model=List[str], tags=["Metadata"], summary="List job sources")
 def list_sources(
     current_user: User = Depends(get_current_user_from_api_key),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List distinct job sources (e.g. LinkedIn, Upwork, Habr Career)."""
     vacancies = (
