@@ -3,7 +3,7 @@ import datetime
 import json
 from sqlalchemy import text, insert
 from backend.database import engine
-from backend.models import User, Vacancy, VacancyStatusHistory
+from backend.models import User, Vacancy, VacancyStatusHistory, STATUS_NOT_CONTACTED, STATUS_CONTACTED
 
 assert engine.url.database == 'audit_e2e', 'Refusing to seed a non-test database'
 now = datetime.datetime.utcnow()
@@ -20,7 +20,7 @@ with engine.begin() as conn:
         conn.execute(insert(Vacancy), cards)
     owner = ids[0]
     conn.execute(text('INSERT INTO vacancy_status_history (vacancy_id, from_status, to_status, created_at, updated_at) SELECT id, :old, :new, created_at, created_at FROM vacancies WHERE user_id IN (SELECT id FROM users WHERE email LIKE :email)'),
-                 {'old': 'Еще не написан', 'new': 'Написал', 'email': 'complexity-%@audit.local'})
+                 {'old': STATUS_NOT_CONTACTED, 'new': STATUS_CONTACTED, 'email': 'complexity-%@audit.local'})
     conn.execute(text('ANALYZE vacancies'))
     conn.execute(text('ANALYZE vacancy_status_history'))
     queries = {

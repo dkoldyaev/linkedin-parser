@@ -772,7 +772,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .modal-status-group:first-child { flex: 1 0 100%; }
 .vacancy-modal .modal-status-buttons { gap: 0; }
 .vacancy-modal .vacancy-status-option { height: var(--grid); flex-shrink: 0; }
-.vacancy-modal .modal-workplace-select { width: calc(5 * var(--grid)); height: var(--grid); }
+.vacancy-modal .modal-workplace-select { box-shadow: none; width: calc(5 * var(--grid)); height: var(--grid); }
 .vacancy-modal .btn-toggle-closed { justify-content: center; }
 [data-theme='light'] .vacancy-modal .btn-toggle-closed.is-open:hover,
 [data-theme='light'] .vacancy-modal .btn-toggle-closed.is-closed { color: #b63840; }

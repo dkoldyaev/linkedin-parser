@@ -9,6 +9,7 @@ import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
 import ColumnDeleteModal from './ColumnDeleteModal';
 import { useGridScroll } from '../utils/useGridScroll';
+import { BASE_STATUSES } from '../constants/columns';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated, onUserUpdated }) {
   const { t, locale, setLocale, salaryDisplayFormat, setSalaryDisplayFormat } = useTranslation();
@@ -279,7 +280,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
             <div className="columns-settings-list">
               {columnsList.map((col, index) => {
-                const isBase = col.id === 'Еще не написан' || col.id === 'Отказ';
+                const isBase = BASE_STATUSES.includes(col.id);
                 const colName = t(`kanban.columns.${col.id}`);
                 const isFirst = index === 0;
                 const isLast = index === columnsList.length - 1;

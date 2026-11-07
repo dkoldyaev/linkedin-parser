@@ -8,13 +8,21 @@ import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_ASSESSMENT,
+  STATUS_OFFER,
+  STATUS_REJECTED,
+} from '../constants/columns';
 
 const DEFAULT_COLUMNS = [
-  "Еще не написан",
-  "Написал",
-  "Собеседование",
-  "Тестовое",
-  "Оффер"
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_ASSESSMENT,
+  STATUS_OFFER,
 ];
 
 export default function KanbanCard({
@@ -24,7 +32,7 @@ export default function KanbanCard({
   isSelected,
   onToggleSelect,
   columns = DEFAULT_COLUMNS,
-  laneColumns = new Set(["Собеседование", "Тестовое"])
+  laneColumns = new Set([STATUS_INTERVIEW, STATUS_ASSESSMENT])
 }) {
   const { t, formatDate, salaryDisplayFormat } = useTranslation();
   const contentRef = useRef(null);
@@ -43,10 +51,10 @@ export default function KanbanCard({
     updateHeight();
     return () => observer.disconnect();
   }, []);
-  const isRejected = vacancy.status === "Отказ";
+  const isRejected = vacancy.status === STATUS_REJECTED;
   // Filter out Отказ from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
-    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== "Отказ")
+    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== STATUS_REJECTED)
     : DEFAULT_COLUMNS;
   const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
@@ -293,10 +301,10 @@ export default function KanbanCard({
               trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
                 vacancy_id: vacancy.id,
                 company: vacancy.company,
-                to_status: 'Еще не написан',
+                to_status: STATUS_NOT_CONTACTED,
                 method: 'quick_restore_btn'
               });
-              onStatusChange(vacancy.id, 'Еще не написан');
+              onStatusChange(vacancy.id, STATUS_NOT_CONTACTED);
             }}
           >
             <RotateCcw size={12} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit3, Palette, Layers } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { BASE_STATUSES } from '../constants/columns';
 
 const PRESET_COLORS = [
   '#2563eb', '#0284c7', '#d97706', '#9333ea', 
@@ -26,7 +27,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
 
   if (!isOpen || !column) return null;
 
-  const isBase = column.id === 'Еще не написан' || column.id === 'Отказ';
+  const isBase = BASE_STATUSES.includes(column.id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,7 +81,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
                 required
               />
               {isBase && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '4px', height: 'var(--grid)', display: 'block' }}>
                   {t('settingsModal.col_is_base_badge')}
                 </span>
               )}
@@ -91,7 +92,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
                 <Palette size={14} />
                 <span>{t('kanban.column_color')}</span>
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
+              <div className='form-input' style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                 <input
                   type="color"
                   className="column-color-picker"
@@ -128,7 +129,8 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
               padding: '12px',
               borderRadius: 'var(--radius-md)',
               background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-subtle)'
+              border: '1px solid var(--border-subtle)',
+              height: 'calc(var(--grid) * 2 + 1px)'
             }}>
               <input
                 type="checkbox"

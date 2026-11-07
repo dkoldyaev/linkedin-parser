@@ -24,13 +24,19 @@ import { useTranslation } from '../i18n/I18nContext';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { resolveRolePreset } from './landingPresets';
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_OFFER,
+} from '../constants/columns';
 import './LandingPage.css';
 
 const BOARD_COLUMNS = [
-  { id: 'Еще не написан', labelEn: 'Not Contacted', index: '01', color: '#2563eb' },
-  { id: 'Написал', labelEn: 'Contacted', index: '02', color: '#0284c7' },
-  { id: 'Собеседование', labelEn: 'Interview', index: '03', color: '#d97706' },
-  { id: 'Оффер', labelEn: 'Offer', index: '04', color: '#059669' },
+  { id: STATUS_NOT_CONTACTED, labelEn: 'Not Contacted', index: '01', color: '#2563eb' },
+  { id: STATUS_CONTACTED, labelEn: 'Contacted', index: '02', color: '#0284c7' },
+  { id: STATUS_INTERVIEW, labelEn: 'Interview', index: '03', color: '#d97706' },
+  { id: STATUS_OFFER, labelEn: 'Offer', index: '04', color: '#059669' },
 ];
 
 const DEFAULT_BACKEND_PRESET = resolveRolePreset('backend');
@@ -40,7 +46,7 @@ const COMPATIBILITY_DATA = DEFAULT_BACKEND_PRESET.compatibility;
 
 /**
  * 6 Sequential Steps of card movement across the Kanban funnel (Screen 1.3):
- * - Stage 0 (1.2): All 3 cards in Column 01 ("Еще не написан")
+ * - Stage 0 (1.2): All 3 cards in Column 01 ("Еще не написал")
  * - Stage 1 (1.3): Card 1 (id 101) moves 01 -> 02 ("Написал")
  * - Stage 2 (1.3): Card 1 (id 101) moves 02 -> 03 ("Собеседование", lane 1)
  * - Stage 3 (1.3): Card 2 (id 102) moves 01 -> 02 ("Написал")
@@ -50,39 +56,39 @@ const COMPATIBILITY_DATA = DEFAULT_BACKEND_PRESET.compatibility;
  */
 const FUNNEL_STEP_POSITIONS = [
   {
-    101: { status: 'Еще не написан', lane: null, historyCount: 0 },
-    102: { status: 'Еще не написан', lane: null, historyCount: 0 },
-    103: { status: 'Еще не написан', lane: null, historyCount: 0 },
+    101: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
+    102: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
+    103: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
   },
   {
-    101: { status: 'Написал', lane: null, historyCount: 1 },
-    102: { status: 'Еще не написан', lane: null, historyCount: 0 },
-    103: { status: 'Еще не написан', lane: null, historyCount: 0 },
+    101: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
+    102: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
+    103: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
   },
   {
-    101: { status: 'Собеседование', lane: 1, historyCount: 2 },
-    102: { status: 'Еще не написан', lane: null, historyCount: 0 },
-    103: { status: 'Еще не написан', lane: null, historyCount: 0 },
+    101: { status: STATUS_INTERVIEW, lane: 1, historyCount: 2 },
+    102: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
+    103: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
   },
   {
-    101: { status: 'Собеседование', lane: 1, historyCount: 2 },
-    102: { status: 'Написал', lane: null, historyCount: 1 },
-    103: { status: 'Еще не написан', lane: null, historyCount: 0 },
+    101: { status: STATUS_INTERVIEW, lane: 1, historyCount: 2 },
+    102: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
+    103: { status: STATUS_NOT_CONTACTED, lane: null, historyCount: 0 },
   },
   {
-    101: { status: 'Собеседование', lane: 1, historyCount: 2 },
-    102: { status: 'Написал', lane: null, historyCount: 1 },
-    103: { status: 'Написал', lane: null, historyCount: 1 },
+    101: { status: STATUS_INTERVIEW, lane: 1, historyCount: 2 },
+    102: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
+    103: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
   },
   {
-    101: { status: 'Собеседование', lane: 1, historyCount: 2 },
-    102: { status: 'Написал', lane: null, historyCount: 1 },
-    103: { status: 'Собеседование', lane: 0, historyCount: 2 },
+    101: { status: STATUS_INTERVIEW, lane: 1, historyCount: 2 },
+    102: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
+    103: { status: STATUS_INTERVIEW, lane: 0, historyCount: 2 },
   },
   {
-    101: { status: 'Собеседование', lane: 1, historyCount: 2 },
-    102: { status: 'Написал', lane: null, historyCount: 1 },
-    103: { status: 'Оффер', lane: null, historyCount: 3 },
+    101: { status: STATUS_INTERVIEW, lane: 1, historyCount: 2 },
+    102: { status: STATUS_CONTACTED, lane: null, historyCount: 1 },
+    103: { status: STATUS_OFFER, lane: null, historyCount: 3 },
   },
 ];
 
@@ -107,7 +113,7 @@ const SUB_SCREENS = [
     captionLabel: 'ШАГ 02 · КАРТОЧКИ ПОЯВЛЯЮТСЯ НА ДОСКЕ',
     captionLabelEn: 'STEP 02 · CARDS APPEAR ON THE BOARD',
     captionText:
-      'После отправки списка ссылок в первой колонке «Еще не написан» появляются готовые карточки с названием роли, компанией и источником.',
+      `После отправки списка ссылок в первой колонке «${STATUS_NOT_CONTACTED}» появляются готовые карточки с названием роли, компанией и источником.`,
     captionTextEn:
       'Once imported, structured vacancy cards appear in the first column with role title, company, and source link.',
   },

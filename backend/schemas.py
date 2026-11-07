@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
+from .models import STATUS_NOT_CONTACTED
 
 class UserResponse(BaseModel):
     id: int
@@ -54,7 +55,7 @@ class VacancyBase(BaseModel):
     tech_stack: List[str] = Field(default_factory=list)
     match_score: Optional[float] = None
     tags: List[str] = Field(default_factory=list)
-    status: str = "Еще не написан"
+    status: str = STATUS_NOT_CONTACTED
     notes: Optional[str] = None
 
 class VacancyCreate(VacancyBase):
@@ -208,7 +209,7 @@ class ColumnUpdateRequest(BaseModel):
     has_lanes: Optional[bool] = None
 
 class ColumnDeleteRequest(BaseModel):
-    migrate_to_status: Optional[str] = "Еще не написан"
+    migrate_to_status: Optional[str] = STATUS_NOT_CONTACTED
 
 class ColumnsOrderRequest(BaseModel):
     columns: List[ColumnItem]

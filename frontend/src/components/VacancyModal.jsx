@@ -11,20 +11,16 @@ import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { computeCVDiff } from '../utils/cvDiff';
-
-const DEFAULT_COLUMNS = [
-  { id: "Еще не написан", color: "#2563eb" },
-  { id: "Написал", color: "#0284c7" },
-  { id: "Собеседование", color: "#d97706" },
-  { id: "Тестовое", color: "#9333ea" },
-  { id: "Оффер", color: "#059669" },
-  { id: "Отказ", color: "#ef4444" }
-];
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_REJECTED,
+  DEFAULT_COLUMNS,
+} from '../constants/columns';
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
   const snapScroll = useGridScroll();
-  const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
+  const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
     ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
@@ -33,7 +29,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const stageColorMap = modalColumns.reduce((acc, col) => {
     acc[col.id] = col.color;
     return acc;
-  }, { "Отказ": "#ef4444", "Еще не написан": "#2563eb" });
+  }, { [STATUS_REJECTED]: "#ef4444", [STATUS_NOT_CONTACTED]: "#2563eb" });
 
   const getStageLabel = (colId, lane) => {
     const colName = t(`kanban.columns.${colId}`) || colId;
@@ -164,7 +160,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   useEffect(() => {
     if (vacancy) {
-      setStatus(vacancy.status || "Еще не написан");
+      setStatus(vacancy.status || STATUS_NOT_CONTACTED);
       setTags(vacancy.tags || []);
       listValues.current = { tags: vacancy.tags || [], tech_stack: vacancy.tech_stack || [] };
       setNotes(vacancy.notes || "");
@@ -322,7 +318,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            to_status: vacancy.status || 'Еще не написан',
+            to_status: vacancy.status || STATUS_NOT_CONTACTED,
             to_lane: vacancy.lane ?? 0,
             from_lane: vacancy.lane ?? 0,
             comment: historyCommentText.trim() || null

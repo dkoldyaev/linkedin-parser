@@ -5,6 +5,8 @@ from backend.database import ensure_db_schema
 from backend.main import app
 from fastapi.testclient import TestClient
 
+from backend.models import STATUS_NOT_CONTACTED, STATUS_REJECTED
+
 class TestClosedVacancy(unittest.TestCase):
     def test_extract_closed_linkedin_figcaption(self):
         html = """
@@ -118,25 +120,25 @@ class TestClosedVacancy(unittest.TestCase):
             "title": "Full Stack Dev",
             "company": "Reject Corp",
             "url": "https://www.linkedin.com/jobs/view/8888888888",
-            "status": "Еще не написан"
+            "status": STATUS_NOT_CONTACTED
         })
         self.assertEqual(res.status_code, 200)
         vid = res.json()["id"]
 
         # Move to 'Отказ'
-        patch_res = client.patch(f"/api/vacancies/{vid}", json={"status": "Отказ"})
+        patch_res = client.patch(f"/api/vacancies/{vid}", json={"status": STATUS_REJECTED})
         self.assertEqual(patch_res.status_code, 200)
-        self.assertEqual(patch_res.json()["status"], "Отказ")
+        self.assertEqual(patch_res.json()["status"], STATUS_REJECTED)
 
         # Filter by 'Отказ'
-        filter_res = client.get("/api/vacancies?status=Отказ")
+        filter_res = client.get(f"/api/vacancies?status={STATUS_REJECTED}")
         self.assertEqual(filter_res.status_code, 200)
         self.assertTrue(any(v["id"] == vid for v in filter_res.json()))
 
-        # Restore to 'Еще не написан'
-        restore_res = client.patch(f"/api/vacancies/{vid}", json={"status": "Еще не написан"})
+        # Restore to STATUS_NOT_CONTACTED
+        restore_res = client.patch(f"/api/vacancies/{vid}", json={"status": STATUS_NOT_CONTACTED})
         self.assertEqual(restore_res.status_code, 200)
-        self.assertEqual(restore_res.json()["status"], "Еще не написан")
+        self.assertEqual(restore_res.json()["status"], STATUS_NOT_CONTACTED)
 
         # Cleanup
         client.delete(f"/api/vacancies/{vid}")

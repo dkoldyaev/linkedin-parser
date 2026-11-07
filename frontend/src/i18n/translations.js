@@ -1,3 +1,12 @@
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_ASSESSMENT,
+  STATUS_OFFER,
+  STATUS_REJECTED,
+} from "../constants/columns";
+
 export const translations = {
   ru: {
     common: {
@@ -47,12 +56,12 @@ export const translations = {
     },
     kanban: {
       columns: {
-        "Еще не написан": "Еще не написан",
-        "Написал": "Написал",
-        "Собеседование": "Собеседование",
-        "Тестовое": "Тестовое",
-        "Оффер": "Оффер",
-        "Отказ": "Отказ",
+        [STATUS_NOT_CONTACTED]: STATUS_NOT_CONTACTED,
+        [STATUS_CONTACTED]: STATUS_CONTACTED,
+        [STATUS_INTERVIEW]: STATUS_INTERVIEW,
+        [STATUS_ASSESSMENT]: STATUS_ASSESSMENT,
+        [STATUS_OFFER]: STATUS_OFFER,
+        [STATUS_REJECTED]: STATUS_REJECTED,
       },
       empty_column: "Пока нет карточек",
       empty_column_hint: "Перетащите карточку сюда",
@@ -66,7 +75,7 @@ export const translations = {
       rejected_title: "Отказ",
       rejected_empty: "Перетащите сюда для отказа",
       rejected_restore: "Восстановить",
-      rejected_restore_hint: "Вернуть в «Еще не написан»",
+      rejected_restore_hint: `Вернуть в «${STATUS_NOT_CONTACTED}»`,
       rejected_collapse: "Свернуть",
       rejected_expand: "Развернуть",
       add_column: "Добавить колонку",
@@ -427,7 +436,7 @@ export const translations = {
         f_ai_title: "AI-саммари",
         f_ai_desc: "Краткое описание, стек и зарплата из каждой вакансии.",
         f_kanban_title: "Канбан-воронка",
-        f_kanban_desc: "Ведите каждую вакансию от «Еще не написан» до «Оффер».",
+        f_kanban_desc: `Ведите каждую вакансию от «${STATUS_NOT_CONTACTED}» до «${STATUS_OFFER}».`,
         f_streak_title: "Ежедневные страйки",
         f_streak_desc: "Карта активности и страйки не дают остановиться.",
         f_extension_title: "Браузерное расширение",
@@ -500,12 +509,12 @@ export const translations = {
     },
     kanban: {
       columns: {
-        "Еще не написан": "Not Contacted",
-        "Написал": "Contacted",
-        "Собеседование": "Interview",
-        "Тестовое": "Assessment",
-        "Оффер": "Offer",
-        "Отказ": "Rejected",
+        [STATUS_NOT_CONTACTED]: "Not Contacted",
+        [STATUS_CONTACTED]: "Contacted",
+        [STATUS_INTERVIEW]: "Interview",
+        [STATUS_ASSESSMENT]: "Assessment",
+        [STATUS_OFFER]: "Offer",
+        [STATUS_REJECTED]: "Rejected",
       },
       empty_column: "No cards yet",
       empty_column_hint: "Drag a card here",

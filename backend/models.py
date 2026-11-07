@@ -3,16 +3,23 @@ from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boo
 from sqlalchemy.orm import relationship
 from .database import Base
 
+STATUS_NOT_CONTACTED = "Еще не написал"
+STATUS_CONTACTED = "Написал"
+STATUS_INTERVIEW = "Собеседование"
+STATUS_ASSESSMENT = "Тестовое"
+STATUS_OFFER = "Оффер"
+STATUS_REJECTED = "Отказ"
+
 DEFAULT_COLUMNS = [
-    {"id": "Еще не написан", "color": "#6366f1", "has_lanes": False, "is_base": True},
-    {"id": "Написал", "color": "#0284c7", "has_lanes": False, "is_base": False},
-    {"id": "Собеседование", "color": "#d97706", "has_lanes": True, "is_base": False},
-    {"id": "Тестовое", "color": "#9333ea", "has_lanes": True, "is_base": False},
-    {"id": "Оффер", "color": "#059669", "has_lanes": False, "is_base": False},
-    {"id": "Отказ", "color": "#ef4444", "has_lanes": False, "is_base": True},
+    {"id": STATUS_NOT_CONTACTED, "color": "#6366f1", "has_lanes": False, "is_base": True},
+    {"id": STATUS_CONTACTED, "color": "#0284c7", "has_lanes": False, "is_base": False},
+    {"id": STATUS_INTERVIEW, "color": "#d97706", "has_lanes": True, "is_base": False},
+    {"id": STATUS_ASSESSMENT, "color": "#9333ea", "has_lanes": True, "is_base": False},
+    {"id": STATUS_OFFER, "color": "#059669", "has_lanes": False, "is_base": False},
+    {"id": STATUS_REJECTED, "color": "#ef4444", "has_lanes": False, "is_base": True},
 ]
 
-BASE_STATUSES = ["Еще не написан", "Отказ"]
+BASE_STATUSES = [STATUS_NOT_CONTACTED, STATUS_REJECTED]
 
 VALID_STATUSES = [col["id"] for col in DEFAULT_COLUMNS]
 
@@ -113,7 +120,7 @@ class Vacancy(Base):
     match_score = Column(Float, nullable=True)  # Compatibility score (0-100) with approved CV
     
     # Kanban & User organization
-    status = Column(String(64), nullable=False, default="Еще не написан")
+    status = Column(String(64), nullable=False, default=STATUS_NOT_CONTACTED)
     tags = Column(JSON, default=list)  # list of string labels
     notes = Column(Text, nullable=True)
     lane = Column(Integer, nullable=False, default=0, server_default="0")  # vertical section (swimlane) index within a Kanban column

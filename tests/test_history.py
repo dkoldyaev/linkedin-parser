@@ -2,7 +2,7 @@ import unittest
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.database import SessionLocal, ensure_db_schema
-from backend.models import Vacancy, VacancyStatusHistory, User
+from backend.models import Vacancy, VacancyStatusHistory, User, STATUS_NOT_CONTACTED, STATUS_CONTACTED
 
 class TestVacancyHistory(unittest.TestCase):
     @classmethod
@@ -21,7 +21,7 @@ class TestVacancyHistory(unittest.TestCase):
             "title": "Lead Python Architect",
             "company": "Tech Innovators",
             "url": "https://www.linkedin.com/jobs/view/77777777/",
-            "status": "Еще не написан"
+            "status": STATUS_NOT_CONTACTED
         }
         res = self.client.post("/api/vacancies", json=create_payload)
         self.assertEqual(res.status_code, 200)
@@ -32,24 +32,24 @@ class TestVacancyHistory(unittest.TestCase):
         self.assertTrue("history" in data)
         self.assertGreaterEqual(len(data["history"]), 1)
         initial_history = data["history"][0]
-        self.assertEqual(initial_history["to_status"], "Еще не написан")
+        self.assertEqual(initial_history["to_status"], STATUS_NOT_CONTACTED)
         self.assertIsNone(initial_history["from_status"])
         self.assertIsNone(initial_history["comment"])
 
         # 2. Update status with status_comment
         update_payload = {
-            "status": "Написал",
+            "status": STATUS_CONTACTED,
             "status_comment": "Откликнулся через рекрутера в Telegram"
         }
         res = self.client.patch(f"/api/vacancies/{vacancy_id}", json=update_payload)
         self.assertEqual(res.status_code, 200)
         updated_data = res.json()
-        self.assertEqual(updated_data["status"], "Написал")
+        self.assertEqual(updated_data["status"], STATUS_CONTACTED)
         self.assertEqual(len(updated_data["history"]), 2)
         
         step2 = updated_data["history"][1]
-        self.assertEqual(step2["from_status"], "Еще не написан")
-        self.assertEqual(step2["to_status"], "Написал")
+        self.assertEqual(step2["from_status"], STATUS_NOT_CONTACTED)
+        self.assertEqual(step2["to_status"], STATUS_CONTACTED)
         self.assertEqual(step2["comment"], "Откликнулся через рекрутера в Telegram")
 
         # 3. Update comment on step 2 via PATCH /history/{history_id}

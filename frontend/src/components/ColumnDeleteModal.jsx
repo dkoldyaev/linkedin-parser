@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ArrowRight } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { STATUS_NOT_CONTACTED } from '../constants/columns';
 
 export default function ColumnDeleteModal({
   isOpen,
@@ -11,7 +12,7 @@ export default function ColumnDeleteModal({
   onConfirm
 }) {
   const { t } = useTranslation();
-  const [targetColumn, setTargetColumn] = useState('Еще не написан');
+  const [targetColumn, setTargetColumn] = useState(STATUS_NOT_CONTACTED);
 
   if (!isOpen || !column) return null;
 
@@ -38,7 +39,7 @@ export default function ColumnDeleteModal({
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
           {vacanciesCount > 0 ? (
             <>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, height:'40px' }}>
                 {t('kanban.delete_column_has_vacancies', { count: vacanciesCount })}
               </p>
 

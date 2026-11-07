@@ -3,6 +3,7 @@ import asyncio
 import json
 from pathlib import Path
 import httpx
+from backend.models import STATUS_NOT_CONTACTED
 
 BASE = 'http://localhost:18000'
 HUB = 'http://localhost:13000/.well-known/mercure'
@@ -85,7 +86,7 @@ async def main():
         column = await a.post('/api/columns', json={'name': 'Audit round', 'color': '#123456', 'has_lanes': True})
         checked('custom column creation', column.status_code == 200)
         checked('custom column rename', (await a.patch('/api/columns/Audit round', json={'new_name': 'Audit final', 'color': '#654321'})).status_code == 200)
-        checked('custom column deletion', (await a.request('DELETE', '/api/columns/Audit final', json={'target_status': 'Еще не написан'})).status_code == 200)
+        checked('custom column deletion', (await a.request('DELETE', '/api/columns/Audit final', json={'target_status': STATUS_NOT_CONTACTED})).status_code == 200)
         checked('CV save', (await a.post('/api/cv/approved', json={'content': 'Synthetic CV, Python engineer'})).status_code == 200)
         checked('CV isolation', (await b.get('/api/cv/approved')).json() is None)
         checked('API flag self-service', (await a.put('/api/auth/me/feature-flags', json={'feature_flags': ['api_access']})).status_code == 200)

@@ -30,6 +30,8 @@ from .models import (
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
+    STATUS_NOT_CONTACTED,
+    STATUS_REJECTED,
     KNOWN_FEATURE_FLAGS,
     FEATURE_FLAG_API_ACCESS,
     FEATURE_FLAG_ADMIN,
@@ -1175,7 +1177,7 @@ async def batch_import_vacancies(
                 url=url,
                 title=url[:255],
                 company="Upwork" if "upwork.com" in url else "Загрузка...",
-                status="Еще не написан",
+                status=STATUS_NOT_CONTACTED,
                 tags=payload.default_tags,
             )
             db.add(v)
@@ -1329,7 +1331,7 @@ async def batch_import_vacancies(
                     ai_summary=llm_res.get("summary"),
                     tech_stack=llm_res.get("tech_stack", []),
                     tags=initial_tags,
-                    status="Еще не написан",
+                    status=STATUS_NOT_CONTACTED,
                 )
                 db.add(new_v)
                 db.flush()
@@ -1810,7 +1812,7 @@ def update_column(
 @app.delete("/api/columns/{column_id}", response_model=List[ColumnItem])
 def delete_column(
     column_id: str,
-    migrate_to: Optional[str] = Query("Еще не написан", alias="migrate_to"),
+    migrate_to: Optional[str] = Query(STATUS_NOT_CONTACTED, alias="migrate_to"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1822,11 +1824,11 @@ def delete_column(
     if not any(c["id"] == column_id for c in cols):
         raise HTTPException(status_code=404, detail="Column not found")
 
-    target_migrate = migrate_to.strip() if migrate_to else "Еще не написан"
+    target_migrate = migrate_to.strip() if migrate_to else STATUS_NOT_CONTACTED
     # Ensure target_migrate exists in remaining columns or BASE_STATUSES
     remaining_cols = [c for c in cols if c["id"] != column_id]
     if not any(c["id"] == target_migrate for c in remaining_cols) and target_migrate not in BASE_STATUSES:
-        target_migrate = "Еще не написан"
+        target_migrate = STATUS_NOT_CONTACTED
 
     # Migrate vacancies in deleted column
     vacancies_to_migrate = db.query(Vacancy).filter(
@@ -2000,7 +2002,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
             salary_period=scraped.get("salary_period"),
             workplace_type=scraped.get("workplace_type"),
             is_closed=scraped.get("is_closed", False),
-            status="Еще не написан"
+            status=STATUS_NOT_CONTACTED
         )
         db.add(vacancy)
         db.flush()

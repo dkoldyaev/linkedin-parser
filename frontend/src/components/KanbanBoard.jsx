@@ -7,17 +7,14 @@ import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
 import ColumnDeleteModal from './ColumnDeleteModal';
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_REJECTED,
+  BASE_STATUSES,
+  DEFAULT_COLUMNS as DEFAULT_BOARD_COLUMNS,
+} from '../constants/columns';
 
-const REJECTED_STATUS = "Отказ";
-
-const DEFAULT_BOARD_COLUMNS = [
-  { id: "Еще не написан", color: "#2563eb", has_lanes: false, is_base: true },
-  { id: "Написал", color: "#0284c7", has_lanes: false, is_base: false },
-  { id: "Собеседование", color: "#d97706", has_lanes: true, is_base: false },
-  { id: "Тестовое", color: "#9333ea", has_lanes: true, is_base: false },
-  { id: "Оффер", color: "#059669", has_lanes: false, is_base: false },
-  { id: "Отказ", color: "#ef4444", has_lanes: false, is_base: true },
-];
+const REJECTED_STATUS = STATUS_REJECTED;
 
 const sortByManualOrder = (list) => {
   const unordered = list.filter(v => v.sort_order == null);
@@ -315,7 +312,7 @@ export default function KanbanBoard({
           if (isLaneColumn) columnVacancies.sort((a, b) => (b.lane ?? 0) - (a.lane ?? 0));
           const columnName = t(`kanban.columns.${col.id}`);
           const isDragging = draggingId !== null;
-          const isBase = col.id === 'Еще не написан' || col.id === 'Отказ';
+          const isBase = BASE_STATUSES.includes(col.id);
 
           const maxLaneInCol = columnVacancies.reduce((m, v) => Math.max(m, (v.lane || 0)), 0);
           const laneCount = Math.max(1, maxLaneInCol + 1);

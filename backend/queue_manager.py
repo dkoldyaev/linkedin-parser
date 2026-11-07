@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from sqlalchemy import func
 
 from .database import SessionLocal
-from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis
+from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, STATUS_NOT_CONTACTED
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
@@ -610,7 +610,7 @@ class RedisQueueManager:
                         ai_summary=None,
                         tech_stack=[],
                         tags=initial_tags,
-                        status="Еще не написан",
+                        status=STATUS_NOT_CONTACTED,
                     )
                     db.add(new_v)
                     db.flush()
@@ -1174,7 +1174,7 @@ class RedisQueueManager:
                         workplace_type=scraped.get("workplace_type"),
                         is_closed=scraped.get("is_closed", False),
                         tags=initial_tags,
-                        status="Еще не написан"
+                        status=STATUS_NOT_CONTACTED
                     )
                     db.add(new_vacancy)
                     db.flush()
