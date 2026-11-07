@@ -37,6 +37,7 @@ Options:
   --app-name <name>        Compose application name in Dokploy (default: app)
   --reset-db               Reset database volumes on deploy (freshVolumes)
   --mock-data              Enable fake mock vacancies generation on startup (CREATE_MOCK_DATA=true)
+  --admin <email>          Assign admin role in PostgreSQL database (default: ADMIN_EMAILS from .env or dev@local.user)
   --skip-deploy            Create and configure environment without triggering deploy
   --check                  Perform HTTP check of deployed services
   -h, --help               Show help
@@ -44,6 +45,7 @@ Options:
 Examples:
   npm run dokploy:deploy
   npm run dokploy:deploy -- --mock-data
+  npm run dokploy:deploy -- --admin user@example.com
   npm run dokploy:deploy -- dev
   npm run dokploy:deploy -- feature-quiz --branch feature-quiz
   npm run dokploy:deploy -- feature-quiz --mock-data
@@ -57,6 +59,7 @@ const skipDeploy = args.includes('--skip-deploy') || args.includes('--no-deploy'
 const runCheck = args.includes('--check');
 const customBranch = getArgValue('--branch');
 const customAppName = getArgValue('--app-name') !== null ? getArgValue('--app-name') : 'app';
+const customAdminArg = getArgValue('--admin');
 
 const positionalArgs = args.filter((a) => {
   if (a.startsWith('--')) return false;
@@ -66,6 +69,7 @@ const positionalArgs = args.filter((a) => {
     [
       '--branch',
       '--app-name',
+      '--admin',
     ].includes(args[prevIdx])
   ) {
     return false;
@@ -186,7 +190,7 @@ function dokployRequest(endpoint, method = 'GET', body = null) {
 }
 
 // 4. Generate Compose environment variables
-function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword }) {
+function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
   const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
@@ -210,6 +214,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `JWT_SECRET=${requireEnvVar('JWT_SECRET')}`,
     `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
     `CREATE_MOCK_DATA=${createMockData}`,
+    `ADMIN_EMAILS=${adminEmails || ''}`,
     `PORT=8000`,
   ].join('\n');
 }
@@ -397,6 +402,8 @@ async function main() {
   const domainHost = normalizedBase.includes(projectSlug)
     ? `${envName}${normalizedBase}`
     : `${envName}.${projectSlug}${normalizedBase}`;
+  const adminEmails = customAdminArg || envVars['ADMIN_EMAILS'] || 'dev@local.user';
+
   const composeEnv = generateComposeEnv({
     domainHost,
     pgAppName: pgService.appName,
@@ -405,6 +412,7 @@ async function main() {
     pgDbName: pgService.databaseName,
     redisAppName: redisService.appName,
     redisPassword: redisService.databasePassword,
+    adminEmails,
   });
 
   const serviceNetworks = [
@@ -607,7 +615,124 @@ async function main() {
     }
   }
 
-  // 11. Optional Health Check
+  // 11. Connect to PostgreSQL and assign admin user
+  if (!skipDeploy && adminEmails) {
+    const venvPython = [
+      path.join(ROOT_DIR, '.venv', 'bin', 'python'),
+      path.join(ROOT_DIR, 'venv', 'bin', 'python'),
+      'python3',
+    ].find((p) => p === 'python3' || fs.existsSync(p));
+
+    console.log(`\n\x1b[34m🔑 Configuring admin user in PostgreSQL for: ${adminEmails}...\x1b[0m`);
+    const dokployHost = new URL(DOKPLOY_URL_RAW).hostname;
+    const tempPort = 54399;
+
+    try {
+      console.log(`  🔌 Temporarily exposing PostgreSQL port ${tempPort}...`);
+      await dokployRequest('/postgres.update', 'POST', {
+        postgresId: pgService.postgresId,
+        externalPort: tempPort,
+      });
+      await dokployRequest('/postgres.deploy', 'POST', { postgresId: pgService.postgresId });
+
+      console.log('  ⏳ Connecting to database...');
+      let connected = false;
+      const directPgUrl = `postgresql://${pgService.databaseUser}:${pgService.databasePassword}@${dokployHost}:${tempPort}/${pgService.databaseName}`;
+
+      const pyScript = `
+import sys
+import psycopg2
+
+db_url = sys.argv[1]
+emails = [e.strip().lower() for e in sys.argv[2].split(",") if e.strip()]
+flags = ["admin", "api_access"]
+
+conn = psycopg2.connect(db_url)
+conn.autocommit = True
+cur = conn.cursor()
+
+# Check if users table exists
+cur.execute("SELECT to_regclass('public.users');")
+if not cur.fetchone()[0]:
+    print("Database tables not yet created. Admin flags will be assigned upon first login via ADMIN_EMAILS.")
+    cur.close()
+    conn.close()
+    sys.exit(0)
+
+updated_users = []
+for email in emails:
+    cur.execute("SELECT id, name FROM users WHERE lower(email) = lower(%s);", (email,))
+    row = cur.fetchone()
+    if row:
+        u_id, u_name = row
+        for f in flags:
+            cur.execute("""
+                INSERT INTO user_feature_flags (user_id, flag, created_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (user_id, flag) DO NOTHING;
+            """, (u_id, f))
+        updated_users.append(f"{u_name or email} (id: {u_id})")
+    else:
+        # If user doesn't exist yet, insert a pre-seeded account so they are immediately admin
+        cur.execute("""
+            INSERT INTO users (google_id, email, name, feature_flags, is_anonymous, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, false, NOW(), NOW())
+            RETURNING id;
+        """, (f"admin_{email}", email, email.split("@")[0], "[]"))
+        new_id = cur.fetchone()[0]
+        for f in flags:
+            cur.execute("""
+                INSERT INTO user_feature_flags (user_id, flag, created_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (user_id, flag) DO NOTHING;
+            """, (new_id, f))
+        updated_users.append(f"{email} [created] (id: {new_id})")
+
+if updated_users:
+    print(f"Successfully granted admin flags {flags} to: {', '.join(updated_users)}")
+
+cur.close()
+conn.close()
+`;
+
+      const start = Date.now();
+      while (Date.now() - start < 35000) {
+        try {
+          const out = execSync(`${venvPython} -c '${pyScript.replace(/'/g, "'\\''")}' "${directPgUrl}" "${adminEmails}"`, {
+            encoding: 'utf-8',
+            cwd: ROOT_DIR,
+          });
+          console.log(`  ${out.trim()}`);
+          connected = true;
+          break;
+        } catch (err) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      if (!connected) {
+        console.log('  ℹ️ Direct DB connection skipped (ADMIN_EMAILS is configured and will assign admin rights upon login).');
+      } else {
+        console.log('  ✅ Admin user successfully assigned in database.');
+      }
+    } catch (err) {
+      console.error('  ⚠️ Database admin configuration notice:', err.message);
+    } finally {
+      console.log('  🔒 Closing exposed PostgreSQL port...');
+      try {
+        await dokployRequest('/postgres.update', 'POST', {
+          postgresId: pgService.postgresId,
+          externalPort: null,
+        });
+        await dokployRequest('/postgres.deploy', 'POST', { postgresId: pgService.postgresId });
+        console.log('  ✅ PostgreSQL port secured.');
+      } catch (err) {
+        console.error('  ⚠️ Could not close PostgreSQL port:', err.message);
+      }
+    }
+  }
+
+  // 12. Optional Health Check
   if (runCheck) {
     console.log('\n--- VERIFYING DEPLOYED ENVIRONMENT ---');
     try {
