@@ -605,8 +605,8 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .compatibility-header-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; min-height: var(--grid); color: var(--aspen-mint); font-weight: 600; font-size: .95rem; }
 .vacancy-modal .compatibility-scores { display: flex; align-items: center; gap: 8px; min-height: var(--grid); }
 .vacancy-modal .compatibility-analyze { height: var(--grid); margin-left: auto; }
-.vacancy-modal .compatibility-summary { margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); color: var(--text-primary); font-size: .875rem; line-height: var(--grid); box-shadow: inset 0 1px var(--border-subtle); }
-.vacancy-modal .compatibility-assessment { margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); font-size: .8rem; line-height: var(--grid); border: 0; box-shadow: inset 0 1px var(--border-subtle); }
+.vacancy-modal .compatibility-summary { margin: 0; padding: calc(var(--grid) / 2) var(--vacancy-inset-right) calc(var(--grid) / 2) var(--vacancy-inset-left); color: var(--text-primary); font-size: .875rem; line-height: calc(var(--grid) * 0.75); box-shadow: inset 0 1px var(--border-subtle); }
+.vacancy-modal .compatibility-assessment { margin: 0; padding: calc(var(--grid) / 2) var(--vacancy-inset-right) calc(var(--grid) / 2) var(--vacancy-inset-left); font-size: .8rem; line-height: calc(var(--grid) * 0.75); border: 0; box-shadow: inset 0 1px var(--border-subtle); }
 .vacancy-modal .compatibility-group { margin: 0; }
 .vacancy-modal .compatibility-group-title { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); display: flex; align-items: center; font: 600 .68rem var(--font-mono); letter-spacing: .06em; text-transform: uppercase; box-shadow: inset 0 1px var(--border-subtle); }
 .vacancy-modal .compatibility-group-title.is-matched { color: var(--aspen-mint); }
@@ -616,9 +616,9 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .compatibility-group-title.is-recommendations { color: var(--primary); }
 .vacancy-modal .compatibility-list { display: flex; flex-direction: column; gap: 0; }
 .vacancy-modal .compatibility-row { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); font-size: .8rem; line-height: var(--grid); color: var(--text-primary); border: 0; box-shadow: inset 0 1px var(--border-subtle); }
-.vacancy-modal .compatibility-evidence { color: var(--text-secondary); font-size: .75rem; line-height: var(--grid); box-shadow: inset 0 1px var(--border-subtle); }
+.vacancy-modal .compatibility-evidence { padding: calc(var(--grid) / 2) 0; color: var(--text-secondary); font-size: .75rem; line-height: calc(var(--grid) * 0.75); box-shadow: inset 0 1px var(--border-subtle); }
 .vacancy-modal .compatibility-recommendations { margin: 0; padding: 0; }
-.vacancy-modal .compatibility-recommendation-list { margin: 0; padding: 0 var(--vacancy-inset-right) 0 calc(var(--vacancy-inset-left) + 16px); color: var(--text-secondary); font-size: .8rem; line-height: var(--grid); }
+.vacancy-modal .compatibility-recommendation-list { margin: 0; padding: calc(var(--grid) / 2) var(--vacancy-inset-right) calc(var(--grid) / 2) calc(var(--vacancy-inset-left) + 16px); color: var(--text-secondary); font-size: .8rem; line-height: calc(var(--grid) * 0.75); }
 .vacancy-modal .compatibility-notice { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-size: .8rem; line-height: var(--grid); box-shadow: inset 0 1px var(--border-subtle); }
 .vacancy-modal .compatibility-notice.is-error { background: #ef444422; }
 .vacancy-modal .compatibility-notice.is-outdated { background: #d9770622; }

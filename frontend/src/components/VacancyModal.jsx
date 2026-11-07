@@ -119,13 +119,20 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
   useLayoutEffect(() => {
     const body = detailBodyRef.current;
-    if (!isOpen || activeTab !== 'details' || !body) return;
-    const sections = Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'));
+    if (!isOpen || !body) return;
+    const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+
+    const sections = activeTab === 'details'
+      ? Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'))
+      : Array.from(body.querySelectorAll(
+          '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
+        ));
+
     let frame;
     const align = () => {
       sections.forEach(section => {
         section.style.minHeight = '0px';
-        section.style.minHeight = `${Math.ceil(section.offsetHeight / 32) * 32}px`;
+        section.style.minHeight = `${Math.ceil(section.offsetHeight / grid) * grid}px`;
       });
     };
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(align); };
@@ -136,7 +143,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     sections.forEach(section => mutation.observe(section, { childList: true, subtree: true, characterData: true }));
     align();
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, compatibility, showEvidenceMap]);
 
 
 
