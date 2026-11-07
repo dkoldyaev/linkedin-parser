@@ -312,6 +312,49 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Cleanup legacy cv_service_token settings: {e}")
 
+    try:
+        # Migrate misspelled status and column names from legacy 'Еще не написан' to 'Еще не написал'
+        from .models import STATUS_NOT_CONTACTED
+        legacy_status = "Еще не написан"
+        with engine.begin() as conn:
+            # 1. Update vacancies table
+            conn.execute(
+                text("UPDATE vacancies SET status = :new_status WHERE status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            # 2. Update vacancy_status_history table
+            conn.execute(
+                text("UPDATE vacancy_status_history SET from_status = :new_status WHERE from_status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            conn.execute(
+                text("UPDATE vacancy_status_history SET to_status = :new_status WHERE to_status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            # 3. Update kanban_columns in user_settings if present
+            rows = conn.execute(text("SELECT id, value FROM user_settings WHERE key = 'kanban_columns'")).fetchall()
+            for row in rows:
+                row_id = row[0]
+                val_raw = row[1]
+                if val_raw and legacy_status in val_raw:
+                    try:
+                        import json
+                        cols = json.loads(val_raw)
+                        updated = False
+                        for col in cols:
+                            if col.get("id") == legacy_status:
+                                col["id"] = STATUS_NOT_CONTACTED
+                                updated = True
+                        if updated:
+                            conn.execute(
+                                text("UPDATE user_settings SET value = :val WHERE id = :id"),
+                                {"val": json.dumps(cols, ensure_ascii=False), "id": row_id}
+                            )
+                    except Exception as err:
+                        logger.warning(f"Failed to update user_settings kanban_columns for id {row_id}: {err}")
+    except Exception as e:
+        logger.warning(f"Migrate legacy status 'Еще не написан' -> '{STATUS_NOT_CONTACTED}': {e}")
+
 
 
 
