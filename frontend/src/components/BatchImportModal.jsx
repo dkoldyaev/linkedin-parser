@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
+import { shouldShowExtensionPrompt, anyUrlRequiresExtension } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
@@ -14,6 +14,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   const [error, setError] = useState(null);
   const [showExtModal, setShowExtModal] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [pendingSubmit, setPendingSubmit] = useState(null);
 
   if (!isOpen) return null;
 
@@ -87,6 +88,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
     setLoading(true);
     setError(null);
+    let requiresExt = anyUrlRequiresExtension(urls);
     try {
       const dupRes = await fetch('/api/vacancies/check-duplicates', {
         method: 'POST',
@@ -95,12 +97,16 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       });
       if (dupRes.ok) {
         const dupData = await dupRes.json();
+        if (typeof dupData.requires_extension === 'boolean') {
+          requiresExt = dupData.requires_extension;
+        }
         if (dupData.has_duplicates && dupData.duplicates.length > 0) {
           setLoading(false);
           setDuplicateWarning({
             duplicates: dupData.duplicates,
             urls,
             defaultTags,
+            requiresExtension: requiresExt,
           });
           return;
         }
@@ -111,12 +117,16 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       setLoading(false);
     }
 
-    const needsPrompt = await shouldShowExtensionPrompt();
-    if (needsPrompt) {
-      setShowExtModal(true);
-    } else {
-      await performSubmit(urls, defaultTags);
+    if (requiresExt) {
+      const needsPrompt = await shouldShowExtensionPrompt();
+      if (needsPrompt) {
+        setPendingSubmit(() => () => performSubmit(urls, defaultTags));
+        setShowExtModal(true);
+        return;
+      }
     }
+
+    await performSubmit(urls, defaultTags);
   };
 
   const handleClose = () => {
@@ -125,6 +135,8 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     setUrlsText('');
     setTagsInput('');
     setDuplicateWarning(null);
+    setPendingSubmit(null);
+    setShowExtModal(false);
     onClose();
   };
 
@@ -132,19 +144,19 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+      <div className="modal-content batch-import-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
         <div className="modal-header">
           <div className="modal-title">
-            <UploadCloud size={20} color="#6366f1" />
+            <UploadCloud size={20} color="#2563eb" />
             <span>{t('batchModal.title')}</span>
           </div>
-          <button className="btn-icon" onClick={handleClose}>
+          <button className="btn-icon modal-close-btn" onClick={handleClose}>
             <X size={18} />
           </button>
         </div>
 
         {duplicateWarning ? (
-          <div>
+          <div className="batch-duplicates">
             <div className="modal-body">
               <div className="info-banner" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}>
                 <AlertCircle size={20} style={{ flexShrink: 0 }} />
@@ -160,25 +172,27 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                 {duplicateWarning.duplicates.map((dup) => (
                   <div key={dup.id} style={{
                     padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: 'var(--bg-secondary, rgba(255, 255, 255, 0.05))',
-                    border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                   }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary, #f3f4f6)' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                       {dup.title || dup.url}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary, #9ca3af)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       <span>{dup.company || 'Unknown'}</span>
                       {dup.status && (
                         <span style={{
                           padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: 'rgba(99, 102, 241, 0.2)',
-                          color: '#a5b4fc',
-                          fontSize: '0.75rem'
+                          borderRadius: 'var(--radius-xs)',
+                          background: 'rgba(37, 99, 235, 0.15)',
+                          border: '1px solid var(--border-blueprint)',
+                          color: '#93c5fd',
+                          fontSize: '0.75rem',
+                          fontFamily: 'var(--font-mono)'
                         }}>
                           {dup.status}
                         </span>
@@ -206,13 +220,19 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                 className="btn btn-warning"
                 style={{ background: '#f59e0b', color: '#111827', fontWeight: 600, border: 'none' }}
                 onClick={async () => {
-                  const { urls, defaultTags } = duplicateWarning;
-                  const needsPrompt = await shouldShowExtensionPrompt();
-                  if (needsPrompt) {
-                    setShowExtModal(true);
-                  } else {
-                    await performSubmit(urls, defaultTags);
+                  const { urls, defaultTags, requiresExtension } = duplicateWarning;
+                  const needsExt = typeof requiresExtension === 'boolean'
+                    ? requiresExtension
+                    : anyUrlRequiresExtension(urls);
+                  if (needsExt) {
+                    const needsPrompt = await shouldShowExtensionPrompt();
+                    if (needsPrompt) {
+                      setPendingSubmit(() => () => performSubmit(urls, defaultTags));
+                      setShowExtModal(true);
+                      return;
+                    }
                   }
+                  await performSubmit(urls, defaultTags);
                 }}
                 disabled={loading}
               >
@@ -262,10 +282,11 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               )}
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="batch-vacancy-urls">
                   {t('batchModal.urls_label')}
                 </label>
                 <textarea
+                  id="batch-vacancy-urls"
                   className="form-textarea"
                   rows={7}
                   placeholder={t('batchModal.urls_placeholder')}
@@ -277,10 +298,11 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               </div>
 
               <div className="form-group">
-                <label className="form-label">
+                <label className="form-label" htmlFor="batch-vacancy-tags">
                   {t('batchModal.tags_label')}
                 </label>
                 <input
+                  id="batch-vacancy-tags"
                   type="text"
                   className="form-input"
                   placeholder={t('batchModal.tags_placeholder')}
@@ -315,17 +337,26 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
       <ExtensionPromptModal
         isOpen={showExtModal}
-        onClose={() => setShowExtModal(false)}
+        onClose={() => {
+          setShowExtModal(false);
+          setPendingSubmit(null);
+        }}
         onProceed={() => {
-          const urls = urlsText
-            .split('\n')
-            .map(u => u.trim())
-            .filter(u => u.length > 0);
-          const defaultTags = tagsInput
-            .split(',')
-            .map(t => t.trim())
-            .filter(t => t.length > 0);
-          performSubmit(urls, defaultTags);
+          setShowExtModal(false);
+          if (pendingSubmit) {
+            pendingSubmit();
+            setPendingSubmit(null);
+          } else {
+            const urls = urlsText
+              .split('\n')
+              .map(u => u.trim())
+              .filter(u => u.length > 0);
+            const defaultTags = tagsInput
+              .split(',')
+              .map(t => t.trim())
+              .filter(t => t.length > 0);
+            performSubmit(urls, defaultTags);
+          }
         }}
       />
     </div>

@@ -1,7 +1,12 @@
 import unittest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.models import BASE_STATUSES, DEFAULT_COLUMNS
+from backend.models import (
+    BASE_STATUSES,
+    DEFAULT_COLUMNS,
+    STATUS_NOT_CONTACTED,
+    STATUS_REJECTED,
+)
 
 class TestCustomColumns(unittest.TestCase):
     def setUp(self):
@@ -16,8 +21,8 @@ class TestCustomColumns(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         cols = res.json()
         self.assertEqual(len(cols), len(DEFAULT_COLUMNS))
-        self.assertTrue(any(c["id"] == "Еще не написан" and c["is_base"] for c in cols))
-        self.assertTrue(any(c["id"] == "Отказ" and c["is_base"] for c in cols))
+        self.assertTrue(any(c["id"] == STATUS_NOT_CONTACTED and c["is_base"] for c in cols))
+        self.assertTrue(any(c["id"] == STATUS_REJECTED and c["is_base"] for c in cols))
 
         # 2. Add custom column with stages (has_lanes)
         create_res = self.client.post("/api/columns", json={
@@ -59,20 +64,20 @@ class TestCustomColumns(unittest.TestCase):
         self.assertEqual(get_vac.json()["status"], "Tech Interview")
 
         # 5. Delete column with migration
-        del_res = self.client.delete("/api/columns/Tech Interview?migrate_to=Еще не написан")
+        del_res = self.client.delete(f"/api/columns/Tech Interview?migrate_to={STATUS_NOT_CONTACTED}")
         self.assertEqual(del_res.status_code, 200)
         cols = del_res.json()
         self.assertFalse(any(c["id"] == "Tech Interview" for c in cols))
 
-        # Vacancy should have moved to 'Еще не написан'
+        # Vacancy should have moved to STATUS_NOT_CONTACTED
         get_vac_after = self.client.get(f"/api/vacancies/{vac_id}")
         self.assertEqual(get_vac_after.status_code, 200)
-        self.assertEqual(get_vac_after.json()["status"], "Еще не написан")
+        self.assertEqual(get_vac_after.json()["status"], STATUS_NOT_CONTACTED)
 
         # 6. Cannot delete base column
-        bad_del = self.client.delete("/api/columns/Еще не написан")
+        bad_del = self.client.delete(f"/api/columns/{STATUS_NOT_CONTACTED}")
         self.assertEqual(bad_del.status_code, 400)
-        bad_del2 = self.client.delete("/api/columns/Отказ")
+        bad_del2 = self.client.delete(f"/api/columns/{STATUS_REJECTED}")
         self.assertEqual(bad_del2.status_code, 400)
 
         # Cleanup

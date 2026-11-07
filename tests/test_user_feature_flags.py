@@ -4,12 +4,11 @@ import tempfile
 import uuid
 from fastapi.testclient import TestClient
 
-os.environ["DATA_DIR"] = tempfile.mkdtemp()
 os.environ["DEV_AUTH"] = "true"
 
 from backend.main import app
-from backend.database import ensure_db_schema, Base, engine
-from backend.models import User
+from backend.database import ensure_db_schema, Base, engine, SessionLocal
+from backend.models import User, UserFeatureFlag
 
 class TestUserFeatureFlags(unittest.TestCase):
     @classmethod
@@ -77,8 +76,15 @@ class TestUserFeatureFlags(unittest.TestCase):
         self.assertEqual(res_denied.status_code, 403)
         self.assertIn("Admin access required", res_denied.json()["detail"])
 
-        # 2. Grant admin flag
-        self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["admin"]}, cookies=self.cookies)
+        # Self-promotion is forbidden; an admin grant is seeded by the fixture.
+        denied = self.client.put("/api/auth/me/feature-flags", json={"feature_flags": ["admin"]}, cookies=self.cookies)
+        self.assertEqual(denied.status_code, 403)
+        own_id = self.client.get("/api/auth/me", cookies=self.cookies).json()["id"]
+        denied = self.client.put(f"/api/users/{own_id}/feature-flags", json={"feature_flags": ["admin"]}, cookies=self.cookies)
+        self.assertEqual(denied.status_code, 403)
+        with SessionLocal() as db:
+            db.add(UserFeatureFlag(user_id=own_id, flag="admin"))
+            db.commit()
         res_allowed = self.client.get("/api/users", cookies=self.cookies)
         self.assertEqual(res_allowed.status_code, 200)
         users = res_allowed.json()

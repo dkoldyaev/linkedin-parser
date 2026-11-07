@@ -1,28 +1,27 @@
+"""Scraped vacancy to LLM integration without network access or paid calls."""
 import asyncio
+import json
+from unittest.mock import AsyncMock, patch
 from backend.scraper import scrape_linkedin_job
 from backend.llm import analyze_vacancy_with_llm
 
-async def main():
-    url = "https://www.linkedin.com/jobs/view/4409263207/"
-    print("Scraping vacancy...")
-    scraped = await scrape_linkedin_job(url)
-    print(f"Scraped title: {scraped['title']} | company: {scraped['company']} | location: {scraped['location']}")
-    
-    print("\nCalling Mistral AI...")
-    llm_res = await analyze_vacancy_with_llm(
-        title=scraped["title"],
-        company=scraped["company"],
-        location=scraped["location"],
-        description=scraped["description"],
-        provider="mistral",
-        language="ru",
-    )
-    
-    print("\nMISTRAL AI RESULT:")
-    print("Summary:", llm_res.get("summary"))
-    print("Tech Stack:", llm_res.get("tech_stack"))
-    print("Company Info:", llm_res.get("company_info"))
-    print("AI Error:", llm_res.get("ai_error"))
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def test_scraped_vacancy_to_llm(monkeypatch):
+    html = '''<html><body><h1 class="top-card-layout__title">Python Engineer</h1>
+      <a class="topcard__org-name-link">Test Corp</a>
+      <span class="topcard__flavor--bullet">Madrid, Spain</span>
+      <div class="description__text">Build Python and PostgreSQL services.</div></body></html>'''
+    async def scenario():
+        scraped = await scrape_linkedin_job('https://www.linkedin.com/jobs/view/12345678/', html=html)
+        assert scraped['title'] == 'Python Engineer'
+        assert 'PostgreSQL' in scraped['description']
+        monkeypatch.setenv('MISTRAL_API_KEY', 'test-only')
+        with patch('backend.llm.call_mistral', new_callable=AsyncMock,
+                   return_value=json.dumps({'summary': 'Build backend services', 'tech_stack': ['Python', 'PostgreSQL']})) as call:
+            result = await analyze_vacancy_with_llm(
+                title=scraped['title'], company=scraped.get('company', ''),
+                location=scraped.get('location', ''), description=scraped['description'],
+                provider='mistral', language='en')
+            assert 'PostgreSQL' in call.call_args.args[0]
+            assert result['tech_stack'] == ['Python', 'PostgreSQL']
+    asyncio.run(scenario())

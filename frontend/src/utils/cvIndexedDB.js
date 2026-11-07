@@ -1,12 +1,11 @@
-/**
- * Client-side IndexedDB persistence for Local CV Management.
- * Guarantees raw CV files and user draft edits never leave the browser.
- */
-
+/** Local CV drafts are scoped to the signed-in account. */
 const DB_NAME = 'cv_local_storage_db';
-const DB_VERSION = 1;
 const STORE_NAME = 'cv_data';
-const CURRENT_CV_KEY = 'active_cv';
+
+export function cvStorageKey(userId) {
+  if (!Number.isInteger(Number(userId)) || Number(userId) <= 0) throw new Error('A signed-in user is required');
+  return `active_cv:${Number(userId)}`;
+}
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -14,63 +13,45 @@ function openDB() {
       reject(new Error('IndexedDB is not supported in this environment'));
       return;
     }
-
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
+    const request = window.indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: 'id' });
     };
-
-    request.onsuccess = (event) => {
-      resolve(event.target.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
+      resolve(db);
     };
-
-    request.onerror = (event) => {
-      reject(event.target.error);
-    };
+    request.onerror = () => reject(request.error);
   });
 }
 
-export async function getLocalCV() {
+async function transact(mode, operation) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.get(CURRENT_CV_KEY);
-
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
+    const tx = db.transaction(STORE_NAME, mode);
+    let value;
+    const request = operation(tx.objectStore(STORE_NAME));
+    request.onsuccess = () => { value = request.result; };
+    tx.oncomplete = () => { db.close(); resolve(value); };
+    tx.onabort = tx.onerror = () => { db.close(); reject(tx.error || new Error('CV storage transaction failed')); };
   });
 }
 
-export async function saveLocalCV(cvRecord) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const dataToSave = {
-      ...cvRecord,
-      id: CURRENT_CV_KEY,
-      updatedAt: new Date().toISOString(),
-    };
-    const req = store.put(dataToSave);
-
-    req.onsuccess = () => resolve(dataToSave);
-    req.onerror = () => reject(req.error);
-  });
+export async function getLocalCV(userId) {
+  const key = cvStorageKey(userId);
+  return (await transact('readonly', store => store.get(key))) || null;
 }
 
-export async function clearLocalCV() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.delete(CURRENT_CV_KEY);
+export async function saveLocalCV(cvRecord, userId) {
+  const record = { ...cvRecord, id: cvStorageKey(userId), updatedAt: new Date().toISOString() };
+  await transact('readwrite', store => store.put(record));
+  return record;
+}
 
-    req.onsuccess = () => resolve(true);
-    req.onerror = () => reject(req.error);
-  });
+export async function clearLocalCV(userId) {
+  const key = cvStorageKey(userId);
+  await transact('readwrite', store => store.delete(key));
+  return true;
 }

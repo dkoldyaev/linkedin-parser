@@ -1,0 +1,130 @@
+{
+  "synthetic_users": 80,
+  "synthetic_cards": 32000,
+  "synthetic_history": 32000,
+  "explain_analyze": false,
+  "plans": {
+    "user_sorted_page": {
+      "Node Type": "Limit",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 0.29,
+      "Total Cost": 92.07,
+      "Plan Rows": 50,
+      "Plan Width": 12,
+      "Plans": [
+        {
+          "Node Type": "Index Only Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Backward",
+          "Index Name": "ix_vacancies_user_updated",
+          "Relation Name": "vacancies",
+          "Alias": "vacancies",
+          "Startup Cost": 0.29,
+          "Total Cost": 740.03,
+          "Plan Rows": 403,
+          "Plan Width": 12,
+          "Index Cond": "(user_id = 3)"
+        }
+      ]
+    },
+    "user_job_dedup": {
+      "Node Type": "Limit",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 0.29,
+      "Total Cost": 8.31,
+      "Plan Rows": 1,
+      "Plan Width": 4,
+      "Plans": [
+        {
+          "Node Type": "Index Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_vacancies_job_id",
+          "Relation Name": "vacancies",
+          "Alias": "vacancies",
+          "Startup Cost": 0.29,
+          "Total Cost": 8.31,
+          "Plan Rows": 1,
+          "Plan Width": 4,
+          "Index Cond": "((job_id)::text = '3-30'::text)",
+          "Filter": "(user_id = 3)"
+        }
+      ]
+    },
+    "user_url_dedup": {
+      "Node Type": "Limit",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 0.41,
+      "Total Cost": 8.43,
+      "Plan Rows": 1,
+      "Plan Width": 4,
+      "Plans": [
+        {
+          "Node Type": "Index Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Scan Direction": "Forward",
+          "Index Name": "ix_vacancies_user_url",
+          "Relation Name": "vacancies",
+          "Alias": "vacancies",
+          "Startup Cost": 0.41,
+          "Total Cost": 8.43,
+          "Plan Rows": 1,
+          "Plan Width": 4,
+          "Index Cond": "((user_id = 3) AND ((url)::text = 'https://example.com/perf/3/30'::text))"
+        }
+      ]
+    },
+    "user_recent_created": {
+      "Node Type": "Index Only Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Scan Direction": "Forward",
+      "Index Name": "ix_vacancies_user_created",
+      "Relation Name": "vacancies",
+      "Alias": "vacancies",
+      "Startup Cost": 0.29,
+      "Total Cost": 65.99,
+      "Plan Rows": 32,
+      "Plan Width": 8,
+      "Index Cond": "((user_id = 3) AND (created_at >= '2026-10-28 12:46:22.384901'::timestamp without time zone))"
+    },
+    "history_order": {
+      "Node Type": "Index Only Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Scan Direction": "Forward",
+      "Index Name": "ix_history_vacancy_created",
+      "Relation Name": "vacancy_status_history",
+      "Alias": "vacancy_status_history",
+      "Startup Cost": 0.29,
+      "Total Cost": 8.3,
+      "Plan Rows": 1,
+      "Plan Width": 8,
+      "Index Cond": "(vacancy_id = 4)"
+    },
+    "substring_search_residual": {
+      "Node Type": "Index Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Scan Direction": "Forward",
+      "Index Name": "ix_vacancies_user_id",
+      "Relation Name": "vacancies",
+      "Alias": "vacancies",
+      "Startup Cost": 0.29,
+      "Total Cost": 83.35,
+      "Plan Rows": 1,
+      "Plan Width": 4,
+      "Index Cond": "(user_id = 3)",
+      "Filter": "(description ~~* '%python%'::text)"
+    }
+  }
+}

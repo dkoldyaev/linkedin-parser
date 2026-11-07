@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -10,7 +9,7 @@ export default function PageHeader({ user, onLogout, onUserUpdated }) {
   return (
     <header className="app-header">
       <Link to="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div className="brand-icon"><Briefcase size={20} /></div>
+        <div className="brand-icon"><span className="blueprint-mark" aria-hidden="true" /></div>
         <div>
           <div className="brand-title">{t('nav.title')}</div>
           <p className="brand-subtitle">{t('nav.subtitle')}</p>

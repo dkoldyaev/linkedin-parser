@@ -1,20 +1,28 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { 
-  MapPin, Sparkles, ChevronLeft, ChevronRight, 
+  MapPin, Sparkles, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  XCircle, RotateCcw, History, Award
+  RotateCcw, History, Award
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_ASSESSMENT,
+  STATUS_OFFER,
+  STATUS_REJECTED,
+} from '../constants/columns';
 
 const DEFAULT_COLUMNS = [
-  "Еще не написан",
-  "Написал",
-  "Собеседование",
-  "Тестовое",
-  "Оффер"
+  STATUS_NOT_CONTACTED,
+  STATUS_CONTACTED,
+  STATUS_INTERVIEW,
+  STATUS_ASSESSMENT,
+  STATUS_OFFER,
 ];
 
 export default function KanbanCard({
@@ -24,13 +32,29 @@ export default function KanbanCard({
   isSelected,
   onToggleSelect,
   columns = DEFAULT_COLUMNS,
-  laneColumns = new Set(["Собеседование", "Тестовое"])
+  laneColumns = new Set([STATUS_INTERVIEW, STATUS_ASSESSMENT])
 }) {
   const { t, formatDate, salaryDisplayFormat } = useTranslation();
-  const isRejected = vacancy.status === "Отказ";
+  const contentRef = useRef(null);
+  const [gridHeight, setGridHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const updateHeight = () => {
+      // Snap the content area to the grid, leaving the footer on the next grid line.
+      const height = Math.ceil(content.offsetHeight / 32) * 32;
+      setGridHeight((previous) => previous === height ? previous : height);
+    };
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(content);
+    updateHeight();
+    return () => observer.disconnect();
+  }, []);
+  const isRejected = vacancy.status === STATUS_REJECTED;
   // Filter out Отказ from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
-    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== "Отказ")
+    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== STATUS_REJECTED)
     : DEFAULT_COLUMNS;
   const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
@@ -119,36 +143,43 @@ export default function KanbanCard({
       onDragEnd={handleDragEnd}
       onClick={handleCardClick}
     >
+      <div className="card-grid-content">
+      <div className="card-grid-body" style={gridHeight ? { minHeight: gridHeight } : undefined}>
+      <div className="card-grid-body-content" ref={contentRef}>
       <div className="card-top">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-          <input
-            type="checkbox"
-            checked={isSelected || false}
-            onChange={(e) => {
-              e.stopPropagation();
-              if (onToggleSelect) onToggleSelect(vacancy.id);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="card-checkbox"
-            title="Выделить карточку"
-          />
-          
-          <h3 className="card-title">
-            <a 
-              href={vacancy.url} 
-              target="_blank" 
-              rel="noreferrer" 
-              onClick={handleCompanyLinkClick}
-              title={vacancy.source || ''}
-            >
-              {vacancy.source && <span>{vacancy.source}</span>}
-              <ExternalLink size={10} />
-            </a>
-            {vacancy.title}
-          </h3>
+        <div className="card-heading">
+          <div className="card-title-container">
+            <div className="card-header-meta">
+              <input
+                type="checkbox"
+                checked={isSelected || false}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onToggleSelect) onToggleSelect(vacancy.id);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="card-checkbox"
+                title="Выделить карточку"
+              />
+              <a 
+                href={vacancy.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                onClick={handleCompanyLinkClick}
+                className="card-source-link"
+                title={vacancy.source || ''}
+              >
+                {vacancy.source && <span>{vacancy.source}</span>}
+                <ExternalLink size={10} />
+              </a>
+            </div>
+            <h3 className="card-title">
+              {vacancy.title}
+            </h3>
+          </div>
 
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'absolute', right: '-10px', top: '-10px' }}>
+        <div className="card-status-indicators">
           {(laneColumns.has(vacancy.status)) && (vacancy.lane != null) && (
             <span className="card-lane-badge" title={t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}>
               {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
@@ -202,8 +233,8 @@ export default function KanbanCard({
           {vacancy.ai_summary}
         </div>
       ) : (
-        <div className="card-summary card-summary-pending" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#818cf8', padding: '6px 8px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '6px', border: '1px dashed rgba(99, 102, 241, 0.3)' }}>
-          <Sparkles size={13} style={{ flexShrink: 0, animation: 'pulse 2s infinite' }} />
+        <div className="card-summary card-summary-pending">
+          <Sparkles size={13} />
           <span>{t('kanban.ai_generating')}</span>
         </div>
       )}
@@ -236,6 +267,8 @@ export default function KanbanCard({
         </div>
       )}
 
+      </div>
+      </div>
       <div className="card-footer">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span className="card-date">
@@ -268,10 +301,10 @@ export default function KanbanCard({
               trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
                 vacancy_id: vacancy.id,
                 company: vacancy.company,
-                to_status: 'Еще не написан',
+                to_status: STATUS_NOT_CONTACTED,
                 method: 'quick_restore_btn'
               });
-              onStatusChange(vacancy.id, 'Еще не написан');
+              onStatusChange(vacancy.id, STATUS_NOT_CONTACTED);
             }}
           >
             <RotateCcw size={12} />
@@ -282,14 +315,16 @@ export default function KanbanCard({
             <button
               className="quick-move-btn"
               title={t('kanban.move_left')}
+              aria-label={t('kanban.move_left')}
               disabled={currentIndex <= 0}
               onClick={handleMoveLeft}
             >
-              <ChevronLeft size={14} />
+              <span aria-hidden="true">&lt;</span>
             </button>
             <button
               className="quick-move-btn quick-reject-btn"
               title={t('kanban.move_to_rejected')}
+              aria-label={t('kanban.move_to_rejected')}
               onClick={(e) => {
                 e.stopPropagation();
                 trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
@@ -301,18 +336,20 @@ export default function KanbanCard({
                 onStatusChange(vacancy.id, 'Отказ');
               }}
             >
-              <XCircle size={14} />
+              <span aria-hidden="true">×</span>
             </button>
             <button
               className="quick-move-btn"
               title={t('kanban.move_right')}
+              aria-label={t('kanban.move_right')}
               disabled={currentIndex >= linearColumns.length - 1}
               onClick={handleMoveRight}
             >
-              <ChevronRight size={14} />
+              <span aria-hidden="true">&gt;</span>
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

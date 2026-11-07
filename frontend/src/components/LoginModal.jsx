@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, AlertCircle, ArrowRight, User, Sparkles } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import ThemeToggle from './ThemeToggle';
 
-export default function LoginModal({ onLoginSuccess }) {
+export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion = false }) {
   const { t } = useTranslation();
   const [authConfig, setAuthConfig] = useState({ google_configured: false, dev_mode: true });
   const [devName, setDevName] = useState('Alexander');
@@ -55,15 +56,33 @@ export default function LoginModal({ onLoginSuccess }) {
   };
 
   return (
-    <div className="login-overlay">
-      <div className="login-card">
+    <div className="login-overlay" onClick={isGuestPromotion && onClose ? onClose : undefined}>
+      <div className="login-card" onClick={(e) => e.stopPropagation()}>
+        <ThemeToggle />
+        {onClose && (
+          <button 
+            type="button" 
+            className="login-close-btn" 
+            onClick={onClose} 
+            title={t('common.close') || 'Закрыть'}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        )}
         {/* Brand Header */}
         <div className="login-brand">
           <div className="login-logo-glow">
-            <Briefcase size={28} color="#818cf8" />
+            <Briefcase size={28} color="#60a5fa" />
           </div>
-          <h1 className="login-title">LinkedIn Vacancies</h1>
-          <p className="login-subtitle">{t('auth.subtitle')}</p>
+          <h1 className="login-title">
+            {isGuestPromotion ? (t('auth.save_progress_title') || 'Сохранить прогресс') : 'LinkedIn Vacancies'}
+          </h1>
+          <p className="login-subtitle">
+            {isGuestPromotion 
+              ? (t('auth.save_progress_subtitle') || 'Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу с любого устройства.')
+              : t('auth.subtitle')}
+          </p>
         </div>
 
         {error && (

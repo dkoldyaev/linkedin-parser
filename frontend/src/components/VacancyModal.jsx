@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
@@ -6,34 +6,39 @@ import {
   ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
+import { useGridScroll } from '../utils/useGridScroll';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
-import ExtensionPromptModal from './ExtensionPromptModal';
 import { computeCVDiff } from '../utils/cvDiff';
-
-const DEFAULT_COLUMNS = [
-  { id: "Еще не написан", color: "#6366f1" },
-  { id: "Написал", color: "#0284c7" },
-  { id: "Собеседование", color: "#d97706" },
-  { id: "Тестовое", color: "#9333ea" },
-  { id: "Оффер", color: "#059669" },
-  { id: "Отказ", color: "#ef4444" }
-];
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_REJECTED,
+  DEFAULT_COLUMNS,
+} from '../constants/columns';
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
-  const [status, setStatus] = useState(vacancy?.status || "Еще не написан");
+  const snapScroll = useGridScroll();
+  const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
-    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#6366f1' } : c)
+    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
     : DEFAULT_COLUMNS;
 
   const stageColorMap = modalColumns.reduce((acc, col) => {
     acc[col.id] = col.color;
     return acc;
-  }, { "Отказ": "#ef4444", "Еще не написан": "#6366f1" });
+  }, { [STATUS_REJECTED]: "#ef4444", [STATUS_NOT_CONTACTED]: "#2563eb" });
+
+  const getStageLabel = (colId, lane) => {
+    const colName = t(`kanban.columns.${colId}`) || colId;
+    const colObj = modalColumns.find(c => c.id === colId);
+    if (colObj?.has_lanes && lane != null) {
+      return `${colName} · ${t('kanban.stage_badge', { n: lane + 1 })}`;
+    }
+    return colName;
+  };
   const [tags, setTags] = useState(vacancy?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
   const [notes, setNotes] = useState(vacancy?.notes || "");
@@ -42,6 +47,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [savingHistoryId, setSavingHistoryId] = useState(null);
   const [techStack, setTechStack] = useState(vacancy?.tech_stack || []);
   const [newTechInput, setNewTechInput] = useState("");
+  const [editingTech, setEditingTech] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
+  const listValues = useRef({ tags: vacancy?.tags || [], tech_stack: vacancy?.tech_stack || [] });
+  const listSaveQueue = useRef(Promise.resolve());
+  const listSaveVersion = useRef(0);
   
   const [salaryMin, setSalaryMin] = useState(vacancy?.salary_min ?? '');
   const [salaryMax, setSalaryMax] = useState(vacancy?.salary_max ?? '');
@@ -57,7 +67,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [reparsing, setReparsing] = useState(false);
   const [reparseError, setReparseError] = useState(null);
   const [reparseSuccess, setReparseSuccess] = useState(false);
-  const [showExtModal, setShowExtModal] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
@@ -90,6 +99,47 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   // Modal navigation tab
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
 
+  const detailBodyRef = useRef(null);
+  const modalRef = useRef(null);
+  useLayoutEffect(() => {
+    const modal = modalRef.current;
+    if (!isOpen || !modal) return;
+    const alignControls = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      modal.querySelectorAll('.vacancy-tabs .settings-tab-btn, .vacancy-status-option, .modal-status-label, .workplace-label, .modal-header-actions .header-action-badge:not(.btn-icon)').forEach(control => {
+        control.style.width = '';
+        const width = control.offsetWidth;
+        if (width) control.style.width = `${Math.ceil((width - .01) / grid) * grid}px`;
+      });
+    };
+    alignControls();
+    window.addEventListener('resize', alignControls);
+    document.fonts?.ready.then(alignControls);
+    return () => window.removeEventListener('resize', alignControls);
+  }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
+  useLayoutEffect(() => {
+    const body = detailBodyRef.current;
+    if (!isOpen || activeTab !== 'details' || !body) return;
+    const sections = Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'));
+    let frame;
+    const align = () => {
+      sections.forEach(section => {
+        section.style.minHeight = '0px';
+        section.style.minHeight = `${Math.ceil(section.offsetHeight / 32) * 32}px`;
+      });
+    };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(align); };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(body);
+    sections.forEach(section => resize.observe(section));
+    const mutation = new MutationObserver(schedule);
+    sections.forEach(section => mutation.observe(section, { childList: true, subtree: true, characterData: true }));
+    align();
+    return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
+  }, [isOpen, activeTab]);
+
+
+
   const adjustTitleHeight = () => {
     if (titleTextareaRef.current) {
       titleTextareaRef.current.style.height = 'auto';
@@ -110,8 +160,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   useEffect(() => {
     if (vacancy) {
-      setStatus(vacancy.status || "Еще не написан");
+      setStatus(vacancy.status || STATUS_NOT_CONTACTED);
       setTags(vacancy.tags || []);
+      listValues.current = { tags: vacancy.tags || [], tech_stack: vacancy.tech_stack || [] };
       setNotes(vacancy.notes || "");
       setTechStack(vacancy.tech_stack || []);
       setSalaryMin(vacancy.salary_min ?? '');
@@ -267,7 +318,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            to_status: vacancy.status || 'Еще не написан',
+            to_status: vacancy.status || STATUS_NOT_CONTACTED,
+            to_lane: vacancy.lane ?? 0,
+            from_lane: vacancy.lane ?? 0,
             comment: historyCommentText.trim() || null
           })
         });
@@ -371,49 +424,34 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
-  const handleAddTag = async (e) => {
-    e.preventDefault();
-    const clean = newTagInput.trim().toLowerCase();
-    if (!clean || tags.includes(clean)) return;
-
-    const updatedTags = [...tags, clean];
-    setTags(updatedTags);
-    setNewTagInput("");
-    trackEvent(EVENTS.TAG_ADD, {
-      vacancy_id: vacancy.id,
-      tag: clean
-    });
-
-    try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: updatedTags })
+  const saveList = (field, values, eventName, eventData) => {
+    listValues.current = { ...listValues.current, [field]: values };
+    if (field === 'tags') setTags(values); else setTechStack(values);
+    trackEvent(eventName, { vacancy_id: vacancy.id, ...eventData });
+    const version = ++listSaveVersion.current;
+    const vacancyId = vacancy.id;
+    listSaveQueue.current = listSaveQueue.current.catch(() => {}).then(async () => {
+      const res = await fetch(`/api/vacancies/${vacancyId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: values })
       });
-      onUpdate({ ...vacancy, tags: updatedTags });
-    } catch (err) {
-      console.error('Failed to add tag', err);
-    }
+      if (!res.ok) throw new Error('Failed to save vacancy list');
+      const updated = await res.json();
+      if (version === listSaveVersion.current) onUpdate(updated);
+    }).catch(err => console.error('Failed to save vacancy list', err));
   };
 
-  const handleRemoveTag = async (tagToRemove) => {
-    const updatedTags = tags.filter(t => t !== tagToRemove);
-    setTags(updatedTags);
-    trackEvent(EVENTS.TAG_REMOVE, {
-      vacancy_id: vacancy.id,
-      tag: tagToRemove
-    });
+  const addListItems = (field, raw) => {
+    const current = listValues.current[field];
+    const items = raw.split(',').map(value => field === 'tags' ? value.trim().toLowerCase() : value.trim()).filter(Boolean);
+    const added = [...new Set(items)].filter(value => !current.includes(value));
+    if (!added.length) return;
+    saveList(field, [...current, ...added], field === 'tags' ? EVENTS.TAG_ADD : EVENTS.TECH_ADD,
+      field === 'tags' ? { tag: added.join(', ') } : { tech: added.join(', ') });
+  };
 
-    try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tags: updatedTags })
-      });
-      onUpdate({ ...vacancy, tags: updatedTags });
-    } catch (err) {
-      console.error('Failed to remove tag', err);
-    }
+  const handleRemoveTag = (tagToRemove) => {
+    saveList('tags', listValues.current.tags.filter(tag => tag !== tagToRemove), EVENTS.TAG_REMOVE, { tag: tagToRemove });
   };
 
   const handleSaveDescription = async () => {
@@ -438,49 +476,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     }
   };
 
-  const handleAddTech = async (e) => {
-    e.preventDefault();
-    const clean = newTechInput.trim();
-    if (!clean || techStack.includes(clean)) return;
-
-    const updated = [...techStack, clean];
-    setTechStack(updated);
-    setNewTechInput("");
-    trackEvent(EVENTS.TECH_ADD, {
-      vacancy_id: vacancy.id,
-      tech: clean
-    });
-
-    try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tech_stack: updated })
-      });
-      onUpdate({ ...vacancy, tech_stack: updated });
-    } catch (err) {
-      console.error('Failed to add tech', err);
-    }
-  };
-
-  const handleRemoveTech = async (techToRemove) => {
-    const updated = techStack.filter(t => t !== techToRemove);
-    setTechStack(updated);
-    trackEvent(EVENTS.TECH_REMOVE, {
-      vacancy_id: vacancy.id,
-      tech: techToRemove
-    });
-
-    try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tech_stack: updated })
-      });
-      onUpdate({ ...vacancy, tech_stack: updated });
-    } catch (err) {
-      console.error('Failed to remove tech', err);
-    }
+  const handleRemoveTech = (techToRemove) => {
+    saveList('tech_stack', listValues.current.tech_stack.filter(tech => tech !== techToRemove), EVENTS.TECH_REMOVE, { tech: techToRemove });
   };
 
   const handleSaveSalary = async () => {
@@ -622,12 +619,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleReparse = async () => {
     if (!vacancy?.id || reparsing) return;
-    const needsPrompt = await shouldShowExtensionPrompt();
-    if (needsPrompt) {
-      setShowExtModal(true);
-    } else {
-      await executeReparse();
-    }
+    await executeReparse();
   };
 
   const handleDelete = async () => {
@@ -658,7 +650,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '840px' }}>
+      <div ref={modalRef} className="modal-content vacancy-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '832px' }}>
         {/* Header */}
         <div className="modal-header modal-header-custom" style={{ display: 'block' }}>
           <div className="modal-header-top">
@@ -726,7 +718,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   })()
                 }</span>
               </a>
-              <button className="btn-icon header-action-badge header-badge" onClick={onClose} title={t('vacancyModal.close_btn')}>
+              <button className="btn-icon header-action-badge header-badge modal-close-btn" onClick={onClose} title={t('vacancyModal.close_btn')}>
                 <X size={14} />
               </button>
             </div>
@@ -761,7 +753,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', marginTop: '4px' }}>
+          <div className="modal-header-title">
             <textarea
               ref={titleTextareaRef}
               rows={1}
@@ -814,7 +806,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         )}
 
         {/* Navigation Tabs */}
-        <div className="settings-tabs" style={{ padding: '0 20px', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(255, 255, 255, 0.02)' }}>
+        <div className="settings-tabs vacancy-tabs">
           <button
             type="button"
             className={`settings-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
@@ -847,11 +839,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         </div>
 
         {/* Body */}
-        <div className="modal-body">
+        <div className="modal-body" ref={detailBodyRef} onScroll={snapScroll}>
           {activeTab === 'details' && (
             <>
           {/* Status & Workplace Format Bar */}
-          <div className="modal-meta-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)', flexWrap: 'wrap', gap: '12px' }}>
+          <div className="modal-meta-bar">
             <div className="modal-status-group">
               <span className="modal-status-label">
                 {t('vacancyModal.status_label')}
@@ -869,11 +861,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     if (isRejectedCol) {
                       borderColor = '#ef4444';
                       background = 'rgba(239, 68, 68, 0.15)';
-                      color = '#fca5a5';
+                      color = 'var(--text-primary)';
                     } else {
                       borderColor = colItem.color || 'var(--primary)';
                       background = `${colItem.color || 'var(--primary)'}22`;
-                      color = '#fff';
+                      color = 'var(--text-primary)';
                     }
                   } else if (isRejectedCol) {
                     color = 'var(--text-muted)';
@@ -883,6 +875,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <button
                       key={col}
                       onClick={() => handleStatusChange(col)}
+                      className="vacancy-status-option"
+                      aria-pressed={isSelected}
                       style={{
                         padding: '5px 10px',
                         borderRadius: 'var(--radius-sm)',
@@ -915,8 +909,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
+            <div className='modal-status-group'>
+              <span className="workplace-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
                 {t('vacancyModal.workplace_label')}
               </span>
               <select
@@ -931,7 +925,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </select>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className='modal-status-group'>
               <button
                 type="button"
                 onClick={handleToggleClosed}
@@ -969,21 +963,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Salary Section */}
-          <div className="form-group" style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="form-group vacancy-salary">
+            <div className="vacancy-salary-header">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                <Banknote size={15} color="#34d399" />
+                <Banknote size={15} color="var(--aspen-mint)" />
                 <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {currentSalaryInfo.hasSalary && (
-                  <span style={{ fontSize: '0.8125rem', color: '#34d399', fontWeight: 600 }}>
-                    {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
-                  </span>
-                )}
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary vacancy-salary-save"
                   onClick={handleSaveSalary}
                   disabled={savingSalary}
                   style={{ fontSize: '0.75rem', padding: '4px 10px' }}
@@ -997,8 +985,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <span>{t('vacancyModal.save_salary')}</span>
                   )}
                 </button>
-              </div>
             </div>
+            {currentSalaryInfo.hasSalary && (
+              <div className="vacancy-salary-total">
+                {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
+              </div>
+            )}
             <div className="salary-fields-grid">
               <div className="salary-field-item">
                 <span className="salary-field-label">{t('vacancyModal.min')}</span>
@@ -1051,22 +1043,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             </div>
             {currentSalaryInfo.original && (
-              <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div className="salary-original">
                 {currentSalaryInfo.original}
               </div>
             )}
           </div>
 
           {/* AI Summary Section */}
-          <div style={{
-            background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(30, 27, 75, 0.2) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#c7d2fe', fontWeight: 600, fontSize: '0.9rem' }}>
-                <Sparkles size={16} color="#a5b4fc" />
+          <div className="vacancy-ai-summary">
+            <div className="vacancy-ai-summary-header">
+              <div className="vacancy-ai-summary-title">
+                <Sparkles size={16} />
                 <span>{t('vacancyModal.ai_summary_title')}</span>
               </div>
               <button
@@ -1089,96 +1076,63 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </button>
             </div>
             
-            <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            <p className="vacancy-ai-summary-text">
               {vacancy.ai_summary || t('vacancyModal.no_summary')}
             </p>
 
             {vacancy.company_info && (
-              <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(99, 102, 241, 0.15)', fontSize: '0.8125rem', color: '#94a3b8' }}>
-                <strong style={{ color: '#c7d2fe' }}>{t('vacancyModal.about_company')}</strong>
+              <div className="vacancy-ai-company">
+                <strong>{t('vacancyModal.about_company')}</strong>
                 {vacancy.company_info}
               </div>
             )}
           </div>
 
           {/* Tech Stack */}
-          <div className="form-group">
+          <div className="form-group vacancy-tokens-section">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{t('vacancyModal.tech_stack_title')}</span>
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+            <div className="editable-token-list">
               {techStack.map(tech => (
-                <span key={tech} className="tech-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 8px' }}>
-                  {tech}
-                  <button 
-                    onClick={() => handleRemoveTech(tech)} 
-                    style={{ background: 'none', border: 'none', color: '#818cf8', cursor: 'pointer', padding: 0, display: 'flex' }}
-                  >
-                    <X size={12} />
-                  </button>
+                <span key={tech} className="editable-token">{tech}
+                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTech(tech)} aria-label={`${t('common.delete')} ${tech}`}><X size={12} /></button>
                 </span>
               ))}
-              {techStack.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tech_stack')}</span>
-              )}
+              {editingTech ? (
+                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tech_placeholder')}
+                  placeholder={t('vacancyModal.add_tech_placeholder')} value={newTechInput}
+                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTechInput(parts.pop()); addListItems('tech_stack', parts.join(',')); } else setNewTechInput(value); }}
+                  onBlur={() => { addListItems('tech_stack', newTechInput); setNewTechInput(''); setEditingTech(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tech_stack', newTechInput); setNewTechInput(''); } if (e.key === 'Escape') { setNewTechInput(''); setEditingTech(false); } }} />
+              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTech(true)} aria-label={t('vacancyModal.add_tech_placeholder')} title={t('vacancyModal.add_tech_placeholder')}><Plus size={15} /></button>}
             </div>
-            <form onSubmit={handleAddTech} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder={t('vacancyModal.add_tech_placeholder')}
-                value={newTechInput}
-                onChange={e => setNewTechInput(e.target.value)}
-              />
-              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
-                <Plus size={14} />
-              </button>
-            </form>
           </div>
 
           {/* Custom Tags */}
-          <div className="form-group">
-            <label className="form-label">
-              {t('vacancyModal.tags_title')}
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+          <div className="form-group vacancy-tokens-section">
+            <label className="form-label">{t('vacancyModal.tags_title')}</label>
+            <div className="editable-token-list">
               {tags.map(tagItem => (
-                <span key={tagItem} className="tag-chip" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                  <Tag size={11} />
-                  {tagItem}
-                  <button 
-                    onClick={() => handleRemoveTag(tagItem)} 
-                    style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, display: 'flex', marginLeft: '2px' }}
-                  >
-                    <X size={12} />
-                  </button>
+                <span key={tagItem} className="editable-token"><Tag size={11} />{tagItem}
+                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTag(tagItem)} aria-label={`${t('common.delete')} ${tagItem}`}><X size={12} /></button>
                 </span>
               ))}
-              {tags.length === 0 && (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('vacancyModal.no_tags')}</span>
-              )}
+              {editingTags ? (
+                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tag_placeholder')}
+                  placeholder={t('vacancyModal.add_tag_placeholder')} value={newTagInput}
+                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTagInput(parts.pop()); addListItems('tags', parts.join(',')); } else setNewTagInput(value); }}
+                  onBlur={() => { addListItems('tags', newTagInput); setNewTagInput(''); setEditingTags(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tags', newTagInput); setNewTagInput(''); } if (e.key === 'Escape') { setNewTagInput(''); setEditingTags(false); } }} />
+              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTags(true)} aria-label={t('vacancyModal.add_tag_placeholder')} title={t('vacancyModal.add_tag_placeholder')}><Plus size={15} /></button>}
             </div>
-            <form onSubmit={handleAddTag} style={{ display: 'flex', gap: '8px', maxWidth: '300px' }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ padding: '6px 10px', fontSize: '0.8rem' }}
-                placeholder={t('vacancyModal.add_tag_placeholder')}
-                value={newTagInput}
-                onChange={e => setNewTagInput(e.target.value)}
-              />
-              <button type="submit" className="btn btn-secondary" style={{ padding: '6px 12px' }}>
-                <Plus size={14} />
-              </button>
-            </form>
           </div>
 
           {/* Stage Movement History */}
           <div className="form-group stage-history-section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
-                <History size={15} color="#818cf8" />
+                <History size={15} color="#60a5fa" />
                 <span>{t('vacancyModal.history_title')}</span>
               </label>
               {vacancy.history && vacancy.history.length > 0 && (
@@ -1197,7 +1151,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div className="stage-timeline">
                 {vacancy.history.map((item, idx) => {
                   const isCurrent = idx === vacancy.history.length - 1;
-                  const stageColor = stageColorMap[item.to_status] || '#6366f1';
+                  const stageColor = stageColorMap[item.to_status] || '#2563eb';
                   const isEditingThis = editingHistoryId === item.id;
                   const isSavingThis = savingHistoryId === item.id;
                   const isLastItem = idx === vacancy.history.length - 1;
@@ -1217,10 +1171,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       <div className="stage-timeline-content">
                         <div className="stage-timeline-header">
                           <div className="stage-badges-row">
-                            {item.from_status && item.from_status !== item.to_status ? (
+                            {item.from_status && (
+                              item.from_status !== item.to_status ||
+                              (item.from_lane != null && item.to_lane != null && item.from_lane !== item.to_lane)
+                            ) ? (
                               <div className="stage-transition-group">
                                 <span className="stage-badge stage-badge-from">
-                                  {t(`kanban.columns.${item.from_status}`)}
+                                  {getStageLabel(item.from_status, item.from_lane)}
                                 </span>
                                 <ArrowRight size={11} className="stage-arrow-icon" />
                                 <span
@@ -1231,7 +1188,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                                     backgroundColor: `${stageColor}18`
                                   }}
                                 >
-                                  {t(`kanban.columns.${item.to_status}`)}
+                                  {getStageLabel(item.to_status, item.to_lane)}
                                 </span>
                               </div>
                             ) : (
@@ -1243,7 +1200,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                                   backgroundColor: `${stageColor}18`
                                 }}
                               >
-                                {t(`kanban.columns.${item.to_status}`)}
+                                {getStageLabel(item.to_status, item.to_lane)}
                               </span>
                             )}
 
@@ -1357,7 +1314,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </div>
 
           {/* Personal Notes */}
-          <div className="form-group">
+          <div className="form-group vacancy-notes-section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <StickyNote size={14} />
@@ -1466,26 +1423,20 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           )}
 
           {activeTab === "compatibility" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div className="vacancy-compatibility-content">
           {/* CV Compatibility Analysis Section */}
-          <div style={{
-            background: 'linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 78, 59, 0.15) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '16px',
-            marginTop: '12px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#a7f3d0', fontWeight: 600, fontSize: '0.95rem' }}>
-                <Shield size={18} color="#34d399" />
-                <span>CV Compatibility Match</span>
+          <div className="vacancy-compatibility">
+            <div className="compatibility-header">
+              <div className="compatibility-header-title">
+                <Shield size={18} color="var(--aspen-mint)" />
+                <span>{t('vacancyModal.compat_title')}</span>
                 {compatibility && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="compatibility-scores">
                     <span style={{
                       background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
                       color: '#ffffff',
                       padding: '2px 8px',
-                      borderRadius: '12px',
+                      borderRadius: '0',
                       fontSize: '0.8rem',
                       fontWeight: '700',
                       marginLeft: '4px'
@@ -1494,40 +1445,40 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </span>
                     {compatibility.calculated_score != null && (
                       <span style={{
-                        background: 'rgba(51, 65, 85, 0.6)',
-                        color: '#94a3b8',
+                        background: 'var(--bg-subtle)',
+                        color: 'var(--text-secondary)',
                         padding: '2px 6px',
-                        borderRadius: '8px',
+                        borderRadius: '0',
                         fontSize: '0.7rem',
-                      }} title="Formula-weighted deterministic score for reference">
-                        Formula: {Math.round(compatibility.calculated_score)}%
+                      }} title={t('vacancyModal.compat_formula_hint')}>
+                        {t('vacancyModal.compat_formula')}: {Math.round(compatibility.calculated_score)}%
                       </span>
                     )}
                   </div>
                 )}
               </div>
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary compatibility-analyze"
                 onClick={() => handleRunCompatibilityAnalysis(!!compatibility)}
                 disabled={analyzingCompatibility || loadingCompatibility}
-                style={{ fontSize: '0.75rem', padding: '5px 12px', background: '#064e3b', color: '#6ee7b7', border: '1px solid #059669' }}
+                style={{ color: 'var(--aspen-mint)' }}
               >
                 {analyzingCompatibility ? (
                   <>
                     <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Evaluating with AI...</span>
+                    <span>{t('vacancyModal.compat_loading')}</span>
                   </>
                 ) : (
                   <>
                     <RefreshCw size={12} />
-                    <span>{compatibility ? 'Re-Analyze Match' : 'Compare with My CV'}</span>
+                    <span>{t(compatibility ? 'vacancyModal.compat_reanalyze' : 'vacancyModal.compat_compare')}</span>
                   </>
                 )}
               </button>
             </div>
 
             {compatError && (
-              <div style={{ background: '#ef444422', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '4px', fontSize: '0.8rem', marginBottom: '10px' }}>
+              <div className="compatibility-notice is-error">
                 {compatError}
               </div>
             )}
@@ -1535,41 +1486,41 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             {compatibility ? (
               <div>
                 {compatibility.is_outdated && (
-                  <div style={{ background: '#d9770622', border: '1px solid #d97706', color: '#fcd34d', padding: '6px 10px', borderRadius: '4px', fontSize: '0.75rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="compatibility-notice is-outdated">
                     <AlertCircle size={14} />
-                    <span>CV was updated since last evaluation. Showing result for Rev {compatibility.cv_revision}. Re-analyze to update.</span>
+                    <span>{t('vacancyModal.compat_outdated', { revision: compatibility.cv_revision })}</span>
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: 1.5, marginBottom: '12px' }}>
+                <p className="compatibility-summary">
                   {compatibility.summary}
                 </p>
 
                 {/* Seniority assessment */}
                 {compatibility.seniority_assessment && (
-                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '8px 12px', borderRadius: '6px', marginBottom: '10px', fontSize: '0.8rem', border: '1px solid #334155' }}>
-                    <span style={{ color: '#94a3b8' }}>Seniority Alignment: </span>
-                    <strong style={{ color: '#38bdf8' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
+                  <div className="compatibility-assessment">
+                    <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
+                    <strong style={{ color: 'var(--primary)' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
                   </div>
                 )}
 
                 {/* Matched Requirements with Evidence toggles */}
                 {compatibility.matched_requirements?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#34d399', marginBottom: '6px' }}>
-                      Matched Requirements ({compatibility.matched_requirements.length}):
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-matched">
+                      {t('vacancyModal.compat_matched', { count: compatibility.matched_requirements.length })}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.matched_requirements.map((m, idx) => (
-                        <div key={idx} style={{ background: 'rgba(6, 78, 59, 0.25)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem' }}>
+                        <div key={idx} className="compatibility-row">
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
-                            <span style={{ color: '#a7f3d0', fontWeight: 600 }}>&bull; {m.requirement}</span>
-                            <span style={{ color: '#6ee7b7', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                              Evidence {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
+                            <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             </span>
                           </div>
                           {showEvidenceMap[`m_${idx}`] && (
-                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#cbd5e1', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>
+                            <div className="compatibility-evidence">
                               {m.evidence}
                             </div>
                           )}
@@ -1581,13 +1532,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Missing Requirements */}
                 {compatibility.missing_requirements?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#f59e0b', marginBottom: '6px' }}>
-                      Missing / Unconfirmed Requirements ({compatibility.missing_requirements.length}):
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-missing">
+                      {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.missing_requirements.map((m, idx) => (
-                        <div key={idx} style={{ background: 'rgba(217, 119, 6, 0.12)', border: '1px solid rgba(217, 119, 6, 0.2)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: '#fed7aa' }}>
+                        <div key={idx} className="compatibility-row">
                           &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
                         </div>
                       ))}
@@ -1597,13 +1548,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Critical Gaps */}
                 {compatibility.critical_gaps?.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#ef4444', marginBottom: '6px' }}>
-                      Critical Incompatibilities:
+                  <div className="compatibility-group">
+                    <div className="compatibility-group-title is-critical">
+                      {t('vacancyModal.compat_gaps')}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div className="compatibility-list">
                       {compatibility.critical_gaps.map((g, idx) => (
-                        <div key={idx} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '4px', padding: '6px 10px', fontSize: '0.8rem', color: '#fca5a5' }}>
+                        <div key={idx} className="compatibility-row">
                           &bull; <strong>{g.requirement}</strong>: {g.reason}
                         </div>
                       ))}
@@ -1613,11 +1564,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
                 {/* Grounded Actionable Recommendations */}
                 {compatibility.recommendations?.length > 0 && (
-                  <div style={{ borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '8px', marginTop: '8px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#38bdf8', marginBottom: '4px' }}>
-                      Recommendations for CV Presentation:
+                  <div className="compatibility-recommendations">
+                    <div className="compatibility-group-title is-recommendations">
+                      {t('vacancyModal.compat_recommendations')}
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                    <ul className="compatibility-recommendation-list">
                       {compatibility.recommendations.map((rec, i) => (
                         <li key={i}>{rec}</li>
                       ))}
@@ -1626,8 +1577,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 )}
               </div>
             ) : (
-              <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>
-                Compare this job description against your saved CV using your configured LLM to evaluate skill coverage, seniority alignment, and missing requirements.
+              <p className="compatibility-empty">
+                {t('vacancyModal.compat_empty')}
               </p>
             )}
           </div>
@@ -1647,12 +1598,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           </button>
         </div>
       </div>
-
-      <ExtensionPromptModal
-        isOpen={showExtModal}
-        onClose={() => setShowExtModal(false)}
-        onProceed={executeReparse}
-      />
     </div>
   );
 }

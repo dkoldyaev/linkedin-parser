@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.database import SessionLocal
-from backend.models import Vacancy, User
+from backend.models import Vacancy, User, STATUS_NOT_CONTACTED
 
 def test_reparse_all_includes_upwork():
     with TestClient(app) as client:
@@ -25,14 +25,14 @@ def test_reparse_all_includes_upwork():
                 url="https://www.upwork.com/jobs/~0123456789abcdef",
                 title="Upwork Test Job",
                 company="Upwork",
-                status="Еще не написан"
+                status=STATUS_NOT_CONTACTED
             )
             v_linkedin = Vacancy(
                 user_id=user.id,
                 url="https://www.linkedin.com/jobs/view/12345678",
                 title="LinkedIn Test Job",
                 company="LinkedIn",
-                status="Еще не написан"
+                status=STATUS_NOT_CONTACTED
             )
             db.add(v_upwork)
             db.add(v_linkedin)

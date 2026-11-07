@@ -3,6 +3,7 @@ import uuid
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from backend.main import app
+from backend.models import STATUS_NOT_CONTACTED
 from backend.mercure import (
     EVENT_VACANCY_CREATED,
     MSG_VACANCY_CREATED,
@@ -36,7 +37,7 @@ def test_card_crud_mercure_events():
                 "title": "Software Engineer Mercure",
                 "company": "Mercure Test Corp",
                 "url": f"https://example.com/jobs/{uuid.uuid4().hex[:10]}",
-                "status": "Еще не написан",
+                "status": STATUS_NOT_CONTACTED,
             })
             assert res.status_code == 200
             created_v = res.json()
@@ -100,6 +101,7 @@ def test_card_crud_mercure_events():
                 "url": ext_url,
                 "title": "Extension Card Title",
                 "company": "Extension Corp",
+                "source": "LinkedIn",
                 "description": "Some description",
             })
             assert res.status_code == 200

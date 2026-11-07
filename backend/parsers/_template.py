@@ -13,6 +13,7 @@ That's it. No other files need to be changed.
 from typing import Optional
 
 import httpx
+from ..safe_http import PublicWebClient
 from bs4 import BeautifulSoup
 
 from .registry import BaseParser, registry
@@ -79,7 +80,7 @@ class ExampleSiteParser(BaseParser):
         # --- Fetch HTML if not provided -----------------------------------
         if not html:
             try:
-                async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                async with PublicWebClient(timeout=15.0, follow_redirects=True) as client:
                     resp = await client.get(url)
                     resp.raise_for_status()
                     html = resp.text

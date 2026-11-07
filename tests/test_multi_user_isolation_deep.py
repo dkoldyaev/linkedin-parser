@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.models import User, Vacancy, ApiKey, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, UserFeatureFlag
+from backend.models import User, Vacancy, ApiKey, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, UserFeatureFlag, STATUS_NOT_CONTACTED
 from backend.database import SessionLocal
 from backend.auth import create_access_token
 
@@ -99,7 +99,7 @@ def test_vacancies_and_history_isolation(users_fixture):
         "title": "Confidential A Job",
         "company": "Company A",
         "url": "https://www.linkedin.com/jobs/view/999111",
-        "status": "Еще не написан"
+        "status": STATUS_NOT_CONTACTED
     }, headers=headers_a).json()
     vac_id = v_a["id"]
 
@@ -147,7 +147,7 @@ def test_cv_and_analysis_isolation(users_fixture):
     # User B cannot get or adapt CV analysis for User A's vacancy
     assert client.get(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
     assert client.post(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 404
+    assert client.post(f"/api/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 403
 
 def test_stats_and_metadata_isolation(users_fixture):
     user_a, user_b = users_fixture

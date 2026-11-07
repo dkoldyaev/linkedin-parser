@@ -26,14 +26,15 @@ if DATABASE_URL:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
+        hide_parameters=True,
     )
     logger.info("Using PostgreSQL database")
 else:
     DATA_DIR = os.getenv("DATA_DIR", "./data")
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(DATA_DIR, mode=0o700, exist_ok=True)
         # Attempt to ensure directory is writable
-        os.chmod(DATA_DIR, 0o777)
+        os.chmod(DATA_DIR, 0o700)
     except Exception as e:
         logger.warning(f"Could not ensure permissions on DATA_DIR '{DATA_DIR}': {e}")
 
@@ -43,6 +44,7 @@ else:
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         connect_args={"check_same_thread": False, "timeout": 30},
+        hide_parameters=True,
     )
 
     # Enable WAL mode and busy_timeout for SQLite for better concurrency
@@ -54,7 +56,13 @@ else:
     except Exception as e:
         logger.warning(f"Could not execute SQLite PRAGMAs: {e}")
 
-    logger.info(f"Using SQLite database at {DB_PATH}")
+    os.chmod(DB_PATH, 0o600)
+    logger.info("Using SQLite database")
+
+# SQL shapes and request counts are opt-in; never log parameter values.
+if os.getenv("SQL_DIAGNOSTICS", "false").lower() in ("1", "true", "yes"):
+    from .diagnostics import install_sql_diagnostics
+    install_sql_diagnostics(engine)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -104,10 +112,19 @@ def ensure_db_schema():
                     if "match_score" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
 
+                history_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(vacancy_status_history)")).fetchall()}
+                if history_cols:
+                    if "from_lane" not in history_cols:
+                        conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN from_lane INTEGER"))
+                    if "to_lane" not in history_cols:
+                        conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN to_lane INTEGER"))
+
                 user_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(users)")).fetchall()}
                 if user_cols:
                     if "feature_flags" not in user_cols:
                         conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
+                    if "is_anonymous" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN is_anonymous BOOLEAN DEFAULT 0 NOT NULL"))
 
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
@@ -132,10 +149,13 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS match_score DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS from_lane INTEGER"))
+                conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS to_lane INTEGER"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE NOT NULL"))
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
                         id SERIAL PRIMARY KEY,
@@ -292,4 +312,57 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Cleanup legacy cv_service_token settings: {e}")
 
+    try:
+        # Migrate misspelled status and column names from legacy 'Еще не написан' to 'Еще не написал'
+        from .models import STATUS_NOT_CONTACTED
+        legacy_status = "Еще не написан"
+        with engine.begin() as conn:
+            # 1. Update vacancies table
+            conn.execute(
+                text("UPDATE vacancies SET status = :new_status WHERE status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            # 2. Update vacancy_status_history table
+            conn.execute(
+                text("UPDATE vacancy_status_history SET from_status = :new_status WHERE from_status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            conn.execute(
+                text("UPDATE vacancy_status_history SET to_status = :new_status WHERE to_status = :old_status"),
+                {"new_status": STATUS_NOT_CONTACTED, "old_status": legacy_status}
+            )
+            # 3. Update kanban_columns in user_settings if present
+            rows = conn.execute(text("SELECT id, value FROM user_settings WHERE key = 'kanban_columns'")).fetchall()
+            for row in rows:
+                row_id = row[0]
+                val_raw = row[1]
+                if val_raw and legacy_status in val_raw:
+                    try:
+                        import json
+                        cols = json.loads(val_raw)
+                        updated = False
+                        for col in cols:
+                            if col.get("id") == legacy_status:
+                                col["id"] = STATUS_NOT_CONTACTED
+                                updated = True
+                        if updated:
+                            conn.execute(
+                                text("UPDATE user_settings SET value = :val WHERE id = :id"),
+                                {"val": json.dumps(cols, ensure_ascii=False), "id": row_id}
+                            )
+                    except Exception as err:
+                        logger.warning(f"Failed to update user_settings kanban_columns for id {row_id}: {err}")
+    except Exception as e:
+        logger.warning(f"Migrate legacy status 'Еще не написан' -> '{STATUS_NOT_CONTACTED}': {e}")
 
+
+
+
+def ensure_query_indexes():
+    """create_all does not add indexes to tables that already exist."""
+    from .models import Vacancy, VacancyStatusHistory
+    for table in (Vacancy.__table__, VacancyStatusHistory.__table__):
+        for index in table.indexes:
+            if index.name in {"ix_vacancies_user_updated", "ix_vacancies_user_created",
+                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created"}:
+                index.create(bind=engine, checkfirst=True)

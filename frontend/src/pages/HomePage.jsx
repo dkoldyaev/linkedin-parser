@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
-  Briefcase, Plus, Search, Filter, 
+  Plus, Search, Filter, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
   Globe, MapPin, RotateCcw, ChevronDown, Laptop, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
@@ -9,10 +10,9 @@ import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
 import HeaderControls from '../components/HeaderControls';
 import QueueModal from '../components/QueueModal';
-import ExtensionPromptModal from '../components/ExtensionPromptModal';
+import LoginModal from '../components/LoginModal';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt } from '../utils/extension';
 
 export default function HomePage({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
@@ -57,10 +57,33 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
 
+  // Attention highlight for "Add Vacancies" button when arriving from landing tour
+  const location = useLocation();
+  const [shouldHighlightAdd, setShouldHighlightAdd] = useState(() => {
+    try {
+      if (location.state?.highlightAddVacancy) return true;
+      return sessionStorage.getItem('highlight_add_vacancy') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAddVacanciesClick = useCallback(() => {
+    if (shouldHighlightAdd) {
+      setShouldHighlightAdd(false);
+      try {
+        sessionStorage.removeItem('highlight_add_vacancy');
+      } catch {}
+      if (window.history?.replaceState) {
+        window.history.replaceState({}, document.title);
+      }
+    }
+    trackEvent(EVENTS.BATCH_IMPORT_OPEN);
+    setIsBatchOpen(true);
+  }, [shouldHighlightAdd]);
+
   // Multiselect state
   const [selectedIds, setSelectedIds] = useState([]);
-  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
-  const [extensionOnProceed, setExtensionOnProceed] = useState(null);
   const [bulkTagInput, setBulkTagInput] = useState('');
   const [isMovingAllRejected, setIsMovingAllRejected] = useState(false);
 
@@ -71,6 +94,29 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   // Toast notifications
   const [toast, setToast] = useState(null);
 
+  // Guest save prompt modal & banner dismissed state
+  const [isGuestAuthModalOpen, setIsGuestAuthModalOpen] = useState(false);
+  const [guestBannerDismissed, setGuestBannerDismissed] = useState(() => {
+    return sessionStorage.getItem('guest_banner_dismissed') === 'true';
+  });
+
+  // Track initial vacancy count to detect when guest uploads cards
+  const prevVacancyCountRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.is_anonymous && vacancies.length >= 2) {
+      const alreadyPrompted = sessionStorage.getItem('guest_auth_prompt_shown');
+      if (!alreadyPrompted) {
+        // If cards were just added in this session or user already has >= 2 cards
+        if (prevVacancyCountRef.current !== null && vacancies.length > prevVacancyCountRef.current) {
+          setIsGuestAuthModalOpen(true);
+          sessionStorage.setItem('guest_auth_prompt_shown', 'true');
+        }
+      }
+    }
+    prevVacancyCountRef.current = vacancies.length;
+  }, [vacancies.length, user?.is_anonymous]);
+
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
@@ -78,7 +124,9 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const handleLogout = onLogout;
 
+  const vacancyRequest = useRef(0);
   const fetchVacancies = useCallback(async () => {
+    const requestId = ++vacancyRequest.current;
     if (!user) return;
     try {
       let url = '/api/vacancies';
@@ -95,7 +143,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setVacancies(data);
+        if (requestId === vacancyRequest.current) setVacancies(data);
       }
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
@@ -204,14 +252,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   useEffect(() => {
     if (!user) return;
-    fetchVacancies();
     fetchColumns();
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
     fetchSources();
     fetchQueueStatus();
-  }, [user, fetchVacancies, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+
+  useEffect(() => {
+    const timer = setTimeout(fetchVacancies, 150);
+    return () => { clearTimeout(timer); vacancyRequest.current += 1; };
+  }, [fetchVacancies]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
@@ -223,6 +275,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     fetchSources,
     selectedCountry,
     selectedClosed,
+    hasFilters: Boolean(search.trim() || selectedTag || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed),
+    fetchQueueStatus,
     showToast,
     t
   };
@@ -232,34 +286,40 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     if (!user) return;
     let eventSource = null;
     let isSubscribed = true;
+    let refreshTimer;
+    let reconcileTimer;
+    const scheduleRefresh = () => {
+      clearTimeout(reconcileTimer);
+      reconcileTimer = setTimeout(() => {
+        if (!isSubscribed) return;
+        const cb = callbacksRef.current;
+        cb.fetchVacancies();
+        cb.fetchTags();
+        cb.fetchCountries();
+        cb.fetchCities(cb.selectedCountry);
+        cb.fetchSources();
+        cb.fetchQueueStatus();
+      }, 150);
+    };
 
     const initMercure = async () => {
       try {
         setMercureStatus('connecting');
-        let hubUrl = 'http://localhost:3000/.well-known/mercure';
-        let topic = `vacancies:${user.id}`;
-
-        try {
-          const configRes = await fetch('/api/config');
-          if (configRes.ok) {
-            const cfg = await configRes.json();
-            if (cfg.mercure_hub_url) hubUrl = cfg.mercure_hub_url;
-            if (cfg.mercure_topic) topic = cfg.mercure_topic;
-          }
-        } catch (e) {
-          console.warn('Could not fetch /api/config, fallback to default Mercure hub', e);
-        }
-
+        const configRes = await fetch('/api/config', { credentials: 'include' });
+        if (!configRes.ok) throw new Error(`Mercure config HTTP ${configRes.status}`);
+        const cfg = await configRes.json();
         if (!isSubscribed) return;
-
-        const sseUrl = new URL(hubUrl);
-        sseUrl.searchParams.append('topic', topic);
-
-        eventSource = new EventSource(sseUrl.toString());
+        const sseUrl = new URL(cfg.mercure_hub_url, window.location.origin);
+        sseUrl.searchParams.append('topic', cfg.mercure_topic);
+        if (eventSource) eventSource.close();
+        eventSource = new EventSource(sseUrl.toString(), { withCredentials: true });
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(initMercure, 50 * 60 * 1000);
 
         eventSource.onopen = () => {
           if (isSubscribed) {
             setMercureStatus('connected');
+            scheduleRefresh();
           }
         };
 
@@ -292,6 +352,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
             if (type === 'vacancy_created' && vacancy) {
               setVacancies(prev => {
+                if (callbacksRef.current.hasFilters) return prev;
                 if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
                 if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
                 const exists = prev.some(v => v.id === vacancy.id);
@@ -301,12 +362,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 return [vacancy, ...prev];
               });
               currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => {
+                if (callbacksRef.current.hasFilters) return prev;
                 if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
                 if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
                 const exists = prev.some(v => v.id === vacancy.id);
@@ -317,10 +376,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               });
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             } else if (type === 'compatibility_analyzed') {
               const matchedId = vacancy_id || data.vacancy_id;
               const newScore = data.match_score !== undefined ? data.match_score : data.overall_score;
@@ -338,10 +394,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 if (delTitle) {
                   currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
                 }
-                currentFetchTags();
-                currentFetchCountries();
-                currentFetchCities(currentSelectedCountry);
-                currentFetchSources();
+                scheduleRefresh();
               }
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
@@ -353,11 +406,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
               currentShowToast(currentT('mercure.queue_idle'));
-              currentFetchVacancies();
-              currentFetchTags();
-              currentFetchCountries();
-              currentFetchCities(currentSelectedCountry);
-              currentFetchSources();
+              scheduleRefresh();
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -365,7 +414,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         };
       } catch (err) {
         console.error('Failed to initialize Mercure EventSource', err);
-        if (isSubscribed) setMercureStatus('connecting');
+        if (isSubscribed) {
+          setMercureStatus('connecting');
+          refreshTimer = setTimeout(initMercure, 5000);
+        }
       }
     };
 
@@ -373,6 +425,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
     return () => {
       isSubscribed = false;
+      clearTimeout(refreshTimer);
+      clearTimeout(reconcileTimer);
       if (eventSource) {
         eventSource.close();
       }
@@ -380,18 +434,20 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   }, [user]);
 
   // Handle status change from drag & drop or quick move
-  const handleStatusChange = async (vacancyId, newStatus) => {
+  const handleStatusChange = async (vacancyId, newStatus, lane = 0) => {
+    const targetCol = columns.find(c => c.id === newStatus);
+    const targetLane = targetCol?.has_lanes ? lane : 0;
     // Optimistic UI update
-    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus } : v));
+    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v));
     if (selectedVacancy && selectedVacancy.id === vacancyId) {
-      setSelectedVacancy(prev => ({ ...prev, status: newStatus }));
+      setSelectedVacancy(prev => ({ ...prev, status: newStatus, lane: targetLane }));
     }
 
     try {
       const res = await fetch(`/api/vacancies/${vacancyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, lane: targetLane })
       });
       if (!res.ok) {
         throw new Error('Update failed');
@@ -411,15 +467,37 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   };
 
   // Handle manual reorder of cards inside a column (also covers moving into a column at a position)
-  const handleReorder = async (status, ids, lane = 0) => {
+  const handleReorder = async (status, ids, lane = 0, movedId = null) => {
     const positions = new Map(ids.map((id, i) => [id, i]));
-    setVacancies(prev => prev.map(v => positions.has(v.id) ? { ...v, status, lane, sort_order: positions.get(v.id) } : v));
+    const targetCol = columns.find(c => c.id === status);
+    const hasLanes = targetCol ? Boolean(targetCol.has_lanes) : false;
+
+    setVacancies(prev => prev.map(v => {
+      if (!positions.has(v.id)) return v;
+      let newLane = v.lane || 0;
+      if (!hasLanes) {
+        newLane = 0;
+      } else if (v.id === movedId || movedId == null) {
+        newLane = lane;
+      }
+      return {
+        ...v,
+        status,
+        lane: newLane,
+        sort_order: positions.get(v.id)
+      };
+    }));
 
     try {
       const res = await fetch('/api/vacancies/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, ids, lane })
+        body: JSON.stringify({
+          status,
+          ids,
+          lane,
+          moved_id: movedId
+        })
       });
       if (!res.ok) throw new Error('Reorder failed');
       const updated = await res.json();
@@ -435,14 +513,16 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     }
   };
 
-  const handleStatusChangeMulti = async (vacancyIds, newStatus) => {
-    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus } : v));
+  const handleStatusChangeMulti = async (vacancyIds, newStatus, lane = 0) => {
+    const targetCol = columns.find(c => c.id === newStatus);
+    const targetLane = targetCol?.has_lanes ? lane : 0;
+    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v));
     try {
       await Promise.all(vacancyIds.map(vid => 
         fetch(`/api/vacancies/${vid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify({ status: newStatus, lane: targetLane })
         })
       ));
       fetchVacancies();
@@ -528,7 +608,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       <header className={`app-header ${isSearchFocused ? 'search-focused' : ''}`}>
         <div className="brand">
           <div className="brand-icon">
-            <Briefcase size={20} />
+            <span className="blueprint-mark" aria-hidden="true" />
           </div>
           <div>
             <h1 className="brand-title">{t('nav.title')}</h1>
@@ -604,11 +684,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           )}
 
           <button
-            className="btn btn-primary add-button plausible-event-name=Batch+Import+Open"
-            onClick={() => {
-              trackEvent(EVENTS.BATCH_IMPORT_OPEN);
-              setIsBatchOpen(true);
-            }}
+            className={`btn btn-primary add-button plausible-event-name=Batch+Import+Open ${
+              shouldHighlightAdd ? 'is-tour-attention' : ''
+            }`}
+            aria-label={t('nav.batch_import_btn')}
+            onClick={handleAddVacanciesClick}
           >
             <Plus size={16} />
             <span>{t('nav.batch_import_btn')}</span>
@@ -616,43 +696,63 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
           <button
             className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
-            onClick={() => {
+            onClick={async () => {
               trackEvent(EVENTS.REFRESH_CLICK);
-              const doRefresh = async () => {
-                try {
-                  if (selectedIds.length > 0) {
-                    await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
-                  } else {
-                    await fetch('/api/vacancies/reparse_all', { method: 'POST' });
-                  }
-                  fetchVacancies();
-                } catch (e) {
-                  console.error(e);
-                }
-              };
-
-              shouldShowExtensionPrompt().then((needsPrompt) => {
-                if (needsPrompt) {
-                  setExtensionOnProceed(() => doRefresh);
-                  setIsExtensionModalOpen(true);
+              try {
+                if (selectedIds.length > 0) {
+                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
                 } else {
-                  doRefresh();
+                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
                 }
-              });
+                fetchVacancies();
+              } catch (e) {
+                console.error(e);
+              }
             }}
             title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={18} aria-hidden="true" />
           </button>
         </HeaderControls>
       </header>
 
+      {/* Guest Mode Banner: informs the user they can save their progress across devices */}
+      {user?.is_anonymous && vacancies.length >= 2 && !guestBannerDismissed && (
+        <div className="guest-banner">
+          <div className="guest-banner-content">
+            <span className="guest-banner-icon">💡</span>
+            <span className="guest-banner-text">
+              {t('auth.guest_banner_text') || 'Вы пользуетесь гостевым доступом. Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу на другом компьютере или телефоне.'}
+            </span>
+          </div>
+          <div className="guest-banner-actions">
+            <button
+              className="btn btn-primary btn-sm guest-banner-btn"
+              onClick={() => setIsGuestAuthModalOpen(true)}
+            >
+              {t('auth.guest_banner_btn') || 'Сохранить прогресс'}
+            </button>
+            <button
+              className="btn btn-secondary btn-icon btn-sm guest-banner-close"
+              onClick={() => {
+                setGuestBannerDismissed(true);
+                sessionStorage.setItem('guest_banner_dismissed', 'true');
+              }}
+              title={t('common.close') || 'Закрыть'}
+              aria-label="Dismiss banner"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter bar for Country, City, Workplace & Tags */}
       {selectedIds.length > 0 ? (
-        <div className="filter-bar" style={{ justifyContent: 'space-between' }}>
+        <div className="filter-bar filter-bar-bulk" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Выделено карточек: {selectedIds.length}</span>
-            <button className="btn btn-secondary btn-icon" style={{ height: '28px', width: '28px' }} onClick={() => setSelectedIds([])} title="Снять выделение">
+            <span className="bulk-selection-count">Выделено карточек: {selectedIds.length}</span>
+            <button className="btn btn-secondary btn-icon" onClick={() => setSelectedIds([])} title="Снять выделение">
               <X size={14} />
             </button>
           </div>
@@ -661,11 +761,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               type="text" 
               placeholder="Тег..."
               className="search-input"
-              style={{ width: '150px', height: '32px' }}
+              
               value={bulkTagInput}
               onChange={e => setBulkTagInput(e.target.value)}
             />
-            <button className="btn btn-secondary" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-secondary" onClick={async () => {
               if (!bulkTagInput.trim()) return;
               try {
                 await Promise.all(selectedIds.map(async id => {
@@ -681,7 +781,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 showToast("Теги добавлены");
               } catch (e) { console.error(e); }
             }}>Добавить тег</button>
-            <button className="btn btn-danger" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-danger" onClick={async () => {
               if (!bulkTagInput.trim()) return;
               try {
                 await Promise.all(selectedIds.map(async id => {
@@ -698,7 +798,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               } catch (e) { console.error(e); }
             }}>Удалить тег</button>
             <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 4px' }} />
-            <button className="btn btn-danger btn-icon" style={{ height: '32px' }} onClick={async () => {
+            <button className="btn btn-danger btn-icon" onClick={async () => {
               if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
               try {
                 await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
@@ -726,7 +826,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   onChange={(e) => handleCountryChange(e.target.value)}
                   title={t('nav.filter_all_countries')}
                 >
-                  <option value="">{t('nav.filter_all_countries')} ({allCountries.length})</option>
+                  <option value="">{t('nav.filter_all_countries')} [{allCountries.length}]</option>
                   {allCountries.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -753,7 +853,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   }}
                   title={t('nav.filter_all_cities')}
                 >
-                  <option value="">{t('nav.filter_all_cities')} ({allCities.length})</option>
+                  <option value="">{t('nav.filter_all_cities')} [{allCities.length}]</option>
                   {allCities.map((city) => (
                     <option key={city} value={city}>
                       {city}
@@ -803,7 +903,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   }}
                   title={t('nav.filter_all_sources')}
                 >
-                  <option value="">{t('nav.filter_all_sources')} ({allSources.length})</option>
+                  <option value="">{t('nav.filter_all_sources')} [{allSources.length}]</option>
                   {allSources.map((src) => (
                     <option key={src} value={src}>
                       {src}
@@ -853,7 +953,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   <XCircle size={12} />
                 )}
                 <span>
-                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` (${nonRejectedClosedCount})` : ''}
+                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` [${nonRejectedClosedCount}]` : ''}
                 </span>
               </button>
             );
@@ -878,7 +978,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   setSelectedTag('');
                 }}
               >
-                {t('nav.all_tags')} ({vacancies.length})
+                {t('nav.all_tags')} [{vacancies.length}]
               </button>
               {allTags.map(tag => (
                 <button
@@ -952,19 +1052,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         onRefreshQueue={fetchQueueStatus}
       />
 
-      <ExtensionPromptModal
-        isOpen={isExtensionModalOpen}
-        onClose={() => {
-          setIsExtensionModalOpen(false);
-          setExtensionOnProceed(null);
-        }}
-        onProceed={() => {
-          if (extensionOnProceed) extensionOnProceed();
-          setIsExtensionModalOpen(false);
-          setExtensionOnProceed(null);
-        }}
-      />
-
+      {isGuestAuthModalOpen && (
+        <LoginModal
+          isOpen={isGuestAuthModalOpen}
+          onClose={() => setIsGuestAuthModalOpen(false)}
+          onLoginSuccess={(updatedUser) => {
+            setIsGuestAuthModalOpen(false);
+            if (onUserUpdated) onUserUpdated(updatedUser);
+            fetchVacancies();
+          }}
+          isGuestPromotion={true}
+        />
+      )}
       {/* Toast Notifications */}
       {toast && (
         <div className="toast-container">

@@ -1,18 +1,25 @@
 import datetime
-from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, Float, String, Text, DateTime, JSON, Boolean, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from .database import Base
 
+STATUS_NOT_CONTACTED = "Еще не написал"
+STATUS_CONTACTED = "Написал"
+STATUS_INTERVIEW = "Собеседование"
+STATUS_ASSESSMENT = "Тестовое"
+STATUS_OFFER = "Оффер"
+STATUS_REJECTED = "Отказ"
+
 DEFAULT_COLUMNS = [
-    {"id": "Еще не написан", "color": "#6366f1", "has_lanes": False, "is_base": True},
-    {"id": "Написал", "color": "#0284c7", "has_lanes": False, "is_base": False},
-    {"id": "Собеседование", "color": "#d97706", "has_lanes": True, "is_base": False},
-    {"id": "Тестовое", "color": "#9333ea", "has_lanes": True, "is_base": False},
-    {"id": "Оффер", "color": "#059669", "has_lanes": False, "is_base": False},
-    {"id": "Отказ", "color": "#ef4444", "has_lanes": False, "is_base": True},
+    {"id": STATUS_NOT_CONTACTED, "color": "#6366f1", "has_lanes": False, "is_base": True},
+    {"id": STATUS_CONTACTED, "color": "#0284c7", "has_lanes": False, "is_base": False},
+    {"id": STATUS_INTERVIEW, "color": "#d97706", "has_lanes": True, "is_base": False},
+    {"id": STATUS_ASSESSMENT, "color": "#9333ea", "has_lanes": True, "is_base": False},
+    {"id": STATUS_OFFER, "color": "#059669", "has_lanes": False, "is_base": False},
+    {"id": STATUS_REJECTED, "color": "#ef4444", "has_lanes": False, "is_base": True},
 ]
 
-BASE_STATUSES = ["Еще не написан", "Отказ"]
+BASE_STATUSES = [STATUS_NOT_CONTACTED, STATUS_REJECTED]
 
 VALID_STATUSES = [col["id"] for col in DEFAULT_COLUMNS]
 
@@ -35,6 +42,7 @@ class User(Base):
     picture = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    is_anonymous = Column(Boolean, default=False, nullable=False)
     # Kept for backward compatibility if needed, but primary storage is user_feature_flags table
     feature_flags = Column(JSON, default=list)
 
@@ -77,6 +85,12 @@ class UserSetting(Base):
 
 class Vacancy(Base):
     __tablename__ = "vacancies"
+    __table_args__ = (
+        Index("ix_vacancies_user_updated", "user_id", "updated_at", "id"),
+        Index("ix_vacancies_user_created", "user_id", "created_at"),
+        Index("ix_vacancies_user_job", "user_id", "job_id"),
+        Index("ix_vacancies_user_url", "user_id", "url"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True)
@@ -106,7 +120,7 @@ class Vacancy(Base):
     match_score = Column(Float, nullable=True)  # Compatibility score (0-100) with approved CV
     
     # Kanban & User organization
-    status = Column(String(64), nullable=False, default="Еще не написан")
+    status = Column(String(64), nullable=False, default=STATUS_NOT_CONTACTED)
     tags = Column(JSON, default=list)  # list of string labels
     notes = Column(Text, nullable=True)
     lane = Column(Integer, nullable=False, default=0, server_default="0")  # vertical section (swimlane) index within a Kanban column
@@ -127,11 +141,14 @@ class Vacancy(Base):
 
 class VacancyStatusHistory(Base):
     __tablename__ = "vacancy_status_history"
+    __table_args__ = (Index("ix_history_vacancy_created", "vacancy_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, index=True)
     vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="CASCADE"), nullable=False, index=True)
     from_status = Column(String(64), nullable=True)
     to_status = Column(String(64), nullable=False)
+    from_lane = Column(Integer, nullable=True)
+    to_lane = Column(Integer, nullable=True)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

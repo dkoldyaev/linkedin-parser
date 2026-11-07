@@ -6,7 +6,6 @@ from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 
 # Configure test environment
-os.environ["DATA_DIR"] = tempfile.mkdtemp()
 os.environ["DEV_AUTH"] = "true"
 os.environ["LLM_SERVICE_URL"] = "http://localhost:5001"
 

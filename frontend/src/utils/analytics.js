@@ -3,23 +3,8 @@
  * Supports custom properties and automatic user attribution.
  */
 
-let currentAnalyticsUser = null;
-
-/**
- * Set current logged in user to automatically attach user identity to all subsequent events.
- * @param {Object|null} user - { id, email, name }
- */
-export function setAnalyticsUser(user) {
-  if (user) {
-    currentAnalyticsUser = {
-      userId: String(user.id || ''),
-      userEmail: user.email || '',
-      userName: user.name || ''
-    };
-  } else {
-    currentAnalyticsUser = null;
-  }
-}
+// Identity must never be attached to third-party telemetry.
+export function setAnalyticsUser() {}
 
 /**
  * Track a custom event in Plausible.
@@ -32,21 +17,12 @@ export function trackEvent(eventName, props = {}) {
       return;
     }
 
-    // Merge user identity with event props if user is known
+    // Only aggregate counts and fixed UI enums may leave the browser.
+    const allowed = new Set(['count', 'query_length', 'collapsed', 'locale', 'method', 'theme']);
     const mergedProps = {};
-
-    if (currentAnalyticsUser) {
-      if (currentAnalyticsUser.userId) mergedProps.userId = currentAnalyticsUser.userId;
-      if (currentAnalyticsUser.userEmail) mergedProps.userEmail = currentAnalyticsUser.userEmail;
-    }
-
-    // Add caller's custom props, stripping undefined/null
-    if (props && typeof props === 'object') {
-      Object.entries(props).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          mergedProps[key] = typeof value === 'object' ? JSON.stringify(value) : value;
-        }
-      });
+    for (const [key, value] of Object.entries(props || {})) {
+      if (allowed.has(key) && (typeof value === 'number' || typeof value === 'boolean' ||
+          (typeof value === 'string' && /^[a-z_-]{1,32}$/i.test(value)))) mergedProps[key] = value;
     }
 
     if (Object.keys(mergedProps).length > 0) {

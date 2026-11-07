@@ -45,7 +45,7 @@ function buildTheme(mode) {
       }),
     },
     typography: {
-      fontFamily: '"Google Sans", "Roboto", system-ui, sans-serif',
+      fontFamily: '"JetBrains Mono", monospace',
       fontSize: 13,
     },
     shape: { borderRadius: 8 },

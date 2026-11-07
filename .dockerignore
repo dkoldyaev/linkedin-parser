@@ -14,3 +14,12 @@ data
 examples
 scratch*
 .DS_Store
+
+.env
+.env.*
+!.env.example
+docs
+tests
+
+services/parser-api/dist
+packages/parsers/dist

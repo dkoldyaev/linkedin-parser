@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import aiohttp
+from .safe_http import validate_web_url, MAX_HTML_BYTES
 from typing import Any, Dict, Optional
 
 from .parsers import registry
@@ -49,7 +50,7 @@ async def normalize_url_async(url: str, html: Optional[str] = None) -> str:
         return ""
     if PARSER_API_URL:
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
                 payload = {"url": url}
                 if html:
                     payload["html"] = html
@@ -72,9 +73,12 @@ async def scrape_job(url: str, html: Optional[str] = None) -> Dict[str, Any]:
     """Parse a job posting using parser-api, with fallback to local parser registry."""
     # Ensure URL is canonicalized
     url = normalize_url(url, html=html)
+    validate_web_url(url)
+    if html and len(html.encode()) > MAX_HTML_BYTES:
+        raise ValueError("Job HTML exceeds the 10 MiB limit")
     if PARSER_API_URL:
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
                 payload = {"url": url}
                 if html:
                     payload["html"] = html

@@ -9,11 +9,7 @@ def test_queue_endpoints():
     with TestClient(app) as client:
         # 1. Test /api/config unauthenticated
         config_resp = client.get("/api/config")
-        assert config_resp.status_code == 200, f"Config failed: {config_resp.text}"
-        config_data = config_resp.json()
-        assert "mercure_hub_url" in config_data
-        assert config_data["mercure_topic"] == "vacancies"
-
+        assert config_resp.status_code == 401, f"Config failed: {config_resp.text}"
         # Dev login to get authenticated client
         login_res = client.post("/api/auth/dev-login", json={"email": "queue_test@local.user"})
         token = login_res.json()["token"]
@@ -58,22 +54,11 @@ def test_queue_endpoints():
         q_status = client.get("/api/queue/status").json()
         print("✓ Queue status after enqueue:", q_status)
 
-        # 6. Wait for background processing to finish (up to 15 seconds)
-        print("Waiting for background worker to process task...")
-        finished = False
-        for _ in range(15):
-            time.sleep(1)
-            q = client.get("/api/queue/status").json()
-            if q["total_remaining"] == 0:
-                finished = True
-                print("✓ Queue worker processed all items! Completed:", q["completed"], "Failed:", q["failed"])
-                break
-
-        # Check vacancies in DB
-        vacancies = client.get("/api/vacancies").json()
-        print(f"✓ Vacancies in DB: {len(vacancies)}")
-
-        print("\nALL QUEUE & ASYNC TESTS PASSED SUCCESSFULLY!")
+        # Workers are deliberately disabled in endpoint tests. Verify the queued
+        # task contract deterministically; worker execution has dedicated tests.
+        assert q_status["total_remaining"] == 1
+        assert q_status["pending"] == 1
+        assert q_status["recent_tasks"][0]["task_id"] == enqueue_data["tasks"][0]["task_id"]
 
 
 if __name__ == "__main__":

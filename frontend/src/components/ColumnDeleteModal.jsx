@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ArrowRight } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
+import { STATUS_NOT_CONTACTED } from '../constants/columns';
 
 export default function ColumnDeleteModal({
   isOpen,
@@ -11,7 +12,7 @@ export default function ColumnDeleteModal({
   onConfirm
 }) {
   const { t } = useTranslation();
-  const [targetColumn, setTargetColumn] = useState('Еще не написан');
+  const [targetColumn, setTargetColumn] = useState(STATUS_NOT_CONTACTED);
 
   if (!isOpen || !column) return null;
 
@@ -24,13 +25,13 @@ export default function ColumnDeleteModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
         <div className="modal-header">
           <div className="modal-title" style={{ color: '#ef4444' }}>
             <Trash2 size={18} />
             <span>{t('kanban.delete_column_confirm_title', { name: t(`kanban.columns.${column.id}`) })}</span>
           </div>
-          <button className="btn-icon" onClick={onClose}>
+          <button className="btn-icon modal-close-btn" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
@@ -38,13 +39,13 @@ export default function ColumnDeleteModal({
         <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
           {vacanciesCount > 0 ? (
             <>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, height:'40px' }}>
                 {t('kanban.delete_column_has_vacancies', { count: vacanciesCount })}
               </p>
 
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ArrowRight size={14} color="#6366f1" />
+                  <ArrowRight size={14} color="#2563eb" />
                   <span>{t('kanban.migrate_to_label')}</span>
                 </label>
                 <select

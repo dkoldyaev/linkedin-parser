@@ -1,0 +1,57 @@
+# Standalone stack. Never merges developer mounts or working database volumes.
+services:
+  app:
+    image: linkedinparser_app:latest
+    ports:
+      - '127.0.0.1:18000:8000'
+    environment:
+      APP_URL: http://localhost:18000
+      DATABASE_URL: postgresql://audit:audit@postgres:5432/audit_e2e
+      BROKER_URL: redis://redis:6379/0
+      DATA_DIR: /tmp/audit-data
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
+      MERCURE_URL: http://mercure/.well-known/mercure
+      MERCURE_PUBLIC_URL: http://localhost:13000/.well-known/mercure
+      DEV_AUTH: 'true'
+      CREATE_MOCK_DATA: 'false'
+      SQL_DIAGNOSTICS: 'true'
+      PARSER_API_URL: http://parser-api:4000
+      LLM_PROVIDER: mistral
+      MISTRAL_API_KEY: ''
+      GEMINI_API_KEY: ''
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mercure:
+        condition: service_started
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: audit_e2e
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U audit -d audit_e2e']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+  mercure:
+    image: dunglas/mercure:v0.16
+    ports:
+      - '127.0.0.1:13000:80'
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://localhost:18000
+  parser-api:
+    image: linkedinparser_parser-api:latest

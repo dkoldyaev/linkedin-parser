@@ -2,7 +2,7 @@ import os
 import sqlite3
 from sqlalchemy import create_engine
 from backend.database import Base, SessionLocal, engine
-from backend.models import Vacancy, AppSetting
+from backend.models import Vacancy, STATUS_NOT_CONTACTED, AppSetting
 
 # Source SQLite DB
 sqlite_file = os.path.abspath("data/linkedin_tracker.db")
@@ -54,7 +54,7 @@ if "vacancies" in tables:
                     ai_summary=d.get("ai_summary"),
                     tech_stack=tech_stack,
                     tags=tags,
-                    status=d.get("status", "Еще не написан"),
+                    status=d.get("status", STATUS_NOT_CONTACTED),
                     notes=d.get("notes"),
                 )
                 db.add(v)

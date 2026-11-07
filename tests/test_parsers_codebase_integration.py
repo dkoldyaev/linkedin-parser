@@ -25,7 +25,7 @@ from backend.parsers import registry as parser_registry
 from backend.parsers.types import VacancyData
 from backend.scraper import extract_job_id
 from backend.database import SessionLocal, ensure_db_schema
-from backend.models import Vacancy, VacancyStatusHistory, User
+from backend.models import Vacancy, VacancyStatusHistory, User, STATUS_NOT_CONTACTED
 from backend.schemas import VacancyResponse
 from backend.llm import extract_fallback_tech_stack
 from backend.main import app
@@ -48,8 +48,7 @@ SAMPLE_FILES_BY_PARSER = {
 
 
 class TestParsersCodebaseIntegration(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
+    def setUp(cls):
         ensure_db_schema()
         parser_registry._auto_discover()
         cls.client = TestClient(app)
@@ -161,7 +160,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
                     salary_max=scraped.get("salary_max"),
                     salary_currency=scraped.get("salary_currency"),
                     salary_period=scraped.get("salary_period"),
-                    status="Еще не написан",
+                    status=STATUS_NOT_CONTACTED,
                 )
                 db.add(vacancy)
                 db.flush()

@@ -1,5 +1,5 @@
 # Stage 1: Build Frontend Assets
-FROM node:20-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 WORKDIR /app
 
 ARG APP_URL
@@ -18,7 +18,8 @@ RUN npm run build
 WORKDIR /app
 COPY package*.json ./
 COPY packages/ ./packages/
-RUN npm install
+COPY services/ ./services/
+RUN npm ci
 COPY extension/ ./extension/
 RUN npm run extension:build
 RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *
@@ -39,8 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     chromium-driver \
     && rm -rf /var/lib/apt/lists/*
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.lock ./
+RUN pip install --no-cache-dir -r requirements.lock
 
 # Copy backend application
 COPY backend/ ./backend
@@ -53,4 +54,7 @@ RUN mkdir -p /app/data && chmod -R 777 /app/data
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=5s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/ | grep -q '<div id="root"></div>'
+
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

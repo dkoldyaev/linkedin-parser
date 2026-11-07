@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from sqlalchemy import func
 
 from .database import SessionLocal
-from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis
+from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, STATUS_NOT_CONTACTED
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
@@ -159,6 +159,11 @@ class RedisQueueManager:
             socket_connect_timeout=5.0,
         )
         await self.redis.ping()
+        # Restore indexes for tasks queued by a previous application version.
+        for task in await self.get_active_tasks():
+            if task.user_id:
+                await self.redis.sadd(f"linkedin:active:user:{task.user_id}", task.task_id)
+                await self.redis.expire(f"linkedin:active:user:{task.user_id}", TASK_TTL)
         logger.info("Successfully connected to Redis message broker.")
 
         self._running = True
@@ -235,9 +240,14 @@ class RedisQueueManager:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 # Enqueue into scrape queue (Stage 1)
                 pipe.rpush(SCRAPE_QUEUE_KEY, task_id)
+                pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+                pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
                 # Add to recent list
                 pipe.lpush(RECENT_LIST, task_id)
                 pipe.ltrim(RECENT_LIST, 0, 99)
+                pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+                pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+                pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
 
             await pipe.execute()
 
@@ -245,8 +255,7 @@ class RedisQueueManager:
 
         # Notify Mercure about newly enqueued items (user topic and global topic)
         mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
-        asyncio.create_task(
-            publish_mercure_event(
+        await publish_mercure_event(
                 event_type=EVENT_QUEUE_UPDATED,
                 data={
                     "message_code": MSG_QUEUE_UPDATED,
@@ -256,7 +265,6 @@ class RedisQueueManager:
                 },
                 topic=mercure_topic,
             )
-        )
 
         logger.info(
             f"Enqueued {len(new_tasks)} URLs in batch {batch_id} for user {user_id} into Scrape Queue. "
@@ -288,11 +296,11 @@ class RedisQueueManager:
         total_processing = pr_scrape + pr_ai
         total_remaining = len(active_tasks)
 
-        stats = await self.redis.hgetall(STATS_KEY)
+        stats = await self.redis.hgetall(f"{STATS_KEY}:{user_id}" if user_id is not None else STATS_KEY)
         completed = int(stats.get("completed", 0))
         failed = int(stats.get("failed", 0))
 
-        recent_ids = await self.redis.lrange(RECENT_LIST, 0, 19)
+        recent_ids = await self.redis.lrange(f"{RECENT_LIST}:{user_id}" if user_id is not None else RECENT_LIST, 0, 19)
         recent_tasks = []
         if recent_ids:
             pipe = self.redis.pipeline()
@@ -326,12 +334,16 @@ class RedisQueueManager:
         if not self.redis:
             return []
             
-        active_ids = []
-        active_ids.extend(await self.redis.lrange(SCRAPE_QUEUE_KEY, 0, -1))
-        active_ids.extend(await self.redis.lrange(AI_QUEUE_KEY, 0, -1))
-        active_ids.extend(await self.redis.smembers(SCRAPE_PROCESSING_SET))
-        active_ids.extend(await self.redis.smembers(AI_PROCESSING_SET))
-        active_ids.extend(await self.redis.zrange(RETRY_ZSET, 0, -1))
+        if user_id is not None:
+            active_ids = list(await self.redis.smembers(f"linkedin:active:user:{user_id}"))
+        else:
+            active_ids = []
+            active_ids.extend(await self.redis.lrange(SCRAPE_QUEUE_KEY, 0, -1))
+            active_ids.extend(await self.redis.lrange(AI_QUEUE_KEY, 0, -1))
+            active_ids.extend(await self.redis.smembers(SCRAPE_PROCESSING_SET))
+            active_ids.extend(await self.redis.smembers(AI_PROCESSING_SET))
+            active_ids.extend(await self.redis.zrange(RETRY_ZSET, 0, -1))
+            active_ids.extend(await self.redis.lrange("queue:extension", 0, -1))
         
         # Deduplicate
         active_ids = list(set([aid.decode('utf-8') if isinstance(aid, bytes) else aid for aid in active_ids]))
@@ -343,10 +355,14 @@ class RedisQueueManager:
                 pipe.get(f"{TASK_KEY_PREFIX}{tid}")
             raw_tasks = await pipe.execute()
             
-            for raw in raw_tasks:
+            for task_id, raw in zip(active_ids, raw_tasks):
+                if not raw and user_id is not None:
+                    await self.redis.srem(f"linkedin:active:user:{user_id}", task_id)
                 if raw:
                     try:
                         task = JobTask.from_dict(json.loads(raw))
+                        if user_id is not None and task.status in ("completed", "failed", "cancelled"):
+                            await self.redis.srem(f"linkedin:active:user:{user_id}", task_id)
                         if task.status not in ("completed", "failed", "cancelled") and (user_id is None or task.user_id == user_id):
                             tasks.append(task.to_info())
                     except Exception as e:
@@ -385,8 +401,7 @@ class RedisQueueManager:
             mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
             
             from .mercure import publish_mercure_event, EVENT_QUEUE_UPDATED, MSG_QUEUE_UPDATED
-            asyncio.create_task(
-                publish_mercure_event(
+            await publish_mercure_event(
                     event_type=EVENT_QUEUE_UPDATED,
                     data={
                         "message_code": MSG_QUEUE_UPDATED,
@@ -394,7 +409,6 @@ class RedisQueueManager:
                     },
                     topic=mercure_topic,
                 )
-            )
             return True
         except Exception as e:
             logger.error(f"Error removing task {task_id}: {e}")
@@ -439,8 +453,7 @@ class RedisQueueManager:
                 if task_user_id:
                     user_rem = await self._calculate_total_remaining(user_id=task_user_id)
                     if user_rem == 0:
-                        asyncio.create_task(
-                            publish_mercure_event(
+                        await publish_mercure_event(
                                 event_type=EVENT_QUEUE_IDLE,
                                 data={
                                     "message_code": MSG_QUEUE_IDLE,
@@ -448,12 +461,10 @@ class RedisQueueManager:
                                 },
                                 topic=f"vacancies:{task_user_id}",
                             )
-                        )
 
                 total_rem = await self._calculate_total_remaining(user_id=None)
                 if total_rem == 0:
-                    asyncio.create_task(
-                        publish_mercure_event(
+                    await publish_mercure_event(
                             event_type=EVENT_QUEUE_IDLE,
                             data={
                                 "message_code": MSG_QUEUE_IDLE,
@@ -461,7 +472,6 @@ class RedisQueueManager:
                             },
                             topic="vacancies",
                         )
-                    )
 
     async def _process_scrape_task(self, task_id: str):
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
@@ -470,6 +480,8 @@ class RedisQueueManager:
             return
 
         task = JobTask.from_dict(json.loads(raw))
+        if not task.user_id:
+            raise ValueError("Queue task requires an owner")
         task.status = "processing"
         task.stage = "scraping"
         task.updated_at = time.time()
@@ -528,11 +540,11 @@ class RedisQueueManager:
                 job_id = scraped.get("job_id") or extract_job_id(task.url)
                 existing = None
                 if task.vacancy_id:
-                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
+                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not existing and job_id:
-                    existing = db.query(Vacancy).filter(Vacancy.job_id == job_id).first()
+                    existing = db.query(Vacancy).filter(Vacancy.job_id == job_id, Vacancy.user_id == task.user_id).first()
                 if not existing:
-                    existing = db.query(Vacancy).filter(Vacancy.url == task.url).first()
+                    existing = db.query(Vacancy).filter(Vacancy.url == task.url, Vacancy.user_id == task.user_id).first()
 
                 initial_tags = list(task.default_tags)
                 if existing:
@@ -598,7 +610,7 @@ class RedisQueueManager:
                         ai_summary=None,
                         tech_stack=[],
                         tags=initial_tags,
-                        status="Еще не написан",
+                        status=STATUS_NOT_CONTACTED,
                     )
                     db.add(new_v)
                     db.flush()
@@ -647,6 +659,7 @@ class RedisQueueManager:
                 async with self.redis.pipeline(transaction=True) as pipe:
                     pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                     pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                     pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                     await pipe.execute()
                 
@@ -656,13 +669,11 @@ class RedisQueueManager:
                     if task.user_id:
                         topics.append(f"vacancies:{task.user_id}")
                     for top in topics:
-                        asyncio.create_task(
-                            publish_mercure_event(
+                        await publish_mercure_event(
                                 event_type=EVENT_QUEUE_IDLE,
                                 data={"message_code": MSG_QUEUE_IDLE, "total_remaining": 0},
                                 topic=top,
                             )
-                        )
             else:
                 task.stage = "ai_analysis"
                 task.status = "pending"
@@ -718,6 +729,7 @@ class RedisQueueManager:
         async with self.redis.pipeline(transaction=True) as pipe:
             pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
             pipe.hincrby(STATS_KEY, "failed", 1)
+            pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "failed", 1)
             pipe.zrem(RETRY_ZSET, task_id)
             pipe.lrem("queue:extension", 0, task_id)
             pipe.srem(SCRAPE_PROCESSING_SET, task_id)
@@ -769,6 +781,8 @@ class RedisQueueManager:
             return {"status": "error", "message": "Task not found"}
 
         task = JobTask.from_dict(json.loads(raw))
+        if not task.user_id:
+            return {"status": "error", "message": "Queue task requires an owner"}
         if task.status != "pending_extension":
             return {"status": "already_processed"}
 
@@ -816,8 +830,7 @@ class RedisQueueManager:
                 if task_user_id:
                     user_rem = await self._calculate_total_remaining(user_id=task_user_id)
                     if user_rem == 0:
-                        asyncio.create_task(
-                            publish_mercure_event(
+                        await publish_mercure_event(
                                 event_type=EVENT_QUEUE_IDLE,
                                 data={
                                     "message_code": MSG_QUEUE_IDLE,
@@ -825,13 +838,11 @@ class RedisQueueManager:
                                 },
                                 topic=f"vacancies:{task_user_id}",
                             )
-                        )
 
                 # Check if all queues and workers are idle globally
                 total_rem = await self._calculate_total_remaining(user_id=None)
                 if total_rem == 0:
-                    asyncio.create_task(
-                        publish_mercure_event(
+                    await publish_mercure_event(
                             event_type=EVENT_QUEUE_IDLE,
                             data={
                                 "message_code": MSG_QUEUE_IDLE,
@@ -839,7 +850,6 @@ class RedisQueueManager:
                             },
                             topic="vacancies",
                         )
-                    )
 
     async def _process_ai_task(self, task_id: str):
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
@@ -848,6 +858,8 @@ class RedisQueueManager:
             return
 
         task = JobTask.from_dict(json.loads(raw))
+        if not task.user_id:
+            raise ValueError("Queue task requires an owner")
         task.status = "processing"
         task.stage = "ai_analysis"
         task.updated_at = time.time()
@@ -857,7 +869,7 @@ class RedisQueueManager:
 
         try:
             with SessionLocal() as db:
-                vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
+                vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
                 user_id = task.user_id or (vacancy.user_id if vacancy else None)
@@ -923,6 +935,7 @@ class RedisQueueManager:
                             vacancy_text=vacancy_full_text,
                             cv_text=approved_cv.content,
                             provider=provider,
+                            language=language,
                             db=db,
                             user_id=user_id,
                         )
@@ -999,6 +1012,7 @@ class RedisQueueManager:
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "completed", 1)
+                pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                 pipe.srem(AI_PROCESSING_SET, task_id)
                 await pipe.execute()
 
@@ -1053,6 +1067,7 @@ class RedisQueueManager:
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "failed", 1)
+                pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "failed", 1)
                 pipe.srem(AI_PROCESSING_SET, task_id)
                 await pipe.execute()
 
@@ -1080,6 +1095,8 @@ class RedisQueueManager:
             return {"status": "error", "message": "Task not found"}
             
         task = JobTask.from_dict(json.loads(raw))
+        if not task.user_id:
+            return {"status": "error", "message": "Queue task requires an owner"}
         if task.status != "pending_extension":
             return {"status": "already_processed"}
             
@@ -1091,11 +1108,11 @@ class RedisQueueManager:
                 job_id = scraped.get("job_id") or extract_job_id(task.url)
                 existing = None
                 if task.vacancy_id:
-                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id).first()
+                    existing = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not existing and job_id:
-                    existing = db.query(Vacancy).filter(Vacancy.job_id == job_id).first()
+                    existing = db.query(Vacancy).filter(Vacancy.job_id == job_id, Vacancy.user_id == task.user_id).first()
                 if not existing:
-                    existing = db.query(Vacancy).filter(Vacancy.url == task.url).first()
+                    existing = db.query(Vacancy).filter(Vacancy.url == task.url, Vacancy.user_id == task.user_id).first()
 
                 initial_tags = list(task.default_tags)
                 if existing:
@@ -1157,7 +1174,7 @@ class RedisQueueManager:
                         workplace_type=scraped.get("workplace_type"),
                         is_closed=scraped.get("is_closed", False),
                         tags=initial_tags,
-                        status="Еще не написан"
+                        status=STATUS_NOT_CONTACTED
                     )
                     db.add(new_vacancy)
                     db.flush()

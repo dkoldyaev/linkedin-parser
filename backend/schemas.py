@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from .models import STATUS_NOT_CONTACTED
 
 class UserResponse(BaseModel):
     id: int
@@ -8,10 +9,10 @@ class UserResponse(BaseModel):
     name: str
     picture: Optional[str] = None
     feature_flags: List[str] = Field(default_factory=list)
+    is_anonymous: bool = False
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserUpdateFeatureFlagsRequest(BaseModel):
     feature_flags: List[str] = Field(default_factory=list)
@@ -25,7 +26,7 @@ class AdminUserUpdate(BaseModel):
 class AuthConfigResponse(BaseModel):
     google_configured: bool
     google_client_id: Optional[str] = None
-    dev_mode: bool = True
+    dev_mode: bool = False
 
 class DevLoginRequest(BaseModel):
     email: Optional[str] = "dev@local.user"
@@ -54,7 +55,7 @@ class VacancyBase(BaseModel):
     tech_stack: List[str] = Field(default_factory=list)
     match_score: Optional[float] = None
     tags: List[str] = Field(default_factory=list)
-    status: str = "Еще не написан"
+    status: str = STATUS_NOT_CONTACTED
     notes: Optional[str] = None
 
 class VacancyCreate(VacancyBase):
@@ -71,6 +72,7 @@ class VacancyUpdate(BaseModel):
     workplace_type: Optional[str] = None
     is_closed: Optional[bool] = None
     status: Optional[str] = None
+    lane: Optional[int] = None
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_min: Optional[float] = None
@@ -88,12 +90,13 @@ class VacancyHistoryItem(BaseModel):
     vacancy_id: int
     from_status: Optional[str] = None
     to_status: str
+    from_lane: Optional[int] = None
+    to_lane: Optional[int] = None
     comment: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class VacancyHistoryUpdate(BaseModel):
     comment: Optional[str] = None
@@ -101,12 +104,16 @@ class VacancyHistoryUpdate(BaseModel):
 class VacancyHistoryCreate(BaseModel):
     to_status: str
     from_status: Optional[str] = None
+    from_lane: Optional[int] = None
+    to_lane: Optional[int] = None
     comment: Optional[str] = None
 
 class VacancyReorderRequest(BaseModel):
     status: str
     ids: List[int]
     lane: int = 0
+    moved_id: Optional[int] = None
+    moved_ids: Optional[List[int]] = None
 
 class VacancyResponse(VacancyBase):
     id: int
@@ -116,11 +123,10 @@ class VacancyResponse(VacancyBase):
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class BatchImportRequest(BaseModel):
-    urls: List[str]
+    urls: List[str] = Field(..., max_length=200)
     default_tags: List[str] = Field(default_factory=list)
 
 class DuplicateVacancyInfo(BaseModel):
@@ -133,11 +139,12 @@ class DuplicateVacancyInfo(BaseModel):
     status: Optional[str] = None
 
 class CheckDuplicatesRequest(BaseModel):
-    urls: List[str]
+    urls: List[str] = Field(..., max_length=200)
 
 class CheckDuplicatesResponse(BaseModel):
     has_duplicates: bool
     duplicates: List[DuplicateVacancyInfo]
+    requires_extension: bool = False
 
 class ImportItemResult(BaseModel):
     url: str
@@ -202,7 +209,7 @@ class ColumnUpdateRequest(BaseModel):
     has_lanes: Optional[bool] = None
 
 class ColumnDeleteRequest(BaseModel):
-    migrate_to_status: Optional[str] = "Еще не написан"
+    migrate_to_status: Optional[str] = STATUS_NOT_CONTACTED
 
 class ColumnsOrderRequest(BaseModel):
     columns: List[ColumnItem]
@@ -250,8 +257,7 @@ class ApprovedCVResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MatchedRequirementItem(BaseModel):
     requirement: str
@@ -293,8 +299,7 @@ class VacancyCVAnalysisResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdaptedCVVersionResponse(BaseModel):
@@ -306,8 +311,7 @@ class AdaptedCVVersionResponse(BaseModel):
     parent_version_id: Optional[int] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdaptCVRequest(BaseModel):
@@ -328,8 +332,7 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     last_used_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApiKeyCreatedResponse(ApiKeyResponse):

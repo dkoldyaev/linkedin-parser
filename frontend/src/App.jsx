@@ -5,31 +5,43 @@ import LoginModal from './components/LoginModal';
 import NavDrawer from './components/NavDrawer';
 import PageHeader from './components/PageHeader';
 import { MenuContext } from './components/menuContext';
+import { useGridScroll } from './utils/useGridScroll';
 import HomePage from './pages/HomePage';
 import StatsPage from './pages/StatsPage';
-import HowToUsePage from './pages/HowToUsePage';
 import AboutPage from './pages/AboutPage';
 import CVManagementPage from './pages/CVManagementPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import UserManagementPage from './pages/UserManagementPage';
 import AdminPage from './pages/AdminPage';
+import LandingPage from './pages/LandingPage';
 import { setAnalyticsUser, trackEvent, EVENTS } from './utils/analytics';
 
-function Layout({ user, onLogout, onUserUpdated }) {
+function Layout({ user, guestBoard, onLogout, onUserUpdated }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const snapScroll = useGridScroll();
+  const isBoardRoute = pathname === '/' && (user || guestBoard);
+  const landingRoute =
+    pathname === '/howtouse' || pathname === '/landing' || (pathname === '/' && !user && !guestBoard);
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
     [open]
   );
-  // The board ("/") renders its own header with search; other pages use the shared one.
-  const showPageHeader = pathname !== '/';
+  // The board ("/" when authenticated or unlocked) renders its own header with search; all other pages (including LandingPage) use the shared PageHeader.
+  const showPageHeader = !isBoardRoute;
 
   return (
     <MenuContext.Provider value={menu}>
       <div className="app-shell">
         {showPageHeader && <PageHeader user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />}
-        <div className="app-shell-content">
+        <div
+          className={`app-shell-content${landingRoute ? ' is-landing' : ''}`}
+          onScroll={
+            user || pathname === '/' || pathname === '/landing' || pathname === '/howtouse'
+              ? snapScroll
+              : undefined
+          }
+        >
           <Outlet />
         </div>
         <NavDrawer user={user} />
@@ -41,6 +53,47 @@ function Layout({ user, onLogout, onUserUpdated }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const observed = new Set();
+    const align = (modal, remeasure = false) => {
+      if (!modal.isConnected) return;
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      if (remeasure) {
+        modal.style.width = '';
+        modal.style.height = '';
+      }
+      const maxHeight = Math.max(grid, Math.floor(Math.min(window.innerHeight * .9, window.innerHeight - 40) / grid) * grid);
+      modal.style.setProperty('--modal-grid-max-height', `${maxHeight}px`);
+      const width = modal.offsetWidth;
+      const gridWidth = Math.floor(width / grid) * grid;
+      if (gridWidth >= grid) modal.style.width = `${gridWidth}px`;
+      const height = modal.offsetHeight;
+      modal.style.height = `${Math.min(maxHeight, Math.ceil(height / grid) * grid)}px`;
+      const offset = (viewport, size) => {
+        const centered = (viewport - size) / 2;
+        const lastGridLine = Math.max(0, Math.floor((viewport - size) / grid) * grid);
+        return Math.min(lastGridLine, Math.max(0, Math.round(centered / grid) * grid)) - centered;
+      };
+      modal.style.setProperty('--modal-grid-x', `${offset(window.innerWidth, modal.offsetWidth)}px`);
+      modal.style.setProperty('--modal-grid-y', `${offset(window.innerHeight, modal.offsetHeight)}px`);
+    };
+    const resizeObserver = new ResizeObserver(entries => entries.forEach(({ target }) => align(target)));
+    const sync = () => {
+      observed.forEach(modal => {
+        if (!modal.isConnected) { resizeObserver.unobserve(modal); observed.delete(modal); }
+      });
+      document.querySelectorAll('.modal-overlay > .modal-content').forEach(modal => {
+        if (!observed.has(modal)) { observed.add(modal); resizeObserver.observe(modal); }
+        align(modal, true);
+      });
+    };
+    const mutations = new MutationObserver(sync);
+    mutations.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', sync);
+    sync();
+    return () => { mutations.disconnect(); resizeObserver.disconnect(); window.removeEventListener('resize', sync); };
+  }, []);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -67,6 +120,21 @@ export default function App() {
     checkAuth();
   }, [checkAuth]);
 
+  const [guestBoard, setGuestBoard] = useState(() => {
+    try {
+      return localStorage.getItem('unlocked_board') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleUnlockBoard = useCallback(() => {
+    try {
+      localStorage.setItem('unlocked_board', 'true');
+    } catch {}
+    setGuestBoard(true);
+  }, []);
+
   const handleLogout = async () => {
     trackEvent(EVENTS.LOGOUT);
     try {
@@ -74,14 +142,14 @@ export default function App() {
     } catch (err) {
       console.error('Logout failed', err);
     }
-    setUser(null);
-    setAnalyticsUser(null);
+    // Refresh auth state to automatically issue a clean anonymous guest session
+    await checkAuth();
   };
 
   if (authLoading) {
     return (
       <div className="auth-loading-screen">
-        <Loader2 size={40} className="spin" style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={40} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
@@ -97,14 +165,26 @@ export default function App() {
 
   return (
     <Routes>
-      <Route element={<Layout user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
-        <Route path="/" element={user ? <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} /> : loginScreen} />
-        <Route path="/cv" element={user ? <CVManagementPage user={user} /> : loginScreen} />
+      <Route element={<Layout user={user} guestBoard={guestBoard} onLogout={handleLogout} onUserUpdated={setUser} />}>
+        <Route
+          path="/"
+          element={
+            user ? (
+              <HomePage user={user} onLogout={handleLogout} onUserUpdated={setUser} />
+            ) : guestBoard ? (
+              loginScreen
+            ) : (
+              <LandingPage onFinish={handleUnlockBoard} />
+            )
+          }
+        />
+        <Route path="/landing" element={<LandingPage onFinish={handleUnlockBoard} />} />
+        <Route path="/cv" element={user ? <CVManagementPage key={user.id} user={user} /> : loginScreen} />
         <Route path="/stat" element={user ? <StatsPage /> : loginScreen} />
         <Route path="/apikeys" element={user ? <ApiKeysPage user={user} /> : loginScreen} />
         <Route path="/users" element={user ? <UserManagementPage user={user} /> : loginScreen} />
         <Route path="/admin" element={user ? <AdminPage user={user} /> : loginScreen} />
-        <Route path="/howtouse" element={<HowToUsePage />} />
+        <Route path="/howtouse" element={<LandingPage onFinish={handleUnlockBoard} />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

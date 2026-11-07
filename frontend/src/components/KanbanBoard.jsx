@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import KanbanCard from './KanbanCard';
+import { useGridScroll } from '../utils/useGridScroll';
 import { useTranslation } from '../i18n/I18nContext';
-import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2, Inbox } from 'lucide-react';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
 import ColumnDeleteModal from './ColumnDeleteModal';
+import {
+  STATUS_NOT_CONTACTED,
+  STATUS_REJECTED,
+  BASE_STATUSES,
+  DEFAULT_COLUMNS as DEFAULT_BOARD_COLUMNS,
+} from '../constants/columns';
 
-const REJECTED_STATUS = "Отказ";
-
-const DEFAULT_BOARD_COLUMNS = [
-  { id: "Еще не написан", color: "#6366f1", has_lanes: false, is_base: true },
-  { id: "Написал", color: "#0284c7", has_lanes: false, is_base: false },
-  { id: "Собеседование", color: "#d97706", has_lanes: true, is_base: false },
-  { id: "Тестовое", color: "#9333ea", has_lanes: true, is_base: false },
-  { id: "Оффер", color: "#059669", has_lanes: false, is_base: false },
-  { id: "Отказ", color: "#ef4444", has_lanes: false, is_base: true },
-];
+const REJECTED_STATUS = STATUS_REJECTED;
 
 const sortByManualOrder = (list) => {
   const unordered = list.filter(v => v.sort_order == null);
@@ -38,6 +36,30 @@ export default function KanbanBoard({
   onReorder
 }) {
   const { t } = useTranslation();
+  const snapScroll = useGridScroll();
+  const wrapperRef = useRef(null);
+  const boardRef = useRef(null);
+  const rejectedRef = useRef(null);
+  const [boardHeight, setBoardHeight] = useState(null);
+
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const rejected = rejectedRef.current;
+    if (!wrapper || !rejected) return;
+    const update = () => {
+      const available = wrapper.clientHeight - rejected.offsetHeight;
+      const minimum = window.innerHeight * 0.7;
+      const height = Math.max(32, Math.floor(Math.max(available, minimum) / 32) * 32);
+      setBoardHeight(previous => previous === height ? previous : height);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(wrapper);
+    observer.observe(rejected);
+    window.addEventListener('resize', update);
+    update();
+    return () => { observer.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
+
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const [dropIndex, setDropIndex] = useState(null);
   const [dragOverLane, setDragOverLane] = useState(0);
@@ -61,7 +83,86 @@ export default function KanbanBoard({
   const funnelColumns = boardColumns.filter(c => c.id !== REJECTED_STATUS);
   const laneColumnIds = new Set(boardColumns.filter(c => c.has_lanes).map(c => c.id));
 
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const update = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      const colEls = Array.from(board.children).filter(
+        child => !child.classList.contains('kanban-add-column')
+      );
+      const count = colEls.length;
+      if (count === 0) return;
+
+      const isMobile = window.innerWidth <= 700;
+      const minUnits = isMobile ? 10 : 8;
+      const totalUnits = Math.floor(board.clientWidth / grid);
+      const availUnits = totalUnits - 1;
+
+      if (!isMobile && availUnits >= count * minUnits) {
+        const baseUnits = Math.floor(availUnits / count);
+        const remUnits = availUnits % count;
+        colEls.forEach((el, idx) => {
+          const w = (baseUnits + (idx < remUnits ? 1 : 0)) * grid;
+          el.style.flex = `0 0 ${w}px`;
+          el.style.width = `${w}px`;
+          el.style.minWidth = `${w}px`;
+          el.style.maxWidth = `${w}px`;
+        });
+        board.style.setProperty('--add-column-extra-width', '0px');
+      } else {
+        const w = minUnits * grid;
+        colEls.forEach(el => {
+          el.style.flex = `0 0 ${w}px`;
+          el.style.width = `${w}px`;
+          el.style.minWidth = `${w}px`;
+          el.style.maxWidth = `${w}px`;
+        });
+        const columnsWidth = count * w;
+        const tail = columnsWidth + grid > board.clientWidth
+          ? ((board.clientWidth - columnsWidth - grid) % grid + grid) % grid
+          : 0;
+        board.style.setProperty('--add-column-extra-width', `${tail}px`);
+      }
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(board);
+    window.addEventListener('resize', update);
+    update();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [columns]);
+
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
+
+  // Make the scrollable end land on the same grid as the column background.
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const lists = Array.from(wrapper.querySelectorAll('.column-cards'));
+    let frame;
+    const update = () => {
+      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
+      for (const list of lists) {
+        const contentHeight = Array.from(list.children).reduce((sum, child) => sum + child.offsetHeight, 0);
+        const remainder = ((list.clientHeight - contentHeight) % grid + grid) % grid;
+        const padding = contentHeight > list.clientHeight ? remainder : 0;
+        list.style.setProperty('--column-grid-tail', `${padding}px`);
+      }
+    };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
+    const observer = new ResizeObserver(schedule);
+    lists.forEach(list => { observer.observe(list); Array.from(list.children).forEach(child => observer.observe(child)); });
+    const mutations = new MutationObserver(() => {
+      lists.forEach(list => Array.from(list.children).forEach(child => observer.observe(child)));
+      schedule();
+    });
+    lists.forEach(list => mutations.observe(list, { childList: true }));
+    update();
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); mutations.disconnect(); };
+  }, [columns, vacancies]);
 
   const computeDropIndex = (e) => {
     const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging)'));
@@ -108,6 +209,8 @@ export default function KanbanBoard({
     const vacancyId = e.dataTransfer.getData('text/plain');
     if (vacancyId) {
       const vid = parseInt(vacancyId, 10);
+      const dragged = vacancies.find(v => v.id === vid);
+      if (!dragged) return;
       if (selectedIds.includes(vid) && selectedIds.length > 1 && onStatusChangeMulti) {
         selectedIds.forEach(id => {
           trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
@@ -116,26 +219,15 @@ export default function KanbanBoard({
             method: 'drag_and_drop_multi'
           });
         });
-        onStatusChangeMulti(selectedIds, columnId);
-      } else if (onReorder) {
-        const dragged = vacancies.find(v => v.id === vid);
-        if (!dragged) return;
-
-        let ids;
-        if (laneColumnIds.has(columnId)) {
-          ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
+        onStatusChangeMulti(selectedIds, columnId, lane);
+      } else if (onReorder && !laneColumnIds.has(columnId)) {
+        const ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
             .filter(id => id !== vid);
-          ids.push(vid);
+        if (targetIndex !== null) {
+          ids.splice(Math.min(targetIndex, ids.length), 0, vid);
         } else {
-          ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
-            .map(v => v.id)
-            .filter(id => id !== vid);
-          if (targetIndex !== null) {
-            ids.splice(Math.min(targetIndex, ids.length), 0, vid);
-          } else {
-            ids.push(vid);
-          }
+          ids.push(vid);
         }
 
         trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
@@ -143,14 +235,14 @@ export default function KanbanBoard({
           to_status: columnId,
           method: dragged.status === columnId ? 'drag_reorder' : 'drag_and_drop'
         });
-        onReorder(columnId, ids, lane);
+        onReorder(columnId, ids, lane, vid);
       } else {
         trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
           vacancy_id: vid,
           to_status: columnId,
           method: 'drag_and_drop'
         });
-        onStatusChange(vid, columnId);
+        onStatusChange(vid, columnId, lane);
       }
     }
   };
@@ -196,10 +288,13 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="kanban-wrapper">
+    <div className="kanban-wrapper" ref={wrapperRef}>
       {/* Funnel Columns */}
       <div
         className="kanban-board"
+        ref={boardRef}
+        onScroll={event => snapScroll(event, 'x')}
+        style={boardHeight ? { height: boardHeight } : undefined}
         onDragStart={(e) => {
           const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
           setDraggingId(Number.isNaN(id) ? null : id);
@@ -211,12 +306,13 @@ export default function KanbanBoard({
           setDragOverLane(0);
         }}
       >
-        {funnelColumns.map(col => {
-          const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
-          const columnName = t(`kanban.columns.${col.id}`);
+        {funnelColumns.map((col, colIndex) => {
           const isLaneColumn = laneColumnIds.has(col.id);
+          const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
+          if (isLaneColumn) columnVacancies.sort((a, b) => (b.lane ?? 0) - (a.lane ?? 0));
+          const columnName = t(`kanban.columns.${col.id}`);
           const isDragging = draggingId !== null;
-          const isBase = col.id === 'Еще не написан' || col.id === 'Отказ';
+          const isBase = BASE_STATUSES.includes(col.id);
 
           const maxLaneInCol = columnVacancies.reduce((m, v) => Math.max(m, (v.lane || 0)), 0);
           const laneCount = Math.max(1, maxLaneInCol + 1);
@@ -260,13 +356,13 @@ export default function KanbanBoard({
             >
               <div className="column-header">
                 <div className="column-title-group">
+                  <span className="column-index">{String(colIndex + 1).padStart(2, '0')}</span>
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name" title={columnName}>{columnName}</span>
+                  <span className="column-badge">[{columnVacancies.length}]</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="column-badge">{columnVacancies.length}</span>
-
                   <button
                     type="button"
                     className="column-actions-btn"
@@ -291,7 +387,7 @@ export default function KanbanBoard({
                         setEditingColumn(col);
                       }}
                     >
-                      <Edit2 size={13} color="#6366f1" />
+                      <Edit2 size={13} color="#2563eb" />
                       <span>{t('kanban.edit_column')}</span>
                     </button>
 
@@ -312,12 +408,14 @@ export default function KanbanBoard({
                 )}
               </div>
 
-              <div className="column-cards">
+              <div className="column-cards" onScroll={snapScroll}>
                 {cardsWithIndicator}
 
                 {columnVacancies.length === 0 && (
                   <div className="empty-column">
-                    {t('kanban.empty_column')}
+                    <Inbox className="empty-column-icon" size={20} aria-hidden="true" />
+                    <span className="empty-column-title">{t('kanban.empty_column')}</span>
+                    <span className="empty-column-hint">{t('kanban.empty_column_hint')}</span>
                   </div>
                 )}
               </div>
@@ -366,6 +464,7 @@ export default function KanbanBoard({
 
       {/* Bottom Rejection Block */}
       <div
+        ref={rejectedRef}
         className={`kanban-rejected-block ${dragOverColumn === REJECTED_STATUS ? 'drag-over' : ''} ${isRejectedCollapsed ? 'is-collapsed' : ''}`}
         onDragOver={(e) => handleDragOver(e, REJECTED_STATUS)}
         onDragLeave={(e) => handleDragLeave(e, REJECTED_STATUS)}
@@ -381,14 +480,8 @@ export default function KanbanBoard({
           <div className="column-title-group">
             <span className="column-dot" style={{ background: '#ef4444' }} />
             <span className="column-name">{t('kanban.rejected_title')}</span>
+            <span className="column-badge">[{rejectedVacancies.length}]</span>
           </div>
-
-          <span
-            className="column-badge"
-            style={rejectedVacancies.length > 0 ? { color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.3)' } : {}}
-          >
-            {rejectedVacancies.length}
-          </span>
 
           <button
             type="button"
