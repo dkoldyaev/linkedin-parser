@@ -7,12 +7,17 @@ import {
   ShieldAlert, 
   Save, 
   Loader2, 
-  AlertTriangle 
+  AlertTriangle,
+  Briefcase,
+  Clock,
+  Activity,
+  Calendar,
+  Cpu
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export default function AdminPage({ user }) {
-  const { t } = useTranslation();
+  const { t, formatDate } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -257,11 +262,22 @@ export default function AdminPage({ user }) {
                             )}
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{u.email}</div>
-                          {u.created_at && (
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                              {t('pages.admin.col_created')}: {new Date(u.created_at).toLocaleDateString()}
-                            </div>
-                          )}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+                            {u.created_at && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Calendar size={13} style={{ opacity: 0.7 }} />
+                                {t('pages.admin.col_created')}: {formatDate(u.created_at, { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Clock size={13} style={{ opacity: 0.7 }} />
+                              {t('pages.admin.col_last_login')}: {u.last_login_at || u.stats?.last_login_at ? formatDate(u.last_login_at || u.stats?.last_login_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('pages.admin.never')}
+                            </span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Activity size={13} style={{ opacity: 0.7 }} />
+                              {t('pages.admin.col_last_board_interaction')}: {u.last_board_interaction_at || u.stats?.last_board_interaction_at ? formatDate(u.last_board_interaction_at || u.stats?.last_board_interaction_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('pages.admin.never')}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -277,6 +293,158 @@ export default function AdminPage({ user }) {
                           {isUserAdmin ? t('pages.admin.toggle_admin_revoke') : t('pages.admin.toggle_admin_grant')}
                         </button>
                       </div>
+                    </div>
+
+                    {/* Vacancy Statistics Section */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <Briefcase size={15} style={{ color: 'var(--primary)' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          {t('pages.admin.vacancies_stat')}
+                        </span>
+                        <span style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          background: 'var(--bg-app)', 
+                          color: 'var(--text-muted)', 
+                          padding: '1px 8px', 
+                          borderRadius: 10,
+                          border: '1px solid var(--border-color)'
+                        }}>
+                          {t('pages.admin.vacancies_total', { count: u.stats?.total_vacancies ?? 0 })}
+                        </span>
+                      </div>
+
+                      {u.stats && Object.keys(u.stats.by_status || {}).length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                          {Object.entries(u.stats.by_status).map(([statusKey, count]) => {
+                            return (
+                              <div
+                                key={statusKey}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  padding: '4px 10px',
+                                  borderRadius: 8,
+                                  background: 'var(--bg-app)',
+                                  border: '1px solid var(--border-color)',
+                                  fontSize: 12
+                                }}
+                              >
+                                <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>
+                                  {statusKey}:
+                                </span>
+                                <span style={{ 
+                                  fontWeight: 700, 
+                                  color: 'var(--primary)',
+                                  background: 'rgba(99, 102, 241, 0.1)',
+                                  padding: '1px 6px',
+                                  borderRadius: 6
+                                }}>
+                                  {count}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>
+                          {t('pages.admin.vacancies_total', { count: 0 })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* LLM Token Statistics Section */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <Cpu size={15} style={{ color: 'var(--primary)' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          {t('pages.admin.tokens_stat')}
+                        </span>
+                        <span style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          background: 'var(--bg-app)', 
+                          color: (u.stats?.llm_tokens?.total_tokens ?? 0) > 0 ? 'var(--primary)' : 'var(--text-muted)', 
+                          padding: '1px 8px', 
+                          borderRadius: 10,
+                          border: '1px solid var(--border-color)'
+                        }}>
+                          {t('pages.admin.tokens_total', { count: (u.stats?.llm_tokens?.total_tokens ?? 0).toLocaleString() })}
+                        </span>
+                      </div>
+
+                      {u.stats?.llm_tokens && u.stats.llm_tokens.total_tokens > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '4px 10px',
+                              borderRadius: 8,
+                              background: 'var(--bg-app)',
+                              border: '1px solid var(--border-color)',
+                              fontSize: 12
+                            }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{t('pages.admin.tokens_prompt', { count: (u.stats.llm_tokens.prompt_tokens ?? 0).toLocaleString() })}</span>
+                            </div>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '4px 10px',
+                              borderRadius: 8,
+                              background: 'var(--bg-app)',
+                              border: '1px solid var(--border-color)',
+                              fontSize: 12
+                            }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{t('pages.admin.tokens_completion', { count: (u.stats.llm_tokens.completion_tokens ?? 0).toLocaleString() })}</span>
+                            </div>
+                            <div style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '4px 10px',
+                              borderRadius: 8,
+                              background: 'var(--bg-app)',
+                              border: '1px solid var(--border-color)',
+                              fontSize: 12
+                            }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{t('pages.admin.tokens_requests', { count: (u.stats.llm_tokens.total_requests ?? 0).toLocaleString() })}</span>
+                            </div>
+                          </div>
+
+                          {u.stats.llm_tokens.by_provider && Object.keys(u.stats.llm_tokens.by_provider).length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                              {Object.entries(u.stats.llm_tokens.by_provider).map(([prov, pData]) => (
+                                <div
+                                  key={prov}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    background: 'rgba(99, 102, 241, 0.08)',
+                                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                                    fontSize: 11
+                                  }}
+                                >
+                                  <strong style={{ textTransform: 'capitalize', color: 'var(--primary)' }}>{prov}:</strong>
+                                  <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{pData.total_tokens.toLocaleString()} tok</span>
+                                  <span style={{ color: 'var(--text-muted)' }}>({pData.requests} req)</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>
+                          {t('pages.admin.tokens_no_usage')}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>

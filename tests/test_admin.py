@@ -102,3 +102,68 @@ class TestAdminPanel(unittest.TestCase):
         # 5. Newly promoted user can now access admin endpoint
         res_promoted = self.user_client.get("/api/admin/users")
         self.assertEqual(res_promoted.status_code, 200)
+
+    def test_admin_user_stats(self):
+        # Regular user creates vacancy
+        v_res = self.user_client.post("/api/vacancies", json={
+            "title": "Backend Engineer",
+            "company": "Tech Corp",
+            "url": "https://example.com/job/123",
+            "status": "Еще не написал"
+        })
+        self.assertEqual(v_res.status_code, 200)
+        v_id = v_res.json()["id"]
+
+        # Regular user updates vacancy status (interacts with board)
+        update_res = self.user_client.patch(f"/api/vacancies/{v_id}", json={
+            "status": "Написал"
+        })
+        self.assertEqual(update_res.status_code, 200)
+
+        # Record token usage for regular user
+        reg_user_obj = self.db.query(User).filter(User.email == "regular_user@test.com").first()
+        from backend.models import UserLLMTokenUsage
+        self.db.add(UserLLMTokenUsage(
+            user_id=reg_user_obj.id,
+            provider="mistral",
+            model="mistral-small-latest",
+            operation="vacancy_summary",
+            prompt_tokens=150,
+            completion_tokens=50,
+            total_tokens=200,
+        ))
+        self.db.add(UserLLMTokenUsage(
+            user_id=reg_user_obj.id,
+            provider="gemini",
+            model="gemini-2.5-flash",
+            operation="cv_compatibility",
+            prompt_tokens=500,
+            completion_tokens=100,
+            total_tokens=600,
+        ))
+        self.db.commit()
+
+        # Admin fetches users and inspects stats
+        res = self.admin_client.get("/api/admin/users")
+        self.assertEqual(res.status_code, 200)
+        users = res.json()
+
+        reg_user = next((u for u in users if u["email"] == "regular_user@test.com"), None)
+        self.assertIsNotNone(reg_user)
+        self.assertIn("stats", reg_user)
+        stats = reg_user["stats"]
+        self.assertEqual(stats["total_vacancies"], 1)
+        self.assertEqual(stats["by_status"].get("Написал"), 1)
+        self.assertIsNotNone(stats["last_login_at"])
+        self.assertIsNotNone(stats["last_board_interaction_at"])
+
+        # Check token usage in user stats
+        self.assertIn("llm_tokens", stats)
+        llm_tokens = stats["llm_tokens"]
+        self.assertEqual(llm_tokens["total_tokens"], 800)
+        self.assertEqual(llm_tokens["prompt_tokens"], 650)
+        self.assertEqual(llm_tokens["completion_tokens"], 150)
+        self.assertEqual(llm_tokens["total_requests"], 2)
+        self.assertEqual(llm_tokens["by_provider"]["mistral"]["total_tokens"], 200)
+        self.assertEqual(llm_tokens["by_provider"]["gemini"]["total_tokens"], 600)
+

@@ -27,6 +27,7 @@ from .models import (
     VacancyCVAnalysis,
     AdaptedCVVersion,
     ApiKey,
+    UserLLMTokenUsage,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -79,6 +80,7 @@ from .schemas import (
     ApiKeyCreateRequest,
     ApiKeyResponse,
     ApiKeyCreatedResponse,
+    UserStatsSummary,
 )
 from .auth import (
     get_current_user,
@@ -473,6 +475,131 @@ def update_my_feature_flags(
     return current_user
 
 
+def touch_user_board_interaction(db: Session, user_id: int):
+    """Update last_board_interaction_at timestamp for user."""
+    if not user_id:
+        return
+    now = datetime.datetime.utcnow()
+    db.query(User).filter(User.id == user_id).update(
+        {User.last_board_interaction_at: now},
+        synchronize_session=False
+    )
+
+
+def _populate_user_stats(db: Session, users: List[User]):
+    """Compute and attach vacancy stats and board interaction timestamps for users."""
+    if not users:
+        return
+
+    user_ids = [u.id for u in users]
+
+    # 1. Status counts per user
+    status_counts_raw = (
+        db.query(
+            Vacancy.user_id,
+            Vacancy.status,
+            func.count(Vacancy.id)
+        )
+        .filter(Vacancy.user_id.in_(user_ids))
+        .group_by(Vacancy.user_id, Vacancy.status)
+        .all()
+    )
+
+    user_status_map: Dict[int, Dict[str, int]] = {}
+    user_totals: Dict[int, int] = {}
+    for uid, status_name, count in status_counts_raw:
+        if uid not in user_status_map:
+            user_status_map[uid] = {}
+            user_totals[uid] = 0
+        user_status_map[uid][status_name] = count
+        user_totals[uid] += count
+
+    # 2. Max vacancy updated_at per user
+    max_vac_map: Dict[int, Optional[datetime.datetime]] = dict(
+        db.query(Vacancy.user_id, func.max(Vacancy.updated_at))
+        .filter(Vacancy.user_id.in_(user_ids))
+        .group_by(Vacancy.user_id)
+        .all()
+    )
+
+    # 3. Max vacancy status history created_at per user
+    max_hist_map: Dict[int, Optional[datetime.datetime]] = dict(
+        db.query(Vacancy.user_id, func.max(VacancyStatusHistory.created_at))
+        .join(VacancyStatusHistory, Vacancy.id == VacancyStatusHistory.vacancy_id)
+        .filter(Vacancy.user_id.in_(user_ids))
+        .group_by(Vacancy.user_id)
+        .all()
+    )
+
+    # 4. LLM Token usage summary per user and per provider
+    token_usage_raw = (
+        db.query(
+            UserLLMTokenUsage.user_id,
+            UserLLMTokenUsage.provider,
+            func.sum(UserLLMTokenUsage.prompt_tokens),
+            func.sum(UserLLMTokenUsage.completion_tokens),
+            func.sum(UserLLMTokenUsage.total_tokens),
+            func.count(UserLLMTokenUsage.id)
+        )
+        .filter(UserLLMTokenUsage.user_id.in_(user_ids))
+        .group_by(UserLLMTokenUsage.user_id, UserLLMTokenUsage.provider)
+        .all()
+    )
+
+    user_tokens_map: Dict[int, Dict[str, Any]] = {}
+    for uid, prov, p_tok, c_tok, t_tok, req_count in token_usage_raw:
+        if uid not in user_tokens_map:
+            user_tokens_map[uid] = {
+                "total_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_requests": 0,
+                "by_provider": {}
+            }
+        p_tok = int(p_tok or 0)
+        c_tok = int(c_tok or 0)
+        t_tok = int(t_tok or 0)
+        req_count = int(req_count or 0)
+
+        user_tokens_map[uid]["total_tokens"] += t_tok
+        user_tokens_map[uid]["prompt_tokens"] += p_tok
+        user_tokens_map[uid]["completion_tokens"] += c_tok
+        user_tokens_map[uid]["total_requests"] += req_count
+        user_tokens_map[uid]["by_provider"][prov] = {
+            "total_tokens": t_tok,
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+            "requests": req_count,
+        }
+
+    for u in users:
+        u.feature_flags = [f.flag for f in (u.flags or [])]
+
+        candidates = [
+            dt for dt in [
+                u.last_board_interaction_at,
+                max_vac_map.get(u.id),
+                max_hist_map.get(u.id)
+            ]
+            if dt is not None
+        ]
+        effective_board_interaction = max(candidates) if candidates else None
+
+        u.stats = UserStatsSummary(
+            total_vacancies=user_totals.get(u.id, 0),
+            by_status=user_status_map.get(u.id, {}),
+            last_login_at=u.last_login_at,
+            last_board_interaction_at=effective_board_interaction,
+            llm_tokens=user_tokens_map.get(u.id, {
+                "total_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_requests": 0,
+                "by_provider": {}
+            })
+        )
+
+
 @app.get("/api/users", response_model=List[UserResponse])
 def list_users(
     current_user: User = Depends(get_current_user),
@@ -486,9 +613,7 @@ def list_users(
             detail="Admin access required",
         )
     users = db.query(User).options(selectinload(User.flags)).order_by(User.id.asc()).all()
-    # Populate flags from UserFeatureFlag
-    for u in users:
-        u.feature_flags = [f.flag for f in u.flags]
+    _populate_user_stats(db, users)
     return users
 
 
@@ -638,8 +763,7 @@ def admin_get_users(
     db: Session = Depends(get_db)
 ):
     users = db.query(User).options(selectinload(User.flags)).order_by(User.id.asc()).all()
-    for u in users:
-        u.feature_flags = [f.flag for f in u.flags]
+    _populate_user_stats(db, users)
     return users
 
 
@@ -789,6 +913,7 @@ async def create_vacancy(
         created_at=v.created_at,
     )
     db.add(history_entry)
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     db.refresh(v)
 
@@ -871,6 +996,7 @@ async def reorder_vacancies(
         v.sort_order = float(position)
         changed.append(v)
 
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     for v in changed:
         db.refresh(v)
@@ -959,6 +1085,7 @@ async def update_vacancy(
             VacancyCVAnalysis.user_id == current_user.id
         ).update({"is_outdated": True})
 
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     db.refresh(v)
 
@@ -996,6 +1123,7 @@ async def update_vacancy_history_comment(
 
     history_item.comment = payload.comment
     history_item.updated_at = datetime.datetime.utcnow()
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     db.refresh(v)
 
@@ -1048,6 +1176,7 @@ async def add_vacancy_history_entry(
     v.status = payload.to_status
     v.lane = to_lane
     db.add(history_entry)
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     db.refresh(v)
 
@@ -1083,6 +1212,7 @@ async def delete_vacancy_history_entry(
         raise HTTPException(status_code=404, detail="History record not found")
 
     db.delete(history_item)
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
     db.refresh(v)
 
@@ -1111,6 +1241,7 @@ async def delete_vacancy(
     
     title = v.title
     db.delete(v)
+    touch_user_board_interaction(db, current_user.id)
     db.commit()
 
     mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
@@ -1748,6 +1879,8 @@ def create_column(
         cols.append(new_col)
 
     save_user_columns(db, current_user.id, cols)
+    touch_user_board_interaction(db, current_user.id)
+    db.commit()
     return [ColumnItem(**c) for c in cols]
 
 
@@ -1806,6 +1939,8 @@ def update_column(
         target["has_lanes"] = bool(payload.has_lanes)
 
     save_user_columns(db, current_user.id, cols)
+    touch_user_board_interaction(db, current_user.id)
+    db.commit()
     return [ColumnItem(**c) for c in cols]
 
 
@@ -1850,6 +1985,8 @@ def delete_column(
         v.lane = 0
 
     save_user_columns(db, current_user.id, remaining_cols)
+    touch_user_board_interaction(db, current_user.id)
+    db.commit()
     return [ColumnItem(**c) for c in remaining_cols]
 
 
@@ -1866,6 +2003,8 @@ def reorder_columns(
         if b not in col_ids:
             raise HTTPException(status_code=400, detail=f"Base column '{b}' cannot be missing")
     save_user_columns(db, current_user.id, cols_data)
+    touch_user_board_interaction(db, current_user.id)
+    db.commit()
     return [ColumnItem(**c) for c in cols_data]
 
 
@@ -2494,14 +2633,15 @@ async def adapt_cv_for_vacancy(
     Triggers adaptation or re-adaptation of the candidate's CV for this specific vacancy.
     Currently disabled.
     """
-    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
-    if not vacancy:
-        raise HTTPException(status_code=404, detail="Vacancy not found")
-
+    # Currently disabled
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="CV adaptation feature is temporarily disabled.",
     )
+
+    vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
 
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if not approved_cv or not approved_cv.content.strip():
@@ -2551,6 +2691,8 @@ async def adapt_cv_for_vacancy(
             mistral_key=mistral_key,
             gemini_key=gemini_key,
             active_provider=provider,
+            db=db,
+            user_id=current_user.id,
         )
     except Exception as e:
         logger.error(f"Manual CV adaptation failed for vacancy #{vacancy.id}: {e}")

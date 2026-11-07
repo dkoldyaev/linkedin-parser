@@ -447,6 +447,11 @@ def get_or_create_user(
             db.commit()
             db.refresh(user)
 
+    # Track login timestamp
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
     user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
     return user
 
@@ -464,12 +469,14 @@ def get_or_create_dev_user(db: Session, email: str = "dev@local.user", name: str
 def create_anonymous_user(db: Session) -> User:
     """Create a new anonymous guest user with an isolated workspace."""
     anon_id = uuid.uuid4().hex[:12]
+    now = datetime.utcnow()
     user = User(
         google_id=f"anon_{uuid.uuid4().hex}",
         email=f"guest_{anon_id}@guest.local",
         name="Гость",
         picture="https://api.dicebear.com/7.x/bottts/svg?seed=guest_" + anon_id,
         is_anonymous=True,
+        last_login_at=now,
         feature_flags=[],
     )
     db.add(user)
@@ -497,6 +504,12 @@ def migrate_anonymous_user_data(db: Session, anon_user_id: int, target_user: Use
     db.query(Vacancy).filter(Vacancy.user_id == anon_user.id).update(
         {Vacancy.user_id: target_user.id}, synchronize_session=False
     )
+
+    # Transfer last_board_interaction_at if anonymous user interacted more recently
+    if anon_user.last_board_interaction_at:
+        if not target_user.last_board_interaction_at or anon_user.last_board_interaction_at > target_user.last_board_interaction_at:
+            target_user.last_board_interaction_at = anon_user.last_board_interaction_at
+            db.commit()
 
     # 2. ApprovedCV (if target user has no CV, transfer it)
     anon_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == anon_user.id).first()

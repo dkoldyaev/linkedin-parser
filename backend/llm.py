@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 import httpx
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
-from .models import AppSetting, UserSetting
+from .models import AppSetting, UserSetting, UserLLMTokenUsage
 from .llm_schemas import vacancy_schema, anonymization_schema, compatibility_schema, adapted_cv_schema
 
 load_dotenv()
@@ -59,7 +59,47 @@ def get_setting_or_env(db: Optional[Session], key: str, default: str = "", user_
     return os.getenv(key.upper(), default)
 
 
-async def call_mistral(prompt: str, api_key: str, model: str = "open-mistral-nemo", system_prompt: str = "") -> str:
+def record_token_usage(
+    db: Optional[Session],
+    user_id: Optional[int],
+    provider: str,
+    operation: str,
+    model: Optional[str] = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    total_tokens: int = 0,
+):
+    """Safely record LLM token usage for a user in the database."""
+    if not db or not user_id:
+        return
+    try:
+        calc_total = total_tokens if total_tokens > 0 else (prompt_tokens + completion_tokens)
+        usage = UserLLMTokenUsage(
+            user_id=user_id,
+            provider=provider,
+            model=model,
+            operation=operation,
+            prompt_tokens=prompt_tokens or 0,
+            completion_tokens=completion_tokens or 0,
+            total_tokens=calc_total or 0,
+        )
+        db.add(usage)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"Failed to record LLM token usage for user {user_id}: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+async def call_mistral(
+    prompt: str,
+    api_key: str,
+    model: str = "open-mistral-nemo",
+    system_prompt: str = "",
+    return_usage: bool = False,
+):
     """Call Mistral API via HTTP completions with automatic fallback for free tier."""
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -86,7 +126,17 @@ async def call_mistral(prompt: str, api_key: str, model: str = "open-mistral-nem
             resp = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
-                return data["choices"][0]["message"]["content"]
+                content = data["choices"][0]["message"]["content"]
+                if return_usage:
+                    raw_usage = data.get("usage") or {}
+                    usage_info = {
+                        "prompt_tokens": raw_usage.get("prompt_tokens", 0),
+                        "completion_tokens": raw_usage.get("completion_tokens", 0),
+                        "total_tokens": raw_usage.get("total_tokens", 0),
+                        "model": m,
+                    }
+                    return content, usage_info
+                return content
             else:
                 last_error = f"Mistral API error ({resp.status_code}) on model {m}"
                 logger.warning(last_error)
@@ -99,7 +149,14 @@ async def call_mistral(prompt: str, api_key: str, model: str = "open-mistral-nem
         raise RuntimeError(last_error)
 
 
-async def call_gemini(prompt: str, api_key: str, model: str = "gemini-2.5-flash", response_schema: Optional[Dict[str, Any]] = None, system_prompt: str = "") -> str:
+async def call_gemini(
+    prompt: str,
+    api_key: str,
+    model: str = "gemini-2.5-flash",
+    response_schema: Optional[Dict[str, Any]] = None,
+    system_prompt: str = "",
+    return_usage: bool = False,
+):
     """Call Google Gemini API via official google-genai client."""
     from google import genai
     from google.genai import types
@@ -116,9 +173,23 @@ async def call_gemini(prompt: str, api_key: str, model: str = "gemini-2.5-flash"
     client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=45000))
     try:
         async with client.aio as async_client:
+            active_model = model or "gemini-2.5-flash"
             response = await async_client.models.generate_content(
-                model=model or "gemini-2.5-flash", contents=prompt, config=config)
-            return response.text
+                model=active_model, contents=prompt, config=config)
+            text = response.text
+            if return_usage:
+                u = getattr(response, "usage_metadata", None)
+                p_tokens = getattr(u, "prompt_token_count", 0) if u else 0
+                c_tokens = getattr(u, "candidates_token_count", 0) if u else 0
+                t_tokens = getattr(u, "total_token_count", 0) if u else (p_tokens + c_tokens)
+                usage_info = {
+                    "prompt_tokens": p_tokens or 0,
+                    "completion_tokens": c_tokens or 0,
+                    "total_tokens": t_tokens or 0,
+                    "model": active_model,
+                }
+                return text, usage_info
+            return text
     finally:
         client.close()
 
@@ -187,18 +258,43 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
         prompt = f"""Данные вакансии:\nДолжность: {title or ''}\nКомпания: {company or ''}\nМестоположение: {location or ''}\nОписание:\n{description}\n\nПроанализируйте вакансию и верните JSON-объект. Для отсутствующих сведений используйте указанные пустые значения."""
 
     raw_response = None
+    token_usage_info = None
 
     try:
         if provider == "gemini":
             if not gemini_key:
                 raise ValueError("Gemini API key is not configured")
-            raw_response = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt)
+            call_res = await call_gemini(
+                prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+            )
+            if isinstance(call_res, tuple):
+                raw_response, token_usage_info = call_res
+            else:
+                raw_response = call_res
         elif provider == "mistral":
             if not mistral_key:
                 raise ValueError("Mistral API key is not configured")
-            raw_response = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt)
+            call_res = await call_mistral(
+                prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True
+            )
+            if isinstance(call_res, tuple):
+                raw_response, token_usage_info = call_res
+            else:
+                raw_response = call_res
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
+
+        if token_usage_info and db and user_id:
+            record_token_usage(
+                db=db,
+                user_id=user_id,
+                provider=provider,
+                operation="vacancy_summary",
+                model=token_usage_info.get("model"),
+                prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+                completion_tokens=token_usage_info.get("completion_tokens", 0),
+                total_tokens=token_usage_info.get("total_tokens", 0),
+            )
     except Exception as e:
         logger.warning(f"LLM call failed for provider {provider}: {e}")
         # Return fallback heuristic
@@ -389,16 +485,37 @@ async def anonymize_companies_with_llm(
         prompt = f"""Названия компаний:\n{json.dumps(companies, ensure_ascii=False)}\n\nОбобщите каждое название. Если отрасль неизвестна, укажите, что она не определена."""
 
     raw_response = ""
+    token_usage_info = None
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        raw_response = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt)
+        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        raw_response = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt)
+        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db,
+            user_id=user_id,
+            provider=provider,
+            operation="anonymize_company",
+            model=token_usage_info.get("model") or (mistral_model if provider == "mistral" else gemini_model),
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
 
     try:
         data = json.loads(raw_response)
@@ -445,16 +562,37 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
         prompt = f"""Документ 1 — вакансия:\n{vacancy_text}\n\nДокумент 2 — резюме кандидата:\n{cv_text}\n\nОцените соответствие кандидата и верните указанный JSON. Отметьте неподтверждённые требования и недостаток сведений."""
 
     raw_response = ""
+    token_usage_info = None
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        raw_response = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt)
+        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        raw_response = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt)
+        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db,
+            user_id=user_id,
+            provider=provider,
+            operation="cv_compatibility",
+            model=token_usage_info.get("model") or active_model,
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
 
     try:
         data = json.loads(raw_response)
@@ -505,6 +643,8 @@ async def adapt_cv_for_vacancy_with_llm(
     gemini_key: Optional[str] = None,
     active_provider: Optional[str] = None,
     active_model: Optional[str] = None,
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Adapts the candidate's base CV for a specific target vacancy.
@@ -542,16 +682,37 @@ DEVELOPER CV JSON SCHEMA:
     prompt = f"""Document 1 — base CV:\n{anonymized_cv_text}\n\nDocument 2 — target vacancy:\n{vacancy_text}\n\nDocument 3 — previous adaptation, if available:\n{previous}\n\nDocument 4 — user feedback, if available:\n{user_comment or ''}\n\nAdapt the base CV to the vacancy and address applicable feedback. Return the specified JSON, using only facts supported by the base CV and leaving unknown facts empty."""
 
     raw_response = ""
+    token_usage_info = None
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        raw_response = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt)
+        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        raw_response = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt)
+        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        if isinstance(call_res, tuple):
+            raw_response, token_usage_info = call_res
+        else:
+            raw_response = call_res
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db,
+            user_id=user_id,
+            provider=provider,
+            operation="adapt_cv",
+            model=token_usage_info.get("model") or (mistral_model if provider == "mistral" else gemini_model),
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
 
     # Parse and clean response
     cleaned = raw_response.strip()

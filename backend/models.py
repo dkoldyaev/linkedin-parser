@@ -42,6 +42,8 @@ class User(Base):
     picture = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)
+    last_board_interaction_at = Column(DateTime, nullable=True)
     is_anonymous = Column(Boolean, default=False, nullable=False)
     # Kept for backward compatibility if needed, but primary storage is user_feature_flags table
     feature_flags = Column(JSON, default=list)
@@ -234,6 +236,22 @@ class ApiKey(Base):
     last_used_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="api_keys")
+
+
+class UserLLMTokenUsage(Base):
+    __tablename__ = "user_llm_token_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    provider = Column(String(32), nullable=False)  # "mistral", "gemini"
+    model = Column(String(64), nullable=True)
+    operation = Column(String(64), nullable=False)  # "vacancy_summary", "cv_compatibility", "anonymize", "adapt_cv"
+    prompt_tokens = Column(Integer, default=0, nullable=False)
+    completion_tokens = Column(Integer, default=0, nullable=False)
+    total_tokens = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+    user = relationship("User")
 
 
 

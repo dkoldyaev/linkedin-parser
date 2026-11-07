@@ -125,6 +125,10 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE users ADD COLUMN feature_flags JSON DEFAULT '[]'"))
                     if "is_anonymous" not in user_cols:
                         conn.execute(text("ALTER TABLE users ADD COLUMN is_anonymous BOOLEAN DEFAULT 0 NOT NULL"))
+                    if "last_login_at" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
+                    if "last_board_interaction_at" not in user_cols:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN last_board_interaction_at DATETIME"))
 
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
@@ -136,6 +140,21 @@ def ensure_db_schema():
                     )
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_llm_token_usage (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        provider VARCHAR(32) NOT NULL,
+                        model VARCHAR(64),
+                        operation VARCHAR(64) NOT NULL,
+                        prompt_tokens INTEGER DEFAULT 0 NOT NULL,
+                        completion_tokens INTEGER DEFAULT 0 NOT NULL,
+                        total_tokens INTEGER DEFAULT 0 NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_llm_token_usage_user_id ON user_llm_token_usage(user_id)"))
             elif dialect == "postgresql":
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS city VARCHAR(128)"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS salary_min DOUBLE PRECISION"))
@@ -156,6 +175,8 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN company_url TYPE VARCHAR(2048)"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS feature_flags JSONB DEFAULT '[]'::jsonb"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE NOT NULL"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_board_interaction_at TIMESTAMP WITH TIME ZONE"))
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS user_feature_flags (
                         id SERIAL PRIMARY KEY,
@@ -166,6 +187,21 @@ def ensure_db_schema():
                     )
                 """))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_feature_flags_user_id ON user_feature_flags(user_id)"))
+
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS user_llm_token_usage (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        provider VARCHAR(32) NOT NULL,
+                        model VARCHAR(64),
+                        operation VARCHAR(64) NOT NULL,
+                        prompt_tokens INTEGER DEFAULT 0 NOT NULL,
+                        completion_tokens INTEGER DEFAULT 0 NOT NULL,
+                        total_tokens INTEGER DEFAULT 0 NOT NULL,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_user_llm_token_usage_user_id ON user_llm_token_usage(user_id)"))
     except Exception as e:
         logger.warning(f"Schema migration check: {e}")
 

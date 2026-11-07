@@ -3,6 +3,13 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from .models import STATUS_NOT_CONTACTED
 
+class UserStatsSummary(BaseModel):
+    total_vacancies: int = 0
+    by_status: Dict[str, int] = Field(default_factory=dict)
+    last_login_at: Optional[datetime] = None
+    last_board_interaction_at: Optional[datetime] = None
+    llm_tokens: Optional[Dict[str, Any]] = None
+
 class UserResponse(BaseModel):
     id: int
     email: str
@@ -11,6 +18,9 @@ class UserResponse(BaseModel):
     feature_flags: List[str] = Field(default_factory=list)
     is_anonymous: bool = False
     created_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+    last_board_interaction_at: Optional[datetime] = None
+    stats: Optional[UserStatsSummary] = None
 
     model_config = ConfigDict(from_attributes=True)
 
