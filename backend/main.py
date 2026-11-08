@@ -139,6 +139,10 @@ from .queue_manager import (
 logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
 logger = logging.getLogger("linkedin_tracker")
 
+# Initialize Sentry if configured
+from .sentry import init_sentry
+init_sentry()
+
 # Create database tables and ensure schema columns
 Base.metadata.create_all(bind=engine)
 ensure_db_schema()

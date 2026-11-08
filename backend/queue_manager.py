@@ -742,6 +742,27 @@ class RedisQueueManager:
             f"after {task.attempts} attempts: {error}"
         )
 
+        try:
+            import sentry_sdk
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("task_stage", "scraping")
+                scope.set_tag("permanent_failure", True)
+                scope.set_extra("task_id", task_id)
+                scope.set_extra("url", task.url)
+                scope.set_extra("attempts", task.attempts)
+                scope.set_extra("max_attempts", MAX_TASK_ATTEMPTS)
+                scope.set_extra("user_id", task.user_id)
+                scope.set_extra("batch_id", task.batch_id)
+                if isinstance(error, Exception):
+                    sentry_sdk.capture_exception(error)
+                else:
+                    sentry_sdk.capture_message(
+                        f"Task {task_id} failed permanently after {task.attempts} attempts: {error}",
+                        level="error"
+                    )
+        except Exception as sentry_err:
+            logger.debug(f"Failed to report permanent scrape failure to Sentry: {sentry_err}")
+
         mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
         await publish_mercure_event(
             event_type=EVENT_TASK_FAILED,
@@ -1089,6 +1110,19 @@ class RedisQueueManager:
 
             total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.error(f"[Stage 2 - AI] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
+
+            try:
+                import sentry_sdk
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("task_stage", "ai_analysis")
+                    scope.set_tag("permanent_failure", True)
+                    scope.set_extra("task_id", task.task_id)
+                    scope.set_extra("url", task.url)
+                    scope.set_extra("user_id", task.user_id)
+                    scope.set_extra("batch_id", task.batch_id)
+                    sentry_sdk.capture_exception(e)
+            except Exception as sentry_err:
+                logger.debug(f"Failed to report AI analysis failure to Sentry: {sentry_err}")
 
             mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
