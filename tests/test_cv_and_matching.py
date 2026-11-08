@@ -155,5 +155,32 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         self.assertEqual(cached_res.status_code, 200)
         self.assertTrue(cached_res.json()["is_outdated"])
 
+    def test_compatibility_scoring_skipped_when_no_description(self):
+        """Scoring should not run if vacancy description is empty or whitespace."""
+        # Vacancy without description
+        vac_resp = self.client.post(
+            "/api/vacancies",
+            json={
+                "title": "Backend Engineer",
+                "company": "Tech Corp",
+                "url": "https://example.com/job/2",
+                "description": "",
+            },
+            cookies=self.cookies_alice,
+        )
+        self.assertEqual(vac_resp.status_code, 200)
+        vac_id = vac_resp.json()["id"]
+
+        self.client.post(
+            "/api/cv/approved",
+            json={"content": "Python and FastAPI specialist.", "revision": 1},
+            cookies=self.cookies_alice,
+        )
+
+        with patch("backend.main.evaluate_vacancy_compatibility_with_llm", new_callable=AsyncMock) as mock_eval_fn:
+            eval_res = self.client.post(f"/api/vacancies/{vac_id}/compatibility", cookies=self.cookies_alice)
+            self.assertEqual(eval_res.status_code, 400)
+            mock_eval_fn.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

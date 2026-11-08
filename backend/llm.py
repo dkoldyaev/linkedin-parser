@@ -214,6 +214,23 @@ async def analyze_vacancy_with_llm(
     if not language or not str(language).strip():
         raise ValueError("Parameter 'language' is required and cannot be empty")
 
+    if not description or not str(description).strip():
+        return {
+            "title": None,
+            "location": None,
+            "city": None,
+            "country": None,
+            "summary": "",
+            "tech_stack": [],
+            "company_info": "",
+            "workplace_type": None,
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "salary_period": None,
+            "ai_error": "Description is empty"
+        }
+
     provider = str(provider).strip().lower()
     language = str(language).strip().lower()
 

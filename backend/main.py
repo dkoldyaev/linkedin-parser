@@ -1392,17 +1392,20 @@ async def batch_import_vacancies(
             llm_provider = os.getenv("LLM_PROVIDER")
             language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
 
-            # Run LLM summarization
-            llm_res = await analyze_vacancy_with_llm(
-                title=scraped.get("title") or "Untitled",
-                company=scraped.get("company") or "Unknown",
-                location=scraped.get("location"),
-                description=scraped.get("description"),
-                provider=llm_provider,
-                language=language,
-                db=db,
-                user_id=current_user.id,
-            )
+            # Run LLM summarization only if description is present
+            has_desc = bool(scraped.get("description") and scraped["description"].strip())
+            llm_res = {}
+            if has_desc:
+                llm_res = await analyze_vacancy_with_llm(
+                    title=scraped.get("title") or "Untitled",
+                    company=scraped.get("company") or "Unknown",
+                    location=scraped.get("location"),
+                    description=scraped.get("description"),
+                    provider=llm_provider,
+                    language=language,
+                    db=db,
+                    user_id=current_user.id,
+                )
 
             # Combine tags
             initial_tags = list(payload.default_tags)
@@ -1546,6 +1549,12 @@ async def resummarize_vacancy(
     v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if not v.description or not v.description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Vacancy has no description. Please provide a description before requesting AI summarization.",
+        )
 
     if not provider:
         provider = os.getenv("LLM_PROVIDER")
@@ -2478,6 +2487,12 @@ async def analyze_vacancy_compatibility(
     if not vacancy:
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
+    if not vacancy.description or not vacancy.description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Vacancy has no description. Please provide a description before requesting compatibility analysis.",
+        )
+
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if not approved_cv or not approved_cv.content.strip():
         raise HTTPException(
@@ -2661,6 +2676,12 @@ async def adapt_cv_for_vacancy(
     vacancy = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not vacancy:
         raise HTTPException(status_code=404, detail="Vacancy not found")
+
+    if not vacancy.description or not vacancy.description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Vacancy has no description. Please provide a description before requesting compatibility analysis.",
+        )
 
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     if not approved_cv or not approved_cv.content.strip():

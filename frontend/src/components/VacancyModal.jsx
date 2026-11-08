@@ -1066,7 +1066,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <button
                 className="btn btn-secondary"
                 onClick={handleResummarize}
-                disabled={resummarizing}
+                disabled={resummarizing || !description?.trim()}
+                title={!description?.trim() ? t('vacancyModal.resummarize_no_description') : undefined}
                 style={{ fontSize: '0.75rem', padding: '4px 10px' }}
               >
                 {resummarizing ? (
@@ -1467,7 +1468,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <button
                 className="btn btn-secondary compatibility-analyze"
                 onClick={() => handleRunCompatibilityAnalysis(!!compatibility)}
-                disabled={analyzingCompatibility || loadingCompatibility}
+                disabled={analyzingCompatibility || loadingCompatibility || !description?.trim()}
+                title={!description?.trim() ? t('vacancyModal.compat_no_description') : undefined}
                 style={{ color: 'var(--aspen-mint)' }}
               >
                 {analyzingCompatibility ? (
@@ -1585,7 +1587,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             ) : (
               <p className="compatibility-empty">
-                {t('vacancyModal.compat_empty')}
+                {!description?.trim() ? t('vacancyModal.compat_no_description') : t('vacancyModal.compat_empty')}
               </p>
             )}
           </div>

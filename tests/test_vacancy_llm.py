@@ -25,3 +25,21 @@ def test_scraped_vacancy_to_llm(monkeypatch):
             assert 'PostgreSQL' in call.call_args.args[0]
             assert result['tech_stack'] == ['Python', 'PostgreSQL']
     asyncio.run(scenario())
+
+
+def test_analyze_vacancy_empty_description_skips_llm():
+    async def scenario():
+        with patch('backend.llm.call_mistral', new_callable=AsyncMock) as call:
+            result = await analyze_vacancy_with_llm(
+                title="Frontend Developer",
+                company="Company",
+                location="Remote",
+                description="   ",
+                provider="mistral",
+                language="ru",
+            )
+            call.assert_not_called()
+            assert result["summary"] == ""
+            assert result["tech_stack"] == []
+            assert result["ai_error"] == "Description is empty"
+    asyncio.run(scenario())

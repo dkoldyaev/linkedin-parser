@@ -652,7 +652,8 @@ class RedisQueueManager:
             )
 
             # 4. Enqueue into Stage 2 (AI Queue)
-            if "upwork.com" in task.url.lower():
+            has_desc = bool(saved_vacancy.description and saved_vacancy.description.strip())
+            if "upwork.com" in task.url.lower() or not has_desc:
                 task.status = "completed"
                 task.stage = "completed"
                 task.updated_at = time.time()
@@ -872,6 +873,21 @@ class RedisQueueManager:
                 vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
+
+                has_description = bool(vacancy.description and vacancy.description.strip())
+                if not has_description:
+                    logger.info(f"[Stage 2 - AI] Vacancy #{vacancy.id} has no description; skipping AI content generation.")
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        await pipe.execute()
+                    return
+
                 user_id = task.user_id or (vacancy.user_id if vacancy else None)
                 provider = os.getenv("LLM_PROVIDER")
                 language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
@@ -922,14 +938,14 @@ class RedisQueueManager:
                     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
 
                 compat_res = None
-                if approved_cv and approved_cv.content and approved_cv.content.strip():
+                has_description = bool(vacancy.description and vacancy.description.strip())
+                if approved_cv and approved_cv.content and approved_cv.content.strip() and has_description:
                     try:
                         logger.info(f"[Stage 2 - AI] Running automatic CV compatibility evaluation for vacancy #{vacancy.id} (user {user_id})")
                         vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
                         if vacancy.tech_stack:
                             vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
-                        if vacancy.description:
-                            vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
+                        vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
 
                         compat_res = await evaluate_vacancy_compatibility_with_llm(
                             vacancy_text=vacancy_full_text,
