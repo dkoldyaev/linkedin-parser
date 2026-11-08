@@ -588,17 +588,24 @@ def _populate_user_stats(db: Session, users: List[User]):
         user_api_keys_map[k.user_id].append(k)
         user_api_req_totals[k.user_id] += int(k.request_count or 0)
 
+    def _normalize_dt(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+        if dt is None:
+            return None
+        if dt.tzinfo is not None:
+            return dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        return dt
+
     for u in users:
         u.feature_flags = [f.flag for f in (u.flags or [])]
         u.api_keys = user_api_keys_map.get(u.id, [])
 
         candidates = [
-            dt for dt in [
-                u.last_board_interaction_at,
-                max_vac_map.get(u.id),
-                max_hist_map.get(u.id)
+            ndt for ndt in [
+                _normalize_dt(u.last_board_interaction_at),
+                _normalize_dt(max_vac_map.get(u.id)),
+                _normalize_dt(max_hist_map.get(u.id))
             ]
-            if dt is not None
+            if ndt is not None
         ]
         effective_board_interaction = max(candidates) if candidates else None
 

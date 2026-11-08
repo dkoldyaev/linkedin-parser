@@ -157,6 +157,15 @@ class TestAdminPanel(unittest.TestCase):
         self.assertIsNotNone(stats["last_login_at"])
         self.assertIsNotNone(stats["last_board_interaction_at"])
 
+        # Test mixed tz-aware and tz-naive candidates for effective_board_interaction
+        reg_user_db = self.db.query(User).filter(User.email == "regular_user@test.com").first()
+        import datetime
+        reg_user_db.last_board_interaction_at = datetime.datetime.now(datetime.timezone.utc)
+        self.db.commit()
+
+        res2 = self.admin_client.get("/api/admin/users")
+        self.assertEqual(res2.status_code, 200)
+
         # Check token usage in user stats
         self.assertIn("llm_tokens", stats)
         llm_tokens = stats["llm_tokens"]

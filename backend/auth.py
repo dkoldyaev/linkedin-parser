@@ -510,7 +510,14 @@ def migrate_anonymous_user_data(db: Session, anon_user_id: int, target_user: Use
 
     # Transfer last_board_interaction_at if anonymous user interacted more recently
     if anon_user.last_board_interaction_at:
-        if not target_user.last_board_interaction_at or anon_user.last_board_interaction_at > target_user.last_board_interaction_at:
+        anon_dt = anon_user.last_board_interaction_at
+        target_dt = target_user.last_board_interaction_at
+        if anon_dt.tzinfo is not None:
+            anon_dt = anon_dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        if target_dt is not None and target_dt.tzinfo is not None:
+            target_dt = target_dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+        if not target_dt or anon_dt > target_dt:
             target_user.last_board_interaction_at = anon_user.last_board_interaction_at
             db.commit()
 
