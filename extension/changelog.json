@@ -1,0 +1,41 @@
+{
+  "latest_version": "1.0.7",
+  "releases": {
+    "1.0.7": {
+      "date": "2026-11-08",
+      "changes": {
+        "ru": [
+          "Улучшен парсер Indeed (извлечение описания и метаданных)",
+          "Оптимизирована обработка очереди задач и таймауты"
+        ],
+        "en": [
+          "Enhanced Indeed parser (description and metadata extraction)",
+          "Optimized task queue processing and timeouts"
+        ]
+      }
+    },
+    "1.0.6": {
+      "date": "2026-11-07",
+      "changes": {
+        "ru": [
+          "Клиентский парсинг HTML и улучшенная обработка сетевых сбоев"
+        ],
+        "en": [
+          "Client-side HTML parsing and improved network fallback handling"
+        ]
+      }
+    },
+    "1.0.5": {
+      "date": "2026-11-06",
+      "changes": {
+        "ru": [
+          "Динамические разрешения хостов для поддерживаемых парсеров"
+        ],
+        "en": [
+          "Dynamic host permissions for supported parser domains"
+        ]
+      }
+    }
+  }
+}
+

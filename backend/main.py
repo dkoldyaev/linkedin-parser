@@ -2060,11 +2060,27 @@ async def get_extension_mercure_config(response: Response, current_user: User = 
     }
 
 @app.post("/api/extension/ping")
-async def extension_ping(current_user: User = Depends(get_current_user)):
+async def extension_ping(payload: Optional[Dict[str, Any]] = None, current_user: User = Depends(get_current_user)):
     redis = queue_manager.redis
     if redis:
         await redis.set(f"extension:active:{current_user.id}", str(time.time()), ex=180)
+        if payload and payload.get("version"):
+            await redis.set(f"extension:version:{current_user.id}", str(payload["version"]), ex=604800)
     return {"status": "ok"}
+
+@app.get("/api/extension/changelog")
+async def get_extension_changelog():
+    changelog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "extension", "changelog.json")
+    if not os.path.exists(changelog_path):
+        # Fallback if file not found in parent directory
+        changelog_path = os.path.join(os.getcwd(), "extension", "changelog.json")
+    if os.path.exists(changelog_path):
+        try:
+            with open(changelog_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read extension changelog: {e}")
+    return {"latest_version": "1.0.7", "releases": {}}
 
 @app.get("/api/extension/status")
 async def extension_status(current_user: User = Depends(get_current_user)):
@@ -2072,9 +2088,14 @@ async def extension_status(current_user: User = Depends(get_current_user)):
     extension_id = os.getenv("EXTENSION_ID") or None
     redis = queue_manager.redis
     if not redis:
-        return {"active": False, "extension_id": extension_id}
+        return {"active": False, "extension_id": extension_id, "last_known_version": None}
     val = await redis.get(f"extension:active:{current_user.id}")
-    return {"active": bool(val), "extension_id": extension_id}
+    last_version = await redis.get(f"extension:version:{current_user.id}")
+    return {
+        "active": bool(val),
+        "extension_id": extension_id,
+        "last_known_version": last_version if last_version else None
+    }
 
 @app.post("/api/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(

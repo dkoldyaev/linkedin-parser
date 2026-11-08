@@ -487,7 +487,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .kanban-card.is-dragging { transform: none; }
 .card-grid-content { display: flex; flex-direction: column; gap: 0; padding: 0; }
 .card-grid-body-content { display: flex; flex-direction: column; gap: var(--grid-unit); padding: calc(2 * var(--grid-unit)); }
-.card-footer { height: var(--grid); min-height: var(--grid); margin: 0; padding: 0 1px 0 var(--grid); border: 0; box-shadow: inset 0 1px 0 var(--border-subtle); }
+.card-footer { height: var(--grid); min-height: var(--grid); margin: 0; padding: 0 1px 0 calc(var(--grid) / 2); border: 0; box-shadow: inset 0 1px 0 var(--border-subtle); }
 .card-quick-actions { height: var(--grid); gap: 0; }
 .quick-move-btn, .quick-restore-btn { width: var(--grid); height: var(--grid); min-width: var(--grid); min-height: var(--grid); }
 .quick-move-btn:hover:not(:disabled), .quick-restore-btn:hover { outline-offset: -2px; }

@@ -17,16 +17,24 @@ def test_extension_ping_and_status():
         assert res_initial.status_code == 200
         assert res_initial.json()["active"] is False
 
-        # Extension sends ping
-        res_ping = client.post("/api/extension/ping")
+        # Extension sends ping with version
+        res_ping = client.post("/api/extension/ping", json={"version": "1.0.6"})
         assert res_ping.status_code == 200
         assert res_ping.json()["status"] == "ok"
 
-        # Now status should be active
+        # Now status should be active and include last_known_version
         res_after = client.get("/api/extension/status")
         assert res_after.status_code == 200
         assert res_after.json()["active"] is True
-        print("✓ Extension ping and status API verified successfully!")
+        assert res_after.json()["last_known_version"] == "1.0.6"
+
+        # Check changelog endpoint
+        res_changelog = client.get("/api/extension/changelog")
+        assert res_changelog.status_code == 200
+        changelog_data = res_changelog.json()
+        assert "latest_version" in changelog_data
+        assert "releases" in changelog_data
+        print("✓ Extension ping, changelog and status API verified successfully!")
 
 
 def test_check_duplicates_requires_extension():

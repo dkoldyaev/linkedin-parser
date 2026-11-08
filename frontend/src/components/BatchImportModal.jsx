@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { shouldShowExtensionPrompt, anyUrlRequiresExtension } from '../utils/extension';
+import { checkExtensionPromptRequirement, anyUrlRequiresExtension } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
 export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
@@ -13,6 +13,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showExtModal, setShowExtModal] = useState(false);
+  const [extModalInfo, setExtModalInfo] = useState(null);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [pendingSubmit, setPendingSubmit] = useState(null);
 
@@ -118,8 +119,9 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     }
 
     if (requiresExt) {
-      const needsPrompt = await shouldShowExtensionPrompt();
-      if (needsPrompt) {
+      const promptReq = await checkExtensionPromptRequirement();
+      if (promptReq.show) {
+        setExtModalInfo(promptReq);
         setPendingSubmit(() => () => performSubmit(urls, defaultTags));
         setShowExtModal(true);
         return;
@@ -225,8 +227,9 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                     ? requiresExtension
                     : anyUrlRequiresExtension(urls);
                   if (needsExt) {
-                    const needsPrompt = await shouldShowExtensionPrompt();
-                    if (needsPrompt) {
+                    const promptReq = await checkExtensionPromptRequirement();
+                    if (promptReq.show) {
+                      setExtModalInfo(promptReq);
                       setPendingSubmit(() => () => performSubmit(urls, defaultTags));
                       setShowExtModal(true);
                       return;
@@ -337,6 +340,10 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
 
       <ExtensionPromptModal
         isOpen={showExtModal}
+        mode={extModalInfo?.reason || 'not_installed'}
+        currentVersion={extModalInfo?.currentVersion}
+        latestVersion={extModalInfo?.latestVersion}
+        changelog={extModalInfo?.changelog}
         onClose={() => {
           setShowExtModal(false);
           setPendingSubmit(null);

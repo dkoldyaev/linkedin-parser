@@ -737,9 +737,12 @@ async function connectMercure() {
 
 async function sendHeartbeat() {
   try {
+    const version = chrome.runtime?.getManifest?.()?.version;
     await fetch(`${API_BASE}/api/extension/ping`, {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version }),
     });
   } catch {}
 }
