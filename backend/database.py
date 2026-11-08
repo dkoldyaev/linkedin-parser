@@ -260,7 +260,8 @@ def ensure_db_schema():
                         key_hash VARCHAR(64) NOT NULL UNIQUE,
                         key_prefix VARCHAR(16) NOT NULL,
                         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        last_used_at DATETIME
+                        last_used_at DATETIME,
+                        request_count INTEGER NOT NULL DEFAULT 0
                     );
                 """))
             elif dialect == "postgresql":
@@ -311,11 +312,24 @@ def ensure_db_schema():
                         key_hash VARCHAR(64) NOT NULL UNIQUE,
                         key_prefix VARCHAR(16) NOT NULL,
                         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-                        last_used_at TIMESTAMP WITH TIME ZONE
+                        last_used_at TIMESTAMP WITH TIME ZONE,
+                        request_count INTEGER NOT NULL DEFAULT 0
                     );
                 """))
     except Exception as e:
         logger.warning(f"Approved CV / Vacancy analysis tables migration check: {e}")
+
+    try:
+        with engine.begin() as conn:
+            dialect = engine.dialect.name
+            if dialect == "sqlite":
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(api_keys)")).fetchall()]
+                if "request_count" not in cols:
+                    conn.execute(text("ALTER TABLE api_keys ADD COLUMN request_count INTEGER NOT NULL DEFAULT 0"))
+            elif dialect == "postgresql":
+                conn.execute(text("ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS request_count INTEGER NOT NULL DEFAULT 0"))
+    except Exception as e:
+        logger.warning(f"API keys table request_count migration check: {e}")
 
     try:
         with engine.begin() as conn:

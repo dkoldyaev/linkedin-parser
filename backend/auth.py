@@ -90,8 +90,9 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
                 detail="Invalid API key",
                 headers={"WWW-Authenticate": "ApiKey"},
             )
-        # Update last_used_at
+        # Update last_used_at and request_count
         api_key_record.last_used_at = datetime.utcnow()
+        api_key_record.request_count = (api_key_record.request_count or 0) + 1
         try:
             db.commit()
         except Exception:
@@ -213,6 +214,7 @@ def get_current_user_from_api_key(
         )
 
     api_key_record.last_used_at = datetime.utcnow()
+    api_key_record.request_count = (api_key_record.request_count or 0) + 1
     try:
         db.commit()
     except Exception:
@@ -310,6 +312,7 @@ def get_optional_user(request: Request, db: Session = Depends(get_db)) -> Option
             api_key_record = db.query(ApiKey).filter(ApiKey.key_hash == key_hash).first()
             if api_key_record:
                 api_key_record.last_used_at = datetime.utcnow()
+                api_key_record.request_count = (api_key_record.request_count or 0) + 1
                 try:
                     db.commit()
                 except Exception:

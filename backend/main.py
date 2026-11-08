@@ -572,8 +572,25 @@ def _populate_user_stats(db: Session, users: List[User]):
             "requests": req_count,
         }
 
+    # 5. Fetch API keys per user
+    api_keys_raw = (
+        db.query(ApiKey)
+        .filter(ApiKey.user_id.in_(user_ids))
+        .order_by(ApiKey.created_at.desc())
+        .all()
+    )
+    user_api_keys_map: Dict[int, List[ApiKey]] = {}
+    user_api_req_totals: Dict[int, int] = {}
+    for k in api_keys_raw:
+        if k.user_id not in user_api_keys_map:
+            user_api_keys_map[k.user_id] = []
+            user_api_req_totals[k.user_id] = 0
+        user_api_keys_map[k.user_id].append(k)
+        user_api_req_totals[k.user_id] += int(k.request_count or 0)
+
     for u in users:
         u.feature_flags = [f.flag for f in (u.flags or [])]
+        u.api_keys = user_api_keys_map.get(u.id, [])
 
         candidates = [
             dt for dt in [
@@ -590,6 +607,8 @@ def _populate_user_stats(db: Session, users: List[User]):
             by_status=user_status_map.get(u.id, {}),
             last_login_at=u.last_login_at,
             last_board_interaction_at=effective_board_interaction,
+            api_keys_count=len(user_api_keys_map.get(u.id, [])),
+            api_requests_count=user_api_req_totals.get(u.id, 0),
             llm_tokens=user_tokens_map.get(u.id, {
                 "total_tokens": 0,
                 "prompt_tokens": 0,

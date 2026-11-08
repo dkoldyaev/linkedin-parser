@@ -3,12 +3,26 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 from .models import STATUS_NOT_CONTACTED
 
+class UserApiKeyAdminItem(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    request_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserStatsSummary(BaseModel):
     total_vacancies: int = 0
     by_status: Dict[str, int] = Field(default_factory=dict)
     last_login_at: Optional[datetime] = None
     last_board_interaction_at: Optional[datetime] = None
     llm_tokens: Optional[Dict[str, Any]] = None
+    api_keys_count: int = 0
+    api_requests_count: int = 0
+
 
 class UserResponse(BaseModel):
     id: int
@@ -21,6 +35,7 @@ class UserResponse(BaseModel):
     last_login_at: Optional[datetime] = None
     last_board_interaction_at: Optional[datetime] = None
     stats: Optional[UserStatsSummary] = None
+    api_keys: List[UserApiKeyAdminItem] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -341,6 +356,7 @@ class ApiKeyResponse(BaseModel):
     key_prefix: str
     created_at: datetime
     last_used_at: Optional[datetime] = None
+    request_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

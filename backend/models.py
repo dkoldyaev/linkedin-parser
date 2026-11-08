@@ -234,6 +234,7 @@ class ApiKey(Base):
     key_prefix = Column(String(16), nullable=False)  # e.g. "ak_..." first characters for display
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     last_used_at = Column(DateTime, nullable=True)
+    request_count = Column(Integer, default=0, nullable=False, server_default="0")
 
     user = relationship("User", back_populates="api_keys")
 

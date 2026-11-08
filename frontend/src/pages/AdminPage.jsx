@@ -12,7 +12,8 @@ import {
   Clock,
   Activity,
   Calendar,
-  Cpu
+  Cpu,
+  Key
 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -443,6 +444,98 @@ export default function AdminPage({ user }) {
                       ) : (
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>
                           {t('pages.admin.tokens_no_usage')}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* API Keys and Usage Section */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <Key size={15} style={{ color: 'var(--primary)' }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                          {t('pages.admin.apikeys_stat')}
+                        </span>
+                        <span style={{ 
+                          fontSize: 12, 
+                          fontWeight: 600, 
+                          background: 'var(--bg-app)', 
+                          color: (u.api_keys?.length || u.stats?.api_keys_count || 0) > 0 ? 'var(--primary)' : 'var(--text-muted)', 
+                          padding: '1px 8px', 
+                          borderRadius: 10,
+                          border: '1px solid var(--border-color)'
+                        }}>
+                          {t('pages.admin.apikeys_total', { count: u.api_keys?.length ?? (u.stats?.api_keys_count ?? 0) })}
+                        </span>
+                        {(u.stats?.api_requests_count ?? 0) > 0 && (
+                          <span style={{ 
+                            fontSize: 12, 
+                            fontWeight: 600, 
+                            background: 'rgba(99, 102, 241, 0.1)', 
+                            color: 'var(--primary)', 
+                            padding: '1px 8px', 
+                            borderRadius: 10,
+                            border: '1px solid rgba(99, 102, 241, 0.2)'
+                          }}>
+                            {t('pages.admin.apikeys_requests', { count: (u.stats.api_requests_count).toLocaleString() })}
+                          </span>
+                        )}
+                      </div>
+
+                      {u.api_keys && u.api_keys.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                          <div style={{ 
+                            overflowX: 'auto',
+                            background: 'var(--bg-app)',
+                            borderRadius: 8,
+                            border: '1px solid var(--border-color)'
+                          }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>{t('pages.admin.apikeys_key_name')}</th>
+                                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>{t('pages.admin.apikeys_key_prefix')}</th>
+                                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>{t('pages.admin.apikeys_key_created')}</th>
+                                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>{t('pages.admin.apikeys_key_last_used')}</th>
+                                  <th style={{ padding: '8px 12px', fontWeight: 600, textAlign: 'right' }}>{t('pages.admin.apikeys_key_requests')}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {u.api_keys.map((k) => (
+                                  <tr key={k.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                    <td style={{ padding: '8px 12px', color: 'var(--text-main)', fontWeight: 500 }}>
+                                      {k.name}
+                                    </td>
+                                    <td style={{ padding: '8px 12px' }}>
+                                      <code style={{ 
+                                        fontFamily: 'var(--font-mono, monospace)', 
+                                        fontSize: 11,
+                                        padding: '2px 6px',
+                                        borderRadius: 4,
+                                        background: 'var(--bg-card)',
+                                        border: '1px solid var(--border-color)',
+                                        color: 'var(--primary)'
+                                      }}>
+                                        {k.key_prefix}...
+                                      </code>
+                                    </td>
+                                    <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
+                                      {k.created_at ? formatDate(k.created_at, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                                    </td>
+                                    <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>
+                                      {k.last_used_at ? formatDate(k.last_used_at, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : t('pages.admin.never')}
+                                    </td>
+                                    <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: (k.request_count || 0) > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                      {(k.request_count || 0).toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4 }}>
+                          {t('pages.admin.apikeys_no_keys')}
                         </div>
                       )}
                     </div>
