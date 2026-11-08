@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { EXTENSION_DIR } from './config.mjs'
 
-import { registry } from '../../packages/parsers/src/index.ts'
+import { registry } from '../../packages/parsers/dist/index.mjs'
 
 const { version } = JSON.parse(
   fs.readFileSync(path.join(EXTENSION_DIR, 'popup-src', 'package.json'), 'utf8'),

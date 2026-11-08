@@ -2110,6 +2110,21 @@ async def submit_extension_task_error(
 
     return await queue_manager.report_extension_failure(task_id, str(payload.get("error") or "")[:500])
 
+@app.post("/api/extension/log")
+async def extension_remote_log(payload: Dict[str, Any]):
+    level = (payload.get("level") or "info").lower()
+    msg = payload.get("message") or ""
+    data = payload.get("data")
+    log_text = f"[EXTENSION-LOG] {msg}" + (f" | data: {json.dumps(data, ensure_ascii=False)}" if data is not None else "")
+    if level == "error":
+        logger.error(log_text)
+    elif level == "warn":
+        logger.warning(log_text)
+    else:
+        logger.info(log_text)
+    return {"status": "ok"}
+
+
 @app.post("/api/extension/parse_and_add")
 async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     raw_url = payload.get("url", "")

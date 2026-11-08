@@ -146,17 +146,32 @@ export class IndeedParser extends BaseParser {
 
     // DOM fallbacks
     if (!title) {
-      const h1 = doc.querySelector('[data-testid="jobsearch-JobInfoHeader-title"], h1.jobsearch-JobInfoHeader-title, h1');
-      if (h1) title = h1.textContent?.trim();
+      const h1 = doc.querySelector('[data-testid="jobsearch-JobInfoHeader-title"], [data-testid="vj-job-title"], h1.jobsearch-JobInfoHeader-title, h1');
+      if (h1) {
+        title = h1.textContent?.trim();
+      } else {
+        const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
+        if (ogTitle) {
+          title = ogTitle.replace(/\s*-\s*Indeed\.com\s*$/i, '').replace(/\s*-\s*Remote\s*$/i, '').trim();
+        }
+      }
     }
 
     if (!company) {
-      const compEl = doc.querySelector('[data-testid="inlineHeader-companyName"], [data-testid="company-name"]');
+      const compEl = doc.querySelector('[data-testid="inlineHeader-companyName"], [data-testid="company-name"], [data-testid="company-info-metadata"]');
       if (compEl) {
-        company = compEl.textContent?.trim();
         const compLink = compEl.querySelector('a');
         if (compLink) {
+          company = compLink.textContent?.trim();
           company_url = compLink.getAttribute('href') || undefined;
+        } else {
+          company = compEl.textContent?.trim();
+        }
+      }
+      if (!company) {
+        const ogDesc = doc.querySelector('meta[property="og:description"]')?.getAttribute('content');
+        if (ogDesc && ogDesc.length < 100) {
+          company = ogDesc.trim();
         }
       }
     }
@@ -172,12 +187,26 @@ export class IndeedParser extends BaseParser {
     }
 
     if (!description) {
-      const descEl = doc.querySelector('#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"]');
-      if (descEl) description = cleanText(descEl);
+      const descEl = doc.querySelector(
+        '#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"], .react-native-html-content, .simple-job-description-html, [data-testid="viewjob-job-content"]'
+      );
+      if (descEl) {
+        description = cleanText(descEl);
+      } else if (doc.body) {
+        // Fallback: extract clean text from document body
+        const bodyClone = doc.body.cloneNode(true) as HTMLElement;
+        bodyClone.querySelectorAll('script, style, noscript, nav, header, footer').forEach(el => el.remove());
+        const bodyText = cleanText(bodyClone);
+        if (bodyText && bodyText.length > 100) {
+          description = bodyText;
+        }
+      }
     }
 
     if (salary_min === undefined && salary_max === undefined) {
-      const salEl = doc.querySelector('#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"]');
+      const salEl = doc.querySelector(
+        '#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"], [data-testid="structured-job-summary"]'
+      );
       if (salEl && salEl.textContent) {
         const salData = parseSalaryString(salEl.textContent);
         if (salData.salary_min !== undefined) salary_min = salData.salary_min;

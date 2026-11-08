@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from .models import STATUS_NOT_CONTACTED
 
 class UserApiKeyAdminItem(BaseModel):
@@ -287,6 +287,13 @@ class ApprovedCVResponse(BaseModel):
 class MatchedRequirementItem(BaseModel):
     requirement: str
     evidence: str
+
+    @field_validator("evidence", mode="before")
+    @classmethod
+    def parse_evidence(cls, v: Any) -> str:
+        if isinstance(v, list):
+            return "\n".join(str(item) for item in v)
+        return str(v) if v is not None else ""
 
 class MissingRequirementItem(BaseModel):
     requirement: str

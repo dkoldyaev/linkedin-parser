@@ -163,19 +163,33 @@ class IndeedParser(BaseParser):
         # DOM Fallbacks
         if not title:
             h1 = soup.select_one(
-                '[data-testid="jobsearch-JobInfoHeader-title"], h1.jobsearch-JobInfoHeader-title, h1'
+                '[data-testid="jobsearch-JobInfoHeader-title"], [data-testid="vj-job-title"], h1.jobsearch-JobInfoHeader-title, h1'
             )
-            title = h1.get_text(strip=True) if h1 else None
+            if h1:
+                title = h1.get_text(strip=True)
+            else:
+                og_title = soup.select_one('meta[property="og:title"]')
+                if og_title and og_title.get("content"):
+                    content = og_title.get("content")
+                    title = re.sub(r"\s*-\s*Indeed\.com\s*$", "", content, flags=re.I)
+                    title = re.sub(r"\s*-\s*Remote\s*$", "", title, flags=re.I).strip()
 
         if not company:
             comp_el = soup.select_one(
-                '[data-testid="inlineHeader-companyName"], [data-testid="company-name"]'
+                '[data-testid="inlineHeader-companyName"], [data-testid="company-name"], [data-testid="company-info-metadata"]'
             )
             if comp_el:
-                company = comp_el.get_text(" ", strip=True)
                 comp_link = comp_el.find("a")
-                if comp_link and comp_link.get("href"):
-                    company_url = comp_link.get("href")
+                if comp_link:
+                    company = comp_link.get_text(" ", strip=True)
+                    if comp_link.get("href"):
+                        company_url = comp_link.get("href")
+                else:
+                    company = comp_el.get_text(" ", strip=True)
+            if not company:
+                og_desc = soup.select_one('meta[property="og:description"]')
+                if og_desc and og_desc.get("content") and len(og_desc.get("content")) < 100:
+                    company = og_desc.get("content").strip()
 
         if not raw_location:
             loc_el = soup.select_one(
@@ -189,14 +203,22 @@ class IndeedParser(BaseParser):
 
         if not description:
             desc_el = soup.select_one(
-                '#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"]'
+                '#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"], .react-native-html-content, .simple-job-description-html, [data-testid="viewjob-job-content"]'
             )
             if desc_el:
                 description = clean_text(desc_el)
+            elif soup.body:
+                import copy
+                body_copy = copy.copy(soup.body)
+                for tag in body_copy.find_all(["script", "style", "noscript", "nav", "header", "footer"]):
+                    tag.decompose()
+                body_text = clean_text(body_copy)
+                if body_text and len(body_text) > 100:
+                    description = body_text
 
         if not salary_min and not salary_max:
             sal_el = soup.select_one(
-                '#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"]'
+                '#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"], [data-testid="structured-job-summary"]'
             )
             if sal_el:
                 sal_data = parse_salary_string(sal_el.get_text(" ", strip=True))

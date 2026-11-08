@@ -1,4 +1,4 @@
-import { registry } from '../packages/parsers/src/index.ts';
+import { registry } from '../packages/parsers/dist/index.mjs';
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'PARSE_HTML') {

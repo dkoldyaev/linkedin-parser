@@ -29,7 +29,7 @@ def test_destination_ip_is_pinned_with_original_host_and_sni():
             request = send.call_args.args[0]
             assert request.url.host == '8.8.8.8'
             assert request.headers['host'] == 'jobs.example.com'
-            assert request.extensions['sni_hostname'] == b'jobs.example.com'
+            assert request.extensions['sni_hostname'] == 'jobs.example.com'
         await transport.aclose()
     asyncio.run(scenario())
 

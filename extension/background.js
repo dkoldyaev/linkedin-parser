@@ -393,8 +393,20 @@ async function reportTaskError(taskId, message) {
   }
 }
 
+// Remote logging to backend so logs can be inspected with `docker logs`
+async function remoteLog(level, message, data = null) {
+  try {
+    await fetch(`${API_BASE}/api/extension/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, message, data }),
+    });
+  } catch {}
+}
+
 async function submitTaskResult(taskId, url, html) {
   try {
+    await remoteLog("info", `Submitting task ${taskId} (HTML len=${html?.length || 0}) for url=${url}`);
     await getOffscreenDocument();
     const result = await chrome.runtime.sendMessage({
       type: 'PARSE_HTML',
@@ -403,25 +415,36 @@ async function submitTaskResult(taskId, url, html) {
     });
 
     if (!result?.success) {
+      await remoteLog("error", `Parse error for task ${taskId}: ${result?.error}`);
       throw new Error(result?.error || 'Failed to parse');
     }
 
     const vacancyData = result.data;
     if (!vacancyData?.url || !vacancyData?.source) {
+      await remoteLog("error", `Parser returned no url/source for task ${taskId}`, vacancyData);
       throw new Error('Parser returned no url/source');
     }
 
+    await remoteLog("info", `Parsed vacancyData for task ${taskId}`, {
+      title: vacancyData.title,
+      company: vacancyData.company,
+      desc_len: vacancyData.description?.length || 0,
+      workplace_type: vacancyData.workplace_type,
+    });
+    console.log(`[Ext] Parsed result for task ${taskId}:`, vacancyData);
     // Send parsed JSON back to backend API instead of raw HTML
     const res = await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(vacancyData), // We send the structured data back
+      body: JSON.stringify(vacancyData),
     });
     if (!res.ok) {
       throw new Error(`Backend rejected result: HTTP ${res.status}`);
     }
+    await remoteLog("info", `Successfully sent result for task ${taskId} to backend`);
   } catch (err) {
+    await remoteLog("error", `Failed in submitTaskResult for task ${taskId}: ${err.message}`);
     console.error("Failed to submit result:", err);
     // Backend marks the task failed and schedules a retry with growing delay
     await reportTaskError(taskId, err.message);
@@ -430,9 +453,54 @@ async function submitTaskResult(taskId, url, html) {
 
 // ─── Sequential Task Queue (1 tab at a time with timeouts) ───────────────────
 
-const TAB_TIMEOUT_MS = 30000;          // Max time allowed for a single tab to load and extract
+const TAB_TIMEOUT_MS = 45000;          // Max time allowed for a single tab to load and extract
 const PAGE_RENDER_DELAY_MS = 4000;     // Extra wait time for client-side JS/SPA hydration
 const COOLDOWN_BETWEEN_TABS_MS = 2000; // Cooldown delay before opening the next tab
+
+// Selector check function running inside page context
+function checkPageContentReady() {
+  // Check for JobPosting JSON-LD
+  const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+  for (const s of scripts) {
+    if ((s.textContent || "").includes("JobPosting")) return true;
+  }
+  // Check for main vacancy content selectors
+  const selectors = [
+    '#jobDescriptionText',
+    '[data-testid="jobsearch-JobInfoHeader-title"]',
+    'h1.jobsearch-JobInfoHeader-title',
+    '[data-testid="inlineHeader-companyName"]',
+    '.show-more-less-html__markup',
+    '.job-description',
+    '[data-testid="job-description"]',
+    '[data-testid="vj-job-title"]',
+    '[data-testid="company-info-metadata"]',
+    '[data-testid="viewjob-job-content"]',
+    '.react-native-html-content',
+    '.simple-job-description-html',
+    '.rn-web-layout-container'
+  ];
+  return selectors.some(sel => !!document.querySelector(sel));
+}
+
+async function waitForContentReady(tabId, maxWaitMs = 15000) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: checkPageContentReady,
+      });
+      if (results?.[0]?.result === true) {
+        return true;
+      }
+    } catch {
+      // Script execution might fail if tab is navigating
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return false;
+}
 
 const taskQueue = [];
 const activeTaskIds = new Set();
@@ -469,15 +537,39 @@ function waitForTabLoad(tabId, maxWaitMs = 15000) {
 }
 
 async function processTabExecution(tabId, task) {
+  await remoteLog("info", `Starting tab execution for task ${task.task_id} (tabId=${tabId}, url=${task.url})`);
   // Wait for tab navigation to report 'complete' (up to 15s)
   await waitForTabLoad(tabId, 15000);
   // Wait additional delay for client-side rendering (e.g. Upwork JS framework)
   await new Promise((resolve) => setTimeout(resolve, PAGE_RENDER_DELAY_MS));
 
   // 1. Check for captcha / block screen
-  const isCaptcha = await checkTabForCaptcha(tabId);
+  let isCaptcha = await checkTabForCaptcha(tabId);
+  await remoteLog("info", `Initial captcha check for tab ${tabId}: ${isCaptcha}`);
 
+  // 2. Poll for main vacancy content selectors up to 15s
+  if (!isCaptcha) {
+    let contentReady = await waitForContentReady(tabId, 15000);
+    await remoteLog("info", `Polling content ready for tab ${tabId}: ${contentReady}`);
+    if (!contentReady) {
+      console.log(`Content selectors not found in background for tab ${tabId}. Activating tab to trigger rendering...`);
+      await remoteLog("warn", `Content selectors not found in background for tab ${tabId}. Activating tab to trigger rendering...`);
+      // If content did not appear in background, activate tab to defeat browser background throttling
+      try {
+        await chrome.tabs.update(tabId, { active: true });
+        // Wait another 5 seconds with tab active
+        contentReady = await waitForContentReady(tabId, 5000);
+        await remoteLog("info", `Post-activation content ready check for tab ${tabId}: ${contentReady}`);
+      } catch (err) {
+        await remoteLog("error", `Failed to activate tab ${tabId}: ${err.message}`);
+        console.debug("Failed to activate tab:", err);
+      }
+    }
+  }
+
+  isCaptcha = await checkTabForCaptcha(tabId);
   if (isCaptcha) {
+    await remoteLog("warn", `Captcha/Block detected on tab ${tabId} for ${task.url}`);
     console.log(`Captcha detected on tab ${tabId} for ${task.url}`);
     // Store in blocked registry — tab stays open
     await addBlockedTab(tabId, {
