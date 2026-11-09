@@ -34,7 +34,7 @@ class PublicTransport(httpx.AsyncBaseTransport):
         # Pin the vetted IP at connect time; preserve Host and TLS SNI.
         pinned = httpx.Request(request.method, original.copy_with(host=address),
                                headers=request.headers, stream=request.stream,
-                               extensions={**request.extensions, 'sni_hostname': original.host.encode()})
+                               extensions={**request.extensions, 'sni_hostname': original.host})
         return await self.transport.handle_async_request(pinned)
 
     async def aclose(self):
