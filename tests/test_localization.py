@@ -60,40 +60,27 @@ def test_llm_requires_language_and_provider():
     print("✓ LLM strictly requires language and provider test passed")
 
 
-def test_llm_fallback_language_texts():
-    """Test that LLM fallback heuristics generate localized text according to language parameter."""
+def test_llm_raises_on_error():
+    """Test that analyze_vacancy_with_llm raises an exception when LLM call fails."""
+    import os
     from unittest.mock import patch
+    import pytest
 
     async def _test():
-        with patch("backend.llm.call_mistral", side_effect=RuntimeError("Simulated API Error")):
-            # Fallback when LLM fails: RU
-            res_ru = await analyze_vacancy_with_llm(
-                title="Senior Python Developer",
-                company="Acme Corp",
-                location="Berlin, Germany",
-                description="Requirements: Python, Docker, Kubernetes.",
-                provider="mistral",
-                language="ru",
-                db=None,
-            )
-            assert "Вакансия Senior Python Developer в Acme Corp" in res_ru["summary"]
-            assert "Python" in res_ru["tech_stack"]
-
-            # Fallback when LLM fails: EN
-            res_en = await analyze_vacancy_with_llm(
-                title="Senior Python Developer",
-                company="Acme Corp",
-                location="Berlin, Germany",
-                description="Requirements: Python, Docker, Kubernetes.",
-                provider="mistral",
-                language="en",
-                db=None,
-            )
-            assert "Job vacancy Senior Python Developer at Acme Corp" in res_en["summary"]
-            assert "Python" in res_en["tech_stack"]
+        with patch.dict(os.environ, {"MISTRAL_API_KEY": "fake_key"}):
+            with patch("backend.llm.call_mistral", side_effect=RuntimeError("Simulated API Error")):
+                with pytest.raises(RuntimeError, match="Simulated API Error"):
+                    await analyze_vacancy_with_llm(
+                        title="Senior Python Developer",
+                        company="Acme Corp",
+                        location="Berlin, Germany",
+                        description="Requirements: Python, Docker, Kubernetes.",
+                        provider="mistral",
+                        language="ru",
+                        db=None,
+                    )
 
     asyncio.run(_test())
-    print("✓ LLM fallback texts localized test passed")
 
 
 def test_settings_locale_schema():

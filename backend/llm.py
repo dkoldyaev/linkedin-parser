@@ -195,8 +195,8 @@ async def call_mistral(
 async def call_gemini(
     prompt: str,
     api_key: str,
+    model: str,
     response_schema: Dict[str, Any],
-    model: str = "gemini-2.5-flash",
     system_prompt: str = "",
     return_usage: bool = False,
 ):
@@ -326,7 +326,12 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
             if not gemini_key:
                 raise ValueError("Gemini API key is not configured")
             call_res = await call_gemini(
-                prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+                prompt,
+                gemini_key,
+                gemini_model,
+                response_schema=json_format,
+                system_prompt=system_prompt,
+                return_usage=True,
             )
             if isinstance(call_res, tuple):
                 raw_response, token_usage_info = call_res
@@ -362,119 +367,78 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
                 total_tokens=token_usage_info.get("total_tokens", 0),
             )
     except Exception as e:
-        logger.warning(f"LLM call failed for provider {provider}: {e}")
-        # Return fallback heuristic
-        fallback_stack = extract_fallback_tech_stack(description)
-        if language.startswith("en"):
-            fallback_summary = f"Job vacancy {title} at {company} ({location}). Key tech stack: {', '.join(fallback_stack[:5]) if fallback_stack else 'not specified'}."
-            fallback_comp = f"Company {company} ({location})" if company else ""
-        else:
-            fallback_summary = f"Вакансия {title} в {company} ({location}). Ключевой стек: {', '.join(fallback_stack[:5]) if fallback_stack else 'не указан'}."
-            fallback_comp = f"Компания {company} ({location})" if company else ""
+        logger.error(f"LLM call failed for provider {provider}: {e}")
+        raise
 
-        return {
-            "title": None,
-            "location": None,
-            "city": None,
-            "country": None,
-            "summary": fallback_summary,
-            "tech_stack": fallback_stack,
-            "company_info": fallback_comp,
-            "workplace_type": None,
-            "salary_min": None,
-            "salary_max": None,
-            "salary_currency": None,
-            "salary_period": None,
-            "ai_error": str(e)
-        }
+    # Parse JSON response directly since APIs guarantee valid JSON
+    data = parse_llm_json(raw_response)
 
-    # Parse JSON response directly since APIs guarantee valid JSON (with fallback to repair)
-    try:
-        data = parse_llm_json(raw_response)
+    # Normalize workplace_type
+    raw_workplace = str(data.get("workplace_type") or "").strip().lower()
+    clean_workplace = None
+    if any(k in raw_workplace for k in ["remote", "удален", "telecommute", "wfh"]):
+        clean_workplace = "remote"
+    elif any(k in raw_workplace for k in ["hybrid", "гибрид"]):
+        clean_workplace = "hybrid"
+    elif any(k in raw_workplace for k in ["on-site", "onsite", "on site", "офис"]):
+        clean_workplace = "on-site"
 
-        # Normalize workplace_type
-        raw_workplace = str(data.get("workplace_type") or "").strip().lower()
-        clean_workplace = None
-        if any(k in raw_workplace for k in ["remote", "удален", "telecommute", "wfh"]):
-            clean_workplace = "remote"
-        elif any(k in raw_workplace for k in ["hybrid", "гибрид"]):
-            clean_workplace = "hybrid"
-        elif any(k in raw_workplace for k in ["on-site", "onsite", "on site", "офис"]):
-            clean_workplace = "on-site"
+    # Normalize salary fields
+    def _to_float(v):
+        if v is None:
+            return None
+        try:
+            if isinstance(v, str):
+                v = v.replace(",", "").replace(" ", "").replace("k", "000").replace("K", "000")
+            return float(v)
+        except Exception:
+            return None
 
-        # Normalize salary fields
-        def _to_float(v):
-            if v is None:
-                return None
-            try:
-                if isinstance(v, str):
-                    v = v.replace(",", "").replace(" ", "").replace("k", "000").replace("K", "000")
-                return float(v)
-            except Exception:
-                return None
+    clean_min = _to_float(data.get("salary_min"))
+    clean_max = _to_float(data.get("salary_max"))
+    if clean_min is not None and clean_max is not None and clean_min > clean_max:
+        clean_min, clean_max = clean_max, clean_min
 
-        clean_min = _to_float(data.get("salary_min"))
-        clean_max = _to_float(data.get("salary_max"))
-        if clean_min is not None and clean_max is not None and clean_min > clean_max:
-            clean_min, clean_max = clean_max, clean_min
+    clean_curr = str(data.get("salary_currency")).strip() if data.get("salary_currency") else None
+    raw_period = str(data.get("salary_period")).strip().lower() if data.get("salary_period") else None
+    clean_period = None
+    if raw_period:
+        if "year" in raw_period or "yr" in raw_period or "annum" in raw_period:
+            clean_period = "year"
+        elif "month" in raw_period or "mo" in raw_period:
+            clean_period = "month"
+        elif "hour" in raw_period or "hr" in raw_period:
+            clean_period = "hour"
+        elif "week" in raw_period:
+            clean_period = "week"
+        elif "day" in raw_period:
+            clean_period = "day"
 
-        clean_curr = str(data.get("salary_currency")).strip() if data.get("salary_currency") else None
-        raw_period = str(data.get("salary_period")).strip().lower() if data.get("salary_period") else None
-        clean_period = None
-        if raw_period:
-            if "year" in raw_period or "yr" in raw_period or "annum" in raw_period:
-                clean_period = "year"
-            elif "month" in raw_period or "mo" in raw_period:
-                clean_period = "month"
-            elif "hour" in raw_period or "hr" in raw_period:
-                clean_period = "hour"
-            elif "week" in raw_period:
-                clean_period = "week"
-            elif "day" in raw_period:
-                clean_period = "day"
-
-        def safe_str(val, default=None):
-            if val is None:
+    def safe_str(val, default=None):
+        if val is None:
+            return default
+        if isinstance(val, str):
+            s = val.strip()
+            if s.lower() in ("null", "none", "n/a", ""):
                 return default
-            if isinstance(val, str):
-                s = val.strip()
-                if s.lower() in ("null", "none", "n/a", ""):
-                    return default
-                return s
-            return str(val).strip()
+            return s
+        return str(val).strip()
 
-        return {
-            "title": safe_str(data.get("title")),
-            "location": safe_str(data.get("location")),
-            "city": safe_str(data.get("city")),
-            "country": safe_str(data.get("country")),
-            "summary": safe_str(data.get("summary"), default=""),
-            "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
-            "company_info": safe_str(data.get("company_info"), default=""),
-            "workplace_type": clean_workplace,
-            "salary_min": clean_min,
-            "salary_max": clean_max,
-            "salary_currency": clean_curr,
-            "salary_period": clean_period,
-            "ai_error": None,
-        }
-    except Exception as e:
-        logger.error(f"Failed to parse LLM JSON output: {raw_response}. Error: {e}")
-        return {
-            "title": None,
-            "location": None,
-            "city": None,
-            "country": None,
-            "summary": raw_response[:300] if raw_response else "",
-            "tech_stack": extract_fallback_tech_stack(description),
-            "company_info": "",
-            "workplace_type": None,
-            "salary_min": None,
-            "salary_max": None,
-            "salary_currency": None,
-            "salary_period": None,
-            "ai_error": f"JSON parse error: {e}"
-        }
+    return {
+        "title": safe_str(data.get("title")),
+        "location": safe_str(data.get("location")),
+        "city": safe_str(data.get("city")),
+        "country": safe_str(data.get("country")),
+        "summary": safe_str(data.get("summary"), default=""),
+        "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
+        "company_info": safe_str(data.get("company_info"), default=""),
+        "workplace_type": clean_workplace,
+        "salary_min": clean_min,
+        "salary_max": clean_max,
+        "salary_currency": clean_curr,
+        "salary_period": clean_period,
+        "ai_error": None,
+    }
 
 
 # =====================================================================
@@ -570,7 +534,14 @@ async def anonymize_companies_with_llm(
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_gemini(
+            prompt,
+            gemini_key,
+            gemini_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:
@@ -654,7 +625,14 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_gemini(
+            prompt,
+            gemini_key,
+            gemini_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:
@@ -781,7 +759,14 @@ DEVELOPER CV JSON SCHEMA:
     elif provider == "gemini":
         if not gemini_key:
             raise ValueError("Gemini API key is not configured")
-        call_res = await call_gemini(prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_gemini(
+            prompt,
+            gemini_key,
+            gemini_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:

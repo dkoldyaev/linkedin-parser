@@ -88,9 +88,9 @@ def test_gemini_client_resources_close_on_success_and_error():
                 if fails:
                     import pytest
                     with pytest.raises(RuntimeError):
-                        await call_gemini('prompt', 'test', response_schema=vacancy_schema('en'))
+                        await call_gemini('prompt', 'test', 'gemini-2.5-flash', response_schema=vacancy_schema('en'))
                 else:
-                    assert await call_gemini('prompt', 'test', response_schema=vacancy_schema('en')) == '{}'
+                    assert await call_gemini('prompt', 'test', 'gemini-2.5-flash', response_schema=vacancy_schema('en')) == '{}'
             asyncio.run(scenario())
             client.close.assert_called_once()
             context.__aexit__.assert_awaited_once()
