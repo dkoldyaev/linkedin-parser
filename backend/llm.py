@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import asyncio
 import logging
 from typing import Dict, Any, List, Optional
 import httpx
@@ -8,6 +9,11 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from .models import AppSetting, UserSetting, UserLLMTokenUsage
 from .llm_schemas import vacancy_schema, anonymization_schema, compatibility_schema, adapted_cv_schema
+
+try:
+    from json_repair import repair_json
+except ImportError:
+    repair_json = None
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -93,61 +99,111 @@ def record_token_usage(
             pass
 
 
+def parse_llm_json(raw_text: str) -> Any:
+    """Safely parse LLM JSON output, falling back to json_repair if present."""
+    if not raw_text or not raw_text.strip():
+        raise ValueError("Empty response from LLM")
+    
+    cleaned = raw_text.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    try:
+        return json.loads(cleaned)
+    except Exception as e:
+        if repair_json is not None:
+            try:
+                return repair_json(cleaned, return_objects=True)
+            except Exception:
+                pass
+        raise e
+
+
 async def call_mistral(
     prompt: str,
     api_key: str,
     model: str,
+    response_schema: Dict[str, Any],
     system_prompt: str = "",
     return_usage: bool = False,
+    max_retries: int = 3,
 ):
-    """Call Mistral API via HTTP completions."""
+    """Call Mistral API via HTTP completions with retry/backoff on 429 and mandatory structured outputs."""
     if not model:
         raise ValueError("Mistral model is not specified")
+    if not response_schema or not isinstance(response_schema, dict):
+        raise ValueError("response_schema is strictly required for call_mistral and must be a valid JSON Schema dict")
 
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
+    payload: Dict[str, Any] = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.2,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "structured_response",
+                "schema": response_schema,
+                "strict": True,
+            },
+        },
+    }
+
+    backoff = 2.0
     async with httpx.AsyncClient(timeout=45.0) as client:
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"}
-        }
-        resp = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=payload)
-        if resp.status_code == 200:
-            data = resp.json()
-            content = data["choices"][0]["message"]["content"]
-            if return_usage:
-                raw_usage = data.get("usage") or {}
-                usage_info = {
-                    "prompt_tokens": raw_usage.get("prompt_tokens", 0),
-                    "completion_tokens": raw_usage.get("completion_tokens", 0),
-                    "total_tokens": raw_usage.get("total_tokens", 0),
-                    "model": model,
-                }
-                return content, usage_info
-            return content
-        else:
-            error_msg = f"Mistral API error ({resp.status_code}) on model {model}: {resp.text}"
-            logger.warning(error_msg)
-            raise RuntimeError(error_msg)
+        for attempt in range(max_retries + 1):
+            resp = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                if return_usage:
+                    raw_usage = data.get("usage") or {}
+                    usage_info = {
+                        "prompt_tokens": raw_usage.get("prompt_tokens", 0),
+                        "completion_tokens": raw_usage.get("completion_tokens", 0),
+                        "total_tokens": raw_usage.get("total_tokens", 0),
+                        "model": model,
+                    }
+                    return content, usage_info
+                return content
+            elif resp.status_code == 429 and attempt < max_retries:
+                retry_after = resp.headers.get("Retry-After")
+                wait_time = float(retry_after) if retry_after and retry_after.isdigit() else backoff
+                logger.warning(
+                    f"Mistral API 429 on model {model}. Retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                await asyncio.sleep(wait_time)
+                backoff *= 2.0
+            else:
+                error_msg = f"Mistral API error ({resp.status_code}) on model {model}: {resp.text}"
+                logger.warning(error_msg)
+                raise RuntimeError(error_msg)
 
 
 async def call_gemini(
     prompt: str,
     api_key: str,
+    response_schema: Dict[str, Any],
     model: str = "gemini-2.5-flash",
-    response_schema: Optional[Dict[str, Any]] = None,
     system_prompt: str = "",
     return_usage: bool = False,
 ):
-    """Call Google Gemini API via official google-genai client."""
+    """Call Google Gemini API via official google-genai client with mandatory structured outputs."""
+    if not response_schema or not isinstance(response_schema, dict):
+        raise ValueError("response_schema is strictly required for call_gemini and must be a valid JSON Schema dict")
+
     from google import genai
     from google.genai import types
 
@@ -155,10 +211,8 @@ async def call_gemini(
         "temperature": 0.2,
         "response_mime_type": "application/json",
         "system_instruction": system_prompt,
+        "response_json_schema": response_schema,
     }
-    if response_schema:
-        # These contracts are JSON Schema, including nullable type unions.
-        config_kwargs["response_json_schema"] = response_schema
     config = types.GenerateContentConfig(**config_kwargs)
     client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=45000))
     try:
@@ -282,7 +336,12 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
             if not mistral_key:
                 raise ValueError("Mistral API key is not configured")
             call_res = await call_mistral(
-                prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True
+                prompt,
+                mistral_key,
+                mistral_model,
+                response_schema=json_format,
+                system_prompt=system_prompt,
+                return_usage=True,
             )
             if isinstance(call_res, tuple):
                 raw_response, token_usage_info = call_res
@@ -329,9 +388,9 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
             "ai_error": str(e)
         }
 
-    # Parse JSON response directly since APIs guarantee valid JSON
+    # Parse JSON response directly since APIs guarantee valid JSON (with fallback to repair)
     try:
-        data = json.loads(raw_response)
+        data = parse_llm_json(raw_response)
 
         # Normalize workplace_type
         raw_workplace = str(data.get("workplace_type") or "").strip().lower()
@@ -496,7 +555,14 @@ async def anonymize_companies_with_llm(
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_mistral(
+            prompt,
+            mistral_key,
+            mistral_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:
@@ -525,7 +591,7 @@ async def anonymize_companies_with_llm(
         )
 
     try:
-        data = json.loads(raw_response)
+        data = parse_llm_json(raw_response)
         return data.get("replacements", [])
     except Exception as e:
         logger.error(f"Failed to parse LLM company anonymization JSON: {raw_response}. Error: {e}")
@@ -573,7 +639,14 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_mistral(
+            prompt,
+            mistral_key,
+            mistral_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:
@@ -602,7 +675,7 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
         )
 
     try:
-        data = json.loads(raw_response)
+        data = parse_llm_json(raw_response)
     except Exception as e:
         logger.error(f"Failed to parse LLM compatibility JSON: {raw_response}. Error: {e}")
         raise RuntimeError(f"Failed to parse LLM compatibility evaluation: {e}")
@@ -693,7 +766,14 @@ DEVELOPER CV JSON SCHEMA:
     if provider == "mistral":
         if not mistral_key:
             raise ValueError("Mistral API key is not configured")
-        call_res = await call_mistral(prompt, mistral_key, mistral_model, system_prompt=system_prompt, return_usage=True)
+        call_res = await call_mistral(
+            prompt,
+            mistral_key,
+            mistral_model,
+            response_schema=json_format,
+            system_prompt=system_prompt,
+            return_usage=True,
+        )
         if isinstance(call_res, tuple):
             raw_response, token_usage_info = call_res
         else:
@@ -722,19 +802,10 @@ DEVELOPER CV JSON SCHEMA:
         )
 
     # Parse and clean response
-    cleaned = raw_response.strip()
-    if cleaned.startswith("```json"):
-        cleaned = cleaned[7:]
-    elif cleaned.startswith("```"):
-        cleaned = cleaned[3:]
-    if cleaned.endswith("```"):
-        cleaned = cleaned[:-3]
-    cleaned = cleaned.strip()
-
     try:
-        adapted_cv = json.loads(cleaned)
+        adapted_cv = parse_llm_json(raw_response)
     except Exception as e:
-        logger.error(f"Failed to parse adapted DeveloperCV JSON: {cleaned}. Error: {e}")
+        logger.error(f"Failed to parse adapted DeveloperCV JSON: {raw_response}. Error: {e}")
         raise RuntimeError(f"LLM failed to produce valid DeveloperCV JSON: {e}")
 
     # Validate essential required top-level fields
