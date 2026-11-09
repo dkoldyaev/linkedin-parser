@@ -96,57 +96,47 @@ def record_token_usage(
 async def call_mistral(
     prompt: str,
     api_key: str,
-    model: str = "open-mistral-nemo",
+    model: str,
     system_prompt: str = "",
     return_usage: bool = False,
 ):
-    """Call Mistral API via HTTP completions with automatic fallback for free tier."""
+    """Call Mistral API via HTTP completions."""
+    if not model:
+        raise ValueError("Mistral model is not specified")
+
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     
-    models_to_try = [model or "open-mistral-nemo"]
-    for fallback in ["open-mistral-nemo", "open-mistral-7b", "ministral-8b-latest"]:
-        if fallback not in models_to_try:
-            models_to_try.append(fallback)
-
-    last_error = None
     async with httpx.AsyncClient(timeout=45.0) as client:
-        for m in models_to_try:
-            payload = {
-                "model": m,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.2,
-                "response_format": {"type": "json_object"}
-            }
-            resp = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                if return_usage:
-                    raw_usage = data.get("usage") or {}
-                    usage_info = {
-                        "prompt_tokens": raw_usage.get("prompt_tokens", 0),
-                        "completion_tokens": raw_usage.get("completion_tokens", 0),
-                        "total_tokens": raw_usage.get("total_tokens", 0),
-                        "model": m,
-                    }
-                    return content, usage_info
-                return content
-            else:
-                last_error = f"Mistral API error ({resp.status_code}) on model {m}"
-                logger.warning(last_error)
-                # If rate limited (429), try next free-tier model
-                if resp.status_code == 429:
-                    continue
-                else:
-                    break
-
-        raise RuntimeError(last_error)
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"}
+        }
+        resp = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=payload)
+        if resp.status_code == 200:
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            if return_usage:
+                raw_usage = data.get("usage") or {}
+                usage_info = {
+                    "prompt_tokens": raw_usage.get("prompt_tokens", 0),
+                    "completion_tokens": raw_usage.get("completion_tokens", 0),
+                    "total_tokens": raw_usage.get("total_tokens", 0),
+                    "model": model,
+                }
+                return content, usage_info
+            return content
+        else:
+            error_msg = f"Mistral API error ({resp.status_code}) on model {model}: {resp.text}"
+            logger.warning(error_msg)
+            raise RuntimeError(error_msg)
 
 
 async def call_gemini(
