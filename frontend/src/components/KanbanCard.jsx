@@ -167,9 +167,9 @@ export default function KanbanCard({
                 rel="noreferrer" 
                 onClick={handleCompanyLinkClick}
                 className="card-source-link"
-                title={vacancy.source || ''}
+                title={vacancy.company || ''}
               >
-                {vacancy.source && <span>{vacancy.source}</span>}
+                {vacancy.company && <span>{vacancy.company}</span>}
                 <ExternalLink size={10} />
               </a>
             </div>
