@@ -34,7 +34,7 @@ export default function KanbanCard({
   columns = DEFAULT_COLUMNS,
   laneColumns = new Set([STATUS_INTERVIEW, STATUS_ASSESSMENT])
 }) {
-  const { t, formatDate, salaryDisplayFormat } = useTranslation();
+  const { t, formatDate, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
   const contentRef = useRef(null);
   const [gridHeight, setGridHeight] = useState(null);
 
@@ -57,7 +57,7 @@ export default function KanbanCard({
     ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== STATUS_REJECTED)
     : DEFAULT_COLUMNS;
   const currentIndex = linearColumns.indexOf(vacancy.status);
-  const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat);
+  const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
   // Match score tier classification

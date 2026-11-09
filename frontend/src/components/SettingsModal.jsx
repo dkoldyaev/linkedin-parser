@@ -12,11 +12,20 @@ import { useGridScroll } from '../utils/useGridScroll';
 import { BASE_STATUSES } from '../constants/columns';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated, onUserUpdated }) {
-  const { t, locale, setLocale, salaryDisplayFormat, setSalaryDisplayFormat } = useTranslation();
+  const { 
+    t, 
+    locale, 
+    setLocale, 
+    salaryDisplayFormat, 
+    setSalaryDisplayFormat, 
+    salaryTargetCurrency, 
+    setSalaryTargetCurrency 
+  } = useTranslation();
   const snapScroll = useGridScroll();
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'columns'
   const [selectedLocale, setSelectedLocale] = useState(locale || 'ru');
   const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(salaryDisplayFormat || 'month');
+  const [selectedCurrency, setSelectedCurrency] = useState(salaryTargetCurrency || '');
   const [columnsList, setColumnsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -39,6 +48,11 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
           setSelectedSalaryFormat(data.salary_display_format);
           setSalaryDisplayFormat(data.salary_display_format);
         }
+        if (data.salary_target_currency !== undefined) {
+          const curr = data.salary_target_currency || '';
+          setSelectedCurrency(curr);
+          setSalaryTargetCurrency(curr);
+        }
         if (data.columns && Array.isArray(data.columns)) {
           setColumnsList(data.columns);
         }
@@ -49,6 +63,10 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   useEffect(() => {
     setSelectedLocale(locale || 'ru');
   }, [locale]);
+
+  useEffect(() => {
+    setSelectedCurrency(salaryTargetCurrency || '');
+  }, [salaryTargetCurrency]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,6 +83,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
       const payload = {
         locale: selectedLocale,
         salary_display_format: selectedSalaryFormat,
+        salary_target_currency: selectedCurrency,
       };
 
       const res = await fetch('/api/settings', {
@@ -79,6 +98,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
         });
         setLocale(selectedLocale);
         setSalaryDisplayFormat(selectedSalaryFormat);
+        setSalaryTargetCurrency(selectedCurrency);
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);
       }
@@ -238,6 +258,25 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
                   <option value="year">{t('settingsModal.salary_format_year')}</option>
                   <option value="day">{t('settingsModal.salary_format_day')}</option>
                   <option value="original">{t('settingsModal.salary_format_original')}</option>
+                </select>
+              </div>
+
+              {/* Salary Currency Selector */}
+              <div className="form-group settings-currency-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Globe size={15} />
+                  <span>{t('settingsModal.salary_currency_title')}</span>
+                </label>
+                <select
+                  className="form-input"
+                  value={selectedCurrency}
+                  onChange={e => setSelectedCurrency(e.target.value)}
+                >
+                  <option value="">{t('settingsModal.salary_currency_none')}</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="RUB">RUB (₽)</option>
+                  <option value="GBP">GBP (£)</option>
                 </select>
               </div>
             </div>

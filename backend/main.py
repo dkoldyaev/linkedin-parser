@@ -6,7 +6,7 @@ import logging
 import datetime
 import httpx
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +28,7 @@ from .models import (
     AdaptedCVVersion,
     ApiKey,
     UserLLMTokenUsage,
+    ExchangeRate,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -80,6 +81,7 @@ from .schemas import (
     ApiKeyCreateRequest,
     ApiKeyResponse,
     ApiKeyCreatedResponse,
+    ExchangeRatesResponse,
     UserStatsSummary,
 )
 from .auth import (
@@ -849,6 +851,46 @@ async def cancel_queue_task(task_id: str, current_user: User = Depends(get_curre
     return {"message": "Task cancelled"}
 
 
+from .parsers.helpers import normalize_currency
+
+CURRENCY_SYMBOLS = {
+    "USD": "$",
+    "EUR": "€",
+    "RUB": "₽",
+    "GBP": "£",
+}
+
+
+def convert_vacancy_salary(
+    vacancy: Vacancy,
+    target_currency: Optional[str],
+    rates: Dict[Tuple[str, str], float],
+) -> VacancyResponse:
+    res = VacancyResponse.model_validate(vacancy)
+    if not target_currency or not target_currency.strip():
+        return res
+
+    target_norm = normalize_currency(target_currency)
+    source_curr = res.salary_currency
+    if not source_curr:
+        return res
+
+    source_norm = normalize_currency(source_curr)
+    if not source_norm or source_norm == target_norm:
+        return res
+
+    rate = rates.get((source_norm, target_norm))
+    if rate is None or rate <= 0:
+        return res
+
+    if res.salary_min is not None:
+        res.salary_min = round(res.salary_min * rate, 2)
+    if res.salary_max is not None:
+        res.salary_max = round(res.salary_max * rate, 2)
+    res.salary_currency = CURRENCY_SYMBOLS.get(target_norm, target_norm)
+    return res
+
+
 @app.get("/api/vacancies", response_model=List[VacancyResponse])
 def list_vacancies(
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -899,7 +941,15 @@ def list_vacancies(
         )
 
     query = filter_tag(query, db, tag)
-    return query.order_by(Vacancy.updated_at.desc(), Vacancy.id.desc()).all()
+    vacancies = query.order_by(Vacancy.updated_at.desc(), Vacancy.id.desc()).all()
+
+    target_currency = get_setting_or_env(db, "salary_target_currency", "", user_id=current_user.id)
+    if not target_currency or not target_currency.strip():
+        return vacancies
+
+    rate_rows = db.query(ExchangeRate).all()
+    rates = {(r.source_currency, r.target_currency): r.rate for r in rate_rows}
+    return [convert_vacancy_salary(v, target_currency, rates) for v in vacancies]
 
 
 @app.get("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
@@ -911,7 +961,14 @@ def get_vacancy(
     v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
-    return v
+
+    target_currency = get_setting_or_env(db, "salary_target_currency", "", user_id=current_user.id)
+    if not target_currency or not target_currency.strip():
+        return v
+
+    rate_rows = db.query(ExchangeRate).all()
+    rates = {(r.source_currency, r.target_currency): r.rate for r in rate_rows}
+    return convert_vacancy_salary(v, target_currency, rates)
 
 
 @app.post("/api/vacancies", response_model=VacancyResponse)
@@ -957,6 +1014,19 @@ async def create_vacancy(
             },
             topic=mercure_topic,
         )
+
+    # If vacancy has a description and user has an approved CV, trigger scoring / AI analysis in background
+    if v.description and v.description.strip():
+        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
+        if has_approved_cv:
+            await queue_manager.enqueue_ai(
+                vacancy_id=v.id,
+                user_id=current_user.id,
+                title=v.title,
+                company=v.company,
+                url=v.url,
+            )
+
     return v
 
 
@@ -1129,6 +1199,20 @@ async def update_vacancy(
             },
             topic=mercure_topic,
         )
+
+    # If description was updated and present, and user has an approved CV, trigger scoring / AI analysis in background
+    description_changed = "description" in update_data and v.description and v.description.strip()
+    if description_changed:
+        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
+        if has_approved_cv:
+            await queue_manager.enqueue_ai(
+                vacancy_id=v.id,
+                user_id=current_user.id,
+                title=v.title,
+                company=v.company,
+                url=v.url,
+            )
+
     return v
 
 
@@ -1745,12 +1829,14 @@ def get_settings(
 ):
     locale = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id)
     salary_display_format = get_setting_or_env(db, "salary_display_format", "month", user_id=current_user.id)
+    salary_target_currency = get_setting_or_env(db, "salary_target_currency", "", user_id=current_user.id)
     columns_raw = get_user_columns(db, current_user.id)
     columns = [ColumnItem(**c) for c in columns_raw]
 
     return SettingsResponse(
         locale=locale,
         salary_display_format=salary_display_format,
+        salary_target_currency=salary_target_currency or None,
         columns=columns,
     )
 
@@ -1783,6 +1869,18 @@ def update_settings(
         else:
             setting.value = payload.salary_display_format.strip().lower()
 
+    if payload.salary_target_currency is not None:
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "salary_target_currency"
+        ).first()
+        val = payload.salary_target_currency.strip().upper()
+        if not setting:
+            setting = UserSetting(user_id=current_user.id, key="salary_target_currency", value=val)
+            db.add(setting)
+        else:
+            setting.value = val
+
     if payload.columns is not None:
         cols_data = [c.model_dump() for c in payload.columns]
         # Validate that BASE_STATUSES are preserved
@@ -1795,6 +1893,28 @@ def update_settings(
     db.commit()
 
     return get_settings(current_user=current_user, db=db)
+
+
+@app.get("/api/exchange-rates", response_model=ExchangeRatesResponse)
+def get_exchange_rates(
+    db: Session = Depends(get_db),
+):
+    """Return all stored exchange rates."""
+    rows = db.query(ExchangeRate).all()
+    rates: Dict[str, float] = {}
+    latest_update: Optional[datetime.datetime] = None
+    for r in rows:
+        key = f"{r.source_currency}_{r.target_currency}"
+        rates[key] = float(r.rate)
+        if r.updated_at:
+            if latest_update is None or r.updated_at > latest_update:
+                latest_update = r.updated_at
+
+    return ExchangeRatesResponse(
+        rates=rates,
+        updated_at=latest_update.isoformat() if latest_update else None,
+    )
+
 
 
 @app.get("/api/api-keys", response_model=List[ApiKeyResponse])

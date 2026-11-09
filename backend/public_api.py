@@ -266,6 +266,19 @@ async def create_vacancy(
             },
             topic=mercure_topic,
         )
+
+    # If vacancy has a description and user has an approved CV, trigger scoring / AI analysis in background
+    if v.description and v.description.strip():
+        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
+        if has_approved_cv:
+            await queue_manager.enqueue_ai(
+                vacancy_id=v.id,
+                user_id=current_user.id,
+                title=v.title,
+                company=v.company,
+                url=v.url,
+            )
+
     return v
 
 
@@ -321,6 +334,20 @@ async def update_vacancy(
             },
             topic=mercure_topic,
         )
+
+    # If description was updated and present, and user has an approved CV, trigger scoring / AI analysis in background
+    description_changed = "description" in update_data and v.description and v.description.strip()
+    if description_changed:
+        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
+        if has_approved_cv:
+            await queue_manager.enqueue_ai(
+                vacancy_id=v.id,
+                user_id=current_user.id,
+                title=v.title,
+                company=v.company,
+                url=v.url,
+            )
+
     return v
 
 

@@ -18,6 +18,23 @@ export const PERIOD_SUFFIXES = {
   day: '/ день'
 };
 
+export function normalizeCurrencyCode(curr) {
+  if (!curr) return null;
+  const c = curr.trim().toUpperCase();
+  if (['RUB', 'RUR', '₽', 'РУБ', 'РУБ.'].includes(c)) return 'RUB';
+  if (['USD', '$'].includes(c)) return 'USD';
+  if (['EUR', '€'].includes(c)) return 'EUR';
+  if (['GBP', '£'].includes(c)) return 'GBP';
+  return c;
+}
+
+export const CURRENCY_SYMBOLS = {
+  USD: '$',
+  EUR: '€',
+  RUB: '₽',
+  GBP: '£',
+};
+
 /**
  * Format a number cleanly with space grouping.
  */
@@ -29,20 +46,40 @@ export function formatNumber(val) {
 /**
  * Get salary display information for cards and modals.
  */
-export function getSalaryDisplay(vacancy, t, displayFormat = 'month') {
+export function getSalaryDisplay(vacancy, t, displayFormat = 'month', targetCurrency = null, exchangeRates = null) {
   if (!vacancy) {
     return { hasSalary: false, formatted: '', original: '', targetMin: null, targetMax: null };
   }
 
   const { salary_min, salary_max, salary_currency, salary_period } = vacancy;
-  const min = salary_min !== null && salary_min !== undefined && salary_min !== '' ? Number(salary_min) : null;
-  const max = salary_max !== null && salary_max !== undefined && salary_max !== '' ? Number(salary_max) : null;
+  let min = salary_min !== null && salary_min !== undefined && salary_min !== '' ? Number(salary_min) : null;
+  let max = salary_max !== null && salary_max !== undefined && salary_max !== '' ? Number(salary_max) : null;
 
   if ((min === null || isNaN(min)) && (max === null || isNaN(max))) {
     return { hasSalary: false, formatted: '', original: '', targetMin: null, targetMax: null };
   }
 
-  const curr = (salary_currency || '$').trim();
+  const origCurr = (salary_currency || '$').trim();
+  const normOrigCurr = normalizeCurrencyCode(origCurr);
+  const normTargetCurr = targetCurrency ? normalizeCurrencyCode(targetCurrency) : null;
+
+  let displayCurr = origCurr;
+  let currRate = 1;
+
+  if (normTargetCurr && normOrigCurr && normTargetCurr !== normOrigCurr && exchangeRates) {
+    const pairKey = `${normOrigCurr}_${normTargetCurr}`;
+    if (exchangeRates[pairKey] !== undefined) {
+      currRate = Number(exchangeRates[pairKey]);
+      displayCurr = CURRENCY_SYMBOLS[normTargetCurr] || normTargetCurr;
+    }
+  }
+
+  if (currRate !== 1) {
+    if (min !== null) min = min * currRate;
+    if (max !== null) max = max * currRate;
+  }
+
+  const curr = displayCurr;
   const period = (salary_period || 'month').toLowerCase().trim();
   
   let targetFormat = displayFormat;

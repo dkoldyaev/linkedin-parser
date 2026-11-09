@@ -12,7 +12,7 @@ import redis.asyncio as aioredis
 from sqlalchemy import func
 
 from .database import SessionLocal
-from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, STATUS_NOT_CONTACTED
+from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, ExchangeRate, STATUS_NOT_CONTACTED
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
@@ -45,8 +45,11 @@ logger = logging.getLogger("linkedin_tracker.queue")
 
 SCRAPE_QUEUE_KEY = "linkedin:scrape_queue"
 AI_QUEUE_KEY = "linkedin:ai_queue"
+RATES_QUEUE_KEY = "linkedin:rates_queue"
 SCRAPE_PROCESSING_SET = "linkedin:processing:scrape"
 AI_PROCESSING_SET = "linkedin:processing:ai"
+RATES_PROCESSING_SET = "linkedin:processing:rates"
+RATE_TASK_KEY_PREFIX = "linkedin:rate_task:"
 RECENT_LIST = "linkedin:recent"
 STATS_KEY = "linkedin:stats"
 TASK_KEY_PREFIX = "linkedin:task:"
@@ -178,6 +181,11 @@ class RedisQueueManager:
             t = asyncio.create_task(self._ai_worker_loop(i), name=f"ai-worker-{i}")
             self._worker_tasks.append(t)
 
+        # Launch Exchange Rate worker
+        self._worker_tasks.append(
+            asyncio.create_task(self._rate_worker_loop(), name="rate-worker")
+        )
+
         # Promotes tasks whose retry delay has elapsed back into the scrape queue
         self._worker_tasks.append(
             asyncio.create_task(self._retry_promoter_loop(), name="retry-promoter")
@@ -271,6 +279,66 @@ class RedisQueueManager:
             f"Total remaining tasks: {total_remaining}"
         )
         return batch_id, new_tasks
+
+    async def enqueue_ai(
+        self,
+        vacancy_id: int,
+        user_id: Optional[int] = None,
+        title: Optional[str] = None,
+        company: Optional[str] = None,
+        url: Optional[str] = None,
+    ) -> Optional[JobTask]:
+        """Enqueue an existing vacancy directly into Stage 2 (AI queue) for scoring and summarization."""
+        if not self.redis:
+            return None
+
+        task_id = uuid.uuid4().hex[:8]
+        batch_id = uuid.uuid4().hex[:8]
+        task = JobTask(
+            task_id=task_id,
+            batch_id=batch_id,
+            url=url or "",
+            default_tags=[],
+            vacancy_id=vacancy_id,
+            user_id=user_id,
+            title=title or "Untitled",
+            company=company or "Unknown",
+            status="pending",
+            stage="ai_analysis",
+            created_at=time.time(),
+            updated_at=time.time(),
+        )
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            pipe.rpush(AI_QUEUE_KEY, task_id)
+            if user_id:
+                pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+                pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
+                pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+                pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+                pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
+            pipe.lpush(RECENT_LIST, task_id)
+            pipe.ltrim(RECENT_LIST, 0, 99)
+            await pipe.execute()
+
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "batch_id": batch_id,
+                "task_id": task_id,
+                "vacancy_id": vacancy_id,
+                "queued_count": 1,
+                "total_remaining": total_remaining,
+            },
+            topic=mercure_topic,
+        )
+
+        logger.info(f"Enqueued vacancy #{vacancy_id} (user {user_id}) directly into AI Queue (task {task_id})")
+        return task
 
     async def _calculate_total_remaining(self, user_id: Optional[int] = None) -> int:
         if not self.redis:
@@ -1271,6 +1339,127 @@ class RedisQueueManager:
             logger.error(f"process_extension_result failed for task {task_id}: {e}", exc_info=True)
             await self._fail_or_retry(task, e)
             return {"status": "error", "message": str(e)}
+
+
+    async def enqueue_rate_update(self, source: str, target: str) -> str:
+        """Enqueue an exchange rate update task between source and target currencies."""
+        if not self.redis:
+            raise RuntimeError("Redis broker is not connected")
+
+        task_id = uuid.uuid4().hex[:10]
+        payload = {
+            "task_id": task_id,
+            "source": source.strip().upper(),
+            "target": target.strip().upper(),
+            "amount": 100,
+            "created_at": time.time(),
+        }
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{RATE_TASK_KEY_PREFIX}{task_id}", json.dumps(payload), ex=86400)
+            pipe.rpush(RATES_QUEUE_KEY, task_id)
+            await pipe.execute()
+
+        logger.info(f"Enqueued exchange rate task {task_id}: {payload['source']} -> {payload['target']}")
+        return task_id
+
+    async def _rate_worker_loop(self):
+        """Worker loop processing exchange rate update tasks."""
+        logger.info("Exchange rate worker started loop")
+        while self._running:
+            try:
+                item = await self.redis.blpop(RATES_QUEUE_KEY, timeout=1)
+                if not item:
+                    continue
+                _, task_id = item
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                if self._running:
+                    logger.error(f"Rate worker error popping queue: {e}")
+                    await asyncio.sleep(1)
+                continue
+
+            await self.redis.sadd(RATES_PROCESSING_SET, task_id)
+            try:
+                await self._process_rate_task(task_id)
+            except Exception as e:
+                logger.error(f"Rate worker uncaught error on task {task_id}: {e}", exc_info=True)
+            finally:
+                try:
+                    await self.redis.srem(RATES_PROCESSING_SET, task_id)
+                    await self.redis.delete(f"{RATE_TASK_KEY_PREFIX}{task_id}")
+                except Exception:
+                    pass
+
+            # Pause between tasks to respect rate limits
+            if self._running:
+                await asyncio.sleep(10)
+
+    async def _process_rate_task(self, task_id: str):
+        """Execute one currency conversion of 100 units and store the resulting coefficient in DB."""
+        raw = await self.redis.get(f"{RATE_TASK_KEY_PREFIX}{task_id}")
+        if not raw:
+            return
+
+        data = json.loads(raw)
+        source = data["source"]
+        target = data["target"]
+        amount = data.get("amount", 100)
+
+        # If source and target are the same currency, coefficient is 1.0
+        if source == target:
+            coeff = 1.0
+        else:
+            api_key = os.getenv("ALLRATESTODAY_API_KEY")
+            headers = {}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
+            url = f"https://allratestoday.com/api/v1/rates?source={source}&target={target}&amount={amount}"
+            from .safe_http import PublicWebClient
+
+            async with PublicWebClient() as client:
+                res = await client.get(url, headers=headers, timeout=15)
+                res.raise_for_status()
+                result_json = res.json()
+
+            # Result format from allratestoday when amount is supplied:
+            # {"from": {"currency": source, "amount": 100}, "to": {"currency": target, "amount": <val>}, "rate": <coeff>}
+            if isinstance(result_json, dict) and "to" in result_json and "amount" in result_json["to"]:
+                converted_amount = float(result_json["to"]["amount"])
+                coeff = converted_amount / float(amount)
+            elif isinstance(result_json, dict) and "rate" in result_json:
+                coeff = float(result_json["rate"])
+            elif isinstance(result_json, list) and len(result_json) > 0 and "rate" in result_json[0]:
+                coeff = float(result_json[0]["rate"])
+            else:
+                raise ValueError(f"Unexpected response structure from rates API: {result_json}")
+
+        # Save or update in database
+        db = SessionLocal()
+        try:
+            record = db.query(ExchangeRate).filter(
+                ExchangeRate.source_currency == source,
+                ExchangeRate.target_currency == target,
+            ).first()
+
+            now = datetime.datetime.utcnow()
+            if record:
+                record.rate = coeff
+                record.updated_at = now
+            else:
+                record = ExchangeRate(
+                    source_currency=source,
+                    target_currency=target,
+                    rate=coeff,
+                    updated_at=now,
+                )
+                db.add(record)
+            db.commit()
+            logger.info(f"Updated exchange rate {source} -> {target}: {coeff} (via 100 units)")
+        finally:
+            db.close()
 
 
 # Global singleton instance with 1 scrape worker and 1 AI worker

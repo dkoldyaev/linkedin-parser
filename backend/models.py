@@ -255,4 +255,19 @@ class UserLLMTokenUsage(Base):
     user = relationship("User")
 
 
+class ExchangeRate(Base):
+    __tablename__ = "exchange_rates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_currency = Column(String(16), nullable=False, index=True)
+    target_currency = Column(String(16), nullable=False, index=True)
+    rate = Column(Float, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("source_currency", "target_currency", name="uq_exchange_rates_source_target"),
+    )
+
+
+
 

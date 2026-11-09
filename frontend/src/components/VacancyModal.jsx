@@ -18,7 +18,7 @@ import {
 } from '../constants/columns';
 
 export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
-  const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
+  const { t, locale, formatDate, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
   const snapScroll = useGridScroll();
   const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
 
@@ -651,7 +651,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     salary_max: salaryMax !== '' ? salaryMax : vacancy.salary_max,
     salary_currency: salaryCurrency || vacancy.salary_currency,
     salary_period: salaryPeriod || vacancy.salary_period,
-  }, t, salaryDisplayFormat);
+  }, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
 
   const modalWorkplaceInfo = getWorkplaceInfo(workplaceType || vacancy.workplace_type, t);
 

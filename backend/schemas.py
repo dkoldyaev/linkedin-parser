@@ -242,11 +242,13 @@ class ColumnsOrderRequest(BaseModel):
 class SettingsResponse(BaseModel):
     locale: str = "ru"
     salary_display_format: str = "month"
+    salary_target_currency: Optional[str] = None
     columns: List[ColumnItem] = Field(default_factory=list)
 
 class SettingsUpdateRequest(BaseModel):
     locale: Optional[str] = None
     salary_display_format: Optional[str] = None
+    salary_target_currency: Optional[str] = None
     columns: Optional[List[ColumnItem]] = None
 
 class ExtensionParseRequest(BaseModel):
@@ -370,6 +372,12 @@ class ApiKeyResponse(BaseModel):
 
 class ApiKeyCreatedResponse(ApiKeyResponse):
     token: str
+
+
+class ExchangeRatesResponse(BaseModel):
+    rates: Dict[str, float]
+    updated_at: Optional[str] = None
+
 
 
 

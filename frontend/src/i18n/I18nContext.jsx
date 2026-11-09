@@ -26,6 +26,43 @@ export function I18nProvider({ children }) {
     return 'month';
   });
 
+  const [salaryTargetCurrency, setSalaryTargetCurrencyState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_salary_currency');
+      if (saved) return saved;
+    } catch {
+      // ignore
+    }
+    return '';
+  });
+
+  const [exchangeRates, setExchangeRatesState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_exchange_rates');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return {};
+  });
+
+  // Fetch exchange rates once and cache in localStorage
+  useEffect(() => {
+    fetch('/api/exchange-rates')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.rates) {
+          setExchangeRatesState(data.rates);
+          try {
+            localStorage.setItem('app_exchange_rates', JSON.stringify(data.rates));
+          } catch {
+            // ignore
+          }
+        }
+      })
+      .catch(err => console.debug('Could not fetch exchange rates', err));
+  }, []);
+
   // Sync with /api/settings on initial mount if authenticated
   useEffect(() => {
     fetch('/api/settings')
@@ -50,6 +87,15 @@ export function I18nProvider({ children }) {
             // ignore
           }
         }
+        if (data && data.salary_target_currency !== undefined) {
+          const curr = data.salary_target_currency || '';
+          setSalaryTargetCurrencyState(curr);
+          try {
+            localStorage.setItem('app_salary_currency', curr);
+          } catch {
+            // ignore
+          }
+        }
       })
       .catch(err => console.debug('Could not fetch settings', err));
   }, []);
@@ -68,6 +114,16 @@ export function I18nProvider({ children }) {
     setSalaryDisplayFormatState(format);
     try {
       localStorage.setItem('app_salary_format', format);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const setSalaryTargetCurrency = useCallback((currency) => {
+    const val = (currency || '').trim();
+    setSalaryTargetCurrencyState(val);
+    try {
+      localStorage.setItem('app_salary_currency', val);
     } catch {
       // ignore
     }
@@ -129,7 +185,17 @@ export function I18nProvider({ children }) {
   }, [locale]);
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, formatDate, salaryDisplayFormat, setSalaryDisplayFormat }}>
+    <I18nContext.Provider value={{
+      locale,
+      setLocale,
+      t,
+      formatDate,
+      salaryDisplayFormat,
+      setSalaryDisplayFormat,
+      salaryTargetCurrency,
+      setSalaryTargetCurrency,
+      exchangeRates
+    }}>
       {children}
     </I18nContext.Provider>
   );

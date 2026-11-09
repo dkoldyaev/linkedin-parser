@@ -182,5 +182,67 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             self.assertEqual(eval_res.status_code, 400)
             mock_eval_fn.assert_not_called()
 
+    def test_auto_trigger_cv_scoring_on_vacancy_creation_and_update(self):
+        """When vacancy with description is created or updated, auto-enqueue for AI scoring if approved CV exists."""
+        # 1. User Alice has approved CV
+        self.client.post(
+            "/api/cv/approved",
+            json={"content": "Senior Python developer with FastAPI.", "revision": 1},
+            cookies=self.cookies_alice,
+        )
+
+        with patch("backend.main.queue_manager.enqueue_ai", new_callable=AsyncMock) as mock_enqueue_ai:
+            mock_enqueue_ai.return_value = None
+
+            # Creating vacancy with description -> should trigger enqueue_ai
+            create_resp = self.client.post(
+                "/api/vacancies",
+                json={
+                    "title": "Python Lead",
+                    "company": "FastAPI Inc",
+                    "url": "https://example.com/job/auto-1",
+                    "description": "Looking for a seasoned Python engineer with FastAPI and Docker.",
+                },
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(create_resp.status_code, 200)
+            vac_id = create_resp.json()["id"]
+            self.assertEqual(mock_enqueue_ai.call_count, 1)
+            _, kwargs = mock_enqueue_ai.call_args
+            self.assertEqual(kwargs["vacancy_id"], vac_id)
+
+            # Updating vacancy description -> should trigger enqueue_ai
+            update_resp = self.client.patch(
+                f"/api/vacancies/{vac_id}",
+                json={"description": "Updated description with Kubernetes and Python."},
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(update_resp.status_code, 200)
+            self.assertEqual(mock_enqueue_ai.call_count, 2)
+
+            # Updating other fields without description (e.g. notes) -> should NOT trigger enqueue_ai
+            patch_resp = self.client.patch(
+                f"/api/vacancies/{vac_id}",
+                json={"notes": "Called HR today"},
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(patch_resp.status_code, 200)
+            self.assertEqual(mock_enqueue_ai.call_count, 2)
+
+        # 2. User Bob has NO approved CV -> should NOT trigger enqueue_ai even if description provided
+        with patch("backend.main.queue_manager.enqueue_ai", new_callable=AsyncMock) as mock_enqueue_ai_bob:
+            bob_create_resp = self.client.post(
+                "/api/vacancies",
+                json={
+                    "title": "Go Developer",
+                    "company": "Golang Corp",
+                    "url": "https://example.com/job/auto-2",
+                    "description": "Go microservices experience required.",
+                },
+                cookies=self.cookies_bob,
+            )
+            self.assertEqual(bob_create_resp.status_code, 200)
+            mock_enqueue_ai_bob.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

@@ -264,6 +264,18 @@ def ensure_db_schema():
                         request_count INTEGER NOT NULL DEFAULT 0
                     );
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS exchange_rates (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source_currency VARCHAR(16) NOT NULL,
+                        target_currency VARCHAR(16) NOT NULL,
+                        rate REAL NOT NULL,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_exchange_rates_source_target UNIQUE (source_currency, target_currency)
+                    );
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exchange_rates_source ON exchange_rates(source_currency)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exchange_rates_target ON exchange_rates(target_currency)"))
             elif dialect == "postgresql":
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS approved_cvs (
@@ -316,6 +328,18 @@ def ensure_db_schema():
                         request_count INTEGER NOT NULL DEFAULT 0
                     );
                 """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS exchange_rates (
+                        id SERIAL PRIMARY KEY,
+                        source_currency VARCHAR(16) NOT NULL,
+                        target_currency VARCHAR(16) NOT NULL,
+                        rate DOUBLE PRECISION NOT NULL,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        CONSTRAINT uq_exchange_rates_source_target UNIQUE (source_currency, target_currency)
+                    );
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exchange_rates_source ON exchange_rates(source_currency)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_exchange_rates_target ON exchange_rates(target_currency)"))
     except Exception as e:
         logger.warning(f"Approved CV / Vacancy analysis tables migration check: {e}")
 
