@@ -1545,8 +1545,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         fontSize: '0.8rem',
                         fontWeight: '700',
                         marginLeft: '4px'
-                      }} title={t('vacancyModal.compat_formula_hint')}>
-                        {t('vacancyModal.compat_formula')}: {Math.round(displayScore)}%
+                      }}>
+                        {Math.round(displayScore)}%
                       </span>
                     </div>
                   );
