@@ -125,32 +125,44 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     return () => window.removeEventListener('resize', alignControls);
   }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
   useLayoutEffect(() => {
-    const body = detailBodyRef.current;
-    if (!isOpen || !body) return;
+    const modal = modalRef.current;
+    if (!isOpen || !modal) return;
     const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
 
-    const sections = activeTab === 'details'
-      ? Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'))
-      : Array.from(body.querySelectorAll(
-          '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
-        ));
-
-    let frame;
-    const align = () => {
+    const alignAll = () => {
+      const modalTop = modal.getBoundingClientRect().top;
+      const sections = modal.querySelectorAll(
+        activeTab === 'details'
+          ? '.vacancy-ai-summary, .stage-history-section, .vacancy-notes-section, .orig-desc-section'
+          : '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
+      );
       sections.forEach(section => {
         section.style.minHeight = '0px';
         section.style.minHeight = `${Math.ceil(section.offsetHeight / grid) * grid}px`;
       });
+
+      const company = modal.querySelector('.vacancy-ai-company');
+      if (company) {
+        company.style.marginTop = '0px';
+        const companyTop = company.getBoundingClientRect().top;
+        const offsetMod = (companyTop - modalTop) % grid;
+        if (offsetMod > 0.05 && offsetMod < grid - 0.05) {
+          const extra = grid - offsetMod;
+          company.style.marginTop = `${extra}px`;
+        }
+      }
     };
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(align); };
+
+    let frame;
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(alignAll); };
     const resize = new ResizeObserver(schedule);
-    resize.observe(body);
-    sections.forEach(section => resize.observe(section));
+    resize.observe(modal);
+    modal.querySelectorAll('.modal-body > *').forEach(el => resize.observe(el));
     const mutation = new MutationObserver(schedule);
-    sections.forEach(section => mutation.observe(section, { childList: true, subtree: true, characterData: true }));
-    align();
+    mutation.observe(modal, { childList: true, subtree: true, characterData: true });
+    alignAll();
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
-  }, [isOpen, activeTab, compatibility, showEvidenceMap]);
+  }, [isOpen, activeTab, compatibility, showEvidenceMap, vacancy]);
 
 
 
