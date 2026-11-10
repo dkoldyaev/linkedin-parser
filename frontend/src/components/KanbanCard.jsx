@@ -199,7 +199,7 @@ export default function KanbanCard({
           {matchScore !== null && (
             <div
               className={`card-match-badge ${matchTier}`}
-              title={`${t('kanban.match_badge', { score: matchScore })} (${matchTierLabel})`}
+              title={t('kanban.match_badge', { score: matchScore })}
             >
               <Award size={11} />
               <span>{matchScore}%</span>
