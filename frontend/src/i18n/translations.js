@@ -10,6 +10,7 @@ import {
 export const translations = {
   ru: {
     common: {
+      edit: "Редактировать",
       save: "Сохранить",
       cancel: "Отмена",
       delete: "Удалить",
@@ -520,6 +521,7 @@ export const translations = {
   },
   en: {
     common: {
+      edit: "Edit",
       save: "Save",
       cancel: "Cancel",
       delete: "Delete",
