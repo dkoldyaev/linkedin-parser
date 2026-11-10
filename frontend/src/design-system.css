@@ -237,6 +237,46 @@ body { background: var(--bg-main); }
 .card-salary-badge, .card-match-badge { padding: 0; border: 0; background: transparent; border-radius: 0; }
 .card-summary, [data-theme='light'] .card-summary { background: transparent; border: 0; padding: 0; color: var(--text-secondary); }
 .card-summary-pending { display: flex; align-items: center; gap: 6px; color: var(--primary); font-size: .75rem; }
+
+/* Skeletons */
+.card-skeleton-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+.skeleton-line {
+  height: 9px;
+  border-radius: var(--radius-xs, 2px);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s infinite ease-in-out;
+}
+[data-theme='light'] .skeleton-line {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.05) 25%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.05) 75%);
+  background-size: 200% 100%;
+}
+.card-skeleton-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+}
+.skeleton-chip {
+  height: 12px;
+  border-radius: var(--radius-xs, 2px);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s infinite ease-in-out;
+}
+[data-theme='light'] .skeleton-chip {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.05) 25%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.05) 75%);
+  background-size: 200% 100%;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 .card-tech-stack, .card-tags { gap: 4px 10px; }
 .tech-chip, [data-theme='light'] .tech-chip, .tag-chip, [data-theme='light'] .tag-chip {
   padding: 0; background: transparent; border: 0; border-radius: 0; color: var(--text-muted); font: 400 .68rem var(--font-mono);

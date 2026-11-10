@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { 
-  MapPin, Sparkles, 
+  MapPin, 
   ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
   RotateCcw, History, Award
 } from 'lucide-react';
@@ -243,14 +243,15 @@ export default function KanbanCard({
           {vacancy.ai_summary}
         </div>
       ) : (
-        <div className="card-summary card-summary-pending">
-          <Sparkles size={13} />
-          <span>{t('kanban.ai_generating')}</span>
+        <div className="card-skeleton-block" aria-hidden="true">
+          <div className="skeleton-line" style={{ width: '100%' }} />
+          <div className="skeleton-line" style={{ width: '85%' }} />
+          <div className="skeleton-line" style={{ width: '60%' }} />
         </div>
       )}
 
       {/* Tech stack pills */}
-      {vacancy.tech_stack && vacancy.tech_stack.length > 0 && (
+      {vacancy.tech_stack && vacancy.tech_stack.length > 0 ? (
         <div className="card-tech-stack">
           {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
             <span key={i} className="tech-chip">
@@ -263,7 +264,13 @@ export default function KanbanCard({
             </span>
           )}
         </div>
-      )}
+      ) : (!vacancy.ai_summary && (
+        <div className="card-tech-stack card-skeleton-chips" aria-hidden="true">
+          <span className="skeleton-chip" style={{ width: '52px' }} />
+          <span className="skeleton-chip" style={{ width: '42px' }} />
+          <span className="skeleton-chip" style={{ width: '64px' }} />
+        </div>
+      ))}
 
       {/* Custom labels / tags */}
       {vacancy.tags && vacancy.tags.length > 0 && (

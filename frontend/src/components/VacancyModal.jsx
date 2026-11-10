@@ -1180,9 +1180,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </button>
             </div>
             
-            <p className="vacancy-ai-summary-text">
-              {vacancy.ai_summary || t('vacancyModal.no_summary')}
-            </p>
+            {resummarizing || (!vacancy.ai_summary && description?.trim()) ? (
+              <div className="card-skeleton-block" aria-hidden="true" style={{ padding: '8px 0' }}>
+                <div className="skeleton-line" style={{ width: '100%' }} />
+                <div className="skeleton-line" style={{ width: '92%' }} />
+                <div className="skeleton-line" style={{ width: '75%' }} />
+              </div>
+            ) : (
+              <p className="vacancy-ai-summary-text">
+                {vacancy.ai_summary || t('vacancyModal.no_summary')}
+              </p>
+            )}
 
             {vacancy.company_info && (
               <div className="vacancy-ai-company">
@@ -1727,6 +1735,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     </ul>
                   </div>
                 )}
+              </div>
+            ) : (analyzingCompatibility || loadingCompatibility) ? (
+              <div className="card-skeleton-block" aria-hidden="true" style={{ padding: '16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left)' }}>
+                <div className="skeleton-line" style={{ width: '100%' }} />
+                <div className="skeleton-line" style={{ width: '88%' }} />
+                <div className="skeleton-line" style={{ width: '65%' }} />
               </div>
             ) : (
               <p className="compatibility-empty">
