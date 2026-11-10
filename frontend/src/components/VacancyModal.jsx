@@ -3,7 +3,7 @@ import {
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
   Laptop, Layers, Building, Ban, History, MessageSquare, Edit3,
-  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
+  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe, XCircle
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { useGridScroll } from '../utils/useGridScroll';
@@ -1738,10 +1738,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
         {/* Footer */}
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-danger" onClick={handleDelete}>
-            <Trash2 size={14} />
-            <span>{t('vacancyModal.delete_vacancy')}</span>
-          </button>
+          {status === STATUS_REJECTED ? (
+            <button className="btn btn-danger" onClick={handleDelete}>
+              <Trash2 size={14} />
+              <span>{t('vacancyModal.delete_permanent')}</span>
+            </button>
+          ) : (
+            <button className="btn btn-secondary" style={{ color: '#ef4444' }} onClick={() => handleStatusChange(STATUS_REJECTED)}>
+              <XCircle size={14} />
+              <span>{t('vacancyModal.move_to_rejected')}</span>
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>
             {t('vacancyModal.close_btn')}
           </button>

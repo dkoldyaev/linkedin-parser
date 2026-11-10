@@ -224,7 +224,9 @@ export const translations = {
       history_delete_comment: "Удалить комментарий",
       history_badge_hint: "{count} этапов",
       history_badge_with_comments: "{count} этапов, есть комментарии",
-      delete_confirm: "Вы уверены, что хотите удалить эту вакансию?",
+      move_to_rejected: "В отказ",
+      delete_permanent: "Удалить вакансию",
+      delete_confirm: "Вы уверены, что хотите навсегда удалить эту вакансию?",
       close_btn: "Закрыть",
     },
     batchModal: {
@@ -748,7 +750,9 @@ export const translations = {
       history_delete_comment: "Delete comment",
       history_badge_hint: "{count} stages",
       history_badge_with_comments: "{count} stages, has comments",
-      delete_confirm: "Are you sure you want to delete this vacancy?",
+      move_to_rejected: "Reject",
+      delete_permanent: "Delete Vacancy",
+      delete_confirm: "Are you sure you want to permanently delete this vacancy?",
       close_btn: "Close",
     },
     batchModal: {
