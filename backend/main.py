@@ -2767,8 +2767,11 @@ async def analyze_vacancy_compatibility(
         )
         db.add(v1)
 
+    calc_score = eval_data.get("calculatedScore")
+    target_score = float(calc_score) if calc_score is not None else overall_score
+
     # Also update vacancy.match_score and emit Mercure event so Kanban board reflects manual compatibility check
-    vacancy.match_score = overall_score
+    vacancy.match_score = target_score
     db.commit()
     db.refresh(analysis_record)
 
@@ -2784,7 +2787,7 @@ async def analyze_vacancy_compatibility(
             data={
                 "message_code": MSG_COMPATIBILITY_ANALYZED,
                 "vacancy_id": vacancy.id,
-                "match_score": overall_score,
+                "match_score": target_score,
                 "overall_score": overall_score,
                 "llm_score": eval_data.get("llmScore"),
                 "calculated_score": eval_data.get("calculatedScore"),

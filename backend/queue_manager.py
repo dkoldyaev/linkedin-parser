@@ -1046,11 +1046,13 @@ class RedisQueueManager:
                         )
 
                         overall_score = float(compat_res.get("overallScore", 0.0))
+                        calc_score = compat_res.get("calculatedScore")
+                        target_score = float(calc_score) if calc_score is not None else overall_score
                         policy_version = str(compat_res.get("scoringPolicyVersion", "v1.0"))
                         model_id = str(compat_res.get("model", provider or "llm"))
                         now = datetime.datetime.utcnow()
 
-                        vacancy.match_score = overall_score
+                        vacancy.match_score = target_score
 
                         # Adaptation is currently disabled
                         adapted_cv_payload = None

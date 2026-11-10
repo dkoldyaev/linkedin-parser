@@ -123,7 +123,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     window.addEventListener('resize', alignControls);
     document.fonts?.ready.then(alignControls);
     return () => window.removeEventListener('resize', alignControls);
-  }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
+  }, [isOpen, locale, columns, activeTab, compatibility?.calculated_score, compatibility?.overall_score]);
   useLayoutEffect(() => {
     const modal = modalRef.current;
     if (!isOpen || !modal) return;
@@ -880,19 +880,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           >
             <Shield size={15} color={compatibility ? '#34d399' : undefined} />
             <span>{t('vacancyModal.tab_cv_compatibility')}</span>
-            {compatibility && (
-              <span style={{
-                background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
-                color: '#ffffff',
-                padding: '1px 7px',
-                borderRadius: '10px',
-                fontSize: '0.725rem',
-                fontWeight: '700',
-                marginLeft: '4px'
-              }}>
-                {Math.round(compatibility.overall_score)}%
-              </span>
-            )}
+            {compatibility && (() => {
+              const tabScore = compatibility.calculated_score != null ? compatibility.calculated_score : compatibility.overall_score;
+              return (
+                <span style={{
+                  background: tabScore >= 70 ? '#059669' : tabScore >= 45 ? '#d97706' : '#ef4444',
+                  color: '#ffffff',
+                  padding: '1px 7px',
+                  borderRadius: '10px',
+                  fontSize: '0.725rem',
+                  fontWeight: '700',
+                  marginLeft: '4px'
+                }}>
+                  {Math.round(tabScore)}%
+                </span>
+              );
+            })()}
           </button>
         </div>
 
@@ -1530,32 +1533,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div className="compatibility-header-title">
                 <Shield size={18} color="var(--aspen-mint)" />
                 <span>{t('vacancyModal.compat_title')}</span>
-                {compatibility && (
-                  <div className="compatibility-scores">
-                    <span style={{
-                      background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
-                      color: '#ffffff',
-                      padding: '2px 8px',
-                      borderRadius: '0',
-                      fontSize: '0.8rem',
-                      fontWeight: '700',
-                      marginLeft: '4px'
-                    }}>
-                      AI Match: {Math.round(compatibility.overall_score)}%
-                    </span>
-                    {compatibility.calculated_score != null && (
+                {compatibility && (() => {
+                  const displayScore = compatibility.calculated_score != null ? compatibility.calculated_score : compatibility.overall_score;
+                  return (
+                    <div className="compatibility-scores">
                       <span style={{
-                        background: 'var(--bg-subtle)',
-                        color: 'var(--text-secondary)',
-                        padding: '2px 6px',
+                        background: displayScore >= 70 ? '#059669' : displayScore >= 45 ? '#d97706' : '#ef4444',
+                        color: '#ffffff',
+                        padding: '2px 8px',
                         borderRadius: '0',
-                        fontSize: '0.7rem',
+                        fontSize: '0.8rem',
+                        fontWeight: '700',
+                        marginLeft: '4px'
                       }} title={t('vacancyModal.compat_formula_hint')}>
-                        {t('vacancyModal.compat_formula')}: {Math.round(compatibility.calculated_score)}%
+                        {t('vacancyModal.compat_formula')}: {Math.round(displayScore)}%
                       </span>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
               </div>
               <button
                 className="btn btn-secondary compatibility-analyze"
