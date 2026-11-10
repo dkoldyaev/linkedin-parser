@@ -117,8 +117,8 @@ BOGUS_CLOSED_TITLE_MARKERS = [
 
 
 def is_closed_bogus_title(title: Optional[str]) -> bool:
-    """Return True if title is empty or contains an error/closed placeholder string."""
+    """Return True only if title explicitly contains an error/closed placeholder string."""
     if not title:
-        return True
+        return False
     t_lower = title.strip().lower()
     return any(marker in t_lower for marker in BOGUS_CLOSED_TITLE_MARKERS)

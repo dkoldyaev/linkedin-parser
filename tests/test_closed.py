@@ -76,6 +76,21 @@ class TestClosedVacancy(unittest.TestCase):
         soup = BeautifulSoup(html, "html.parser")
         self.assertFalse(extract_is_closed_from_soup(soup, html))
 
+    def test_is_closed_bogus_title(self):
+        from backend.parsers.types import is_closed_bogus_title
+        # Empty, None or unloaded title must NOT be considered a bogus closed title
+        self.assertFalse(is_closed_bogus_title(None))
+        self.assertFalse(is_closed_bogus_title(""))
+        self.assertFalse(is_closed_bogus_title("   "))
+        self.assertFalse(is_closed_bogus_title("Software Engineer"))
+
+        # Explicit bogus error/closure titles MUST be detected
+        self.assertTrue(is_closed_bogus_title("This job is no longer available."))
+        self.assertTrue(is_closed_bogus_title("404 Not Found"))
+        self.assertTrue(is_closed_bogus_title("Page Not Found"))
+        self.assertTrue(is_closed_bogus_title("Вакансия закрыта"))
+        self.assertTrue(is_closed_bogus_title("Приём откликов закрыт"))
+
     def test_database_and_api(self):
         ensure_db_schema()
         client = TestClient(app)
