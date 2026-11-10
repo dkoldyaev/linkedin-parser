@@ -143,6 +143,12 @@ export const translations = {
       compat_empty: "Сравните вакансию с сохранённым CV, чтобы оценить навыки, уровень опыта и недостающие требования.",
       compat_no_description: "Для скоринга резюме заполните исходный текст вакансии на вкладке «Описание и детали».",
       compat_seniority: "Соответствие уровня:",
+      compat_seniority_status: {
+        matched: "Соответствует",
+        partially_matched: "Частично соответствует",
+        mismatched: "Не соответствует",
+        unclear: "Не определено"
+      },
       compat_matched: "Подтверждённые требования ({count}):",
       compat_missing: "Неподтверждённые требования ({count}):",
       compat_evidence: "Подтверждение",
@@ -654,6 +660,12 @@ export const translations = {
       compat_empty: "Compare this job description against your saved CV using your configured LLM to evaluate skill coverage, seniority alignment, and missing requirements.",
       compat_no_description: "Please provide the original job description in the 'Details & Notes' tab to run CV scoring.",
       compat_seniority: "Seniority Alignment:",
+      compat_seniority_status: {
+        matched: "Matches",
+        partially_matched: "Partially matches",
+        mismatched: "Mismatches",
+        unclear: "Unclear"
+      },
       compat_matched: "Matched Requirements ({count}):",
       compat_missing: "Missing / Unconfirmed Requirements ({count}):",
       compat_evidence: "Evidence",

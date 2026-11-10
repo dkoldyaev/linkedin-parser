@@ -1593,12 +1593,23 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </p>
 
                 {/* Seniority assessment */}
-                {compatibility.seniority_assessment && (
-                  <div className="compatibility-assessment">
-                    <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
-                    <strong style={{ color: 'var(--primary)' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
-                  </div>
-                )}
+                {compatibility.seniority_assessment && (() => {
+                  const status = compatibility.seniority_assessment.status;
+                  const statusColors = {
+                    matched: 'var(--aspen-mint)',
+                    partially_matched: '#f59e0b',
+                    mismatched: '#ef4444',
+                    unclear: 'var(--text-muted)'
+                  };
+                  const statusColor = statusColors[status] || 'var(--primary)';
+                  const statusLabel = t(`vacancyModal.compat_seniority_status.${status}`) || status;
+                  return (
+                    <div className="compatibility-assessment">
+                      <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
+                      <strong style={{ color: statusColor }}>{statusLabel}</strong> — {compatibility.seniority_assessment.comment}
+                    </div>
+                  );
+                })()}
 
                 {/* Matched Requirements with Evidence toggles */}
                 {compatibility.matched_requirements?.length > 0 && (
