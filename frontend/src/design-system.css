@@ -616,12 +616,12 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .compatibility-group-title.is-critical { color: #e05252; }
 .vacancy-modal .compatibility-group-title.is-recommendations { color: var(--primary); }
 .vacancy-modal .compatibility-list { display: flex; flex-direction: column; gap: 0; }
-.vacancy-modal .compatibility-row { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); font-size: .8rem; color: var(--text-primary); border: 0; box-shadow: inset 0 1px var(--border-subtle); display: flex; flex-direction: column; justify-content: center; }
-.vacancy-modal .compatibility-row-header { display: flex; justify-content: space-between; align-items: flex-start; min-height: var(--grid); width: 100%; cursor: pointer; user-select: none; gap: 8px; padding-top: calc((var(--grid) - (var(--grid) * 0.75)) / 2); }
-.vacancy-modal .compatibility-row-title { flex: 1 1 auto; color: var(--text-primary); font-weight: 600; line-height: calc(var(--grid) * 0.75); }
-.vacancy-modal .compatibility-toggle-btn { color: var(--text-secondary); font-size: .75rem; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; height: calc(var(--grid) * 0.75); line-height: calc(var(--grid) * 0.75); }
+.vacancy-modal .compatibility-row { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); font-size: .8rem; color: var(--text-primary); border: 0; box-shadow: inset 0 1px var(--border-subtle); display: flex; flex-direction: column; justify-content: flex-start; }
+.vacancy-modal .compatibility-row-header { display: flex; justify-content: space-between; align-items: flex-start; min-height: var(--grid); width: 100%; cursor: pointer; user-select: none; gap: 8px; padding-top: 4px; padding-bottom: 4px; box-sizing: border-box; }
+.vacancy-modal .compatibility-row-title { flex: 1 1 auto; color: var(--text-primary); font-weight: 600; line-height: 24px; }
+.vacancy-modal .compatibility-toggle-btn { color: var(--text-secondary); font-size: .75rem; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; height: 24px; line-height: 24px; }
 .vacancy-modal .compatibility-evidence,
-.vacancy-modal .compatibility-detail-reason { padding: calc(var(--grid) / 2) 0; color: var(--text-secondary); font-size: .8rem; line-height: calc(var(--grid) * 0.75); box-shadow: inset 0 1px var(--border-subtle); margin: 0; }
+.vacancy-modal .compatibility-detail-reason { padding: 4px 0 4px 0; color: var(--text-secondary); font-size: .8rem; line-height: 24px; box-shadow: inset 0 1px var(--border-subtle); margin: 0; box-sizing: border-box; }
 .vacancy-modal .compatibility-severity-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; font-size: .68rem; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; border-radius: var(--radius-sm, 2px); line-height: 1.2; margin-left: 6px; vertical-align: baseline; white-space: nowrap; }
 .vacancy-modal .compatibility-severity-badge.severity-critical { background: rgba(220, 38, 38, 0.2); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.4); }
 .vacancy-modal .compatibility-severity-badge.severity-high { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
