@@ -43,8 +43,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.lock ./
 RUN pip install --no-cache-dir -r requirements.lock
 
-# Copy backend application
+# Copy backend application and scripts
 COPY backend/ ./backend
+COPY scripts/ ./scripts
 
 # Copy built frontend assets to static dir
 COPY --from=frontend-builder /app/frontend/dist /app/static
