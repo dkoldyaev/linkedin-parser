@@ -2106,7 +2106,7 @@ body {
   background: rgba(37, 99, 235, 0.12);
   border: 1px solid rgba(37, 99, 235, 0.25);
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: 0;
 }
 
 .stage-timeline-empty {
@@ -2117,7 +2117,7 @@ body {
   color: var(--text-muted);
   font-size: 0.8125rem;
   background: rgba(255, 255, 255, 0.02);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   border: 1px dashed var(--border-subtle);
 }
 
@@ -2125,45 +2125,44 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-top: 6px;
-  padding-left: 4px;
+  margin-top: 4px;
+  padding-left: 2px;
 }
 
 .stage-timeline-item {
   display: flex;
   position: relative;
-  gap: 14px;
-  padding-bottom: 16px;
+  gap: 12px;
+  padding-bottom: 14px;
 }
 
 .stage-timeline-item:last-child {
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 .stage-timeline-line {
   position: absolute;
-  left: 5px;
+  left: 4px;
   top: 14px;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.3) 0%, rgba(255, 255, 255, 0.08) 100%);
-  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.35) 0%, rgba(255, 255, 255, 0.06) 100%);
 }
 
 .stage-timeline-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
   border: 2px solid #2563eb;
   background-color: var(--bg-card);
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
   z-index: 2;
   transition: all 0.2s ease;
 }
 
 .stage-timeline-item.is-current .stage-timeline-dot {
-  transform: scale(1.15);
+  transform: none;
 }
 
 .stage-timeline-content {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
-  Laptop, Layers, Building, Ban, History, MessageSquare, ArrowRight, Edit3,
+  Laptop, Layers, Building, Ban, History, MessageSquare, Edit3,
   ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
@@ -1258,7 +1258,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
           {/* Stage Movement History */}
           <div className="form-group stage-history-section">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div className="stage-history-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)', marginBottom: '8px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
                 <History size={15} color="#60a5fa" />
                 <span>{t('vacancyModal.history_title')}</span>
@@ -1277,12 +1277,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             ) : (
               <div className="stage-timeline">
-                {vacancy.history.map((item, idx) => {
-                  const isCurrent = idx === vacancy.history.length - 1;
+                {[...vacancy.history].reverse().map((item, idx, arr) => {
+                  const isCurrent = idx === 0;
                   const stageColor = stageColorMap[item.to_status] || '#2563eb';
                   const isEditingThis = editingHistoryId === item.id;
                   const isSavingThis = savingHistoryId === item.id;
-                  const isLastItem = idx === vacancy.history.length - 1;
+                  const isLastItem = idx === arr.length - 1;
 
                   return (
                     <div key={item.id || idx} className={`stage-timeline-item ${isCurrent ? 'is-current' : ''}`}>
@@ -1290,53 +1290,25 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       <div
                         className="stage-timeline-dot"
                         style={{
-                          borderColor: stageColor,
-                          backgroundColor: isCurrent ? stageColor : 'var(--bg-card)',
-                          boxShadow: isCurrent ? `0 0 8px ${stageColor}88` : 'none'
+                          borderColor: isCurrent ? stageColor : 'var(--border-subtle)',
+                          backgroundColor: isCurrent ? stageColor : 'transparent',
+                          boxShadow: isCurrent ? `0 0 6px ${stageColor}88` : 'none'
                         }}
                       />
 
                       <div className="stage-timeline-content">
                         <div className="stage-timeline-header">
                           <div className="stage-badges-row">
-                            {item.from_status && (
-                              item.from_status !== item.to_status ||
-                              (item.from_lane != null && item.to_lane != null && item.from_lane !== item.to_lane)
-                            ) ? (
-                              <div className="stage-transition-group">
-                                <span className="stage-badge stage-badge-from">
-                                  {getStageLabel(item.from_status, item.from_lane)}
-                                </span>
-                                <ArrowRight size={11} className="stage-arrow-icon" />
-                                <span
-                                  className="stage-badge stage-badge-to"
-                                  style={{
-                                    borderColor: `${stageColor}50`,
-                                    color: stageColor,
-                                    backgroundColor: `${stageColor}18`
-                                  }}
-                                >
-                                  {getStageLabel(item.to_status, item.to_lane)}
-                                </span>
-                              </div>
-                            ) : (
-                              <span
-                                className="stage-badge stage-badge-to"
-                                style={{
-                                  borderColor: `${stageColor}50`,
-                                  color: stageColor,
-                                  backgroundColor: `${stageColor}18`
-                                }}
-                              >
-                                {getStageLabel(item.to_status, item.to_lane)}
-                              </span>
-                            )}
-
-                            {isCurrent && (
-                              <span className="stage-current-pill">
-                                {t('vacancyModal.history_current')}
-                              </span>
-                            )}
+                            <span
+                              className="stage-badge stage-badge-to"
+                              style={{
+                                borderColor: `${stageColor}50`,
+                                color: stageColor,
+                                backgroundColor: `${stageColor}18`
+                              }}
+                            >
+                              {getStageLabel(item.to_status, item.to_lane)}
+                            </span>
                           </div>
 
                           <span className="stage-time">
