@@ -133,7 +133,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       const modalTop = modal.getBoundingClientRect().top;
       const sections = modal.querySelectorAll(
         activeTab === 'details'
-          ? '.vacancy-ai-summary, .stage-history-section, .vacancy-notes-section, .orig-desc-section'
+          ? '.vacancy-salary, .vacancy-ai-summary, .vacancy-tokens-section, .stage-history-section, .vacancy-notes-section, .orig-desc-section'
           : '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
       );
       sections.forEach(section => {
@@ -1188,42 +1188,72 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
           {/* Tech Stack */}
           <div className="form-group vacancy-tokens-section">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>{t('vacancyModal.tech_stack_title')}</span>
-            </label>
-            <div className="editable-token-list">
-              {techStack.map(tech => (
-                <span key={tech} className="editable-token">{tech}
-                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTech(tech)} aria-label={`${t('common.delete')} ${tech}`}><X size={12} /></button>
-                </span>
-              ))}
-              {editingTech ? (
-                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tech_placeholder')}
-                  placeholder={t('vacancyModal.add_tech_placeholder')} value={newTechInput}
-                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTechInput(parts.pop()); addListItems('tech_stack', parts.join(',')); } else setNewTechInput(value); }}
-                  onBlur={() => { addListItems('tech_stack', newTechInput); setNewTechInput(''); setEditingTech(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tech_stack', newTechInput); setNewTechInput(''); } if (e.key === 'Escape') { setNewTechInput(''); setEditingTech(false); } }} />
-              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTech(true)} aria-label={t('vacancyModal.add_tech_placeholder')} title={t('vacancyModal.add_tech_placeholder')}><Plus size={15} /></button>}
+            <div className="tokens-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)' }}>
+              <label className="form-label" style={{ margin: 0 }}>
+                {t('vacancyModal.tech_stack_title')}
+              </label>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon tokens-add-btn"
+                onClick={() => setEditingTech(true)}
+                title={t('vacancyModal.add_tech_placeholder')}
+                aria-label={t('vacancyModal.add_tech_placeholder')}
+                style={{ width: 'var(--grid)', height: 'var(--grid)', padding: 0 }}
+              >
+                <Plus size={14} />
+              </button>
             </div>
+            {(techStack.length > 0 || editingTech) && (
+              <div className="editable-token-list">
+                {techStack.map(tech => (
+                  <span key={tech} className="editable-token">{tech}
+                    <button type="button" className="editable-token-remove" onClick={() => handleRemoveTech(tech)} aria-label={`${t('common.delete')} ${tech}`}><X size={12} /></button>
+                  </span>
+                ))}
+                {editingTech && (
+                  <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tech_placeholder')}
+                    placeholder={t('vacancyModal.add_tech_placeholder')} value={newTechInput}
+                    onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTechInput(parts.pop()); addListItems('tech_stack', parts.join(',')); } else setNewTechInput(value); }}
+                    onBlur={() => { addListItems('tech_stack', newTechInput); setNewTechInput(''); setEditingTech(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tech_stack', newTechInput); setNewTechInput(''); } if (e.key === 'Escape') { setNewTechInput(''); setEditingTech(false); } }} />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Custom Tags */}
           <div className="form-group vacancy-tokens-section">
-            <label className="form-label">{t('vacancyModal.tags_title')}</label>
-            <div className="editable-token-list">
-              {tags.map(tagItem => (
-                <span key={tagItem} className="editable-token"><Tag size={11} />{tagItem}
-                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTag(tagItem)} aria-label={`${t('common.delete')} ${tagItem}`}><X size={12} /></button>
-                </span>
-              ))}
-              {editingTags ? (
-                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tag_placeholder')}
-                  placeholder={t('vacancyModal.add_tag_placeholder')} value={newTagInput}
-                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTagInput(parts.pop()); addListItems('tags', parts.join(',')); } else setNewTagInput(value); }}
-                  onBlur={() => { addListItems('tags', newTagInput); setNewTagInput(''); setEditingTags(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tags', newTagInput); setNewTagInput(''); } if (e.key === 'Escape') { setNewTagInput(''); setEditingTags(false); } }} />
-              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTags(true)} aria-label={t('vacancyModal.add_tag_placeholder')} title={t('vacancyModal.add_tag_placeholder')}><Plus size={15} /></button>}
+            <div className="tokens-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)' }}>
+              <label className="form-label" style={{ margin: 0 }}>
+                {t('vacancyModal.tags_title')}
+              </label>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon tokens-add-btn"
+                onClick={() => setEditingTags(true)}
+                title={t('vacancyModal.add_tag_placeholder')}
+                aria-label={t('vacancyModal.add_tag_placeholder')}
+                style={{ width: 'var(--grid)', height: 'var(--grid)', padding: 0 }}
+              >
+                <Plus size={14} />
+              </button>
             </div>
+            {(tags.length > 0 || editingTags) && (
+              <div className="editable-token-list">
+                {tags.map(tagItem => (
+                  <span key={tagItem} className="editable-token"><Tag size={11} />{tagItem}
+                    <button type="button" className="editable-token-remove" onClick={() => handleRemoveTag(tagItem)} aria-label={`${t('common.delete')} ${tagItem}`}><X size={12} /></button>
+                  </span>
+                ))}
+                {editingTags && (
+                  <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tag_placeholder')}
+                    placeholder={t('vacancyModal.add_tag_placeholder')} value={newTagInput}
+                    onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTagInput(parts.pop()); addListItems('tags', parts.join(',')); } else setNewTagInput(value); }}
+                    onBlur={() => { addListItems('tags', newTagInput); setNewTagInput(''); setEditingTags(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tags', newTagInput); setNewTagInput(''); } if (e.key === 'Escape') { setNewTagInput(''); setEditingTags(false); } }} />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Stage Movement History */}
