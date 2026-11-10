@@ -154,6 +154,7 @@ export const translations = {
       compat_evidence: "Подтверждение",
       compat_details: "Подробности",
       compat_severity: {
+        critical: "Критическая важность для вакансии",
         high: "Высокая важность для вакансии",
         medium: "Средняя важность",
         low: "Низкая важность"
@@ -677,6 +678,7 @@ export const translations = {
       compat_evidence: "Evidence",
       compat_details: "Details",
       compat_severity: {
+        critical: "Critical importance for vacancy",
         high: "High importance for vacancy",
         medium: "Medium importance",
         low: "Low importance"

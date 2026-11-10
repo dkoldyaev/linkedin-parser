@@ -1621,8 +1621,10 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       {compatibility.matched_requirements.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
                           <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
-                            <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
-                            <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            <div className="compatibility-row-title" style={{ color: 'var(--aspen-mint)' }}>
+                              &bull; {m.requirement}
+                            </div>
+                            <span className="compatibility-toggle-btn" style={{ color: 'var(--aspen-mint)' }}>
                               {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             </span>
                           </div>
@@ -1651,13 +1653,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         return (
                           <div key={idx} className="compatibility-row">
                             <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`missing_${idx}`]: !prev[`missing_${idx}`] }))}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>&bull; {m.requirement}</span>
+                              <div className="compatibility-row-title">
+                                <span>&bull; {m.requirement}</span>
                                 <span className={`compatibility-severity-badge severity-${sev}`} title={sevTitle}>
                                   {sev}
                                 </span>
                               </div>
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginLeft: '8px' }}>
+                              <span className="compatibility-toggle-btn">
                                 {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                               </span>
                             </div>
@@ -1685,9 +1687,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         return (
                           <div key={idx} className="compatibility-row">
                             <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`gap_${idx}`]: !isExpanded }))}>
-                              <span style={{ color: 'var(--color-danger, #ef4444)', fontWeight: 600 }}>&bull; {g.requirement}</span>
+                              <div className="compatibility-row-title" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                                <span>&bull; {g.requirement}</span>
+                                <span className="compatibility-severity-badge severity-critical" title={t('vacancyModal.compat_severity.critical') || 'CRITICAL'}>
+                                  critical
+                                </span>
+                              </div>
                               {g.reason && (
-                                <span style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginLeft: '8px' }}>
+                                <span className="compatibility-toggle-btn" style={{ color: 'var(--color-danger, #ef4444)' }}>
                                   {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                 </span>
                               )}
