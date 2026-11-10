@@ -616,8 +616,8 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .compatibility-group-title.is-critical { color: #e05252; }
 .vacancy-modal .compatibility-group-title.is-recommendations { color: var(--primary); }
 .vacancy-modal .compatibility-list { display: flex; flex-direction: column; gap: 0; }
-.vacancy-modal .compatibility-row { min-height: var(--grid); padding: calc(var(--grid) / 4) var(--vacancy-inset-right) calc(var(--grid) / 4) var(--vacancy-inset-left); font-size: .8rem; line-height: calc(var(--grid) * 0.75); color: var(--text-primary); border: 0; box-shadow: inset 0 1px var(--border-subtle); }
-.vacancy-modal .compatibility-row-header { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; cursor: pointer; user-select: none; gap: 8px; }
+.vacancy-modal .compatibility-row { min-height: var(--grid); padding: 0 var(--vacancy-inset-right) 0 var(--vacancy-inset-left); font-size: .8rem; color: var(--text-primary); border: 0; box-shadow: inset 0 1px var(--border-subtle); display: flex; flex-direction: column; justify-content: center; }
+.vacancy-modal .compatibility-row-header { display: flex; justify-content: space-between; align-items: flex-start; min-height: var(--grid); width: 100%; cursor: pointer; user-select: none; gap: 8px; padding-top: calc((var(--grid) - (var(--grid) * 0.75)) / 2); }
 .vacancy-modal .compatibility-row-title { flex: 1 1 auto; color: var(--text-primary); font-weight: 600; line-height: calc(var(--grid) * 0.75); }
 .vacancy-modal .compatibility-toggle-btn { color: var(--text-secondary); font-size: .75rem; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; height: calc(var(--grid) * 0.75); line-height: calc(var(--grid) * 0.75); }
 .vacancy-modal .compatibility-evidence,
