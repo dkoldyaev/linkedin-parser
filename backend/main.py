@@ -234,13 +234,27 @@ def get_user_columns(db: Session, user_id: int) -> List[dict]:
             if isinstance(data, list) and len(data) > 0:
                 # Ensure base statuses are properly flagged
                 for col in data:
-                    if col.get("id") in BASE_STATUSES:
+                    if col.get("id") == STATUS_NOT_CONTACTED or col.get("system_role") == "not_contacted":
+                        col["is_base"] = True
+                        col["system_role"] = "not_contacted"
+                    elif col.get("id") == STATUS_REJECTED or col.get("system_role") == "rejected":
+                        col["is_base"] = True
+                        col["system_role"] = "rejected"
+                    elif col.get("id") in BASE_STATUSES:
                         col["is_base"] = True
                 return data
         except Exception as e:
             logger.warning(f"Failed to parse user kanban_columns for user {user_id}: {e}")
     # Return deep copy of DEFAULT_COLUMNS
-    return [dict(col) for col in DEFAULT_COLUMNS]
+    cols = []
+    for col in DEFAULT_COLUMNS:
+        c = dict(col)
+        if c.get("id") == STATUS_NOT_CONTACTED:
+            c["system_role"] = "not_contacted"
+        elif c.get("id") == STATUS_REJECTED:
+            c["system_role"] = "rejected"
+        cols.append(c)
+    return cols
 
 
 def save_user_columns(db: Session, user_id: int, columns: List[dict]):
@@ -259,6 +273,30 @@ def save_user_columns(db: Session, user_id: int, columns: List[dict]):
     else:
         setting.value = json.dumps(columns, ensure_ascii=False)
     db.commit()
+
+
+def get_user_initial_status(db: Session, user_id: int) -> str:
+    """Get the initial (not contacted) status ID for the user."""
+    cols = get_user_columns(db, user_id)
+    for c in cols:
+        if c.get("system_role") == "not_contacted":
+            return c["id"]
+    for c in cols:
+        if c.get("is_base") and c.get("id") == STATUS_NOT_CONTACTED:
+            return c["id"]
+    return STATUS_NOT_CONTACTED
+
+
+def get_user_rejected_status(db: Session, user_id: int) -> str:
+    """Get the rejected status ID for the user."""
+    cols = get_user_columns(db, user_id)
+    for c in cols:
+        if c.get("system_role") == "rejected":
+            return c["id"]
+    for c in cols:
+        if c.get("is_base") and c.get("id") == STATUS_REJECTED:
+            return c["id"]
+    return STATUS_REJECTED
 
 
 def get_user_valid_statuses(db: Session, user_id: int) -> List[str]:
@@ -1422,7 +1460,7 @@ async def batch_import_vacancies(
                 url=url,
                 title=url[:255],
                 company="Upwork" if "upwork.com" in url else "Загрузка...",
-                status=STATUS_NOT_CONTACTED,
+                status=get_user_initial_status(db, current_user.id),
                 tags=payload.default_tags,
             )
             db.add(v)
@@ -1579,7 +1617,7 @@ async def batch_import_vacancies(
                     ai_summary=llm_res.get("summary"),
                     tech_stack=llm_res.get("tech_stack", []),
                     tags=initial_tags,
-                    status=STATUS_NOT_CONTACTED,
+                    status=get_user_initial_status(db, current_user.id),
                 )
                 db.add(new_v)
                 db.flush()
@@ -1883,11 +1921,12 @@ def update_settings(
 
     if payload.columns is not None:
         cols_data = [c.model_dump() for c in payload.columns]
-        # Validate that BASE_STATUSES are preserved
-        col_ids = [c["id"] for c in cols_data]
-        for b in BASE_STATUSES:
-            if b not in col_ids:
-                raise HTTPException(status_code=400, detail=f"Base column '{b}' cannot be removed")
+        # Validate that base columns are preserved
+        existing_cols = get_user_columns(db, current_user.id)
+        for ec in existing_cols:
+            if ec.get("is_base") or ec.get("system_role") in ("not_contacted", "rejected"):
+                if not any(c["id"] == ec["id"] for c in cols_data):
+                    raise HTTPException(status_code=400, detail=f"Base column '{ec['id']}' cannot be removed")
         save_user_columns(db, current_user.id, cols_data)
 
     db.commit()
@@ -2062,8 +2101,6 @@ def update_column(
         new_name = payload.new_name.strip()
         if not new_name:
             raise HTTPException(status_code=400, detail="Column name cannot be empty")
-        if column_id in BASE_STATUSES and new_name != column_id:
-            raise HTTPException(status_code=400, detail="Base columns cannot be renamed")
         if new_name != column_id and any(c["id"].lower() == new_name.lower() for c in cols):
             raise HTTPException(status_code=400, detail=f"Column with name '{new_name}' already exists")
 
@@ -2090,6 +2127,15 @@ def update_column(
             ).update({"from_status": new_name}, synchronize_session="fetch")
 
             target["id"] = new_name
+            # Preserve base status and system roles
+            if column_id == STATUS_NOT_CONTACTED or target.get("system_role") == "not_contacted":
+                target["is_base"] = True
+                target["system_role"] = "not_contacted"
+            elif column_id == STATUS_REJECTED or target.get("system_role") == "rejected":
+                target["is_base"] = True
+                target["system_role"] = "rejected"
+            elif target.get("is_base"):
+                target["is_base"] = True
 
     if payload.color is not None:
         target["color"] = payload.color.strip()
@@ -2106,23 +2152,25 @@ def update_column(
 @app.delete("/api/columns/{column_id}", response_model=List[ColumnItem])
 def delete_column(
     column_id: str,
-    migrate_to: Optional[str] = Query(STATUS_NOT_CONTACTED, alias="migrate_to"),
+    migrate_to: Optional[str] = Query(None, alias="migrate_to"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Delete a column and migrate any existing vacancies in it to migrate_to column."""
-    if column_id in BASE_STATUSES:
-        raise HTTPException(status_code=400, detail=f"Base column '{column_id}' cannot be deleted")
-
     cols = get_user_columns(db, current_user.id)
-    if not any(c["id"] == column_id for c in cols):
+    target = next((c for c in cols if c["id"] == column_id), None)
+    if not target:
         raise HTTPException(status_code=404, detail="Column not found")
 
-    target_migrate = migrate_to.strip() if migrate_to else STATUS_NOT_CONTACTED
+    if target.get("is_base") or target.get("system_role") in ("not_contacted", "rejected") or column_id in BASE_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Base column '{column_id}' cannot be deleted")
+
+    initial_status = get_user_initial_status(db, current_user.id)
+    target_migrate = migrate_to.strip() if migrate_to else initial_status
     # Ensure target_migrate exists in remaining columns or BASE_STATUSES
     remaining_cols = [c for c in cols if c["id"] != column_id]
     if not any(c["id"] == target_migrate for c in remaining_cols) and target_migrate not in BASE_STATUSES:
-        target_migrate = STATUS_NOT_CONTACTED
+        target_migrate = initial_status
 
     # Migrate vacancies in deleted column
     vacancies_to_migrate = db.query(Vacancy).filter(
@@ -2157,13 +2205,15 @@ def reorder_columns(
 ):
     """Reorder columns list."""
     cols_data = [c.model_dump() for c in payload.columns]
-    col_ids = [c["id"] for c in cols_data]
-    for b in BASE_STATUSES:
-        if b not in col_ids:
-            raise HTTPException(status_code=400, detail=f"Base column '{b}' cannot be missing")
+    existing_cols = get_user_columns(db, current_user.id)
+    for ec in existing_cols:
+        if ec.get("is_base") or ec.get("system_role") in ("not_contacted", "rejected"):
+            if not any(c["id"] == ec["id"] for c in cols_data):
+                raise HTTPException(status_code=400, detail=f"Base column '{ec['id']}' cannot be missing")
     save_user_columns(db, current_user.id, cols_data)
     touch_user_board_interaction(db, current_user.id)
     db.commit()
+    return [ColumnItem(**c) for c in cols_data]
     return [ColumnItem(**c) for c in cols_data]
 
 
@@ -2336,7 +2386,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
             salary_period=scraped.get("salary_period"),
             workplace_type=scraped.get("workplace_type"),
             is_closed=scraped.get("is_closed", False),
-            status=STATUS_NOT_CONTACTED
+            status=get_user_initial_status(db, current_user.id)
         )
         db.add(vacancy)
         db.flush()

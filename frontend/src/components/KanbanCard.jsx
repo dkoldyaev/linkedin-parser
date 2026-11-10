@@ -51,10 +51,20 @@ export default function KanbanCard({
     updateHeight();
     return () => observer.disconnect();
   }, []);
-  const isRejected = vacancy.status === STATUS_REJECTED;
-  // Filter out Отказ from linear column navigation
+  const rejectedColumn = Array.isArray(columns)
+    ? columns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || columns.find(c => c.id === STATUS_REJECTED)
+    : null;
+  const rejectedStatusId = rejectedColumn ? (typeof rejectedColumn === 'string' ? rejectedColumn : rejectedColumn.id) : STATUS_REJECTED;
+
+  const initialColumn = Array.isArray(columns)
+    ? columns.find(c => c.system_role === 'not_contacted' || (c.is_base && (c.id === STATUS_NOT_CONTACTED || c.role === 'not_contacted'))) || columns.find(c => c.id === STATUS_NOT_CONTACTED)
+    : null;
+  const initialStatusId = initialColumn ? (typeof initialColumn === 'string' ? initialColumn : initialColumn.id) : STATUS_NOT_CONTACTED;
+
+  const isRejected = vacancy.status === rejectedStatusId;
+  // Filter out rejected column from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
-    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== STATUS_REJECTED)
+    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== rejectedStatusId)
     : DEFAULT_COLUMNS;
   const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
@@ -301,10 +311,10 @@ export default function KanbanCard({
               trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
                 vacancy_id: vacancy.id,
                 company: vacancy.company,
-                to_status: STATUS_NOT_CONTACTED,
+                to_status: initialStatusId,
                 method: 'quick_restore_btn'
               });
-              onStatusChange(vacancy.id, STATUS_NOT_CONTACTED);
+              onStatusChange(vacancy.id, initialStatusId);
             }}
           >
             <RotateCcw size={12} />
@@ -333,7 +343,7 @@ export default function KanbanCard({
                   from_status: vacancy.status,
                   method: 'quick_reject_btn'
                 });
-                onStatusChange(vacancy.id, 'Отказ');
+                onStatusChange(vacancy.id, rejectedStatusId);
               }}
             >
               <span aria-hidden="true">×</span>

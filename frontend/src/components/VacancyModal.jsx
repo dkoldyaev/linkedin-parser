@@ -26,6 +26,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
     : DEFAULT_COLUMNS;
 
+  const rejectedColumn = modalColumns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || modalColumns.find(c => c.id === STATUS_REJECTED) || modalColumns.find(c => c.is_base && c.system_role !== 'not_contacted');
+  const rejectedStatusId = rejectedColumn ? rejectedColumn.id : STATUS_REJECTED;
+
   const stageColorMap = modalColumns.reduce((acc, col) => {
     acc[col.id] = col.color;
     return acc;
@@ -316,7 +319,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       to_status: newStatus,
       method: 'modal_button'
     });
-    if (newStatus === 'Отказ') {
+    if (newStatus === rejectedStatusId) {
       trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
         vacancy_id: vacancy.id,
         method: 'modal_status_button'
@@ -913,15 +916,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {modalColumns.map(colItem => {
                   const col = colItem.id;
                   const isSelected = status === col;
-                  const isRejectedCol = col === 'Отказ';
+                  const isRejectedCol = col === rejectedStatusId;
                   let borderColor = 'var(--border-subtle)';
                   let background = 'transparent';
                   let color = 'var(--text-muted)';
 
                   if (isSelected) {
                     if (isRejectedCol) {
-                      borderColor = '#ef4444';
-                      background = 'rgba(239, 68, 68, 0.15)';
+                      borderColor = colItem.color || '#ef4444';
+                      background = `${colItem.color || '#ef4444'}22`;
                       color = 'var(--text-primary)';
                     } else {
                       borderColor = colItem.color || 'var(--primary)';
@@ -952,7 +955,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      {t(`kanban.columns.${col}`)}
+                      {t(`kanban.columns.${col}`) || col}
                     </button>
                   );
                 })}
@@ -964,7 +967,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               >
                 {modalColumns.map(colItem => (
                   <option key={colItem.id} value={colItem.id}>
-                    {t(`kanban.columns.${colItem.id}`)}
+                    {t(`kanban.columns.${colItem.id}`) || colItem.id}
                   </option>
                 ))}
               </select>
@@ -1738,15 +1741,21 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
         {/* Footer */}
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          {status === STATUS_REJECTED ? (
+          {status === rejectedStatusId ? (
             <button className="btn btn-danger" onClick={handleDelete}>
               <Trash2 size={14} />
               <span>{t('vacancyModal.delete_permanent')}</span>
             </button>
           ) : (
-            <button className="btn btn-secondary" style={{ color: '#ef4444' }} onClick={() => handleStatusChange(STATUS_REJECTED)}>
+            <button
+              className="btn btn-secondary"
+              style={{ color: rejectedColumn?.color || '#ef4444' }}
+              onClick={() => handleStatusChange(rejectedStatusId)}
+            >
               <XCircle size={14} />
-              <span>{t('vacancyModal.move_to_rejected')}</span>
+              <span>
+                {rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? `В ${rejectedColumn.id}` : t('vacancyModal.move_to_rejected')}
+              </span>
             </button>
           )}
           <button className="btn btn-secondary" onClick={onClose}>

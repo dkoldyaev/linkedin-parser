@@ -319,8 +319,8 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
             <div className="columns-settings-list">
               {columnsList.map((col, index) => {
-                const isBase = BASE_STATUSES.includes(col.id);
-                const colName = t(`kanban.columns.${col.id}`);
+                const isBase = Boolean(col.is_base || col.system_role || BASE_STATUSES.includes(col.id));
+                const colName = t(`kanban.columns.${col.id}`) || col.id;
                 const isFirst = index === 0;
                 const isLast = index === columnsList.length - 1;
 

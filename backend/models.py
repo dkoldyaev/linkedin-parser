@@ -11,12 +11,12 @@ STATUS_OFFER = "Оффер"
 STATUS_REJECTED = "Отказ"
 
 DEFAULT_COLUMNS = [
-    {"id": STATUS_NOT_CONTACTED, "color": "#6366f1", "has_lanes": False, "is_base": True},
-    {"id": STATUS_CONTACTED, "color": "#0284c7", "has_lanes": False, "is_base": False},
-    {"id": STATUS_INTERVIEW, "color": "#d97706", "has_lanes": True, "is_base": False},
-    {"id": STATUS_ASSESSMENT, "color": "#9333ea", "has_lanes": True, "is_base": False},
-    {"id": STATUS_OFFER, "color": "#059669", "has_lanes": False, "is_base": False},
-    {"id": STATUS_REJECTED, "color": "#ef4444", "has_lanes": False, "is_base": True},
+    {"id": STATUS_NOT_CONTACTED, "color": "#6366f1", "has_lanes": False, "is_base": True, "system_role": "not_contacted"},
+    {"id": STATUS_CONTACTED, "color": "#0284c7", "has_lanes": False, "is_base": False, "system_role": None},
+    {"id": STATUS_INTERVIEW, "color": "#d97706", "has_lanes": True, "is_base": False, "system_role": None},
+    {"id": STATUS_ASSESSMENT, "color": "#9333ea", "has_lanes": True, "is_base": False, "system_role": None},
+    {"id": STATUS_OFFER, "color": "#059669", "has_lanes": False, "is_base": False, "system_role": None},
+    {"id": STATUS_REJECTED, "color": "#ef4444", "has_lanes": False, "is_base": True, "system_role": "rejected"},
 ]
 
 BASE_STATUSES = [STATUS_NOT_CONTACTED, STATUS_REJECTED]

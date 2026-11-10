@@ -656,6 +656,13 @@ class RedisQueueManager:
                     saved_vacancy = existing
                     event_type = "vacancy_updated"
                 else:
+                    init_status = STATUS_NOT_CONTACTED
+                    try:
+                        from .main import get_user_initial_status
+                        init_status = get_user_initial_status(db, task.user_id)
+                    except Exception:
+                        pass
+
                     new_v = Vacancy(
                         user_id=task.user_id,
                         job_id=scraped.get("job_id"),
@@ -678,7 +685,7 @@ class RedisQueueManager:
                         ai_summary=None,
                         tech_stack=[],
                         tags=initial_tags,
-                        status=STATUS_NOT_CONTACTED,
+                        status=init_status,
                     )
                     db.add(new_v)
                     db.flush()
@@ -1274,6 +1281,13 @@ class RedisQueueManager:
                     event_type = EVENT_VACANCY_UPDATED
                     msg_code = MSG_VACANCY_UPDATED
                 else:
+                    init_status = STATUS_NOT_CONTACTED
+                    try:
+                        from .main import get_user_initial_status
+                        init_status = get_user_initial_status(db, task.user_id)
+                    except Exception:
+                        pass
+
                     new_vacancy = Vacancy(
                         user_id=task.user_id,
                         url=task.url,
@@ -1294,7 +1308,7 @@ class RedisQueueManager:
                         workplace_type=scraped.get("workplace_type"),
                         is_closed=scraped.get("is_closed", False),
                         tags=initial_tags,
-                        status=STATUS_NOT_CONTACTED
+                        status=init_status
                     )
                     db.add(new_vacancy)
                     db.flush()

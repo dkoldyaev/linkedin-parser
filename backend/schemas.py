@@ -222,6 +222,7 @@ class ColumnItem(BaseModel):
     color: str = "#6366f1"
     has_lanes: bool = False
     is_base: bool = False
+    system_role: Optional[str] = None
 
 class ColumnCreateRequest(BaseModel):
     name: str

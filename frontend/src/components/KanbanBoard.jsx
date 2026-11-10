@@ -80,7 +80,9 @@ export default function KanbanBoard({
   }, []);
 
   const boardColumns = Array.isArray(columns) && columns.length > 0 ? columns : DEFAULT_BOARD_COLUMNS;
-  const funnelColumns = boardColumns.filter(c => c.id !== REJECTED_STATUS);
+  const rejectedColumn = boardColumns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || boardColumns.find(c => c.id === STATUS_REJECTED) || boardColumns.find(c => c.is_base && c.system_role !== 'not_contacted');
+  const rejectedStatusId = rejectedColumn ? rejectedColumn.id : REJECTED_STATUS;
+  const funnelColumns = boardColumns.filter(c => c.id !== rejectedStatusId);
   const laneColumnIds = new Set(boardColumns.filter(c => c.has_lanes).map(c => c.id));
 
   useLayoutEffect(() => {
@@ -135,7 +137,7 @@ export default function KanbanBoard({
     };
   }, [columns]);
 
-  const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === REJECTED_STATUS));
+  const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === rejectedStatusId));
 
   // Make the scrollable end land on the same grid as the column background.
   useLayoutEffect(() => {
@@ -177,7 +179,7 @@ export default function KanbanBoard({
   const handleDragOver = (e, columnId) => {
     e.preventDefault();
     setDragOverColumn(columnId);
-    if (columnId !== REJECTED_STATUS && !laneColumnIds.has(columnId)) {
+    if (columnId !== rejectedStatusId && !laneColumnIds.has(columnId)) {
       const idx = computeDropIndex(e);
       setDropIndex(prev => (prev === idx ? prev : idx));
     }
@@ -202,7 +204,7 @@ export default function KanbanBoard({
   const handleDrop = (e, columnId, forcedLane = null) => {
     e.preventDefault();
     const lane = forcedLane !== null ? forcedLane : (laneColumnIds.has(columnId) ? dragOverLane : 0);
-    const targetIndex = (columnId !== REJECTED_STATUS && !laneColumnIds.has(columnId)) ? computeDropIndex(e) : null;
+    const targetIndex = (columnId !== rejectedStatusId && !laneColumnIds.has(columnId)) ? computeDropIndex(e) : null;
     setDragOverColumn(null);
     setDropIndex(null);
     setDragOverLane(0);
@@ -465,10 +467,10 @@ export default function KanbanBoard({
       {/* Bottom Rejection Block */}
       <div
         ref={rejectedRef}
-        className={`kanban-rejected-block ${dragOverColumn === REJECTED_STATUS ? 'drag-over' : ''} ${isRejectedCollapsed ? 'is-collapsed' : ''}`}
-        onDragOver={(e) => handleDragOver(e, REJECTED_STATUS)}
-        onDragLeave={(e) => handleDragLeave(e, REJECTED_STATUS)}
-        onDrop={(e) => handleDrop(e, REJECTED_STATUS)}
+        className={`kanban-rejected-block ${dragOverColumn === rejectedStatusId ? 'drag-over' : ''} ${isRejectedCollapsed ? 'is-collapsed' : ''}`}
+        onDragOver={(e) => handleDragOver(e, rejectedStatusId)}
+        onDragLeave={(e) => handleDragLeave(e, rejectedStatusId)}
+        onDrop={(e) => handleDrop(e, rejectedStatusId)}
       >
         <div
           className="kanban-rejected-header"
@@ -478,8 +480,10 @@ export default function KanbanBoard({
           }}
         >
           <div className="column-title-group">
-            <span className="column-dot" style={{ background: '#ef4444' }} />
-            <span className="column-name">{t('kanban.rejected_title')}</span>
+            <span className="column-dot" style={{ background: rejectedColumn?.color || '#ef4444' }} />
+            <span className="column-name">
+              {rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
+            </span>
             <span className="column-badge">[{rejectedVacancies.length}]</span>
           </div>
 
