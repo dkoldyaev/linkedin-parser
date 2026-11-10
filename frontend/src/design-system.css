@@ -659,7 +659,16 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 .vacancy-modal .stage-history-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
 .vacancy-modal .vacancy-notes-section { flex: 0 0 auto; margin: 0; padding: 16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left); background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
 .vacancy-modal .vacancy-compatibility-content { flex: 0 0 auto; margin: 0; padding: 0; background: transparent; border: 0; box-shadow: inset 0 -1px var(--pixel-line); }
-.vacancy-modal .modal-footer { min-height: calc(2 * var(--grid)); padding: 0 calc(var(--grid) - 4px) 0 var(--grid); }
+.vacancy-modal .modal-footer {
+  box-sizing: border-box;
+  height: calc(2 * var(--grid));
+  min-height: calc(2 * var(--grid));
+  max-height: calc(2 * var(--grid));
+  padding: 0 calc(var(--grid) - 4px) 0 var(--grid);
+  border-top: 0;
+  box-shadow: inset 0 1px var(--pixel-line);
+  margin: 0;
+}
 @media (max-width: 600px) {
   .vacancy-modal { --vacancy-inset-left: 16px; --vacancy-inset-right: 16px; }
   .vacancy-modal .modal-body { padding: 0; }
@@ -864,7 +873,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 }
 .vacancy-modal .modal-header { padding-block: calc(var(--grid) / 2); }
 .vacancy-modal .modal-header-actions { padding-right: var(--grid); }
-.vacancy-modal .modal-footer { padding-block: calc(var(--grid) / 2); }
+.vacancy-modal .modal-footer { padding-block: 0; }
 @media (max-width: 600px) {
   .modal-content:not(.vacancy-modal) .modal-header { padding-left: calc(var(--grid) / 2); }
 }
