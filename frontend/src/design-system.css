@@ -627,10 +627,12 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 
 /* Continue the vacancy's 32px rows below the status bar. */
 .vacancy-modal .modal-body { gap: 0; padding: 0; }
-.vacancy-modal .vacancy-salary-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 8px; min-height: var(--grid); }
-.vacancy-modal .vacancy-salary-save { height: var(--grid); margin-left: auto; }
-.vacancy-modal .vacancy-salary-total { min-height: var(--grid); display: flex; align-items: center; font-size: .8125rem; color: var(--aspen-mint); font-weight: 600; }
-.vacancy-modal .salary-fields-grid { max-width: none; gap: 0; }
+.vacancy-modal .vacancy-salary-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: var(--grid); }
+.vacancy-modal .vacancy-salary-display { display: flex; align-items: center; gap: 8px; font-size: .8125rem; }
+.vacancy-modal .vacancy-salary-title { font-family: var(--font-mono); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.vacancy-modal .vacancy-salary-value { font-size: .8125rem; }
+.vacancy-modal .vacancy-salary-actions { display: flex; align-items: center; gap: 6px; }
+.vacancy-modal .salary-fields-grid.is-editing { margin-top: 10px; max-width: none; gap: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .vacancy-modal .salary-field-item { padding-right: 8px; }
 .vacancy-modal .salary-field-label { height: var(--grid); line-height: var(--grid); margin: 0; }
 .vacancy-modal .salary-field-input { height: var(--grid); }

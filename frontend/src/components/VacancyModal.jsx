@@ -57,6 +57,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [salaryMax, setSalaryMax] = useState(vacancy?.salary_max ?? '');
   const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
+  const [isEditingSalary, setIsEditingSalary] = useState(false);
+  const salarySnapshot = useRef({
+    min: vacancy?.salary_min ?? '',
+    max: vacancy?.salary_max ?? '',
+    currency: vacancy?.salary_currency || '$',
+    period: vacancy?.salary_period || 'month'
+  });
   const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
   const [isClosed, setIsClosed] = useState(vacancy?.is_closed || false);
   const [hoverToggle, setHoverToggle] = useState(false);
@@ -176,6 +183,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSalaryMax(vacancy.salary_max ?? '');
       setSalaryCurrency(vacancy.salary_currency || '$');
       setSalaryPeriod(vacancy.salary_period || 'month');
+      setIsEditingSalary(false);
+      salarySnapshot.current = {
+        min: vacancy.salary_min ?? '',
+        max: vacancy.salary_max ?? '',
+        currency: vacancy.salary_currency || '$',
+        period: vacancy.salary_period || 'month'
+      };
       setWorkplaceType(vacancy.workplace_type || '');
       setIsClosed(Boolean(vacancy.is_closed));
       setReparsing(false);
@@ -487,6 +501,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     saveList('tech_stack', listValues.current.tech_stack.filter(tech => tech !== techToRemove), EVENTS.TECH_REMOVE, { tech: techToRemove });
   };
 
+  const handleStartEditSalary = () => {
+    salarySnapshot.current = {
+      min: salaryMin,
+      max: salaryMax,
+      currency: salaryCurrency,
+      period: salaryPeriod
+    };
+    setIsEditingSalary(true);
+  };
+
+  const handleCancelEditSalary = () => {
+    setSalaryMin(salarySnapshot.current.min);
+    setSalaryMax(salarySnapshot.current.max);
+    setSalaryCurrency(salarySnapshot.current.currency);
+    setSalaryPeriod(salarySnapshot.current.period);
+    setIsEditingSalary(false);
+  };
+
   const handleSaveSalary = async () => {
     setSavingSalary(true);
     trackEvent(EVENTS.SALARY_SAVE, {
@@ -515,6 +547,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         salary_currency: payload.salary_currency,
         salary_period: payload.salary_period,
       });
+      salarySnapshot.current = {
+        min: salaryMin,
+        max: salaryMax,
+        currency: salaryCurrency,
+        period: salaryPeriod
+      };
+      setIsEditingSalary(false);
       setSavedSalarySuccess(true);
       setTimeout(() => setSavedSalarySuccess(false), 2000);
     } catch (err) {
@@ -972,86 +1011,125 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {/* Salary Section */}
           <div className="form-group vacancy-salary">
             <div className="vacancy-salary-header">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+              <div className="vacancy-salary-display" style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: 'var(--grid)' }}>
                 <Banknote size={15} color="var(--aspen-mint)" />
-                <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
-              </label>
+                <span className="vacancy-salary-title" style={{ fontWeight: 600 }}>
+                  {t('vacancyModal.salary_title')}:
+                </span>
+                <span className="vacancy-salary-value" style={{ color: currentSalaryInfo.hasSalary ? 'var(--aspen-mint)' : 'var(--text-muted)', fontWeight: 600 }}>
+                  {currentSalaryInfo.hasSalary ? currentSalaryInfo.formatted : t('vacancyModal.salary_not_specified')}
+                </span>
+              </div>
+
+              {!isEditingSalary ? (
                 <button
                   type="button"
-                  className="btn btn-secondary vacancy-salary-save"
-                  onClick={handleSaveSalary}
-                  disabled={savingSalary}
-                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                  className="btn btn-secondary vacancy-salary-edit-btn"
+                  onClick={handleStartEditSalary}
+                  title={t('common.edit')}
+                  style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   {savedSalarySuccess ? (
                     <>
-                      <Check size={14} color="#10b981" />
+                      <Check size={13} color="#10b981" />
                       <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_salary')}</span>
                     </>
                   ) : (
-                    <span>{t('vacancyModal.save_salary')}</span>
+                    <>
+                      <Edit3 size={13} />
+                      <span>{t('common.edit')}</span>
+                    </>
                   )}
                 </button>
+              ) : (
+                <div className="vacancy-salary-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary vacancy-salary-action-btn"
+                    onClick={handleSaveSalary}
+                    disabled={savingSalary}
+                    title={t('common.save')}
+                    style={{ padding: '4px 8px', background: '#059669', borderColor: '#059669', color: '#fff' }}
+                  >
+                    {savingSalary ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary vacancy-salary-action-btn"
+                    onClick={handleCancelEditSalary}
+                    disabled={savingSalary}
+                    title={t('common.cancel')}
+                    style={{ padding: '4px 8px' }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
             </div>
-            {currentSalaryInfo.hasSalary && (
-              <div className="vacancy-salary-total">
-                {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
-              </div>
-            )}
-            <div className="salary-fields-grid">
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.min')}</span>
-                <input
-                  type="number"
-                  className="form-input salary-field-input"
-                  placeholder={t('vacancyModal.min_placeholder')}
-                  value={salaryMin}
-                  onChange={e => setSalaryMin(e.target.value)}
-                />
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.max')}</span>
-                <input
-                  type="number"
-                  className="form-input salary-field-input"
-                  placeholder={t('vacancyModal.max_placeholder')}
-                  value={salaryMax}
-                  onChange={e => setSalaryMax(e.target.value)}
-                />
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.currency')}</span>
-                <select
-                  className="form-input salary-field-input"
-                  value={salaryCurrency}
-                  onChange={e => setSalaryCurrency(e.target.value)}
-                >
-                  <option value="$">$ (USD)</option>
-                  <option value="€">€ (EUR)</option>
-                  <option value="₽">₽ (RUB)</option>
-                  <option value="£">£ (GBP)</option>
-                  <option value="CHF">CHF</option>
-                  <option value="CAD">CAD</option>
-                </select>
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.period')}</span>
-                <select
-                  className="form-input salary-field-input"
-                  value={salaryPeriod}
-                  onChange={e => setSalaryPeriod(e.target.value)}
-                >
-                  <option value="year">{t('salary.in_year_opt')}</option>
-                  <option value="month">{t('salary.in_month_opt')}</option>
-                  <option value="hour">{t('salary.in_hour_opt')}</option>
-                  <option value="week">{t('salary.in_week_opt')}</option>
-                  <option value="day">{t('salary.in_day_opt')}</option>
-                </select>
-              </div>
-            </div>
-            {currentSalaryInfo.original && (
-              <div className="salary-original">
-                {currentSalaryInfo.original}
+
+            {isEditingSalary && (
+              <div
+                className="salary-fields-grid is-editing"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveSalary();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelEditSalary();
+                  }
+                }}
+              >
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.min')}</span>
+                  <input
+                    type="number"
+                    autoFocus
+                    className="form-input salary-field-input"
+                    placeholder={t('vacancyModal.min_placeholder')}
+                    value={salaryMin}
+                    onChange={e => setSalaryMin(e.target.value)}
+                  />
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.max')}</span>
+                  <input
+                    type="number"
+                    className="form-input salary-field-input"
+                    placeholder={t('vacancyModal.max_placeholder')}
+                    value={salaryMax}
+                    onChange={e => setSalaryMax(e.target.value)}
+                  />
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.currency')}</span>
+                  <select
+                    className="form-input salary-field-input"
+                    value={salaryCurrency}
+                    onChange={e => setSalaryCurrency(e.target.value)}
+                  >
+                    <option value="$">$ (USD)</option>
+                    <option value="€">€ (EUR)</option>
+                    <option value="₽">₽ (RUB)</option>
+                    <option value="£">£ (GBP)</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CAD">CAD</option>
+                  </select>
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.period')}</span>
+                  <select
+                    className="form-input salary-field-input"
+                    value={salaryPeriod}
+                    onChange={e => setSalaryPeriod(e.target.value)}
+                  >
+                    <option value="year">{t('salary.in_year_opt')}</option>
+                    <option value="month">{t('salary.in_month_opt')}</option>
+                    <option value="hour">{t('salary.in_hour_opt')}</option>
+                    <option value="week">{t('salary.in_week_opt')}</option>
+                    <option value="day">{t('salary.in_day_opt')}</option>
+                  </select>
+                </div>
               </div>
             )}
           </div>
