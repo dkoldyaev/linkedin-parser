@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 from ..location_parser import COUNTRY_ALIASES, KNOWN_COUNTRIES, normalize_country
 from .helpers import clean_text, parse_salary_string
 from .registry import BaseParser, registry
-from .types import VacancyData
+from .types import VacancyData, is_closed_bogus_title
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,9 @@ class UpworkParser(BaseParser):
             or soup.find("h4")
             or soup.find("h1")
         )
-        title = title_el.get_text(" ", strip=True) if title_el else None
+        raw_title = title_el.get_text(" ", strip=True) if title_el else None
+        has_bogus_title = raw_title is not None and is_closed_bogus_title(raw_title)
+        title = None if has_bogus_title else raw_title
 
         # 3. Description
         desc_el = soup.select_one(
@@ -158,7 +160,8 @@ class UpworkParser(BaseParser):
 
         # 7. Closed status
         is_closed = bool(
-            soup.find(string=re.compile(r"job is no longer available|this job has expired|this posting is closed", re.I))
+            has_bogus_title
+            or soup.find(string=re.compile(r"job is no longer available|this job has expired|this posting is closed|page not found", re.I))
         )
 
         return VacancyData(

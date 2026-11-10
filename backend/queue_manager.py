@@ -16,6 +16,7 @@ from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, Vacan
 from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
+from .parsers.types import is_closed_bogus_title
 from .parsers import registry as parser_registry
 from .llm import (
     analyze_vacancy_with_llm,
@@ -619,13 +620,20 @@ class RedisQueueManager:
                     existing.url = task.url
                     if scraped.get("job_id"):
                         existing.job_id = scraped["job_id"]
-                    existing.title = (scraped.get("title") or existing.title or "")[:1000]
-                    existing.company = scraped.get("company") or existing.company
-                    existing.company_url = scraped.get("company_url") or existing.company_url
-                    existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
-                    existing.country = scraped.get("country") or existing.country
-                    existing.description = scraped.get("description") or existing.description
+                    if scraped.get("title") and not is_closed_bogus_title(scraped["title"]):
+                        existing.title = scraped["title"][:1000]
+                    if scraped.get("company") and scraped["company"] not in ("Unknown", "Unknown Company"):
+                        existing.company = scraped["company"]
+                    if scraped.get("company_url"):
+                        existing.company_url = scraped["company_url"]
+                    if scraped.get("location"):
+                        existing.location = scraped["location"]
+                    if scraped.get("city"):
+                        existing.city = scraped["city"]
+                    if scraped.get("country"):
+                        existing.country = scraped["country"]
+                    if scraped.get("description"):
+                        existing.description = scraped["description"]
                     if scraped.get("company_info"):
                         existing.company_info = scraped["company_info"]
 
@@ -644,8 +652,10 @@ class RedisQueueManager:
                         existing.salary_period = scraped["salary_period"]
                     if scraped.get("workplace_type"):
                         existing.workplace_type = scraped["workplace_type"]
-                    if "is_closed" in scraped:
+                    if scraped.get("is_closed") is not None:
                         existing.is_closed = scraped["is_closed"]
+                    elif is_closed_bogus_title(scraped.get("title")):
+                        existing.is_closed = True
                     if scraped.get("source"):
                         existing.source = scraped["source"]
 
@@ -663,12 +673,17 @@ class RedisQueueManager:
                     except Exception:
                         pass
 
+                    new_title = scraped.get("title")
+                    is_new_closed = bool(scraped.get("is_closed") or (new_title and is_closed_bogus_title(new_title)))
+                    if not new_title or is_closed_bogus_title(new_title):
+                        new_title = f"{scraped.get('company') or 'Job'} (Closed)" if is_new_closed else "Untitled Vacancy"
+
                     new_v = Vacancy(
                         user_id=task.user_id,
                         job_id=scraped.get("job_id"),
                         source=scraped.get("source"),
                         url=task.url,
-                        title=(scraped.get("title") or "Untitled Vacancy")[:1000],
+                        title=new_title[:1000],
                         company=scraped.get("company") or "Unknown Company",
                         company_url=scraped.get("company_url"),
                         company_info=scraped.get("company_info"),
@@ -677,7 +692,7 @@ class RedisQueueManager:
                         country=scraped.get("country"),
                         description=scraped.get("description"),
                         workplace_type=scraped.get("workplace_type"),
-                        is_closed=scraped.get("is_closed", False),
+                        is_closed=is_new_closed,
                         salary_min=scraped.get("salary_min"),
                         salary_max=scraped.get("salary_max"),
                         salary_currency=scraped.get("salary_currency"),
@@ -1245,13 +1260,20 @@ class RedisQueueManager:
                 if existing:
                     if scraped.get("job_id"):
                         existing.job_id = scraped["job_id"]
-                    existing.title = scraped.get("title") or existing.title
-                    existing.company = scraped.get("company") or existing.company
-                    existing.company_url = scraped.get("company_url") or existing.company_url
-                    existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
-                    existing.country = scraped.get("country") or existing.country
-                    existing.description = scraped.get("description") or existing.description
+                    if scraped.get("title") and not is_closed_bogus_title(scraped["title"]):
+                        existing.title = scraped["title"][:1000]
+                    if scraped.get("company") and scraped["company"] not in ("Unknown", "Unknown Company"):
+                        existing.company = scraped["company"]
+                    if scraped.get("company_url"):
+                        existing.company_url = scraped["company_url"]
+                    if scraped.get("location"):
+                        existing.location = scraped["location"]
+                    if scraped.get("city"):
+                        existing.city = scraped["city"]
+                    if scraped.get("country"):
+                        existing.country = scraped["country"]
+                    if scraped.get("description"):
+                        existing.description = scraped["description"]
                     if scraped.get("company_info"):
                         existing.company_info = scraped["company_info"]
 
@@ -1272,6 +1294,8 @@ class RedisQueueManager:
                         existing.workplace_type = scraped["workplace_type"]
                     if scraped.get("is_closed") is not None:
                         existing.is_closed = scraped["is_closed"]
+                    elif is_closed_bogus_title(scraped.get("title")):
+                        existing.is_closed = True
                     if scraped.get("source"):
                         existing.source = scraped["source"]
 
@@ -1288,12 +1312,17 @@ class RedisQueueManager:
                     except Exception:
                         pass
 
+                    new_title = scraped.get("title")
+                    is_new_closed = bool(scraped.get("is_closed") or (new_title and is_closed_bogus_title(new_title)))
+                    if not new_title or is_closed_bogus_title(new_title):
+                        new_title = f"{scraped.get('company') or 'Job'} (Closed)" if is_new_closed else "Untitled Vacancy"
+
                     new_vacancy = Vacancy(
                         user_id=task.user_id,
                         url=task.url,
                         job_id=scraped.get("job_id"),
                         source=scraped.get("source"),
-                        title=scraped.get("title", "Untitled Vacancy"),
+                        title=new_title[:1000],
                         company=scraped.get("company", "Unknown Company"),
                         company_url=scraped.get("company_url"),
                         company_info=scraped.get("company_info"),
@@ -1306,7 +1335,7 @@ class RedisQueueManager:
                         salary_currency=scraped.get("salary_currency"),
                         salary_period=scraped.get("salary_period"),
                         workplace_type=scraped.get("workplace_type"),
-                        is_closed=scraped.get("is_closed", False),
+                        is_closed=is_new_closed,
                         tags=initial_tags,
                         status=init_status
                     )

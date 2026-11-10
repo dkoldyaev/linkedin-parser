@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 from ..location_parser import parse_location
 from .registry import BaseParser, registry
-from .types import VacancyData
+from .types import VacancyData, is_closed_bogus_title
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +228,15 @@ class LinkedInParser(BaseParser):
                         if resp.status_code == 200 and len(resp.text) > 1000:
                             html = resp.text
                         elif resp.status_code == 404:
-                            return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                            return VacancyData(
+                                url=url,
+                                source=self.source,
+                                job_id=job_id,
+                                title=None,
+                                company="LinkedIn",
+                                description=None,
+                                is_closed=True,
+                            )
                     except Exception as exc:
                         logger.warning("Failed to fetch LinkedIn guest API for job %s: %s", job_id, exc)
                 if not html:
@@ -237,7 +245,15 @@ class LinkedInParser(BaseParser):
                         if resp.status_code == 200:
                             html = resp.text
                         elif resp.status_code == 404:
-                            return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                            return VacancyData(
+                                url=url,
+                                source=self.source,
+                                job_id=job_id,
+                                title=None,
+                                company="LinkedIn",
+                                description=None,
+                                is_closed=True,
+                            )
                         else:
                             raise ValueError(f"HTTP {resp.status_code}")
                     except Exception as exc:
@@ -252,7 +268,11 @@ class LinkedInParser(BaseParser):
             or soup.find("h1")
             or soup.find("h2")
         )
-        title = title_elem.get_text(strip=True) if title_elem else "LinkedIn Vacancy"
+        raw_title = title_elem.get_text(strip=True) if title_elem else None
+        if raw_title and is_closed_bogus_title(raw_title):
+            title = None
+        else:
+            title = raw_title or "LinkedIn Vacancy"
 
         # Company
         company_elem = (
@@ -311,7 +331,7 @@ class LinkedInParser(BaseParser):
             description += f"\n\n--- Compensation ---\n{salary_data['salary_raw_text']}"
 
         workplace_type = _extract_workplace(soup, location, criteria)
-        is_closed = _extract_is_closed(soup, html)
+        is_closed = _extract_is_closed(soup, html) or (raw_title is not None and is_closed_bogus_title(raw_title))
 
         return VacancyData(
             job_id=job_id,

@@ -104,6 +104,7 @@ from .auth import (
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
+from .parsers.types import is_closed_bogus_title
 from .query_helpers import filter_tag, duplicate_response, local_date
 from .location_parser import parse_location
 from .llm import (
@@ -1017,6 +1018,10 @@ async def create_vacancy(
 ):
     data = payload.model_dump()
     data["user_id"] = current_user.id
+    if data.get("url"):
+        data["url"] = normalize_url(data["url"])
+        if not data.get("job_id"):
+            data["job_id"] = extract_job_id(data["url"])
     valid_statuses = get_user_valid_statuses(db, current_user.id)
     if data.get("status") and data["status"] not in valid_statuses:
         raise HTTPException(
@@ -2348,31 +2353,40 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     if existing:
         if scraped.get("job_id"): existing.job_id = scraped["job_id"]
         if scraped.get("source"): existing.source = scraped["source"]
-        existing.title = scraped.get("title", None) or existing.title 
-        existing.company = scraped.get("company", None) or existing.company
-        existing.company_url = scraped.get("company_url", None) or existing.company_url
-        existing.location = scraped.get("location", None) or existing.location
-        existing.city = scraped.get("city", None) or existing.city
-        existing.country = scraped.get("country", None) or existing.country
-        existing.description = scraped.get("description", None) or existing.description
-        existing.company_info = scraped.get("company_info", None) or existing.company_info
-        existing.workplace_type = scraped.get("workplace_type", None) or existing.workplace_type
-        existing.salary_min = scraped.get("salary_min", None) or existing.salary_min
-        existing.salary_max = scraped.get("salary_max", None) or existing.salary_max
-        existing.salary_currency = scraped.get("salary_currency", None) or existing.salary_currency
-        existing.salary_period = scraped.get("salary_period", None) or existing.salary_period
-        if scraped.get("is_closed") is not None: existing.is_closed = scraped["is_closed"]
+        if scraped.get("title") and not is_closed_bogus_title(scraped["title"]):
+            existing.title = scraped["title"][:1000]
+        if scraped.get("company") and scraped["company"] not in ("Unknown", "Unknown Company"):
+            existing.company = scraped["company"]
+        if scraped.get("company_url"): existing.company_url = scraped["company_url"]
+        if scraped.get("location"): existing.location = scraped["location"]
+        if scraped.get("city"): existing.city = scraped["city"]
+        if scraped.get("country"): existing.country = scraped["country"]
+        if scraped.get("description"): existing.description = scraped["description"]
+        if scraped.get("company_info"): existing.company_info = scraped["company_info"]
+        if scraped.get("workplace_type"): existing.workplace_type = scraped["workplace_type"]
+        if scraped.get("salary_min") is not None: existing.salary_min = scraped["salary_min"]
+        if scraped.get("salary_max") is not None: existing.salary_max = scraped["salary_max"]
+        if scraped.get("salary_currency"): existing.salary_currency = scraped["salary_currency"]
+        if scraped.get("salary_period"): existing.salary_period = scraped["salary_period"]
+        if scraped.get("is_closed") is not None:
+            existing.is_closed = scraped["is_closed"]
+        elif is_closed_bogus_title(scraped.get("title")):
+            existing.is_closed = True
         db.commit()
         db.refresh(existing)
         vacancy = existing
     else:
         is_new = True
+        new_title = scraped.get("title")
+        is_new_closed = bool(scraped.get("is_closed") or (new_title and is_closed_bogus_title(new_title)))
+        if not new_title or is_closed_bogus_title(new_title):
+            new_title = f"{scraped.get('company') or 'Job'} (Closed)" if is_new_closed else "Untitled"
         vacancy = Vacancy(
             user_id=current_user.id,
             url=url,
             job_id=scraped.get("job_id"),
             source=scraped.get("source"),
-            title=scraped.get("title", "Untitled"),
+            title=new_title[:1000],
             company=scraped.get("company", "Unknown"),
             company_url=scraped.get("company_url"),
             location=scraped.get("location"),
@@ -2385,7 +2399,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
             salary_currency=scraped.get("salary_currency"),
             salary_period=scraped.get("salary_period"),
             workplace_type=scraped.get("workplace_type"),
-            is_closed=scraped.get("is_closed", False),
+            is_closed=is_new_closed,
             status=get_user_initial_status(db, current_user.id)
         )
         db.add(vacancy)

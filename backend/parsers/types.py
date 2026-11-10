@@ -95,3 +95,30 @@ class VacancyData(TypedDict, total=False):
     Pay period.
     One of: 'hour', 'day', 'week', 'month', 'year'.
     """
+
+
+BOGUS_CLOSED_TITLE_MARKERS = [
+    "no longer available",
+    "job has expired",
+    "posting is closed",
+    "vacancy closed",
+    "404 not found",
+    "page not found",
+    "заявки больше не принимаются",
+    "вакансия закрыта",
+    "прием откликов закрыт",
+    "приём откликов закрыт",
+    "прием заявок закрыт",
+    "приём заявок закрыт",
+    "job is closed",
+    "job unavailable",
+    "position closed",
+]
+
+
+def is_closed_bogus_title(title: Optional[str]) -> bool:
+    """Return True if title is empty or contains an error/closed placeholder string."""
+    if not title:
+        return True
+    t_lower = title.strip().lower()
+    return any(marker in t_lower for marker in BOGUS_CLOSED_TITLE_MARKERS)

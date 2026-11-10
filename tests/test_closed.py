@@ -143,5 +143,74 @@ class TestClosedVacancy(unittest.TestCase):
         # Cleanup
         client.delete(f"/api/vacancies/{vid}")
 
+    def test_upwork_closed_page_detection_and_non_destructive_update(self):
+        import asyncio
+        from backend.parsers.upwork import UpworkParser
+        from backend.parsers.types import is_closed_bogus_title
+        from backend.database import SessionLocal
+        from backend.models import Vacancy, User
+
+        # 1. Test parser on Upwork "This job is no longer available." html
+        closed_upwork_html = """
+        <html>
+          <body>
+            <header>
+              <h4>This job is no longer available.</h4>
+            </header>
+          </body>
+        </html>
+        """
+        parser = UpworkParser()
+        parsed = asyncio.run(parser.parse("https://www.upwork.com/jobs/~0123456789abcdef", closed_upwork_html))
+        self.assertTrue(parsed["is_closed"])
+        self.assertIsNone(parsed["title"])
+        self.assertTrue(is_closed_bogus_title("This job is no longer available."))
+
+        # 2. Test non-destructive update via API/DB
+        client = TestClient(app)
+        login_res = client.post("/api/auth/dev-login", json={"email": "non_destruct@local.user"})
+        token = login_res.json()["token"]
+        client = TestClient(app, cookies={"access_token": token})
+
+        # Create original active vacancy
+        orig_resp = client.post("/api/vacancies", json={
+            "title": "Senior Frontend Developer",
+            "company": "Great Client",
+            "url": "https://www.upwork.com/jobs/~0123456789abcdef",
+            "description": "Original detailed job requirements and tech stack.",
+            "location": "United States",
+            "salary_min": 60,
+            "salary_max": 80,
+            "salary_currency": "USD",
+            "salary_period": "hour",
+            "is_closed": False
+        })
+        self.assertEqual(orig_resp.status_code, 200)
+        vid = orig_resp.json()["id"]
+
+        # Simulate scraper returning a 404/closed result on re-parsing
+        # Apply update logic via extension_parse_and_add
+        reimport_resp = client.post("/api/extension/parse_and_add", json={
+            "url": "https://www.upwork.com/jobs/~0123456789abcdef",
+            "source": "Upwork",
+            "job_id": "~0123456789abcdef",
+            "title": "This job is no longer available.",
+            "is_closed": True
+        })
+        self.assertEqual(reimport_resp.status_code, 200)
+
+        # Fetch vacancy and verify existing data was PRESERVED
+        get_resp = client.get(f"/api/vacancies/{vid}")
+        self.assertEqual(get_resp.status_code, 200)
+        v = get_resp.json()
+        self.assertEqual(v["title"], "Senior Frontend Developer") # Title NOT overwritten!
+        self.assertEqual(v["description"], "Original detailed job requirements and tech stack.") # Description preserved!
+        self.assertEqual(v["location"], "United States") # Location preserved!
+        self.assertEqual(v["salary_min"], 60) # Salary preserved!
+        self.assertTrue(v["is_closed"]) # is_closed updated to True!
+
+        # Cleanup
+        client.delete(f"/api/vacancies/{vid}")
+
 if __name__ == "__main__":
     unittest.main()
