@@ -152,6 +152,12 @@ export const translations = {
       compat_matched: "Подтверждённые требования ({count}):",
       compat_missing: "Неподтверждённые требования ({count}):",
       compat_evidence: "Подтверждение",
+      compat_details: "Подробности",
+      compat_severity: {
+        high: "Высокая важность для вакансии",
+        medium: "Средняя важность",
+        low: "Низкая важность"
+      },
       compat_gaps: "Критические несоответствия:",
       compat_recommendations: "Рекомендации для CV:",
       compat_outdated: "CV изменилось после проверки. Показан результат для версии {revision}. Запустите проверку повторно.",
@@ -669,6 +675,12 @@ export const translations = {
       compat_matched: "Matched Requirements ({count}):",
       compat_missing: "Missing / Unconfirmed Requirements ({count}):",
       compat_evidence: "Evidence",
+      compat_details: "Details",
+      compat_severity: {
+        high: "High importance for vacancy",
+        medium: "Medium importance",
+        low: "Low importance"
+      },
       compat_gaps: "Critical Incompatibilities:",
       compat_recommendations: "Recommendations for CV Presentation:",
       compat_outdated: "CV was updated since last evaluation. Showing result for Rev {revision}. Re-analyze to update.",

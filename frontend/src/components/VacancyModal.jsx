@@ -1620,7 +1620,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <div className="compatibility-list">
                       {compatibility.matched_requirements.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
+                          <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
                             <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
                             <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
                               {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -1637,34 +1637,69 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   </div>
                 )}
 
-                {/* Missing Requirements */}
+                {/* Missing Requirements with Details toggles */}
                 {compatibility.missing_requirements?.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-missing">
                       {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.missing_requirements.map((m, idx) => (
-                        <div key={idx} className="compatibility-row">
-                          &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
-                        </div>
-                      ))}
+                      {compatibility.missing_requirements.map((m, idx) => {
+                        const sev = (m.severity || 'medium').toLowerCase();
+                        const sevTitle = t(`vacancyModal.compat_severity.${sev}`) || sev;
+                        const isExpanded = !!showEvidenceMap[`missing_${idx}`];
+                        return (
+                          <div key={idx} className="compatibility-row">
+                            <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`missing_${idx}`]: !prev[`missing_${idx}`] }))}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>&bull; {m.requirement}</span>
+                                <span className={`compatibility-severity-badge severity-${sev}`} title={sevTitle}>
+                                  {sev}
+                                </span>
+                              </div>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginLeft: '8px' }}>
+                                {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              </span>
+                            </div>
+                            {isExpanded && m.reason && (
+                              <div className="compatibility-detail-reason">
+                                {m.reason}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Critical Gaps */}
+                {/* Critical Gaps with Details toggles */}
                 {compatibility.critical_gaps?.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-critical">
                       {t('vacancyModal.compat_gaps')}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.critical_gaps.map((g, idx) => (
-                        <div key={idx} className="compatibility-row">
-                          &bull; <strong>{g.requirement}</strong>: {g.reason}
-                        </div>
-                      ))}
+                      {compatibility.critical_gaps.map((g, idx) => {
+                        const isExpanded = showEvidenceMap[`gap_${idx}`] !== false; // expanded by default for critical gaps or collapsible
+                        return (
+                          <div key={idx} className="compatibility-row">
+                            <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`gap_${idx}`]: !isExpanded }))}>
+                              <span style={{ color: 'var(--color-danger, #ef4444)', fontWeight: 600 }}>&bull; {g.requirement}</span>
+                              {g.reason && (
+                                <span style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginLeft: '8px' }}>
+                                  {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                </span>
+                              )}
+                            </div>
+                            {isExpanded && g.reason && (
+                              <div className="compatibility-detail-reason" style={{ color: 'var(--text-secondary)' }}>
+                                {g.reason}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
