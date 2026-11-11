@@ -18,6 +18,13 @@
     align-items: center;
     gap: var(--ui-space-4);
     min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition:
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      margin 0.25s ease,
+      transform 0.2s ease;
   }
 
   .brandTitle {
@@ -31,7 +38,9 @@
     align-items: center;
     gap: var(--ui-space-3);
     flex: 1;
+    min-width: 0;
     justify-content: center;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .actionsSection {
@@ -39,5 +48,42 @@
     align-items: center;
     gap: var(--ui-space-2);
     flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 450px;
+    transition:
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      margin 0.25s ease,
+      gap 0.25s ease;
+  }
+
+  @media (max-width: 960px) {
+    .header:has(input[role='searchbox']:focus) .brandSection {
+      max-width: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      pointer-events: none;
+      transform: scale(0.92);
+    }
+
+    .header:has(input[role='searchbox']:focus) .actionsSection {
+      max-width: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      pointer-events: none;
+      transform: scale(0.92);
+    }
+
+    .header:has(input[role='searchbox']:focus) .centerSection {
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+      flex: 1;
+    }
   }
 }

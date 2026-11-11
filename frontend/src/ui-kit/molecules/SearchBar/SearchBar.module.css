@@ -5,21 +5,75 @@
     align-items: center;
     width: 100%;
     width: round(down, 100%, var(--ui-grid-cell));
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    transition:
+      width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .inputWrapper {
+    width: 100%;
+  }
+
+  .searchInput {
+    width: 100%;
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-md);
+    padding-left: 36px;
+    transition:
+      border-color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast),
+      background-color var(--ui-transition-fast);
+  }
+
+  /* Adaptive expand-on-focus mode (matches live site header search behavior) */
+  .expandOnFocus {
+    width: calc(var(--ui-grid-cell) * 6);
+    max-width: 100%;
+  }
+
+  .expandOnFocus.isFocused,
+  .expandOnFocus:focus-within {
+    width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+  }
+
+  .expandOnFocus:not(.isFocused):not(:focus-within) .clearButton {
+    display: none;
+  }
+
+  .expandOnFocus:not(.isFocused):not(:focus-within) .hasClear {
+    padding-right: var(--ui-space-3);
   }
 
   .clearButton {
     position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 24px;
-    min-height: 24px;
-    width: 24px;
-    min-width: 24px;
+    right: 0;
+    top: 0;
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    min-width: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
     padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--ui-color-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      color var(--ui-transition-fast),
+      transform var(--ui-transition-fast);
+  }
+
+  .clearButton:hover {
+    color: var(--ui-color-text-primary);
+    transform: scale(1.1);
   }
 
   .hasClear {
-    padding-right: var(--ui-space-8);
+    padding-right: var(--ui-grid-cell);
   }
 }

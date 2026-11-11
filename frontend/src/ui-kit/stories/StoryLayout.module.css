@@ -63,4 +63,84 @@
     border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
     box-sizing: border-box;
   }
+
+  .adaptiveHeaderDemo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0;
+    width: calc(20 * var(--ui-grid-cell));
+    max-width: round(down, 100%, var(--ui-grid-cell));
+    height: var(--ui-grid-cell);
+    padding: 0;
+    background-color: var(--ui-color-bg-surface);
+    box-shadow: inset 0 0 0 1px var(--ui-color-border-default);
+    box-sizing: border-box;
+  }
+
+  .adaptiveHeaderBrand {
+    display: flex;
+    align-items: center;
+    width: calc(4 * var(--ui-grid-cell));
+    max-width: calc(4 * var(--ui-grid-cell));
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-grid-unit);
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition:
+      width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      padding 0.25s ease,
+      transform 0.2s ease;
+  }
+
+  .adaptiveHeaderActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+    width: calc(2 * var(--ui-grid-cell));
+    max-width: calc(2 * var(--ui-grid-cell));
+    height: var(--ui-grid-cell);
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition:
+      width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .adaptiveHeaderCenter {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    height: var(--ui-grid-cell);
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .adaptiveHeaderDemo:has(input[role='searchbox']:focus) .adaptiveHeaderBrand,
+  .adaptiveHeaderDemo:has(input[role='searchbox']:focus) .adaptiveHeaderActions {
+    width: 0;
+    max-width: 0;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    pointer-events: none;
+    transform: scale(0.92);
+  }
+
+  .adaptiveHeaderDemo:has(input[role='searchbox']:focus) .adaptiveHeaderCenter {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    flex: 1;
+  }
 }
