@@ -110,11 +110,11 @@ export function useBlueprintGrid<T extends HTMLElement = HTMLDivElement>(
       }
 
       // 2. Snap variable-height cells (.bp-snap, [data-bp-snap], .column-header) to exact multiples of 32px
-      const snaps = Array.from(
-        root.querySelectorAll<HTMLElement>(
-          '.bp-snap, [data-bp-snap], .column-header'
-        )
-      );
+      const snapSelector = '.bp-snap, [data-bp-snap], .column-header';
+      const snaps = Array.from(root.querySelectorAll<HTMLElement>(snapSelector));
+      if (root.matches(snapSelector)) {
+        snaps.push(root);
+      }
       for (const el of snaps) {
         el.style.minHeight = '';
       }

@@ -45,15 +45,15 @@
   }
 
   .size-sm {
-    height: var(--ui-space-6);
-    min-height: var(--ui-space-6);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-3);
     font-size: var(--ui-text-xs);
   }
 
   .size-lg {
-    height: calc(var(--ui-grid-cell) + var(--ui-space-2));
-    min-height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-6);
     font-size: var(--ui-text-md);
   }

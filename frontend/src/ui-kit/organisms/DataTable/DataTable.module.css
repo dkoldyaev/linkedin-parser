@@ -1,8 +1,10 @@
 @layer ui-organisms {
   .wrapper {
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     overflow-x: auto;
-    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-color-border-strong);
     background-color: var(--ui-color-bg-surface);
     box-sizing: border-box;
   }
@@ -74,13 +76,15 @@
   }
 
   .td {
+    height: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
-    padding: var(--ui-space-2) var(--ui-space-4);
+    padding: 0 var(--ui-space-4);
     font-family: var(--ui-font-sans);
     font-size: var(--ui-text-sm);
     color: var(--ui-color-text-primary);
     border-right: var(--ui-border-width) solid var(--ui-color-border-subtle);
     vertical-align: middle;
+    box-sizing: border-box;
   }
 
   .td:last-child {

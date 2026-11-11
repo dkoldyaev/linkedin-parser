@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text } from '../../atoms';
+import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EmptyState.module.css';
 
@@ -13,6 +14,7 @@ export interface EmptyStateProps
 
 /**
  * EmptyState molecule for zero-data tables, Kanban columns, and queues.
+ * Automatically snaps height and width to multiples of the 32px Blueprint grid.
  */
 export function EmptyState({
   icon,
@@ -22,8 +24,16 @@ export function EmptyState({
   className,
   ...rest
 }: EmptyStateProps): React.ReactElement {
+  const emptyRef = useBlueprintGrid<HTMLDivElement>([title, description]);
+
   return (
-    <div className={cn(styles.emptyState, className)} {...rest}>
+    <div
+      ref={emptyRef}
+      data-bp-snap=""
+      data-min-grids="4"
+      className={cn(styles.emptyState, className)}
+      {...rest}
+    >
       {icon !== undefined && <div aria-hidden="true">{icon}</div>}
       <Text as="h3" variant="mono-label" tone="primary">
         {title}

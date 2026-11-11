@@ -7,6 +7,7 @@ import {
   X,
 } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
+import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './AlertBanner.module.css';
 
@@ -29,6 +30,7 @@ const TONE_ICONS = {
 
 /**
  * AlertBanner molecule replacing inline status/error/warning banners across pages and modals.
+ * Automatically snaps its height and width to multiples of the 32px Blueprint grid.
  */
 export function AlertBanner({
   tone = 'info',
@@ -39,17 +41,25 @@ export function AlertBanner({
   children,
   ...rest
 }: AlertBannerProps): React.ReactElement {
+  const bannerRef = useBlueprintGrid<HTMLDivElement>([title, children, tone]);
   const IconComponent = TONE_ICONS[tone];
   const ariaRole = tone === 'danger' || tone === 'warning' ? 'alert' : 'status';
 
   return (
     <div
+      ref={bannerRef}
       role={ariaRole}
-      className={cn(styles.banner, styles[`tone-${tone}`], className)}
+      data-bp-snap=""
+      className={cn(
+        styles.banner,
+        styles[`tone-${tone}`],
+        onDismiss !== undefined && styles.hasDismiss,
+        className
+      )}
       {...rest}
     >
       <div className={styles.body}>
-        <Icon icon={IconComponent} size="md" />
+        <Icon icon={IconComponent} size="md" className={styles.icon} />
         <div className={styles.textStack}>
           {title !== undefined && (
             <Text as="div" variant="mono-label" tone="primary">
@@ -67,6 +77,7 @@ export function AlertBanner({
           size="icon"
           onClick={onDismiss}
           aria-label={dismissLabel}
+          className={styles.dismissButton}
         >
           <Icon icon={X} size="sm" />
         </Button>

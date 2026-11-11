@@ -2,8 +2,9 @@
   .container {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-2);
+    gap: 0;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
   }
 
   .header {
@@ -11,6 +12,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
   }
 
   .tokens {
@@ -19,7 +22,7 @@
     align-items: center;
     gap: var(--ui-space-2);
     min-height: var(--ui-grid-cell);
-    padding: var(--ui-space-2);
+    padding: 4px var(--ui-space-2);
     background-color: var(--ui-color-bg-surface);
     border: var(--ui-border-width) solid var(--ui-color-border-default);
     box-sizing: border-box;
@@ -28,6 +31,8 @@
   .addRow {
     display: flex;
     align-items: center;
-    gap: var(--ui-space-2);
+    gap: 0;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
   }
 }

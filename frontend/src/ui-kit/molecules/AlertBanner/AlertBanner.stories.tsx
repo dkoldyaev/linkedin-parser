@@ -6,10 +6,34 @@ const meta: Meta<typeof AlertBanner> = {
   title: 'Molecules/AlertBanner',
   component: AlertBanner,
   tags: ['autodocs'],
+  args: {
+    tone: 'info',
+    title: 'Mercure SSE Connected',
+    children:
+      'Listening for real-time CV adaptation updates from background worker.',
+    dismissLabel: 'Dismiss alert',
+  },
+  argTypes: {
+    tone: {
+      control: 'select',
+      options: ['info', 'success', 'warning', 'danger'],
+    },
+    title: { control: 'text' },
+    children: { control: 'text' },
+    dismissLabel: { control: 'text' },
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof AlertBanner>;
+
+export const Interactive: Story = {
+  render: (args) => (
+    <div className={layoutStyles.stack}>
+      <AlertBanner {...args} onDismiss={() => undefined} />
+    </div>
+  ),
+};
 
 export const AllTones: Story = {
   render: () => (

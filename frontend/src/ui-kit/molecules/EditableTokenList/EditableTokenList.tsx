@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Badge, type BadgeTone, Button, Icon, Input, Label, Text } from '../../atoms';
+import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EditableTokenList.module.css';
 
@@ -34,6 +35,7 @@ export function EditableTokenList({
   className,
 }: EditableTokenListProps): React.ReactElement {
   const [draftValue, setDraftValue] = useState<string>('');
+  const containerRef = useBlueprintGrid<HTMLDivElement>([tokens.length]);
 
   const handleCommit = () => {
     const trimmed = draftValue.trim();
@@ -52,7 +54,7 @@ export function EditableTokenList({
   };
 
   return (
-    <div className={cn(styles.container, className)}>
+    <div ref={containerRef} className={cn(styles.container, className)}>
       {label !== undefined && (
         <div className={styles.header}>
           <Label>{label}</Label>
@@ -61,7 +63,7 @@ export function EditableTokenList({
           </Text>
         </div>
       )}
-      <div className={styles.tokens}>
+      <div data-bp-snap="" className={styles.tokens}>
         {tokens.length === 0 ? (
           <Text variant="caption" tone="muted">
             {emptyMessage}
