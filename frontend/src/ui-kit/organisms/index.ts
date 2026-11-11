@@ -15,7 +15,7 @@ export {
   DataTable,
   type DataTableProps,
   type DataTableColumn,
-  type SortDirection,
+  type TableSortDirection,
 } from './DataTable';
 export { Header, type HeaderProps } from './Header';
 export { Form, type FormProps } from './Form';

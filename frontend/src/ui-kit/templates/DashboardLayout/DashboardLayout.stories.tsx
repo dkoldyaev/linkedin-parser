@@ -1,17 +1,9 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  Ban,
-  ChevronDown,
-  Globe,
-  MapPin,
-  MoreVertical,
-  Plus,
-  RotateCcw,
-} from 'lucide-react';
+import { ChevronDown, MoreVertical, Plus } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { VacancyCard, Header } from '../../organisms';
-import { SearchBar } from '../../molecules';
+import { FilterList, SearchBar } from '../../molecules';
 import { Badge } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './DashboardLayout.module.css';
@@ -133,6 +125,10 @@ const MOCK_VACANCIES = {
 function KanbanDashboardDemo(): React.ReactElement {
   const [search, setSearch] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('');
+  const [country, setCountry] = useState<string>('');
+  const [city, setCity] = useState<string>('');
+  const [workplace, setWorkplace] = useState<string>('');
+  const [closed, setClosed] = useState<string>('');
   const [rejectedCollapsed, setRejectedCollapsed] = useState<boolean>(true);
 
   return (
@@ -166,63 +162,69 @@ function KanbanDashboardDemo(): React.ReactElement {
         />
       }
       filterBar={
-        <div className={storyStyles.filterContent}>
-          <div className={storyStyles.filterItem}>
-            <Globe size={13} color="var(--ui-color-text-muted)" />
-            <span>Все страны [4]</span>
-            <ChevronDown size={11} />
-          </div>
-          <span className={storyStyles.filterSep}>/</span>
-          <div className={storyStyles.filterItem}>
-            <MapPin size={13} color="var(--ui-color-text-muted)" />
-            <span>Все города [12]</span>
-            <ChevronDown size={11} />
-          </div>
-          <span className={storyStyles.filterSep}>/</span>
-          <div className={storyStyles.filterItem}>
-            <span>Удаленка</span>
-            <ChevronDown size={11} />
-          </div>
-          <span className={storyStyles.filterSep}>/</span>
-          <div className={storyStyles.filterItem}>
-            <Ban size={13} color="var(--ui-color-text-muted)" />
-            <span>Открытые</span>
-            <ChevronDown size={11} />
-          </div>
-          <span className={storyStyles.filterSep}>/</span>
-          <div className={storyStyles.tagChipList}>
-            <button
-              type="button"
-              onClick={() => setSelectedTag('')}
-              className={cn(
-                storyStyles.tagChip,
-                selectedTag === '' && storyStyles.tagChipActive
-              )}
-            >
-              [ Все теги ] [18]
-            </button>
-            {['react', 'typescript', 'bun', 'remote-eu', 'priority'].map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setSelectedTag(t)}
-                className={cn(
-                  storyStyles.tagChip,
-                  selectedTag === t && storyStyles.tagChipActive
-                )}
-              >
-                #{t}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={storyStyles.filterResetBtn}
-            >
-              <RotateCcw size={11} />
-              <span>Сбросить</span>
-            </button>
-          </div>
-        </div>
+        <FilterList
+          dropdowns={[
+            {
+              id: 'country',
+              value: country,
+              placeholder: 'Все страны [4]',
+              options: [
+                { value: 'Cyprus', label: 'Кипр', count: 18 },
+                { value: 'Germany', label: 'Германия', count: 42 },
+              ],
+              onChange: setCountry,
+            },
+            {
+              id: 'city',
+              value: city,
+              placeholder: 'Все города [12]',
+              options: [
+                { value: 'Limassol', label: 'Лимассол', count: 12 },
+                { value: 'Berlin', label: 'Берлин', count: 28 },
+              ],
+              onChange: setCity,
+            },
+            {
+              id: 'workplace',
+              value: workplace,
+              placeholder: 'Все форматы',
+              options: [
+                { value: 'remote', label: 'Удаленно' },
+                { value: 'hybrid', label: 'Гибрид' },
+                { value: 'on-site', label: 'В офисе' },
+              ],
+              onChange: setWorkplace,
+            },
+            {
+              id: 'closed',
+              value: closed,
+              placeholder: 'Все статусы',
+              options: [
+                { value: 'false', label: 'Открытые' },
+                { value: 'true', label: 'Закрытые' },
+              ],
+              onChange: setClosed,
+            },
+          ]}
+          tags={[
+            { id: '', label: 'Все теги', count: 18 },
+            { id: 'react', label: 'react' },
+            { id: 'typescript', label: 'typescript' },
+            { id: 'bun', label: 'bun' },
+            { id: 'remote-eu', label: 'remote-eu' },
+            { id: 'priority', label: 'priority' },
+          ]}
+          activeTag={selectedTag}
+          onTagSelect={setSelectedTag}
+          onReset={() => {
+            setCountry('');
+            setCity('');
+            setWorkplace('');
+            setClosed('');
+            setSelectedTag('');
+          }}
+          resetLabel="Сбросить"
+        />
       }
       footer={
         <div className={styles.rejectedBlock}>

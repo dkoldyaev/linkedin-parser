@@ -63,3 +63,10 @@ export {
 export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Icon, type IconProps, type IconSize, type IconTone } from './Icon';
+export {
+  SortButton,
+  type SortButtonProps,
+  type SortDirection,
+  type SortButtonSize,
+  type SortButtonTone,
+} from './SortButton';

@@ -42,38 +42,6 @@
     border-right: none;
   }
 
-  .sortButton {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ui-space-1);
-    max-width: 100%;
-    padding: 0;
-    background: transparent;
-    border: none;
-    color: inherit;
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    cursor: pointer;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .sortButton > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sortButton:hover {
-    color: var(--ui-color-text-primary);
-  }
-
-  .sortButton:focus-visible {
-    outline: 2px solid var(--ui-color-border-focus);
-    outline-offset: 2px;
-  }
-
   .tr {
     height: var(--ui-grid-cell);
     border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);

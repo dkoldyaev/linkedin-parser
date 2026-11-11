@@ -49,65 +49,6 @@
     animation: spin 1s linear infinite;
   }
 
-  .filterContent {
-    display: flex;
-    align-items: center;
-    gap: var(--ui-space-3);
-    width: 100%;
-  }
-
-  .filterItem {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.75rem;
-    font-family: var(--ui-font-mono);
-    color: var(--ui-color-text-secondary);
-    white-space: nowrap;
-  }
-
-  .filterSep {
-    color: var(--ui-color-text-muted);
-  }
-
-  .tagChipList {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ui-space-2);
-    overflow-x: auto;
-  }
-
-  .tagChip {
-    background: transparent;
-    border: 0;
-    color: var(--ui-color-text-secondary);
-    font-family: var(--ui-font-mono);
-    font-size: 0.75rem;
-    cursor: pointer;
-    padding: 4px 6px;
-    white-space: nowrap;
-    transition: color var(--ui-transition-fast);
-  }
-
-  .tagChipActive {
-    color: var(--ui-primary);
-    border-bottom: 1px solid var(--ui-primary);
-  }
-
-  .filterResetBtn {
-    background: transparent;
-    border: 0;
-    color: #e07575;
-    font-family: var(--ui-font-mono);
-    font-size: 0.75rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: var(--ui-space-2);
-    white-space: nowrap;
-  }
-
   .rejectedHeaderInner {
     display: flex;
     align-items: center;

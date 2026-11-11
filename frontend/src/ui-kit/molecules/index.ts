@@ -12,3 +12,11 @@ export {
   type ColorOption,
 } from './ColorPicker';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export {
+  FilterList,
+  FilterBar,
+  type FilterListProps,
+  type FilterDropdownGroup,
+  type FilterOption,
+  type FilterTag,
+} from './FilterList';

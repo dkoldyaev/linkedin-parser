@@ -2,5 +2,5 @@ export {
   DataTable,
   type DataTableProps,
   type DataTableColumn,
-  type SortDirection,
+  type TableSortDirection,
 } from './DataTable';

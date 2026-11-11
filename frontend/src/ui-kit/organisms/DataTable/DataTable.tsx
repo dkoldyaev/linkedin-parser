@@ -1,12 +1,11 @@
 import React, { useLayoutEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-import { Icon, Spinner, Text } from '../../atoms';
+import { SortButton, Spinner, Text } from '../../atoms';
 import { EmptyState } from '../../molecules';
 import { useBlueprintGrid } from '../../hooks';
 import { GRID_CELL_PX, cn } from '../../utils';
 import styles from './DataTable.module.css';
 
-export type SortDirection = 'asc' | 'desc';
+export type TableSortDirection = 'asc' | 'desc';
 
 export interface DataTableColumn<T> {
   readonly id: string;
@@ -58,7 +57,7 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>): React.ReactElement {
   const [sortColumnId, setSortColumnId] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
   const [colWidths, setColWidths] = useState<readonly number[]>([]);
   const wrapperRef = useBlueprintGrid<HTMLDivElement>([columns, data.length]);
 
@@ -199,40 +198,22 @@ export function DataTable<T>({
             {columns.map((column) => {
               const align = column.align !== undefined ? column.align : 'left';
               const isSorted = sortColumnId === column.id;
-              const ariaSort = isSorted
-                ? sortDirection === 'asc'
-                  ? 'ascending'
-                  : 'descending'
-                : column.sortable
-                  ? 'none'
-                  : undefined;
-
-              const SortIconComponent = !isSorted
-                ? ArrowUpDown
-                : sortDirection === 'asc'
-                  ? ArrowUp
-                  : ArrowDown;
+              const currentDirection = isSorted ? sortDirection : 'none';
 
               return (
                 <th
                   key={column.id}
                   scope="col"
-                  aria-sort={ariaSort}
                   className={cn(styles.th, styles[`align-${align}`])}
                 >
                   {column.sortable ? (
-                    <button
-                      type="button"
-                      className={styles.sortButton}
-                      onClick={() => handleSort(column.id)}
+                    <SortButton
+                      direction={currentDirection}
+                      onToggle={() => handleSort(column.id)}
+                      size="sm"
                     >
-                      <span>{column.header}</span>
-                      <Icon
-                        icon={SortIconComponent}
-                        size="xs"
-                        tone={isSorted ? 'accent' : 'muted'}
-                      />
-                    </button>
+                      {column.header}
+                    </SortButton>
                   ) : (
                     column.header
                   )}

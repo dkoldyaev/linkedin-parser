@@ -1,0 +1,33 @@
+@layer ui-atoms {
+  .interactiveRow {
+    display: inline-flex;
+    gap: var(--ui-space-4);
+    align-items: center;
+  }
+
+  .resetBtn {
+    background: transparent;
+    border: 1px solid var(--ui-color-border-subtle);
+    color: var(--ui-color-text-secondary);
+    font-size: 0.75rem;
+    font-family: var(--ui-font-mono);
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .toolbarGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    padding: 4px 8px;
+    background-color: var(--ui-color-bg-surface);
+    border: 1px solid var(--ui-color-border-subtle);
+  }
+
+  .toolbarLabel {
+    font-family: var(--ui-font-mono);
+    font-size: 0.7rem;
+    color: var(--ui-color-text-muted);
+    text-transform: uppercase;
+  }
+}
