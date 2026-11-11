@@ -10,7 +10,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { SectionHeader } from './SectionHeader';
-import { Badge } from '../../atoms';
+import { Badge, Button } from '../../atoms';
 import styles from './SectionHeaderStory.module.css';
 
 const meta: Meta<typeof SectionHeader> = {
@@ -26,13 +26,14 @@ export const TechStackAddAccessory: Story = {
   args: {
     title: 'Технологический стек',
     accessory: (
-      <button
-        type="button"
-        className={styles.iconBtn}
+      <Button
+        size="icon"
+        variant="secondary"
         aria-label="Добавить технологию"
+        className={styles.iconBtn}
       >
         <Plus size={14} />
-      </button>
+      </Button>
     ),
   },
 };
@@ -43,10 +44,14 @@ export const AiSummaryWithReanalyze: Story = {
     icon: Sparkles,
     iconTone: 'mint',
     accessory: (
-      <button type="button" className={styles.textBtn}>
-        <RefreshCw size={12} />
-        <span>Переанализировать</span>
-      </button>
+      <Button
+        size="sm"
+        variant="secondary"
+        startIcon={<RefreshCw size={12} />}
+        className={styles.textBtn}
+      >
+        Переанализировать
+      </Button>
     ),
   },
 };
@@ -75,10 +80,14 @@ export const SalaryWithEditAction: Story = {
       </Badge>
     ),
     accessory: (
-      <button type="button" className={styles.textBtn}>
-        <Edit3 size={12} />
-        <span>Изменить</span>
-      </button>
+      <Button
+        size="sm"
+        variant="secondary"
+        startIcon={<Edit3 size={12} />}
+        className={styles.textBtnSm}
+      >
+        Изменить
+      </Button>
     ),
   },
 };
@@ -89,10 +98,14 @@ export const NotesWithSaveAction: Story = {
     icon: StickyNote,
     iconTone: 'muted',
     accessory: (
-      <button type="button" className={styles.textBtn}>
-        <Check size={12} />
-        <span>Сохранить</span>
-      </button>
+      <Button
+        size="sm"
+        variant="secondary"
+        startIcon={<Check size={12} />}
+        className={styles.textBtnSm}
+      >
+        Сохранить
+      </Button>
     ),
   },
 };
@@ -103,17 +116,27 @@ export const AllVacancySectionHeaders: Story = {
       <SectionHeader
         title="Технологический стек"
         accessory={
-          <button type="button" className={styles.iconBtn} aria-label="Добавить">
+          <Button
+            size="icon"
+            variant="secondary"
+            aria-label="Добавить технологию"
+            className={styles.iconBtn}
+          >
             <Plus size={14} />
-          </button>
+          </Button>
         }
       />
       <SectionHeader
         title="Теги вакансии"
         accessory={
-          <button type="button" className={styles.iconBtn} aria-label="Добавить">
+          <Button
+            size="icon"
+            variant="secondary"
+            aria-label="Добавить тег"
+            className={styles.iconBtn}
+          >
             <Plus size={14} />
-          </button>
+          </Button>
         }
       />
       <SectionHeader
@@ -121,10 +144,14 @@ export const AllVacancySectionHeaders: Story = {
         icon={Sparkles}
         iconTone="mint"
         accessory={
-          <button type="button" className={styles.textBtn}>
-            <RefreshCw size={12} />
-            <span>Переанализировать</span>
-          </button>
+          <Button
+            size="sm"
+            variant="secondary"
+            startIcon={<RefreshCw size={12} />}
+            className={styles.textBtn}
+          >
+            Переанализировать
+          </Button>
         }
       />
       <SectionHeader
@@ -137,10 +164,14 @@ export const AllVacancySectionHeaders: Story = {
         title="Личные заметки"
         icon={StickyNote}
         accessory={
-          <button type="button" className={styles.textBtn}>
-            <Check size={12} />
-            <span>Сохранить</span>
-          </button>
+          <Button
+            size="sm"
+            variant="secondary"
+            startIcon={<Check size={12} />}
+            className={styles.textBtnSm}
+          >
+            Сохранить
+          </Button>
         }
       />
     </div>

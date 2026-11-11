@@ -65,7 +65,16 @@
   .accessory {
     display: inline-flex;
     align-items: center;
-    gap: var(--ui-space-1);
+    gap: var(--ui-space-2);
     flex-shrink: 0;
+    height: var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .accessory :global(button),
+  .accessory button {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    box-sizing: border-box;
   }
 }

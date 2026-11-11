@@ -2,11 +2,27 @@
   .storyWrapper {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-3);
-    max-width: 600px;
-    padding: var(--ui-space-4);
+    gap: var(--ui-grid-cell);
+    max-width: calc(var(--ui-grid-cell) * 18);
+    width: 100%;
+    padding: var(--ui-grid-cell);
     background-color: var(--ui-color-bg-surface);
     border: 1px solid var(--ui-color-border-subtle);
+    box-sizing: border-box;
+  }
+
+  .textBtn {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    min-width: calc(var(--ui-grid-cell) * 5);
+    box-sizing: border-box;
+  }
+
+  .textBtnSm {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    min-width: calc(var(--ui-grid-cell) * 4);
+    box-sizing: border-box;
   }
 
   .iconBtn {
@@ -14,37 +30,6 @@
     height: var(--ui-grid-cell);
     min-width: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid var(--ui-color-border-subtle);
-    color: var(--ui-color-text-secondary);
-    cursor: pointer;
-  }
-
-  .iconBtn:hover {
-    color: var(--ui-primary);
-    border-color: var(--ui-primary);
-  }
-
-  .textBtn {
-    background: transparent;
-    border: 1px solid var(--ui-color-border-subtle);
-    color: var(--ui-color-text-secondary);
-    font-family: var(--ui-font-mono);
-    font-size: 0.72rem;
-    padding: 2px 8px;
-    height: 24px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-  }
-
-  .textBtn:hover {
-    color: var(--ui-primary);
-    border-color: var(--ui-primary);
+    box-sizing: border-box;
   }
 }
