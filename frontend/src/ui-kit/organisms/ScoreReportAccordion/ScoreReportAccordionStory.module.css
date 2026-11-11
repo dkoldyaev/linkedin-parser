@@ -1,0 +1,7 @@
+@layer ui-organisms {
+  .storyWrapper {
+    max-width: 680px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}

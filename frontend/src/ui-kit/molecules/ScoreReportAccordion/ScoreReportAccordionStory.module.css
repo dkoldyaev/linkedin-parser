@@ -1,6 +1,0 @@
-@layer ui-molecules {
-  .storyWrapper {
-    max-width: 720px;
-    padding: var(--ui-space-4);
-  }
-}

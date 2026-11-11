@@ -1,0 +1,8 @@
+@layer ui-molecules {
+  .storyWrapper {
+    max-width: 680px;
+    width: 100%;
+    border: 1px solid var(--ui-color-border-subtle);
+    box-sizing: border-box;
+  }
+}

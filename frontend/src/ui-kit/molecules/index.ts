@@ -36,8 +36,7 @@ export {
   type StageStepItem,
 } from './StageStepper';
 export {
-  ScoreReportAccordion,
-  type ScoreReportAccordionProps,
-  type RequirementItem,
-  type SeniorityAssessment,
-} from './ScoreReportAccordion';
+  Accordion,
+  type AccordionProps,
+  type AccordionItem,
+} from './Accordion';
