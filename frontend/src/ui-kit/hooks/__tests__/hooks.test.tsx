@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  useBlueprintGrid,
   useClickOutside,
   useControllableState,
   useCopyToClipboard,
@@ -9,6 +10,7 @@ import {
   useDisclosure,
   useFocusTrap,
   useForm,
+  useGridScroll,
   useId,
   useKeyboardNavigation,
   useMediaQuery,
@@ -263,6 +265,71 @@ describe('ui-kit hooks', () => {
       expect(writeText).toHaveBeenCalledWith('--ui-color-accent-primary');
       expect(result.current.isCopied).toBe(true);
       expect(result.current.copiedValue).toBe('--ui-color-accent-primary');
+    });
+  });
+
+  describe('useBlueprintGrid', () => {
+    it('snaps .bp-snap elements to multiples of 32px and quantizes .bp-grid-row columns', () => {
+      function BlueprintGridHarness(): React.ReactElement {
+        const containerRef = useBlueprintGrid<HTMLDivElement>([]);
+        return (
+          <div ref={containerRef} data-testid="bp-root">
+            <div className="bp-grid-row" data-cols="2" data-testid="bp-row">
+              <div
+                className="bp-snap"
+                data-min-grids="2"
+                data-testid="bp-cell-1"
+              >
+                Cell 1
+              </div>
+              <div
+                className="bp-snap"
+                data-min-grids="3"
+                data-testid="bp-cell-2"
+              >
+                Cell 2
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const { getByTestId } = render(<BlueprintGridHarness />);
+      const cell1 = getByTestId('bp-cell-1');
+      const cell2 = getByTestId('bp-cell-2');
+
+      expect(cell1.style.minHeight).toBe('64px');
+      expect(cell2.style.minHeight).toBe('96px');
+    });
+  });
+
+  describe('useGridScroll', () => {
+    it('snaps scrollTop to the nearest multiple of 32px after 180ms settle delay', () => {
+      vi.useFakeTimers();
+      const { result } = renderHook(() => useGridScroll());
+
+      const scrollToMock = vi.fn();
+      const fakeElement = {
+        scrollTop: 50,
+        scrollLeft: 0,
+        scrollHeight: 640,
+        clientHeight: 320,
+        scrollWidth: 320,
+        clientWidth: 320,
+        contains: () => false,
+        scrollTo: scrollToMock,
+      } as unknown as HTMLElement;
+
+      act(() => {
+        result.current({ currentTarget: fakeElement }, 'y');
+        vi.advanceTimersByTime(185);
+      });
+
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: 64,
+        behavior: 'smooth',
+      });
+      vi.useRealTimers();
     });
   });
 });

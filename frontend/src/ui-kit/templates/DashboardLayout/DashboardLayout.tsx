@@ -1,4 +1,5 @@
 import React from 'react';
+import { useBlueprintGrid, useGridScroll } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './DashboardLayout.module.css';
 
@@ -8,37 +9,64 @@ export interface DashboardLayoutProps
   readonly toolbar?: React.ReactNode;
   readonly sidebar?: React.ReactNode;
   readonly sidebarLabel?: string;
+  readonly snapToGrid?: boolean;
+  readonly gridDeps?: readonly unknown[];
   readonly workspaceClassName?: string;
 }
 
 /**
- * DashboardLayout template for data-dense workspaces (HomePage Kanban, AdminPage, UserManagementPage).
+ * DashboardLayout template for data-dense workspaces (HomePage Kanban, AdminPage, UserManagementPage)
+ * with built-in `useBlueprintGrid` quantization and `useGridScroll` 32px scroll snapping.
  */
 export function DashboardLayout({
   header,
   toolbar,
   sidebar,
   sidebarLabel = 'Workspace navigation',
+  snapToGrid = true,
+  gridDeps,
   className,
   workspaceClassName,
   children,
   ...rest
 }: DashboardLayoutProps): React.ReactElement {
+  const dashboardRef = useBlueprintGrid<HTMLDivElement>({
+    deps: gridDeps,
+    enabled: snapToGrid,
+  });
+  const handleGridScroll = useGridScroll();
+
   return (
-    <div className={cn(styles.dashboard, className)} {...rest}>
+    <div
+      ref={dashboardRef}
+      className={cn(styles.dashboard, 'bp-page', className)}
+      {...rest}
+    >
       {header}
       {toolbar !== undefined && (
-        <section aria-label="Workspace toolbar" className={styles.toolbar}>
+        <section
+          aria-label="Workspace toolbar"
+          className={cn(styles.toolbar, 'bp-snap')}
+          data-min-grids="2"
+        >
           {toolbar}
         </section>
       )}
       <div className={styles.body}>
         {sidebar !== undefined && (
-          <aside aria-label={sidebarLabel} className={styles.sidebar}>
+          <aside
+            aria-label={sidebarLabel}
+            onScroll={(event) => handleGridScroll(event, 'y')}
+            className={styles.sidebar}
+          >
             {sidebar}
           </aside>
         )}
-        <main className={cn(styles.workspace, workspaceClassName)}>
+        <main
+          data-bp-scroller="true"
+          onScroll={(event) => handleGridScroll(event, 'y')}
+          className={cn(styles.workspace, workspaceClassName)}
+        >
           {children}
         </main>
       </div>

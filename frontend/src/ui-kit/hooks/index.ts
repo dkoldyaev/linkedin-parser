@@ -28,3 +28,12 @@ export {
   useCopyToClipboard,
   type UseCopyToClipboardReturn,
 } from './useCopyToClipboard';
+export {
+  useBlueprintGrid,
+  type UseBlueprintGridOptions,
+} from './useBlueprintGrid';
+export {
+  useGridScroll,
+  type GridScrollAxis,
+  type GridScrollHandler,
+} from './useGridScroll';

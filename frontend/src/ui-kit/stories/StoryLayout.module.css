@@ -16,4 +16,37 @@
   .narrowBox {
     max-width: 280px;
   }
+
+  .gridDemoRow {
+    display: grid;
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-surface);
+  }
+
+  .gridDemoCell {
+    padding: var(--ui-space-3);
+    border-right: var(--ui-border-width) solid var(--ui-color-border-default);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+
+  .scrollDemoViewport {
+    height: calc(var(--ui-grid-cell) * 5);
+    overflow-y: auto;
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-surface);
+  }
+
+  .scrollDemoItem {
+    height: calc(var(--ui-grid-cell) * 2);
+    padding: 0 var(--ui-space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
+    box-sizing: border-box;
+  }
 }
