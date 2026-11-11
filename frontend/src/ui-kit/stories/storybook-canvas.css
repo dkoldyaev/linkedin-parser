@@ -1,7 +1,11 @@
 @layer ui-utilities {
+  .sb-show-main.sb-main-padded {
+    padding: 0;
+  }
+
   .sb-blueprint-canvas {
-    min-height: 120px;
-    padding: var(--ui-space-6);
+    min-height: calc(var(--ui-grid-cell) * 4);
+    padding: var(--ui-grid-cell);
     background-color: var(--ui-color-bg-primary);
     color: var(--ui-color-text-primary);
     font-family: var(--ui-font-sans);
@@ -9,6 +13,7 @@
       linear-gradient(to right, var(--ui-color-grid-line) 1px, transparent 1px),
       linear-gradient(to bottom, var(--ui-color-grid-line) 1px, transparent 1px);
     background-size: var(--ui-grid-cell) var(--ui-grid-cell);
+    background-position: 0 0;
     box-sizing: border-box;
   }
 }
