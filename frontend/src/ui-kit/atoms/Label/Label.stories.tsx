@@ -23,7 +23,11 @@ export const RequiredAndDisabled: Story = {
     <div className={layoutStyles.stack}>
       <Label required>Required Field Label</Label>
       <Label disabled>Disabled Field Label</Label>
-      <Text variant="mono-label" tone="accent">
+      <Text
+        variant="mono-label"
+        tone="accent"
+        className={layoutStyles.gridLabelRow}
+      >
         Related Text Atom (mono-label variant)
       </Text>
     </div>

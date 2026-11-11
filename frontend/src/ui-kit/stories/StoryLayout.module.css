@@ -13,6 +13,14 @@
     max-width: calc(20 * var(--ui-grid));
   }
 
+  .gridLabelRow {
+    display: inline-flex;
+    align-items: center;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    margin: 0;
+  }
+
   .stackSm {
     display: flex;
     flex-direction: column;

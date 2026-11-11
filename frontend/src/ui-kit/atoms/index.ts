@@ -1,7 +1,7 @@
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
 export { Input, type InputProps, type InputSize } from './Input';
 export { Textarea, type TextareaProps } from './Textarea';
-export { Label, type LabelProps } from './Label';
+export { Label, type LabelProps, type LabelTone } from './Label';
 export {
   Text,
   type TextProps,

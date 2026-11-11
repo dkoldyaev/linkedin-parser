@@ -17,6 +17,18 @@
     user-select: none;
   }
 
+  .tone-secondary {
+    color: var(--ui-color-text-secondary);
+  }
+
+  .tone-primary {
+    color: var(--ui-color-text-primary);
+  }
+
+  .tone-accent {
+    color: var(--ui-color-accent-primary-hover);
+  }
+
   .requiredIndicator {
     color: var(--ui-color-status-danger);
     font-weight: var(--ui-weight-bold);
