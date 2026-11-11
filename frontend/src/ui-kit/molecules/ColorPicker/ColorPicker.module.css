@@ -2,8 +2,9 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--ui-space-2);
+    gap: 0;
     width: 100%;
+    width: round(down, 100%, calc(var(--ui-grid-cell) * 4));
   }
 
   .swatch {

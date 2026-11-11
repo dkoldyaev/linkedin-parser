@@ -2,14 +2,15 @@
   .form {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-4);
+    gap: var(--ui-grid-cell);
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
   }
 
   .fields {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-4);
+    gap: 0;
     width: 100%;
   }
 
@@ -17,7 +18,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--ui-space-3);
-    padding-top: var(--ui-space-2);
+    gap: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding-top: 0;
   }
 }

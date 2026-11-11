@@ -1,6 +1,9 @@
 @layer ui-atoms {
   .textarea {
+    display: block;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+    height: calc(var(--ui-grid-cell) * 3);
     min-height: calc(var(--ui-grid-cell) * 3);
     padding: var(--ui-space-2) var(--ui-space-3);
     font-family: var(--ui-font-sans);

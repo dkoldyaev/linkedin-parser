@@ -5,6 +5,7 @@
     justify-content: space-between;
     gap: var(--ui-space-2);
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     height: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-3);

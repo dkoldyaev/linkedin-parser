@@ -2,8 +2,10 @@
   .field {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-2);
+    gap: 0;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+    margin: 0;
   }
 
   .header {
@@ -11,12 +13,24 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    margin: 0;
   }
 
   .controlWrapper {
     display: flex;
     flex-direction: column;
     width: 100%;
+  }
+
+  .hint,
+  .error {
+    display: flex;
+    align-items: center;
+    min-height: var(--ui-grid-cell);
+    line-height: var(--ui-grid-cell);
+    margin: 0;
   }
 
   .hint {

@@ -7,18 +7,34 @@ const meta: Meta<typeof FormField> = {
   title: 'Molecules/FormField',
   component: FormField,
   tags: ['autodocs'],
+  args: {
+    label: 'Column Title',
+    required: true,
+    disabled: false,
+    hint: 'Displayed in the Kanban board column header.',
+    error: '',
+  },
+  argTypes: {
+    label: { control: 'text' },
+    required: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+    hint: { control: 'text' },
+    error: { control: 'text' },
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof FormField>;
 
 export const DefaultWithHint: Story = {
-  render: () => (
+  render: (args) => (
     <div className={layoutStyles.stack}>
       <FormField
-        label="Column Title"
-        required
-        hint="Displayed in the Kanban board column header."
+        label={args.label}
+        required={args.required}
+        disabled={args.disabled}
+        hint={args.hint}
+        error={args.error}
       >
         {(a11yProps) => (
           <Input {...a11yProps} placeholder="e.g. Technical Interview" />
@@ -29,17 +45,26 @@ export const DefaultWithHint: Story = {
 };
 
 export const WithValidationError: Story = {
-  render: () => (
+  args: {
+    label: 'Target Salary Range',
+    required: true,
+    disabled: false,
+    hint: '',
+    error: 'Salary minimum cannot exceed salary maximum.',
+  },
+  render: (args) => (
     <div className={layoutStyles.stack}>
       <FormField
-        label="Target Salary Range"
-        required
-        error="Salary minimum cannot exceed salary maximum."
+        label={args.label}
+        required={args.required}
+        disabled={args.disabled}
+        hint={args.hint}
+        error={args.error}
       >
         {(a11yProps) => (
           <Input
             {...a11yProps}
-            invalid
+            invalid={Boolean(args.error)}
             defaultValue="$180,000 - $120,000"
           />
         )}

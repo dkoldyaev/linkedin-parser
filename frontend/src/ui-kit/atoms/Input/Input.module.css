@@ -4,11 +4,13 @@
     display: inline-flex;
     align-items: center;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     box-sizing: border-box;
   }
 
   .input {
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     height: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-3);
@@ -53,8 +55,8 @@
   }
 
   .size-sm {
-    height: var(--ui-space-6);
-    min-height: var(--ui-space-6);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-2);
     font-size: var(--ui-text-sm);
   }
@@ -65,8 +67,8 @@
   }
 
   .size-lg {
-    height: calc(var(--ui-grid-cell) + var(--ui-space-2));
-    min-height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-4);
     font-size: var(--ui-text-md);
   }

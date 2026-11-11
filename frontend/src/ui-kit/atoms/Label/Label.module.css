@@ -3,6 +3,9 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ui-space-1);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    margin: 0;
     font-family: var(--ui-font-mono);
     font-size: var(--ui-text-xs);
     font-weight: var(--ui-weight-semibold);
