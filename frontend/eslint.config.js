@@ -8,6 +8,11 @@ const allowTargets = (types) =>
 export default [
   {
     files: ['src/ui-kit/**/*.{ts,tsx}'],
+    ignores: [
+      'src/ui-kit/**/*.stories.{ts,tsx}',
+      'src/ui-kit/**/*.test.{ts,tsx}',
+      'src/ui-kit/stories/**',
+    ],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -114,6 +119,48 @@ export default [
               group: ['**/components/**', '**/pages/**', '**/i18n/**'],
               message:
                 'UI-kit must never import from legacy application code (strict one-way dependency: app -> ui-kit).',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name="style"]',
+          message:
+            'Inline styles (style={{...}}) are forbidden in ui-kit. Use CSS Modules and --ui-* design tokens instead.',
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'src/ui-kit/**/*.stories.{ts,tsx}',
+      'src/ui-kit/**/*.test.{ts,tsx}',
+      'src/ui-kit/stories/**/*.{ts,tsx}',
+    ],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/components/**', '**/pages/**', '**/i18n/**'],
+              message:
+                'UI-kit stories and tests must never import from legacy application code.',
             },
           ],
         },

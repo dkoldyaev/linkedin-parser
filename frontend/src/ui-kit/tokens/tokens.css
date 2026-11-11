@@ -4,7 +4,9 @@
   :root {
     /* 1. Blueprint 32px Drafting Grid & Spacing Scale */
     --ui-grid: 32px;
+    --ui-grid-cell: 32px;
     --ui-grid-unit: 8px;
+    --ui-border-width: 1px;
     --ui-line-height-grid: calc(var(--ui-grid) * 0.75);
 
     --ui-space-0: 0px;
@@ -31,18 +33,48 @@
     --ui-font-size-xl: 1.25rem;
     --ui-font-size-2xl: 1.5rem;
 
+    --ui-text-2xs: var(--ui-font-size-2xs);
+    --ui-text-xs: var(--ui-font-size-xs);
+    --ui-text-sm: var(--ui-font-size-sm);
+    --ui-text-md: var(--ui-font-size-md);
+    --ui-text-base: var(--ui-font-size-base);
+    --ui-text-lg: var(--ui-font-size-lg);
+    --ui-text-xl: var(--ui-font-size-xl);
+    --ui-text-2xl: var(--ui-font-size-2xl);
+
     --ui-font-weight-regular: 400;
     --ui-font-weight-medium: 500;
     --ui-font-weight-semibold: 600;
     --ui-font-weight-bold: 700;
+    --ui-font-weight-extrabold: 800;
+
+    --ui-weight-regular: var(--ui-font-weight-regular);
+    --ui-weight-medium: var(--ui-font-weight-medium);
+    --ui-weight-semibold: var(--ui-font-weight-semibold);
+    --ui-weight-bold: var(--ui-font-weight-bold);
+    --ui-weight-extrabold: var(--ui-font-weight-extrabold);
 
     --ui-letter-spacing-tight: -0.03em;
     --ui-letter-spacing-normal: 0em;
     --ui-letter-spacing-wide: 0.06em;
+    --ui-letter-spacing-wider: 0.1em;
+
+    --ui-tracking-tight: var(--ui-letter-spacing-tight);
+    --ui-tracking-normal: var(--ui-letter-spacing-normal);
+    --ui-tracking-wide: var(--ui-letter-spacing-wide);
+    --ui-tracking-wider: var(--ui-letter-spacing-wider);
 
     --ui-line-height-none: 1;
-    --ui-line-height-tight: 1.3;
+    --ui-line-height-tight: 1.25;
+    --ui-line-height-snug: 1.375;
     --ui-line-height-normal: 1.5;
+    --ui-line-height-relaxed: 1.65;
+
+    --ui-leading-none: var(--ui-line-height-none);
+    --ui-leading-tight: var(--ui-line-height-tight);
+    --ui-leading-snug: var(--ui-line-height-snug);
+    --ui-leading-normal: var(--ui-line-height-normal);
+    --ui-leading-relaxed: var(--ui-line-height-relaxed);
 
     /* 3. Color Palette — Dark Blueprint (Default) */
     --ui-bg-main: #0a1729;
@@ -56,6 +88,13 @@
     --ui-bg-card-fill: rgba(16, 31, 53, 0.66);
     --ui-bg-card-fill-strong: rgba(16, 31, 53, 0.90);
 
+    --ui-color-bg-primary: var(--ui-bg-main);
+    --ui-color-bg-secondary: #0d1c31;
+    --ui-color-bg-surface: var(--ui-bg-surface);
+    --ui-color-bg-elevated: var(--ui-bg-subtle);
+    --ui-color-bg-hover: var(--ui-bg-card-hover);
+    --ui-color-bg-overlay: var(--ui-bg-overlay);
+
     --ui-text-primary: #e7f1ff;
     --ui-text-secondary: #b0c4db;
     --ui-text-muted: #91a9c3;
@@ -63,13 +102,24 @@
     --ui-text-on-primary: #071729;
     --ui-text-on-mint: #071729;
 
+    --ui-color-text-primary: var(--ui-text-primary);
+    --ui-color-text-secondary: var(--ui-text-secondary);
+    --ui-color-text-muted: var(--ui-text-muted);
+    --ui-color-text-inverse: var(--ui-text-inverse);
+
     --ui-border-subtle: #304c6c;
     --ui-border-strong: #527292;
     --ui-border-focus: #79aeff;
     --ui-pixel-line: #527aa3;
     --ui-column-divider: #58718c;
-    --ui-grid-line: rgba(153, 196, 242, 0.22);
+    --ui-grid-line: rgba(153, 196, 242, 0.16);
     --ui-modal-grid-line: rgba(153, 196, 242, 0.09);
+
+    --ui-color-border-subtle: rgba(82, 114, 146, 0.35);
+    --ui-color-border-default: var(--ui-border-subtle);
+    --ui-color-border-strong: var(--ui-border-strong);
+    --ui-color-border-focus: var(--ui-border-focus);
+    --ui-color-grid-line: var(--ui-grid-line);
 
     /* Semantic Colors */
     --ui-primary: #79aeff;
@@ -77,14 +127,27 @@
     --ui-primary-subtle: #1a3559;
     --ui-primary-border: #4d78a8;
 
+    --ui-color-accent-primary: #3b82f6;
+    --ui-color-accent-primary-hover: var(--ui-primary);
+    --ui-color-accent-primary-subtle: var(--ui-primary-subtle);
+    --ui-color-accent-mint: #10b981;
+
     --ui-success: #7eddb0;
     --ui-success-bright: #34d399;
     --ui-success-subtle: #173d3a;
     --ui-success-border: #3d826c;
 
+    --ui-color-status-success: var(--ui-success);
+    --ui-color-status-success-bg: var(--ui-success-subtle);
+    --ui-color-status-success-border: var(--ui-success-border);
+
     --ui-warning: #f59e0b;
     --ui-warning-subtle: rgba(245, 158, 11, 0.14);
     --ui-warning-border: rgba(245, 158, 11, 0.40);
+
+    --ui-color-status-warning: var(--ui-warning);
+    --ui-color-status-warning-bg: var(--ui-warning-subtle);
+    --ui-color-status-warning-border: var(--ui-warning-border);
 
     --ui-danger: #f87171;
     --ui-danger-hover: #fca5a5;
@@ -92,9 +155,27 @@
     --ui-danger-subtle: rgba(239, 68, 68, 0.14);
     --ui-danger-border: rgba(239, 68, 68, 0.40);
 
+    --ui-color-status-danger: var(--ui-danger);
+    --ui-color-status-danger-bg: var(--ui-danger-subtle);
+    --ui-color-status-danger-border: var(--ui-danger-border);
+
     --ui-info: #99d9ff;
     --ui-info-subtle: rgba(56, 189, 248, 0.14);
     --ui-info-border: rgba(56, 189, 248, 0.38);
+
+    --ui-color-status-info: var(--ui-info);
+    --ui-color-status-info-bg: var(--ui-info-subtle);
+    --ui-color-status-info-border: var(--ui-info-border);
+
+    /* Kanban Column Palette Swatches */
+    --ui-color-palette-slate: #64748b;
+    --ui-color-palette-blue: #3b82f6;
+    --ui-color-palette-purple: #a855f7;
+    --ui-color-palette-emerald: #10b981;
+    --ui-color-palette-amber: #f59e0b;
+    --ui-color-palette-rose: #f43f5e;
+    --ui-color-palette-cyan: #06b6d4;
+    --ui-color-palette-indigo: #6366f1;
 
     /* Funnel Column Status Colors */
     --ui-status-backlog: #3b82f6;
@@ -119,8 +200,11 @@
     /* 5. Elevation & Grid Borders */
     --ui-shadow-none: none;
     --ui-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
-    --ui-shadow-md: 0 8px 24px rgba(25, 27, 24, 0.16);
-    --ui-shadow-lg: 0 18px 60px rgba(25, 27, 24, 0.32);
+    --ui-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --ui-shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.45);
+    --ui-shadow-glow-blue: 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
+    --ui-shadow-glow-mint: 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+    --ui-shadow-glow-danger: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
     --ui-shadow-card-hover: 0 5px 14px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--ui-border-subtle);
     --ui-shadow-grid-row: inset 0 -1px var(--ui-border-subtle);
     --ui-shadow-grid-top: inset 0 1px var(--ui-border-subtle);
@@ -135,7 +219,9 @@
     --ui-z-sticky: 20;
     --ui-z-dropdown: 50;
     --ui-z-drawer: 100;
+    --ui-z-modal-backdrop: 990;
     --ui-z-modal: 999;
+    --ui-z-tooltip: 1100;
     --ui-z-toast: 9999;
 
     /* 7. Motion & Transitions */
@@ -143,7 +229,8 @@
     --ui-transition-normal: 220ms ease;
   }
 
-  :root[data-theme='light'] {
+  :root[data-theme='light'],
+  [data-theme='light'] {
     --ui-bg-main: #f4f4f1;
     --ui-bg-surface: #ffffff;
     --ui-bg-card: #ffffff;
@@ -155,6 +242,13 @@
     --ui-bg-card-fill: rgba(255, 255, 255, 0.70);
     --ui-bg-card-fill-strong: rgba(255, 255, 255, 0.90);
 
+    --ui-color-bg-primary: var(--ui-bg-main);
+    --ui-color-bg-secondary: #e9eae4;
+    --ui-color-bg-surface: var(--ui-bg-surface);
+    --ui-color-bg-elevated: var(--ui-bg-subtle);
+    --ui-color-bg-hover: var(--ui-bg-card-hover);
+    --ui-color-bg-overlay: var(--ui-bg-overlay);
+
     --ui-text-primary: #222321;
     --ui-text-secondary: #555a54;
     --ui-text-muted: #6c716a;
@@ -162,27 +256,51 @@
     --ui-text-on-primary: #ffffff;
     --ui-text-on-mint: #ffffff;
 
+    --ui-color-text-primary: var(--ui-text-primary);
+    --ui-color-text-secondary: var(--ui-text-secondary);
+    --ui-color-text-muted: var(--ui-text-muted);
+    --ui-color-text-inverse: var(--ui-text-inverse);
+
     --ui-border-subtle: #d7d8d2;
     --ui-border-strong: #a8aaa4;
     --ui-border-focus: #304bde;
     --ui-pixel-line: #98a8b8;
     --ui-column-divider: #a8b2be;
-    --ui-grid-line: rgba(69, 103, 145, 0.18);
+    --ui-grid-line: rgba(69, 103, 145, 0.14);
     --ui-modal-grid-line: rgba(69, 103, 145, 0.08);
+
+    --ui-color-border-subtle: rgba(168, 170, 164, 0.45);
+    --ui-color-border-default: var(--ui-border-subtle);
+    --ui-color-border-strong: var(--ui-border-strong);
+    --ui-color-border-focus: var(--ui-border-focus);
+    --ui-color-grid-line: var(--ui-grid-line);
 
     --ui-primary: #304bde;
     --ui-primary-hover: #2137b1;
     --ui-primary-subtle: #edf0ff;
     --ui-primary-border: #aab5f2;
 
+    --ui-color-accent-primary: var(--ui-primary);
+    --ui-color-accent-primary-hover: var(--ui-primary-hover);
+    --ui-color-accent-primary-subtle: var(--ui-primary-subtle);
+    --ui-color-accent-mint: #237844;
+
     --ui-success: #237844;
     --ui-success-bright: #1b6136;
     --ui-success-subtle: #e0f8e7;
     --ui-success-border: #9fd6ad;
 
+    --ui-color-status-success: var(--ui-success);
+    --ui-color-status-success-bg: var(--ui-success-subtle);
+    --ui-color-status-success-border: var(--ui-success-border);
+
     --ui-warning: #9b5f00;
     --ui-warning-subtle: #fef3c7;
     --ui-warning-border: #f59e0b;
+
+    --ui-color-status-warning: var(--ui-warning);
+    --ui-color-status-warning-bg: var(--ui-warning-subtle);
+    --ui-color-status-warning-border: var(--ui-warning-border);
 
     --ui-danger: #b63840;
     --ui-danger-hover: #991b1b;
@@ -190,9 +308,17 @@
     --ui-danger-subtle: rgba(185, 28, 28, 0.10);
     --ui-danger-border: rgba(185, 28, 28, 0.35);
 
+    --ui-color-status-danger: var(--ui-danger);
+    --ui-color-status-danger-bg: var(--ui-danger-subtle);
+    --ui-color-status-danger-border: var(--ui-danger-border);
+
     --ui-info: #176389;
     --ui-info-subtle: #e8f4fa;
     --ui-info-border: #b9dbe9;
+
+    --ui-color-status-info: var(--ui-info);
+    --ui-color-status-info-bg: var(--ui-info-subtle);
+    --ui-color-status-info-border: var(--ui-info-border);
 
     --ui-workplace-remote: #176389;
     --ui-workplace-hybrid: #75409b;

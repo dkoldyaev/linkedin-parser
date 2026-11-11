@@ -1,0 +1,50 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# CV.ALTER // Blueprint UI-Kit
+
+Добро пожаловать в **Blueprint UI-Kit** — переиспользуемую дизайн-систему и библиотеку React-компонентов, построенную по методологии **Atomic Design** для постепенной бесконфликтной миграции (**Strangler Fig**) фронтенда LinkedIn Job Tracker & CV Adapter.
+
+---
+
+## 1. Философия и ключевые принципы
+
+1. **Строгая 32px Blueprint-сетка (`--ui-grid-cell: 32px`)**:
+   Все интерактивные контролы (`Button`, `Input`, `Select`, `Tabs`, строки `DataTable`, заголовки `Card` и `Modal`) кратны базовому модулю **32px** и четверть-модулю **8px** (`--ui-grid-unit: 8px`), а углы строго прямоугольные (`--ui-radius-none: 0px`).
+2. **Нулевой технический долг в стилях (`0 !important`, `0 inline-styles`)**:
+   Изоляция от легаси-CSS (`LandingPage.css`, `index.css`, `design-system.css`) обеспечивается через **CSS Cascade Layers (`@layer`)** и **CSS Modules (`*.module.css`)**, а не через повышение специфичности.
+3. **Однонаправленные зависимости (Enforced by ESLint `eslint-plugin-boundaries`)**:
+   Приложение импортирует из `src/ui-kit`, но `src/ui-kit` **никогда** не импортирует ничего из легаси-кода (`src/components`, `src/pages`, `src/i18n`).
+4. **Доступность (WAI-ARIA & Keyboard-First)**:
+   Сложные интерактивные паттерны (`Modal`, `Select`, `Tabs`, `Tooltip`) построены поверх headless-примитивов **Radix UI** с автоматической поддержкой `focus-trap`, `Escape`, стрелочной навигации и связей `aria-labelledby` / `aria-describedby`.
+5. **Двухтемная архитектура токенов**:
+   Переключение между **Dark Blueprint** (`#08101E`) и **Light Blueprint** (`#F1F5F9`) выполняется мгновенно через атрибут `[data-theme="dark" | "light"]` в тулбаре Storybook.
+
+---
+
+## 2. Иерархия Atomic Design
+
+```
+Tokens (--ui-*)  ──►  Hooks & Utils  ──►  Atoms  ──►  Molecules  ──►  Organisms  ──►  Templates
+```
+
+| Уровень | Назначение | Компоненты в `src/ui-kit/` |
+|---|---|---|
+| **Foundations (Tokens)** | CSS Custom Properties + TS-метаданные | Цвета, Типографика (`Inter`, `JetBrains Mono`), Сетка 32px/8px, Тени, Иконки |
+| **Atoms** | Неделимые презентационные элементы без бизнес-логики | `Button`, `Input`, `Textarea`, `Label`, `Text`, `Badge`, `StatusDot`, `Spinner`, `Checkbox`, `Icon` |
+| **Molecules** | Композиции атомов с локальной логикой и a11y | `FormField`, `SearchBar`, `Select`, `Tabs`, `Tooltip`, `AlertBanner`, `EditableTokenList`, `ColorPicker`, `EmptyState` |
+| **Organisms** | Самостоятельные UI-блоки (без походов в API и роутинга) | `Modal`, `Card`, `DataTable`, `Header`, `Form` |
+| **Templates** | Каркасы страниц на 32px Blueprint-сетке | `PageLayout`, `DashboardLayout` |
+| **Hooks** | Переиспользуемая UI-логика с покрытием unit-тестами | `useDisclosure`, `useControllableState`, `useDebounce`, `useMediaQuery`, `useClickOutside`, `useFocusTrap`, `useKeyboardNavigation`, `useForm`, `useCopyToClipboard`, `useId` |
+
+---
+
+## 3. Правила контрибуции
+
+- **Запрещены `!important` и `style={{...}}`** — проверяется автоматически правилом `no-restricted-syntax` в ESLint.
+- **Запрещены импорты вверх по иерархии** (например, `Atom` не может импортировать `Molecule` или `Organism`) — проверяется через `npm run lint:boundaries`.
+- Каждый новый компонент обязан иметь:
+  1. Строгую типизацию пропсов (`*.tsx`) и `forwardRef` (для интерактивных/DOM-примитивов);
+  2. Стили в `*.module.css` внутри соответствующего `@layer` (`ui-atoms`, `ui-molecules`, `ui-organisms`, `ui-templates`) с использованием только `--ui-*` переменных;
+  3. Документацию и интерактивные сценарии (`play`-функции) в `*.stories.tsx`.
