@@ -1,0 +1,11 @@
+@layer ui-molecules {
+  .filterItem {
+    display: inline-flex;
+    align-items: center;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+}

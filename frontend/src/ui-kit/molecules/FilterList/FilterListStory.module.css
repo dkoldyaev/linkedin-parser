@@ -21,4 +21,12 @@
   .bulkBtn:hover {
     color: var(--ui-primary);
   }
+
+  .divider {
+    width: 1px;
+    height: 16px;
+    background-color: var(--ui-color-border-subtle);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
 }

@@ -1,13 +1,11 @@
 import React, { forwardRef } from 'react';
-import { ChevronDown, Filter, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
+import { FilterItem, type FilterItemProps, type FilterOption } from './FilterItem';
+import { TagList, type TagItem, type FilterTag } from '../TagList';
 import { cn } from '../../utils';
 import styles from './FilterList.module.css';
 
-export interface FilterOption {
-  readonly value: string;
-  readonly label: string;
-  readonly count?: number;
-}
+export type { FilterOption, FilterItemProps, TagItem, FilterTag };
 
 export interface FilterDropdownGroup {
   readonly id: string;
@@ -18,16 +16,13 @@ export interface FilterDropdownGroup {
   readonly title?: string;
 }
 
-export interface FilterTag {
-  readonly id: string;
-  readonly label: string;
-  readonly count?: number;
-  readonly active?: boolean;
-}
-
 export interface FilterListProps extends React.HTMLAttributes<HTMLDivElement> {
-  readonly dropdowns?: readonly FilterDropdownGroup[];
-  readonly tags?: readonly FilterTag[];
+  /** Array of filter items */
+  readonly filters?: readonly FilterItemProps[];
+  /** Legacy alias for filters */
+  readonly dropdowns?: readonly (FilterItemProps | FilterDropdownGroup)[];
+  /** Array of tag chips */
+  readonly tags?: readonly TagItem[];
   readonly activeTag?: string;
   readonly onTagSelect?: (tagId: string) => void;
   readonly onReset?: () => void;
@@ -42,12 +37,13 @@ export interface FilterListProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * FilterList (FilterBar) molecule.
  * Snaps to the 32px Blueprint drafting grid (height: 32px), provides horizontal scrolling,
- * dropdown filter groups separated by mono slashes ('/'), active underlines, tag chips,
+ * filter groups separated by mono slashes ('/'), active underlines, tag chips rail,
  * and a reset action button.
  */
 export const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
   function FilterList(
     {
+      filters,
       dropdowns,
       tags,
       activeTag,
@@ -78,17 +74,19 @@ export const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
       );
     }
 
-    const hasDropdowns = dropdowns !== undefined && dropdowns.length > 0;
+    const items = filters ?? dropdowns ?? [];
+    const hasFilters = items.length > 0;
     const hasTags = tags !== undefined && tags.length > 0;
 
-    const hasActiveDropdown =
-      hasDropdowns && dropdowns.some((d) => d.value !== '' && d.value !== undefined);
+    const hasActiveFilter = items.some(
+      (d) => d.value !== '' && d.value !== undefined
+    );
     const hasActiveTag =
       hasTags &&
       tags.some((t) => t.active === true || (activeTag !== undefined && activeTag === t.id));
 
     const shouldShowReset =
-      showReset !== undefined ? showReset : Boolean(onReset && (hasActiveDropdown || hasActiveTag));
+      showReset !== undefined ? showReset : Boolean(onReset && (hasActiveFilter || hasActiveTag));
 
     return (
       <div
@@ -98,69 +96,32 @@ export const FilterList = forwardRef<HTMLDivElement, FilterListProps>(
         className={cn(styles.filterBar, className)}
         {...rest}
       >
-        {/* Dropdown Groups */}
-        {hasDropdowns &&
-          dropdowns.map((group) => {
-            const isActive = group.value !== '' && group.value !== undefined;
+        {/* Filter Items */}
+        {hasFilters &&
+          items.map((filter, index) => {
+            const key = filter.id ?? filter.placeholder ?? `filter-${index}`;
             return (
-              <div key={group.id} className={styles.filterGroup}>
-                <div className={styles.selectWrapper}>
-                  <select
-                    className={cn(styles.select, isActive && styles.selectActive)}
-                    value={group.value}
-                    onChange={(e) => group.onChange(e.target.value)}
-                    title={group.title ?? group.placeholder}
-                    aria-label={group.title ?? group.placeholder ?? group.id}
-                  >
-                    {group.placeholder !== undefined && (
-                      <option value="">{group.placeholder}</option>
-                    )}
-                    {group.options.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                        {opt.count !== undefined ? ` [${opt.count}]` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={11} className={styles.chevron} aria-hidden />
-                </div>
-              </div>
+              <React.Fragment key={key}>
+                {index > 0 && <span className={styles.separator} aria-hidden>/</span>}
+                <FilterItem {...filter} />
+              </React.Fragment>
             );
           })}
 
-        {/* Divider if both dropdowns and tags are present */}
-        {hasDropdowns && hasTags && <div className={styles.divider} aria-hidden />}
+        {/* Divider if both filters and tags are present */}
+        {hasFilters && hasTags && <div className={styles.divider} aria-hidden />}
 
         {/* Tags Rail */}
         {hasTags && (
-          <div className={styles.tagsRail}>
-            {tagsLabel && (
-              <div className={styles.tagLabel}>
-                <Filter size={12} aria-hidden />
-                <span>{tagsLabel}</span>
-              </div>
-            )}
-            {tags.map((tag) => {
-              const isTagActive =
-                tag.active === true || (activeTag !== undefined && activeTag === tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  className={cn(styles.tagChip, isTagActive && styles.tagChipActive)}
-                  onClick={() => onTagSelect?.(tag.id)}
-                >
-                  {tag.label.startsWith('#') || tag.id === '' || tag.id === 'all'
-                    ? tag.label
-                    : `#${tag.label}`}
-                  {tag.count !== undefined ? ` [${tag.count}]` : ''}
-                </button>
-              );
-            })}
-          </div>
+          <TagList
+            tags={tags}
+            activeTag={activeTag}
+            onTagSelect={onTagSelect}
+            label={tagsLabel}
+          />
         )}
 
-        {/* Custom Children slot */}
+        {/* Composable Children slot */}
         {children}
 
         {/* Reset button */}

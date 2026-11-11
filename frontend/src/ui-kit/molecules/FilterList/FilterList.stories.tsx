@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Archive, Trash2 } from 'lucide-react';
 import { FilterList, type FilterDropdownGroup, type FilterTag } from './FilterList';
+import { FilterItem } from './FilterItem';
+import { TagList } from '../TagList';
 import styles from './FilterListStory.module.css';
 
 const meta: Meta<typeof FilterList> = {
@@ -181,6 +183,39 @@ export const OnlyDropdowns: Story = {
       dropdowns={sampleDropdowns}
     />
   ),
+};
+
+export const Composed: Story = {
+  render: () => {
+    const Component = () => {
+      const [country, setCountry] = useState<string>('Germany');
+      const [tag, setTag] = useState<string>('react');
+
+      return (
+        <FilterList
+          onReset={() => {
+            setCountry('');
+            setTag('all');
+          }}
+          showReset={country !== '' || tag !== 'all'}
+        >
+          <FilterItem
+            placeholder="Все страны"
+            value={country}
+            onChange={setCountry}
+            options={sampleDropdowns[0].options}
+          />
+          <div className={styles.divider} aria-hidden />
+          <TagList
+            tags={sampleTags}
+            activeTag={tag}
+            onTagSelect={setTag}
+          />
+        </FilterList>
+      );
+    };
+    return <Component />;
+  },
 };
 
 export const BulkActionMode: Story = {

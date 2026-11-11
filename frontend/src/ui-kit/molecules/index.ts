@@ -15,11 +15,19 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export {
   FilterList,
   FilterBar,
+  FilterItem,
+  Filter,
   type FilterListProps,
+  type FilterItemProps,
   type FilterDropdownGroup,
   type FilterOption,
   type FilterTag,
 } from './FilterList';
+export {
+  TagList,
+  type TagListProps,
+  type TagItem,
+} from './TagList';
 export {
   SectionHeader,
   type SectionHeaderProps,

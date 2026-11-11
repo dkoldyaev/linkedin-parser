@@ -24,7 +24,10 @@ export interface SelectProps {
   readonly ariaLabel?: string;
   readonly 'aria-describedby'?: string;
   readonly className?: string;
+  readonly variant?: 'default' | 'filter';
 }
+
+const EMPTY_VALUE_SENTINEL = '__EMPTY_RADIX_VALUE__';
 
 /**
  * Accessible Select molecule powered by `@radix-ui/react-select` and styled for the 32px Blueprint grid.
@@ -43,14 +46,43 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
     ariaLabel,
     'aria-describedby': ariaDescribedBy,
     className,
+    variant = 'default',
   },
   ref
 ) {
+  const isFilter = variant === 'filter';
+  const hasSelectedValue =
+    value !== undefined && value !== '' && value !== EMPTY_VALUE_SENTINEL;
+
+  const hasEmptyOption = options.some((opt) => opt.value === '');
+
+  const mappedValue =
+    value === undefined
+      ? undefined
+      : value === ''
+        ? hasEmptyOption
+          ? EMPTY_VALUE_SENTINEL
+          : undefined
+        : value;
+
+  const mappedDefaultValue =
+    defaultValue === undefined
+      ? undefined
+      : defaultValue === ''
+        ? hasEmptyOption
+          ? EMPTY_VALUE_SENTINEL
+          : undefined
+        : defaultValue;
+
+  const handleValueChange = (val: string) => {
+    onValueChange?.(val === EMPTY_VALUE_SENTINEL ? '' : val);
+  };
+
   return (
     <SelectPrimitive.Root
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onValueChange}
+      value={mappedValue}
+      defaultValue={mappedDefaultValue}
+      onValueChange={handleValueChange}
       disabled={disabled}
       name={name}
     >
@@ -60,11 +92,22 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         aria-describedby={ariaDescribedBy}
-        className={cn(styles.trigger, invalid && styles.invalid, className)}
+        className={cn(
+          styles.trigger,
+          isFilter && styles.triggerFilter,
+          isFilter && hasSelectedValue && styles.triggerFilterActive,
+          invalid && styles.invalid,
+          className
+        )}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon asChild>
-          <Icon icon={ChevronDown} size="sm" tone="secondary" />
+          <Icon
+            icon={ChevronDown}
+            size="sm"
+            tone={isFilter && hasSelectedValue ? 'primary' : 'secondary'}
+            className={isFilter ? styles.filterChevron : undefined}
+          />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
 
@@ -75,21 +118,24 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
           className={styles.content}
         >
           <SelectPrimitive.Viewport className={styles.viewport}>
-            {options.map((option) => (
-              <SelectPrimitive.Item
-                key={option.value}
-                value={option.value}
-                disabled={option.disabled}
-                className={styles.item}
-              >
-                <SelectPrimitive.ItemText>
-                  <Text variant="mono">{option.label}</Text>
-                </SelectPrimitive.ItemText>
-                <SelectPrimitive.ItemIndicator>
-                  <Icon icon={Check} size="sm" tone="accent" />
-                </SelectPrimitive.ItemIndicator>
-              </SelectPrimitive.Item>
-            ))}
+            {options.map((option) => {
+              const itemVal = option.value === '' ? EMPTY_VALUE_SENTINEL : option.value;
+              return (
+                <SelectPrimitive.Item
+                  key={itemVal}
+                  value={itemVal}
+                  disabled={option.disabled}
+                  className={styles.item}
+                >
+                  <SelectPrimitive.ItemText>
+                    <Text variant="mono">{option.label}</Text>
+                  </SelectPrimitive.ItemText>
+                  <SelectPrimitive.ItemIndicator>
+                    <Icon icon={Check} size="sm" tone="accent" />
+                  </SelectPrimitive.ItemIndicator>
+                </SelectPrimitive.Item>
+              );
+            })}
           </SelectPrimitive.Viewport>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>
