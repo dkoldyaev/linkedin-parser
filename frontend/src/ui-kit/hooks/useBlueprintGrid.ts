@@ -155,6 +155,21 @@ export function useBlueprintGrid<T extends HTMLElement = HTMLDivElement>(
         el.style.minHeight = `${snappedHeight}px`;
       }
 
+      // 2b. Snap horizontal control widths ([data-bp-snap-width], .bp-snap-width) to multiples of 32px
+      const widthSnaps = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          '[data-bp-snap-width], .bp-snap-width'
+        )
+      );
+      for (const el of widthSnaps) {
+        el.style.width = '';
+        const measuredWidth = el.offsetWidth;
+        if (measuredWidth > 0) {
+          const snappedWidth = Math.ceil((measuredWidth - 0.01) / grid) * grid;
+          el.style.width = `${snappedWidth}px`;
+        }
+      }
+
       // 3. Align [data-grid-top] top edges to the fixed viewport 32px grid
       const topAligned = Array.from(
         root.querySelectorAll<HTMLElement>('[data-grid-top]')

@@ -1,6 +1,6 @@
 import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { Badge } from '../../atoms';
+import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './Tabs.module.css';
 
@@ -8,6 +8,7 @@ export interface TabItem {
   readonly value: string;
   readonly label: React.ReactNode;
   readonly count?: number;
+  readonly icon?: React.ReactNode;
   readonly disabled?: boolean;
   readonly content?: React.ReactNode;
 }
@@ -24,7 +25,8 @@ export interface TabsProps {
 }
 
 /**
- * Accessible Tabs molecule powered by `@radix-ui/react-tabs` with full keyboard arrow-key navigation.
+ * Accessible Tabs molecule powered by `@radix-ui/react-tabs` with full keyboard arrow-key navigation
+ * and 32px Blueprint grid width quantization (`useBlueprintGrid`).
  */
 export function Tabs({
   value,
@@ -36,6 +38,8 @@ export function Tabs({
   listClassName,
   contentClassName,
 }: TabsProps): React.ReactElement {
+  const rootRef = useBlueprintGrid<HTMLDivElement>([items.length]);
+
   const resolvedDefault =
     defaultValue !== undefined
       ? defaultValue
@@ -45,6 +49,7 @@ export function Tabs({
 
   return (
     <TabsPrimitive.Root
+      ref={rootRef}
       value={value}
       defaultValue={resolvedDefault}
       onValueChange={onValueChange}
@@ -59,13 +64,17 @@ export function Tabs({
             key={item.value}
             value={item.value}
             disabled={item.disabled}
+            data-bp-snap-width=""
             className={styles.trigger}
           >
+            {item.icon !== undefined && (
+              <span className={styles.iconSlot} aria-hidden="true">
+                {item.icon}
+              </span>
+            )}
             <span>{item.label}</span>
             {item.count !== undefined && (
-              <Badge size="sm" tone="primary">
-                {item.count}
-              </Badge>
+              <span className={styles.countBadge}>{item.count}</span>
             )}
           </TabsPrimitive.Trigger>
         ))}

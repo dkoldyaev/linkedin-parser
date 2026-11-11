@@ -3,14 +3,27 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
   }
 
   .list {
     display: flex;
     align-items: center;
-    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
-    background-color: var(--ui-color-bg-secondary);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    gap: 0;
+    border: 0;
+    box-shadow: inset 0 -1px var(--ui-color-border-default);
+    background-color: transparent;
     overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    box-sizing: border-box;
+  }
+
+  .list::-webkit-scrollbar {
+    display: none;
   }
 
   .trigger {
@@ -22,18 +35,19 @@
     min-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-4);
     font-family: var(--ui-font-mono);
-    font-size: var(--ui-text-xs);
+    font-size: var(--ui-text-sm);
     font-weight: var(--ui-weight-semibold);
-    letter-spacing: var(--ui-tracking-wider);
+    letter-spacing: var(--ui-tracking-wide);
     text-transform: uppercase;
-    color: var(--ui-color-text-secondary);
+    color: var(--ui-color-text-muted);
     background: transparent;
-    border: none;
-    border-right: var(--ui-border-width) solid var(--ui-color-border-default);
-    border-bottom: 2px solid transparent;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    outline: none;
     cursor: pointer;
     white-space: nowrap;
     user-select: none;
+    box-sizing: border-box;
     transition:
       color var(--ui-transition-fast),
       background-color var(--ui-transition-fast),
@@ -42,18 +56,40 @@
 
   .trigger:hover:not(:disabled) {
     color: var(--ui-color-text-primary);
-    background-color: var(--ui-color-bg-hover);
   }
 
+  .trigger:focus,
   .trigger:focus-visible {
-    outline: 2px solid var(--ui-color-border-focus);
-    outline-offset: -2px;
+    outline: none;
   }
 
   .trigger[data-state='active'] {
     color: var(--ui-color-accent-primary-hover);
-    background-color: var(--ui-color-bg-surface);
-    border-bottom-color: var(--ui-color-accent-primary);
+    background-color: transparent;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-color-accent-primary-hover);
+  }
+
+  .iconSlot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .countBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 6px;
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-bold);
+    color: var(--ui-color-accent-primary-hover);
+    background-color: var(--ui-color-accent-primary-subtle);
+    border: 0;
   }
 
   .trigger:disabled {
@@ -62,7 +98,8 @@
   }
 
   .content {
-    padding: var(--ui-space-4) 0;
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-grid-unit) 0;
     outline: none;
   }
 }
