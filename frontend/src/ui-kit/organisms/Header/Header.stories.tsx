@@ -99,3 +99,64 @@ export const SimpleSubpageHeader: Story = {
   },
   render: (args) => <LiveHeaderStory {...args} />,
 };
+
+export const TabletView: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'ipad',
+    },
+  },
+  args: {
+    title: 'CV.ALTER',
+    subtitle: 'PARSER & TRACKER',
+    queueCount: 2,
+    showThemeToggle: true,
+    user: {
+      name: 'Denis Koldyaev',
+      email: 'denis@example.com',
+    },
+    onLogout: () => alert('Logout clicked'),
+  },
+  render: (args) => <LiveHeaderStory {...args} />,
+};
+
+export const MobilePortraitView: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1',
+    },
+  },
+  args: {
+    title: 'CV.ALTER',
+    subtitle: 'PARSER & TRACKER',
+    queueCount: 2,
+    showThemeToggle: true,
+    user: {
+      name: 'Denis Koldyaev',
+      email: 'denis@example.com',
+    },
+    onLogout: () => alert('Logout clicked'),
+  },
+  render: (args) => <LiveHeaderStory {...args} />,
+};
+
+export const MobileSearchFocused: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1',
+    },
+  },
+  args: {
+    title: 'CV.ALTER',
+    subtitle: 'PARSER & TRACKER',
+    queueCount: 2,
+    searchFocused: true,
+    showThemeToggle: true,
+    user: {
+      name: 'Denis Koldyaev',
+      email: 'denis@example.com',
+    },
+    onLogout: () => alert('Logout clicked'),
+  },
+  render: (args) => <LiveHeaderStory {...args} />,
+};

@@ -46,6 +46,7 @@ export interface HeaderProps
   readonly onLogout?: () => void;
   readonly menuOpen?: boolean;
   readonly onMenuToggle?: () => void;
+  readonly searchFocused?: boolean;
 }
 
 /**
@@ -76,6 +77,7 @@ export function Header({
   onLogout,
   menuOpen = false,
   onMenuToggle,
+  searchFocused = false,
   className,
   children,
   ...rest
@@ -112,7 +114,10 @@ export function Header({
   );
 
   return (
-    <header className={cn(styles.header, className)} {...rest}>
+    <header
+      className={cn(styles.header, searchFocused && styles.searchFocused, className)}
+      {...rest}
+    >
       {brand !== undefined ? brand : defaultBrand}
 
       {search !== undefined && (
@@ -130,7 +135,7 @@ export function Header({
             title={resolvedQueueLabel}
           >
             <Loader2 size={13} className={styles.spin} />
-            <span>{resolvedQueueLabel}</span>
+            <span className={styles.queuePillText}>{resolvedQueueLabel}</span>
           </button>
         )}
 
@@ -141,7 +146,7 @@ export function Header({
             className={styles.addBtn}
           >
             <Plus size={16} />
-            <span>{addVacanciesLabel}</span>
+            <span className={styles.addBtnText}>{addVacanciesLabel}</span>
           </button>
         )}
 
@@ -173,7 +178,7 @@ export function Header({
           <button
             type="button"
             onClick={onDownloadExtension}
-            className={styles.btnIcon}
+            className={cn(styles.btnIcon, styles.downloadBtn)}
             title="Скачать расширение (ZIP)"
             aria-label="Скачать расширение (ZIP)"
           >
@@ -185,7 +190,7 @@ export function Header({
           <button
             type="button"
             onClick={onSettingsClick}
-            className={styles.btnIcon}
+            className={cn(styles.btnIcon, styles.settingsBtn)}
             title="Настройки"
             aria-label="Настройки"
           >
@@ -202,7 +207,7 @@ export function Header({
               title="Войти в аккаунт"
             >
               <LogIn size={15} />
-              <span>Войти</span>
+              <span className={styles.guestLoginText}>Войти</span>
             </button>
           ) : (
             <div className={styles.userProfileBadge}>

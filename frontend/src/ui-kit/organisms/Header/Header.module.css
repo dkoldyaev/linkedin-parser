@@ -13,6 +13,7 @@
     box-sizing: border-box;
     flex-shrink: 0;
     z-index: var(--ui-z-sticky);
+    transition: padding var(--ui-transition-fast);
   }
 
   .brand {
@@ -23,6 +24,11 @@
     text-decoration: none;
     color: inherit;
     user-select: none;
+    transition:
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      margin 0.25s ease,
+      transform 0.2s ease;
   }
 
   .brandIcon {
@@ -38,6 +44,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .blueprintMark {
@@ -78,6 +85,8 @@
     flex-direction: column;
     justify-content: center;
     gap: 0;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .brandTitle {
@@ -110,6 +119,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .headerActions {
@@ -118,6 +129,11 @@
     gap: var(--ui-space-2);
     height: var(--ui-grid-cell);
     flex-shrink: 0;
+    transition:
+      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      margin 0.25s ease,
+      gap 0.25s ease;
   }
 
   .queuePill {
@@ -134,6 +150,7 @@
     cursor: pointer;
     box-sizing: border-box;
     white-space: nowrap;
+    flex-shrink: 0;
     transition:
       background-color var(--ui-transition-fast),
       border-color var(--ui-transition-fast),
@@ -167,9 +184,12 @@
     cursor: pointer;
     box-sizing: border-box;
     white-space: nowrap;
+    flex-shrink: 0;
     transition:
       background-color var(--ui-transition-fast),
-      border-color var(--ui-transition-fast);
+      border-color var(--ui-transition-fast),
+      padding var(--ui-transition-fast),
+      width var(--ui-transition-fast);
   }
 
   .addBtn:hover {
@@ -193,6 +213,7 @@
     color: var(--ui-text-secondary);
     cursor: pointer;
     box-sizing: border-box;
+    flex-shrink: 0;
     transition:
       color var(--ui-transition-fast),
       background-color var(--ui-transition-fast);
@@ -218,6 +239,7 @@
     border-radius: var(--ui-radius-sm);
     cursor: pointer;
     box-sizing: border-box;
+    flex-shrink: 0;
   }
 
   .userProfileBadge {
@@ -231,6 +253,7 @@
     background-color: var(--ui-bg-card);
     box-sizing: border-box;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .userAvatar {
@@ -288,6 +311,154 @@
 
   .burgerOpen {
     color: var(--ui-primary);
+  }
+
+  /* =========================================================================
+     Responsive Breakpoints
+     ========================================================================= */
+
+  /* Medium Screens (<= 1080px) */
+  @media (max-width: 1080px) {
+    .brandSubtitle {
+      display: none;
+    }
+  }
+
+  /* Tablet Landscape & Below (<= 960px) */
+  @media (max-width: 960px) {
+    .header {
+      padding: 0 var(--ui-space-4);
+    }
+
+    .headerCenter {
+      margin: 0 var(--ui-space-2);
+      max-width: none;
+    }
+
+    /* Collapse add vacancies text: become 32x32px icon-only button */
+    .addBtnText {
+      display: none;
+    }
+
+    .addBtn {
+      padding: 0;
+      width: var(--ui-grid-cell);
+      min-width: var(--ui-grid-cell);
+      justify-content: center;
+    }
+
+    /* Hide full username in badge */
+    .userName {
+      display: none;
+    }
+
+    .userProfileBadge {
+      padding: 0;
+      gap: 0;
+    }
+
+    .userAvatar,
+    .userAvatarPlaceholder {
+      margin: 0 4px;
+    }
+
+    .guestLoginText {
+      display: none;
+    }
+
+    .guestLoginBtn {
+      padding: 0;
+      width: var(--ui-grid-cell);
+      min-width: var(--ui-grid-cell);
+      justify-content: center;
+    }
+
+    /* Search focused expands to 100% of header bar */
+    .header:has(input:focus) .brand,
+    .searchFocused .brand {
+      max-width: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      pointer-events: none;
+      overflow: hidden;
+      transform: scale(0.92);
+    }
+
+    .header:has(input:focus) .headerActions,
+    .searchFocused .headerActions {
+      max-width: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+      pointer-events: none;
+      overflow: hidden;
+      transform: scale(0.92);
+    }
+
+    .header:has(input:focus) .headerCenter,
+    .searchFocused .headerCenter {
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+      flex: 1;
+    }
+  }
+
+  /* Small Tablets / Large Mobiles (<= 768px) */
+  @media (max-width: 768px) {
+    .header {
+      padding: 0 var(--ui-space-3);
+    }
+
+    .brandText {
+      display: none;
+    }
+
+    .downloadBtn {
+      display: none;
+    }
+  }
+
+  /* Mobile Landscape / Small Tablets (<= 640px) */
+  @media (max-width: 640px) {
+    .header {
+      padding: 0 var(--ui-space-2);
+    }
+
+    .settingsBtn {
+      display: none;
+    }
+
+    .queuePillText {
+      display: none;
+    }
+
+    .queuePill {
+      padding: 0 8px;
+    }
+  }
+
+  /* Mobile Portrait (<= 480px) */
+  @media (max-width: 480px) {
+    .header {
+      padding: 0 8px;
+    }
+
+    .brand {
+      display: none;
+    }
+
+    .headerCenter {
+      margin: 0 6px 0 0;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .headerActions {
+      gap: 4px;
+    }
   }
 }
 
