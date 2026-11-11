@@ -26,7 +26,7 @@ export const RequiredAndDisabled: Story = {
       <Text
         variant="mono-label"
         tone="accent"
-        className={layoutStyles.gridLabelRow}
+        snapToGrid
       >
         Related Text Atom (mono-label variant)
       </Text>

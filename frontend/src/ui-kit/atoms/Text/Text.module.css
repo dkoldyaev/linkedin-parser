@@ -107,4 +107,19 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Grid snapping: quantizes height to multiples of var(--ui-grid-cell) (32px) and vertically centers text */
+  .snapToGrid {
+    display: flex;
+    align-items: center;
+    min-height: var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .snapToGridInline {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
 }
