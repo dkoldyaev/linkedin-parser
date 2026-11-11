@@ -11,12 +11,16 @@
 
   .table {
     width: 100%;
-    border-collapse: collapse;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
     text-align: left;
   }
 
   .th {
     height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-4);
     font-family: var(--ui-font-mono);
     font-size: var(--ui-text-xs);
@@ -29,6 +33,9 @@
     border-right: var(--ui-border-width) solid var(--ui-color-border-default);
     white-space: nowrap;
     user-select: none;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .th:last-child {
@@ -39,6 +46,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ui-space-1);
+    max-width: 100%;
     padding: 0;
     background: transparent;
     border: none;
@@ -47,6 +55,14 @@
     letter-spacing: inherit;
     text-transform: inherit;
     cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sortButton > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .sortButton:hover {
@@ -59,15 +75,16 @@
   }
 
   .tr {
+    height: var(--ui-grid-cell);
     border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
     transition: background-color var(--ui-transition-fast);
   }
 
-  .tr:last-child {
+  .tr:last-child td {
     border-bottom: none;
   }
 
-  .tr:hover {
+  .tr:hover td {
     background-color: var(--ui-color-bg-hover);
   }
 
@@ -78,13 +95,18 @@
   .td {
     height: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
     padding: 0 var(--ui-space-4);
     font-family: var(--ui-font-sans);
     font-size: var(--ui-text-sm);
     color: var(--ui-color-text-primary);
     border-right: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
     vertical-align: middle;
     box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .td:last-child {

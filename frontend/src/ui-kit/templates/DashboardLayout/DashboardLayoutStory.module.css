@@ -1,0 +1,170 @@
+@layer ui-templates {
+  .menuBrandGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .menuBtn {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    min-width: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    color: var(--ui-color-text-secondary);
+    cursor: pointer;
+  }
+
+  .searchWrapper {
+    width: 100%;
+    max-width: calc(12 * var(--ui-grid-cell));
+  }
+
+  .headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .queuePill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    color: var(--ui-color-text-secondary);
+    padding: 0 var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    border: 1px solid var(--ui-color-border-default);
+    background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  .filterContent {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    width: 100%;
+  }
+
+  .filterItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-family: var(--ui-font-mono);
+    color: var(--ui-color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .filterSep {
+    color: var(--ui-color-text-muted);
+  }
+
+  .tagChipList {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    overflow-x: auto;
+  }
+
+  .tagChip {
+    background: transparent;
+    border: 0;
+    color: var(--ui-color-text-secondary);
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    white-space: nowrap;
+    transition: color var(--ui-transition-fast);
+  }
+
+  .tagChipActive {
+    color: var(--ui-primary);
+    border-bottom: 1px solid var(--ui-primary);
+  }
+
+  .filterResetBtn {
+    background: transparent;
+    border: 0;
+    color: #e07575;
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: var(--ui-space-2);
+    white-space: nowrap;
+  }
+
+  .rejectedHeaderInner {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .rejectedLabel {
+    color: #ef4444;
+  }
+
+  .rejectedToggleHint {
+    font-size: 0.7rem;
+    color: var(--ui-color-text-muted);
+  }
+
+  .chevronRotated {
+    transform: rotate(-90deg);
+    transition: transform 0.15s ease;
+  }
+
+  .chevronExpanded {
+    transition: transform 0.15s ease;
+  }
+
+  .dotNotContacted {
+    background-color: #3b82f6;
+  }
+
+  .dotApplied {
+    background-color: #06b6d4;
+  }
+
+  .dotScreening {
+    background-color: #f59e0b;
+  }
+
+  .dotOffer {
+    background-color: #10b981;
+  }
+
+  .colActionsBtn {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: var(--ui-color-text-muted);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

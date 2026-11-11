@@ -6,7 +6,9 @@ import styles from './DashboardLayout.module.css';
 export interface DashboardLayoutProps
   extends React.HTMLAttributes<HTMLDivElement> {
   readonly header?: React.ReactNode;
+  readonly filterBar?: React.ReactNode;
   readonly toolbar?: React.ReactNode;
+  readonly footer?: React.ReactNode;
   readonly sidebar?: React.ReactNode;
   readonly sidebarLabel?: string;
   readonly snapToGrid?: boolean;
@@ -20,7 +22,9 @@ export interface DashboardLayoutProps
  */
 export function DashboardLayout({
   header,
+  filterBar,
   toolbar,
+  footer,
   sidebar,
   sidebarLabel = 'Workspace navigation',
   snapToGrid = true,
@@ -43,11 +47,16 @@ export function DashboardLayout({
       {...rest}
     >
       {header}
+      {filterBar !== undefined && (
+        <section aria-label="Filters" className={styles.filterBar}>
+          {filterBar}
+        </section>
+      )}
       {toolbar !== undefined && (
         <section
           aria-label="Workspace toolbar"
           className={cn(styles.toolbar, 'bp-snap')}
-          data-min-grids="2"
+          data-min-grids="1"
         >
           {toolbar}
         </section>
@@ -70,6 +79,9 @@ export function DashboardLayout({
           {children}
         </main>
       </div>
+      {footer !== undefined && (
+        <footer className={styles.footer}>{footer}</footer>
+      )}
     </div>
   );
 }

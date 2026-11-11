@@ -40,6 +40,7 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
     header: 'Task ID',
     accessor: 'id',
     sortable: true,
+    gridUnits: 5,
     cell: (row) => <Text variant="mono">{row.id}</Text>,
   },
   {
@@ -47,17 +48,20 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
     header: 'Vacancy Title',
     accessor: 'jobTitle',
     sortable: true,
+    gridUnits: 13,
   },
   {
     id: 'company',
     header: 'Company',
     accessor: 'company',
     sortable: true,
+    gridUnits: 8,
   },
   {
     id: 'status',
     header: 'Status',
     sortable: true,
+    gridUnits: 6,
     sortValue: (row) => row.status,
     cell: (row) => (
       <Badge
@@ -79,6 +83,7 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
     header: 'Retries',
     accessor: 'attempts',
     sortable: true,
+    gridUnits: 6,
     align: 'right',
   },
 ];

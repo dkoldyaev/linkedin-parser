@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Icon, Spinner, Text } from '../../atoms';
 import { EmptyState } from '../../molecules';
-import { cn } from '../../utils';
+import { useBlueprintGrid } from '../../hooks';
+import { GRID_CELL_PX, cn } from '../../utils';
 import styles from './DataTable.module.css';
 
 export type SortDirection = 'asc' | 'desc';
@@ -15,6 +16,14 @@ export interface DataTableColumn<T> {
   readonly sortable?: boolean;
   readonly sortValue?: (row: T) => string | number;
   readonly align?: 'left' | 'center' | 'right';
+  /**
+   * Column width in multiples of 32px Blueprint grid units (e.g. 5 = 160px).
+   */
+  readonly gridUnits?: number;
+  /**
+   * Explicit pixel width (will be quantized to multiples of 32px).
+   */
+  readonly width?: number;
 }
 
 export interface DataTableProps<T> {
@@ -50,6 +59,59 @@ export function DataTable<T>({
 }: DataTableProps<T>): React.ReactElement {
   const [sortColumnId, setSortColumnId] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [colWidths, setColWidths] = useState<readonly number[]>([]);
+  const wrapperRef = useBlueprintGrid<HTMLDivElement>([columns, data.length]);
+
+  useLayoutEffect(() => {
+    const root = wrapperRef.current;
+    if (!root || columns.length === 0) {
+      return undefined;
+    }
+
+    const computeWidths = () => {
+      const grid = GRID_CELL_PX;
+      const totalWidth = root.clientWidth;
+      const totalUnits = Math.max(columns.length * 3, Math.floor(totalWidth / grid));
+
+      let allocatedUnits = 0;
+      const unassignedIndices: number[] = [];
+      const unitsPerCol = new Array<number>(columns.length).fill(0);
+
+      columns.forEach((col, idx) => {
+        if (col.gridUnits !== undefined && col.gridUnits > 0) {
+          unitsPerCol[idx] = col.gridUnits;
+          allocatedUnits += col.gridUnits;
+        } else if (col.width !== undefined && col.width > 0) {
+          const snapped = Math.max(3, Math.round(col.width / grid));
+          unitsPerCol[idx] = snapped;
+          allocatedUnits += snapped;
+        } else {
+          unassignedIndices.push(idx);
+        }
+      });
+
+      if (unassignedIndices.length > 0) {
+        const remainingUnits = Math.max(
+          unassignedIndices.length * 3,
+          totalUnits - allocatedUnits
+        );
+        const baseUnits = Math.floor(remainingUnits / unassignedIndices.length);
+        const extraUnits = remainingUnits % unassignedIndices.length;
+
+        unassignedIndices.forEach((colIdx, listIdx) => {
+          const units = Math.max(3, baseUnits + (listIdx < extraUnits ? 1 : 0));
+          unitsPerCol[colIdx] = units;
+        });
+      }
+
+      const pixelWidths = unitsPerCol.map((u) => u * grid);
+      setColWidths(pixelWidths);
+    };
+
+    computeWidths();
+    window.addEventListener('resize', computeWidths);
+    return () => window.removeEventListener('resize', computeWidths);
+  }, [columns, wrapperRef]);
 
   const handleSort = (columnId: string) => {
     if (sortColumnId === columnId) {
@@ -120,8 +182,15 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={cn(styles.wrapper, className)}>
+    <div ref={wrapperRef} className={cn(styles.wrapper, className)}>
       <table className={styles.table}>
+        {colWidths.length === columns.length && (
+          <colgroup>
+            {colWidths.map((w, idx) => (
+              <col key={columns[idx].id} width={w} />
+            ))}
+          </colgroup>
+        )}
         {caption !== undefined && (
           <caption className="sr-only">{caption}</caption>
         )}

@@ -6,7 +6,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
-import { Button, Icon, Text } from '../../atoms';
+import { Icon, Text } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './AlertBanner.module.css';
@@ -72,15 +72,14 @@ export function AlertBanner({
         </div>
       </div>
       {onDismiss !== undefined && (
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
           onClick={onDismiss}
           aria-label={dismissLabel}
           className={styles.dismissButton}
         >
-          <Icon icon={X} size="sm" />
-        </Button>
+          <X size={14} />
+        </button>
       )}
     </div>
   );
