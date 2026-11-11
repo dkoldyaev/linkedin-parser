@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Download,
-  Loader2,
   LogIn,
   LogOut,
   Menu,
@@ -12,6 +11,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
+import { Button, Icon, Spinner, Text } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './Header.module.css';
 
@@ -105,9 +105,11 @@ export function Header({
         )}
       </div>
       <div className={styles.brandText}>
-        <h1 className={styles.brandTitle}>{title}</h1>
+        <Text as="h1" variant="mono-label" className={styles.brandTitle}>{title}</Text>
         {subtitle !== undefined && (
-          <p className={styles.brandSubtitle}>{subtitle}</p>
+          <Text as="p" variant="caption" tone="muted" className={styles.brandSubtitle}>
+            {subtitle}
+          </Text>
         )}
       </div>
     </div>
@@ -128,87 +130,94 @@ export function Header({
         {actions}
 
         {queueCount !== undefined && queueCount > 0 && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onQueueClick}
             className={styles.queuePill}
             title={resolvedQueueLabel}
+            startIcon={<Spinner size="sm" />}
           >
-            <Loader2 size={13} className={styles.spin} />
             <span className={styles.queuePillText}>{resolvedQueueLabel}</span>
-          </button>
+          </Button>
         )}
 
         {onAddVacancies !== undefined && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={onAddVacancies}
             className={styles.addBtn}
+            startIcon={<Icon icon={Plus} size="sm" />}
           >
-            <Plus size={16} />
             <span className={styles.addBtnText}>{addVacanciesLabel}</span>
-          </button>
+          </Button>
         )}
 
         {onRefresh !== undefined && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onRefresh}
             className={styles.btnIcon}
             title="Обновить вакансии"
             aria-label="Обновить вакансии"
           >
-            <RefreshCw size={17} />
-          </button>
+            <Icon icon={RefreshCw} size="sm" />
+          </Button>
         )}
 
         {showThemeToggle && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onThemeToggle}
             className={styles.btnIcon}
             title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
             aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
+            <Icon icon={theme === 'dark' ? Sun : Moon} size="sm" />
+          </Button>
         )}
 
         {onDownloadExtension !== undefined && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onDownloadExtension}
             className={cn(styles.btnIcon, styles.downloadBtn)}
             title="Скачать расширение (ZIP)"
             aria-label="Скачать расширение (ZIP)"
           >
-            <Download size={17} />
-          </button>
+            <Icon icon={Download} size="sm" />
+          </Button>
         )}
 
         {onSettingsClick !== undefined && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onSettingsClick}
             className={cn(styles.btnIcon, styles.settingsBtn)}
             title="Настройки"
             aria-label="Настройки"
           >
-            <Settings size={17} />
-          </button>
+            <Icon icon={Settings} size="sm" />
+          </Button>
         )}
 
         {user !== undefined && (
           user.isAnonymous ? (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={onLogin}
               className={styles.guestLoginBtn}
               title="Войти в аккаунт"
+              startIcon={<Icon icon={LogIn} size="sm" />}
             >
-              <LogIn size={15} />
               <span className={styles.guestLoginText}>Войти</span>
-            </button>
+            </Button>
           ) : (
             <div className={styles.userProfileBadge}>
               {user.picture ? (
@@ -226,31 +235,33 @@ export function Header({
                 {user.name ?? user.email}
               </span>
               {onLogout !== undefined && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={onLogout}
                   className={styles.btnLogout}
                   title="Выйти"
                   aria-label="Выйти"
                 >
-                  <LogOut size={15} />
-                </button>
+                  <Icon icon={LogOut} size="xs" />
+                </Button>
               )}
             </div>
           )
         )}
 
         {onMenuToggle !== undefined && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             id="menu-toggle"
             onClick={onMenuToggle}
             className={cn(styles.btnIcon, styles.burger, menuOpen && styles.burgerOpen)}
             aria-expanded={menuOpen}
             aria-label="Меню"
           >
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+            <Icon icon={menuOpen ? X : Menu} size="md" />
+          </Button>
         )}
 
         {children}

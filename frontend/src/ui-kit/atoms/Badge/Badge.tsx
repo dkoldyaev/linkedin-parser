@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Award, Ban, CheckCircle2, Clock, FileEdit, Tag } from 'lucide-react';
+import { Award, Ban, CheckCircle2, Clock, FileEdit, Tag, X } from 'lucide-react';
 import { cn } from '../../utils';
 import styles from './Badge.module.css';
 
@@ -109,16 +109,41 @@ export const MatchBadge = forwardRef<HTMLSpanElement, MatchBadgeProps>(
 
 export interface TechChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly label?: React.ReactNode;
+  readonly onRemove?: () => void;
+  readonly removeLabel?: string;
+  readonly variant?: 'ghost' | 'badge';
 }
 
 /**
- * Plain monospace Tech Stack Chip (`.tech-chip`) used inside KanbanCard.
+ * Monospace Tech Stack Chip (`.tech-chip`) used inside KanbanCard and EditableTokenList.
  */
 export const TechChip = forwardRef<HTMLSpanElement, TechChipProps>(
-  function TechChip({ label, children, className, ...rest }, ref) {
+  function TechChip(
+    { label, onRemove, removeLabel = 'Удалить', variant = 'ghost', children, className, ...rest },
+    ref
+  ) {
+    const isBadge = variant === 'badge';
     return (
-      <span ref={ref} className={cn(styles.techChip, className)} {...rest}>
-        {label !== undefined ? label : children}
+      <span
+        ref={ref}
+        className={cn(
+          styles.techChip,
+          isBadge && styles.chipBadge,
+          className
+        )}
+        {...rest}
+      >
+        <span>{label !== undefined ? label : children}</span>
+        {onRemove !== undefined && (
+          <button
+            type="button"
+            className={styles.chipRemove}
+            onClick={onRemove}
+            aria-label={removeLabel}
+          >
+            <X size={12} aria-hidden />
+          </button>
+        )}
       </span>
     );
   }
@@ -127,20 +152,51 @@ export const TechChip = forwardRef<HTMLSpanElement, TechChipProps>(
 export interface TagChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly label?: React.ReactNode;
   readonly showIcon?: boolean;
+  readonly onRemove?: () => void;
+  readonly removeLabel?: string;
+  readonly variant?: 'ghost' | 'badge';
 }
 
 /**
- * Tag Chip (`.tag-chip`) with `Tag` icon in primary blueprint blue used inside KanbanCard.
+ * Tag Chip (`.tag-chip`) with `Tag` icon used inside KanbanCard and EditableTokenList.
  */
 export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
   function TagChip(
-    { label, showIcon = true, children, className, ...rest },
+    {
+      label,
+      showIcon = true,
+      onRemove,
+      removeLabel = 'Удалить',
+      variant = 'ghost',
+      children,
+      className,
+      ...rest
+    },
     ref
   ) {
+    const isBadge = variant === 'badge';
     return (
-      <span ref={ref} className={cn(styles.tagChip, className)} {...rest}>
-        {showIcon && <Tag size={10} aria-hidden="true" />}
+      <span
+        ref={ref}
+        className={cn(
+          styles.tagChip,
+          isBadge && styles.chipBadge,
+          className
+        )}
+        {...rest}
+      >
+        {showIcon && <Tag size={isBadge ? 11 : 10} aria-hidden="true" />}
         <span>{label !== undefined ? label : children}</span>
+        {onRemove !== undefined && (
+          <button
+            type="button"
+            className={styles.chipRemove}
+            onClick={onRemove}
+            aria-label={removeLabel}
+          >
+            <X size={12} aria-hidden />
+          </button>
+        )}
       </span>
     );
   }

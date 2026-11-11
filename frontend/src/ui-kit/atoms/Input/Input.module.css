@@ -109,6 +109,11 @@
   }
 
   .endAdornment {
-    right: var(--ui-space-3);
+    right: var(--ui-space-2);
+  }
+
+  .endAdornment :global(button),
+  .endAdornment button {
+    pointer-events: auto;
   }
 }

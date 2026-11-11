@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Plus, Tag, X } from 'lucide-react';
-import { type BadgeTone, Input, Label } from '../../atoms';
+import { Plus } from 'lucide-react';
+import { Button, Icon, Input, Label, TagChip, type BadgeTone } from '../../atoms';
 import { useBlueprintGrid, useControllableState } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EditableTokenList.module.css';
@@ -160,35 +160,30 @@ export function EditableTokenList({
         <div className={styles.header}>
           <Label className={styles.label}>{label}</Label>
           {!readOnly && onAddModeChange !== undefined && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               className={styles.addBtn}
               onClick={() => onAddModeChange(true)}
               title={placeholder}
               aria-label={placeholder}
             >
-              <Plus size={14} />
-            </button>
+              <Icon icon={Plus} size="xs" />
+            </Button>
           )}
         </div>
       )}
       {(tokens.length > 0 || isEditing) && (
         <div className={styles.tokenList}>
           {tokens.map((token, index) => (
-            <span key={`${token}-${index}`} className={styles.token}>
-              {showTagIcon && <Tag size={11} aria-hidden="true" />}
-              <span>{token}</span>
-              {!readOnly && (
-                <button
-                  type="button"
-                  className={styles.tokenRemove}
-                  onClick={() => handleRemove(token, index)}
-                  aria-label={`${removeLabelPrefix} ${token}`}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </span>
+            <TagChip
+              key={`${token}-${index}`}
+              label={token}
+              showIcon={showTagIcon}
+              variant="badge"
+              onRemove={!readOnly ? () => handleRemove(token, index) : undefined}
+              removeLabel={`${removeLabelPrefix} ${token}`}
+            />
           ))}
           {isEditing && (
             <Input

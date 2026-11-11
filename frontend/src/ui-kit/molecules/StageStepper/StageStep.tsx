@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { ArrowRight, Edit3, MessageSquare, Plus, Trash2 } from 'lucide-react';
+import { Badge, Button, Icon } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './StageStepper.module.css';
 
@@ -60,13 +61,19 @@ export const StageStep = forwardRef<HTMLDivElement, StageStepProps>(
             <div className={styles.badgesRow}>
               {fromStage && (
                 <>
-                  <span className={styles.stageBadge}>{fromStage}</span>
+                  <Badge size="sm" tone="neutral" className={styles.stageBadge}>
+                    {fromStage}
+                  </Badge>
                   <ArrowRight size={12} className={styles.arrow} aria-hidden />
                 </>
               )}
-              <span className={cn(styles.stageBadge, isCurrent && styles.stageBadgeCurrent)}>
+              <Badge
+                size="sm"
+                tone={isCurrent ? 'primary' : 'neutral'}
+                className={cn(styles.stageBadge, isCurrent && styles.stageBadgeCurrent)}
+              >
                 {stage}
-              </span>
+              </Badge>
             </div>
 
             {timestamp && <span className={styles.time}>{timestamp}</span>}
@@ -77,47 +84,51 @@ export const StageStep = forwardRef<HTMLDivElement, StageStepProps>(
           {comment ? (
             <div className={styles.commentBubble}>
               <div className={styles.commentText}>
-                <MessageSquare size={13} className={styles.commentIcon} aria-hidden />
+                <Icon icon={MessageSquare} size="xs" className={styles.commentIcon} aria-hidden />
                 <span>{comment}</span>
               </div>
 
               {(onEditComment || onDeleteComment) && (
                 <div className={styles.commentTools}>
                   {onEditComment && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       className={styles.toolBtn}
                       onClick={onEditComment}
                       title="Редактировать комментарий"
                       aria-label="Редактировать комментарий"
                     >
-                      <Edit3 size={12} />
-                    </button>
+                      <Icon icon={Edit3} size="xs" />
+                    </Button>
                   )}
                   {onDeleteComment && (
-                    <button
-                      type="button"
-                      className={cn(styles.toolBtn, styles.toolBtnDanger)}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      tone="danger"
+                      className={styles.toolBtn}
                       onClick={onDeleteComment}
                       title="Удалить комментарий"
                       aria-label="Удалить комментарий"
                     >
-                      <Trash2 size={12} />
-                    </button>
+                      <Icon icon={Trash2} size="xs" />
+                    </Button>
                   )}
                 </div>
               )}
             </div>
           ) : (
             onAddComment && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 className={styles.addCommentBtn}
                 onClick={onAddComment}
+                startIcon={<Icon icon={Plus} size="xs" />}
               >
-                <Plus size={11} aria-hidden />
-                <span>Добавить комментарий</span>
-              </button>
+                Добавить комментарий
+              </Button>
             )
           )}
         </div>

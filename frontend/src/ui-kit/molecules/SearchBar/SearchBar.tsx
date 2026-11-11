@@ -1,6 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
-import { Icon, Input, type InputProps } from '../../atoms';
+import { Button, Icon, Input, type InputProps } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './SearchBar.module.css';
 
@@ -93,26 +93,25 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           startAdornment={<Icon icon={Search} size="sm" tone="muted" />}
+          endAdornment={
+            showClear ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleClear}
+                onMouseDown={(event) => event.preventDefault()}
+                onTouchStart={(event) => event.preventDefault()}
+                aria-label={clearLabel}
+                className={styles.clearButton}
+              >
+                <Icon icon={X} size="xs" />
+              </Button>
+            ) : undefined
+          }
           wrapperClassName={styles.inputWrapper}
-          className={cn(
-            styles.searchInput,
-            showClear && styles.hasClear,
-            className
-          )}
+          className={cn(styles.searchInput, className)}
           {...rest}
         />
-        {showClear && (
-          <button
-            type="button"
-            onClick={handleClear}
-            onMouseDown={(event) => event.preventDefault()}
-            onTouchStart={(event) => event.preventDefault()}
-            aria-label={clearLabel}
-            className={styles.clearButton}
-          >
-            <Icon icon={X} size="xs" />
-          </button>
-        )}
       </div>
     );
   }

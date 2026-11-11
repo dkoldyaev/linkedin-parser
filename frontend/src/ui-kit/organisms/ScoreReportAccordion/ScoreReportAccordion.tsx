@@ -1,13 +1,8 @@
 import React, { forwardRef } from 'react';
-import {
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  Shield,
-} from 'lucide-react';
+import { RefreshCw, Shield } from 'lucide-react';
+import { Button, Icon, MatchBadge, SeverityBadge } from '../../atoms';
+import { AlertBanner, SectionHeader, Accordion, type AccordionItem } from '../../molecules';
 import { cn } from '../../utils';
-import { SectionHeader } from '../../molecules/SectionHeader';
-import { Accordion, type AccordionItem } from '../../molecules/Accordion';
 import styles from './ScoreReportAccordion.module.css';
 
 export interface RequirementItem {
@@ -65,14 +60,6 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
     ref
   ) {
     const roundedScore = score !== undefined ? Math.round(score) : undefined;
-    const scoreClass =
-      roundedScore !== undefined
-        ? roundedScore >= 70
-          ? styles.scoreHigh
-          : roundedScore >= 45
-            ? styles.scoreMedium
-            : styles.scoreLow
-        : undefined;
 
     const matchedAccordionItems: readonly AccordionItem[] = matchedRequirements.map((item) => ({
       id: item.id,
@@ -88,17 +75,7 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
         title: (
           <span className={styles.requirementTitle}>
             <span>{item.requirement}</span>
-            <span
-              className={cn(
-                styles.severityBadge,
-                sev === 'low' && styles.sevLow,
-                sev === 'medium' && styles.sevMedium,
-                sev === 'high' && styles.sevHigh,
-                sev === 'critical' && styles.sevCritical
-              )}
-            >
-              {sev}
-            </span>
+            <SeverityBadge severity={sev} />
           </span>
         ),
         content: item.reason,
@@ -111,7 +88,7 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
       title: (
         <span className={styles.requirementTitle}>
           <span>{item.requirement}</span>
-          <span className={cn(styles.severityBadge, styles.sevCritical)}>critical</span>
+          <SeverityBadge severity="critical" />
         </span>
       ),
       content: item.reason,
@@ -120,53 +97,40 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
 
     return (
       <div ref={ref} className={cn(styles.report, className)} {...rest}>
-        {/* Header */}
-        <div className={styles.header}>
-          <div className={styles.titleGroup}>
-            <Shield size={18} aria-hidden />
-            <span>Совместимость с резюме</span>
-            {roundedScore !== undefined && (
-              <span className={cn(styles.scoreBadge, scoreClass)}>
-                {roundedScore}%
-              </span>
-            )}
-          </div>
-
-          {onReanalyze && (
-            <div className={styles.actionsGroup}>
-              <button
-                type="button"
-                className={styles.reanalyzeBtn}
+        {/* Header composed of SectionHeader, MatchBadge, and Button */}
+        <SectionHeader
+          title="Совместимость с резюме"
+          icon={Shield}
+          iconTone="accent"
+          badge={roundedScore !== undefined && <MatchBadge score={roundedScore} />}
+          accessory={
+            onReanalyze && (
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={analyzing}
                 onClick={onReanalyze}
-                disabled={analyzing}
+                startIcon={<Icon icon={RefreshCw} size="xs" />}
               >
-                {analyzing ? (
-                  <Loader2 size={13} className={styles.spin} aria-hidden />
-                ) : (
-                  <RefreshCw size={13} aria-hidden />
-                )}
-                <span>Переанализировать</span>
-              </button>
-            </div>
-          )}
-        </div>
+                Переанализировать
+              </Button>
+            )
+          }
+          className={styles.header}
+        />
 
         {/* Error notice */}
         {error && (
-          <div className={cn(styles.notice, styles.noticeError)}>
-            <AlertCircle size={14} aria-hidden />
-            <span>{error}</span>
-          </div>
+          <AlertBanner tone="danger" className={styles.notice}>
+            {error}
+          </AlertBanner>
         )}
 
         {/* Outdated notice */}
         {isOutdated && (
-          <div className={cn(styles.notice, styles.noticeOutdated)}>
-            <AlertCircle size={14} aria-hidden />
-            <span>
-              Резюме обновлено{cvRevision ? ` (ревизия ${cvRevision})` : ''}. Рекомендуется повторный скоринг.
-            </span>
-          </div>
+          <AlertBanner tone="warning" className={styles.notice}>
+            Резюме обновлено{cvRevision ? ` (ревизия ${cvRevision})` : ''}. Рекомендуется повторный скоринг.
+          </AlertBanner>
         )}
 
         {/* Summary */}

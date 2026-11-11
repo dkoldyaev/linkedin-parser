@@ -48,32 +48,7 @@
   }
 
   .clearButton {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: var(--ui-grid-cell);
-    height: var(--ui-grid-cell);
-    min-width: var(--ui-grid-cell);
-    min-height: var(--ui-grid-cell);
-    padding: 0;
-    background: transparent;
-    border: none;
-    color: var(--ui-color-text-muted);
+    border-radius: 0;
     cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-      color var(--ui-transition-fast),
-      transform var(--ui-transition-fast);
-  }
-
-  .clearButton:hover {
-    color: var(--ui-color-text-primary);
-    transform: scale(1.1);
-  }
-
-  .hasClear {
-    padding-right: var(--ui-grid-cell);
   }
 }

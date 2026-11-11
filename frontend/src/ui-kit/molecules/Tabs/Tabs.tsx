@@ -1,5 +1,6 @@
 import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { Badge } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './Tabs.module.css';
@@ -74,7 +75,9 @@ export function Tabs({
             )}
             <span>{item.label}</span>
             {item.count !== undefined && (
-              <span className={styles.countBadge}>{item.count}</span>
+              <Badge size="sm" tone="neutral" className={styles.countBadge}>
+                {item.count}
+              </Badge>
             )}
           </TabsPrimitive.Trigger>
         ))}

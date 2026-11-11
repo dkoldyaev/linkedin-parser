@@ -1,5 +1,5 @@
 import React, { forwardRef, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { SectionHeader } from '../SectionHeader';
 import { cn } from '../../utils';
 import styles from './CollapsibleSection.module.css';
 
@@ -20,14 +20,13 @@ export interface CollapsibleSectionProps
 
 /**
  * CollapsibleSection molecule.
- * Features a 32px Blueprint grid header with title, optional leading icon,
- * independent accessory actions, expand/collapse indicator, and smooth body container.
+ * Composes SectionHeader on the 32px Blueprint grid with an expandable body container.
  */
 export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionProps>(
   function CollapsibleSection(
     {
       title,
-      icon: IconComponent,
+      icon,
       badge,
       accessory,
       accessoryAction,
@@ -55,55 +54,34 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       onOpenChange?.(nextOpen);
     };
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        handleToggle();
-      }
-    };
-
     return (
       <div
         ref={ref}
         className={cn(styles.section, className)}
         {...rest}
       >
-        <div
-          className={cn(styles.header, isOpen && styles.headerExpanded)}
-          onClick={handleToggle}
-          onKeyDown={handleKeyDown}
-          role="button"
-          tabIndex={0}
-          aria-expanded={isOpen}
-        >
-          <div className={styles.titleGroup}>
-            {IconComponent && (
-              <span className={styles.icon} aria-hidden>
-                <IconComponent size={15} />
-              </span>
-            )}
-            <h4 className={styles.title}>{title}</h4>
-            {badge !== undefined && <span>{badge}</span>}
-          </div>
+        <SectionHeader
+          title={title}
+          icon={icon}
+          badge={badge}
+          accessory={accessorySlot}
+          collapsible
+          open={isOpen}
+          onToggle={handleToggle}
+          expandLabel={expandLabel}
+          collapseLabel={collapseLabel}
+          className={styles.header}
+        />
 
-          <div className={styles.actionsGroup}>
-            {accessorySlot !== undefined && (
-              <div
-                className={styles.accessory}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                {accessorySlot}
-              </div>
-            )}
-            <div className={styles.toggleHint}>
-              <span>{isOpen ? collapseLabel : expandLabel}</span>
-              {isOpen ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
-            </div>
+        {isOpen && (
+          <div
+            className={styles.content}
+            role="region"
+            aria-label={typeof title === 'string' ? title : undefined}
+          >
+            {children}
           </div>
-        </div>
-
-        {isOpen && <div className={styles.body}>{children}</div>}
+        )}
       </div>
     );
   }

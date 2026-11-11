@@ -2,9 +2,12 @@ import React, { forwardRef, useLayoutEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
 import {
   AiPendingText,
+  Button,
+  Checkbox,
   ClosedBadge,
   CompanyLink,
   HistoryText,
+  Icon,
   LocationText,
   MatchBadge,
   SalaryText,
@@ -70,8 +73,7 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
             {showMetaRow && (
               <div className={styles.cardHeaderMeta}>
                 {selectable && (
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     className={styles.cardCheckbox}
                     checked={checked}
                     aria-label={checkboxAriaLabel}
@@ -266,18 +268,20 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
           {actions !== undefined ? (
             actions
           ) : isRejected ? (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               className={styles.quickRestoreBtn}
               onClick={onRestore}
+              startIcon={<Icon icon={RotateCcw} size="xs" />}
             >
-              <RotateCcw size={12} aria-hidden="true" />
-              <span>{restoreLabel}</span>
-            </button>
+              {restoreLabel}
+            </Button>
           ) : (
             <>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 className={styles.quickMoveBtn}
                 disabled={!canMoveLeft}
                 onClick={onMoveLeft}
@@ -285,18 +289,21 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
                 title="Переместить влево"
               >
                 &lt;
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                tone="danger"
                 className={cn(styles.quickMoveBtn, styles.quickRejectBtn)}
                 onClick={onReject}
                 aria-label="Отклонить вакансию"
                 title="Отклонить вакансию"
               >
                 ×
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 className={styles.quickMoveBtn}
                 disabled={!canMoveRight}
                 onClick={onMoveRight}
@@ -304,7 +311,7 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
                 title="Переместить вправо"
               >
                 &gt;
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -587,7 +594,7 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
           )}
         </CardBody>
 
-        {!isRejected && (
+        {!isRejected ? (
           <CardFooter
             date={date}
             historyCount={historyCount}
@@ -598,7 +605,15 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
             onMoveRight={onMoveRight}
             onReject={onReject}
           />
-        )}
+        ) : onRestore ? (
+          <CardFooter
+            date={date}
+            historyCount={historyCount}
+            hasHistoryComment={hasHistoryComment}
+            isRejected
+            onRestore={onRestore}
+          />
+        ) : null}
       </Card>
     );
   }

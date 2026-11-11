@@ -11,11 +11,13 @@ export type ButtonVariant =
   | 'mint'
   | 'ghost';
 
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
+export type ButtonTone = 'default' | 'danger';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
+  readonly tone?: ButtonTone;
   readonly loading?: boolean;
   readonly fullWidth?: boolean;
   readonly asChild?: boolean;
@@ -31,6 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   {
     variant = 'secondary',
     size = 'md',
+    tone = 'default',
     loading = false,
     fullWidth = false,
     asChild = false,
@@ -51,6 +54,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     styles.button,
     styles[`variant-${variant}`],
     styles[`size-${size}`],
+    tone !== 'default' && styles[`tone-${tone}`],
     fullWidth && styles.fullWidth,
     className
   );
