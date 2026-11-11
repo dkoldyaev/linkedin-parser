@@ -1,69 +1,56 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button, Icon, Input, Label, TagChip, type BadgeTone } from '../../atoms';
-import { useBlueprintGrid, useControllableState } from '../../hooks';
+import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EditableTokenList.module.css';
 
 export interface EditableTokenListProps {
   readonly label?: React.ReactNode;
-  readonly tokens: readonly string[];
-  readonly onChange?: (nextTokens: string[]) => void;
-  readonly onAddToken?: (token: string) => void;
-  readonly onAddTokens?: (tokens: string[]) => void;
-  readonly onRemoveToken?: (token: string, index: number) => void;
+  readonly value?: readonly string[];
+  /** @deprecated use `value` */
+  readonly tokens?: readonly string[];
+  readonly onChange?: (nextValues: readonly string[]) => void;
   /**
    * Controlled boolean enabling the inline token input at the end of the token list.
    */
   readonly addMode?: boolean;
   readonly onAddModeChange?: (addMode: boolean) => void;
-  readonly inputValue?: string;
-  readonly onInputValueChange?: (value: string) => void;
   readonly placeholder?: string;
   readonly removeLabelPrefix?: string;
-  readonly lowercaseTokens?: boolean;
   readonly showTagIcon?: boolean;
   readonly readOnly?: boolean;
   readonly autoFocusOnAddMode?: boolean;
   readonly tone?: BadgeTone;
-  readonly addButtonLabel?: string;
-  readonly emptyMessage?: string;
   readonly className?: string;
 }
 
 /**
  * EditableTokenList molecule matching the live `.editable-token-list` in VacancyModal.
- * Controlled via `tokens` and `addMode` (`boolean`), commits tokens immediately when `,` or `Enter`
- * is typed, and aligns every token row and the inline input to the 32px Blueprint grid so toggling
- * `addMode` never causes a height jump.
+ * Simple controlled component via `value` (or `tokens`) and `onChange`.
+ * Aligns every token row and inline input to the 32px Blueprint grid so toggling `addMode`
+ * never causes a height jump, and tokens never stick together between lines.
  */
 export function EditableTokenList({
   label,
+  value,
   tokens,
   onChange,
-  onAddToken,
-  onAddTokens,
-  onRemoveToken,
   addMode = false,
   onAddModeChange,
-  inputValue,
-  onInputValueChange,
   placeholder = 'Добавить технологию...',
   removeLabelPrefix = 'Удалить',
-  lowercaseTokens = false,
   showTagIcon = false,
   readOnly = false,
   autoFocusOnAddMode = false,
+  tone,
   className,
 }: EditableTokenListProps): React.ReactElement {
-  const [draftValue, setDraftValue] = useControllableState<string>({
-    prop: inputValue,
-    defaultProp: '',
-    onChange: onInputValueChange,
-  });
+  const currentTokens = value ?? tokens ?? [];
+  const [draftValue, setDraftValue] = useState('');
 
   const containerRef = useBlueprintGrid<HTMLDivElement>([
-    tokens.length,
+    currentTokens.length,
     addMode,
   ]);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -83,35 +70,21 @@ export function EditableTokenList({
   const commitRawItems = (raw: string) => {
     const items = raw
       .split(',')
-      .map((part) => (lowercaseTokens ? part.trim().toLowerCase() : part.trim()))
+      .map((part) => part.trim())
       .filter(Boolean);
     const uniqueAdded = Array.from(new Set(items)).filter(
-      (item) => !tokens.includes(item)
+      (item) => !currentTokens.includes(item)
     );
     if (uniqueAdded.length === 0) {
       return;
     }
-    const nextTokens = [...tokens, ...uniqueAdded];
-    if (onChange) {
-      onChange(nextTokens);
-    }
-    if (onAddTokens) {
-      onAddTokens(uniqueAdded);
-    }
-    if (onAddToken) {
-      for (const token of uniqueAdded) {
-        onAddToken(token);
-      }
-    }
+    const nextTokens = [...currentTokens, ...uniqueAdded];
+    onChange?.(nextTokens);
   };
 
-  const handleRemove = (token: string, index: number) => {
-    if (onChange) {
-      onChange(tokens.filter((_item, idx) => idx !== index));
-    }
-    if (onRemoveToken) {
-      onRemoveToken(token, index);
-    }
+  const handleRemove = (index: number) => {
+    const nextTokens = currentTokens.filter((_item, idx) => idx !== index);
+    onChange?.(nextTokens);
   };
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,17 +146,19 @@ export function EditableTokenList({
           )}
         </div>
       )}
-      {(tokens.length > 0 || isEditing) && (
+      {(currentTokens.length > 0 || isEditing) && (
         <div className={styles.tokenList}>
-          {tokens.map((token, index) => (
-            <TagChip
-              key={`${token}-${index}`}
-              label={token}
-              showIcon={showTagIcon}
-              variant="badge"
-              onRemove={!readOnly ? () => handleRemove(token, index) : undefined}
-              removeLabel={`${removeLabelPrefix} ${token}`}
-            />
+          {currentTokens.map((token, index) => (
+            <div key={`${token}-${index}`} className={styles.tokenItem}>
+              <TagChip
+                label={token}
+                showIcon={showTagIcon}
+                variant="badge"
+                tone={tone}
+                onRemove={!readOnly ? () => handleRemove(index) : undefined}
+                removeLabel={`${removeLabelPrefix} ${token}`}
+              />
+            </div>
           ))}
           {isEditing && (
             <Input

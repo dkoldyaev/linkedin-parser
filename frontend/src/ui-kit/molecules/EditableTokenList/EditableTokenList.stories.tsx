@@ -5,6 +5,8 @@ import {
   type EditableTokenListProps,
 } from './EditableTokenList';
 
+import styles from './EditableTokenListStory.module.css';
+
 const DEFAULT_TECH_TOKENS = [
   'React',
   'TypeScript',
@@ -25,21 +27,24 @@ const meta: Meta<typeof EditableTokenList> = {
   component: EditableTokenList,
   tags: ['autodocs'],
   args: {
-    tokens: DEFAULT_TECH_TOKENS,
+    value: DEFAULT_TECH_TOKENS,
     addMode: false,
     placeholder: 'Добавить технологию...',
     showTagIcon: false,
-    lowercaseTokens: false,
     readOnly: false,
+    tone: 'neutral',
   },
   argTypes: {
-    tokens: { control: 'object' },
+    value: { control: 'object' },
     addMode: { control: 'boolean' },
     placeholder: { control: 'text' },
     label: { control: 'text' },
     showTagIcon: { control: 'boolean' },
-    lowercaseTokens: { control: 'boolean' },
     readOnly: { control: 'boolean' },
+    tone: {
+      control: 'select',
+      options: ['neutral', 'primary', 'success', 'warning', 'danger', 'info'],
+    },
   },
 };
 
@@ -49,12 +54,14 @@ type Story = StoryObj<typeof EditableTokenList>;
 function ControlledTokenListStory(
   props: EditableTokenListProps
 ): React.ReactElement {
-  const [tokens, setTokens] = useState<readonly string[]>(props.tokens);
+  const [value, setValue] = useState<readonly string[]>(
+    props.value ?? props.tokens ?? DEFAULT_TECH_TOKENS
+  );
   const [addMode, setAddMode] = useState<boolean>(Boolean(props.addMode));
 
   useEffect(() => {
-    setTokens(props.tokens);
-  }, [props.tokens]);
+    setValue(props.value ?? props.tokens ?? DEFAULT_TECH_TOKENS);
+  }, [props.value, props.tokens]);
 
   useEffect(() => {
     setAddMode(Boolean(props.addMode));
@@ -63,9 +70,9 @@ function ControlledTokenListStory(
   return (
     <EditableTokenList
       {...props}
-      tokens={tokens}
+      value={value}
       addMode={addMode}
-      onChange={setTokens}
+      onChange={setValue}
       onAddModeChange={setAddMode}
     />
   );
@@ -77,7 +84,7 @@ export const Interactive: Story = {
 
 export const AddModeActive: Story = {
   args: {
-    tokens: DEFAULT_TECH_TOKENS,
+    value: DEFAULT_TECH_TOKENS,
     addMode: true,
     placeholder: 'Добавить технологию...',
   },
@@ -87,11 +94,48 @@ export const AddModeActive: Story = {
 export const WithHeaderAndTagIcon: Story = {
   args: {
     label: 'Пользовательские теги',
-    tokens: ['remote-eu', 'high-priority', 'product-company', 'b2b-saas'],
+    value: ['remote-eu', 'high-priority', 'product-company', 'b2b-saas'],
     addMode: false,
     placeholder: 'Добавить тег через запятую...',
     showTagIcon: true,
-    lowercaseTokens: true,
+    tone: 'primary',
   },
   render: (args) => <ControlledTokenListStory {...args} />,
+};
+
+export const ToneVariants: Story = {
+  render: () => (
+    <div className={styles.storyWrapper}>
+      <ControlledTokenListStory
+        label="Neutral Tone (Default)"
+        value={['React', 'TypeScript', 'Node.js']}
+        tone="neutral"
+      />
+      <ControlledTokenListStory
+        label="Primary Tone"
+        value={['React', 'TypeScript', 'Vite']}
+        tone="primary"
+      />
+      <ControlledTokenListStory
+        label="Success Tone"
+        value={['CI Passed', 'Tested', 'Approved']}
+        tone="success"
+      />
+      <ControlledTokenListStory
+        label="Warning Tone"
+        value={['Deprecated', 'Review Needed']}
+        tone="warning"
+      />
+      <ControlledTokenListStory
+        label="Danger Tone"
+        value={['Critical Bug', 'Security Alert']}
+        tone="danger"
+      />
+      <ControlledTokenListStory
+        label="Info Tone"
+        value={['Documentation', 'Draft']}
+        tone="info"
+      />
+    </div>
+  ),
 };

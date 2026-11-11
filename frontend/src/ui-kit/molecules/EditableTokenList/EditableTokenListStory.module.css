@@ -1,0 +1,7 @@
+.storyWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  width: 100%;
+  max-width: calc(var(--ui-grid-cell) * 16);
+}

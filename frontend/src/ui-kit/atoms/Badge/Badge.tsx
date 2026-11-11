@@ -112,6 +112,7 @@ export interface TechChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly onRemove?: () => void;
   readonly removeLabel?: string;
   readonly variant?: 'ghost' | 'badge';
+  readonly tone?: BadgeTone;
 }
 
 /**
@@ -119,7 +120,7 @@ export interface TechChipProps extends React.HTMLAttributes<HTMLSpanElement> {
  */
 export const TechChip = forwardRef<HTMLSpanElement, TechChipProps>(
   function TechChip(
-    { label, onRemove, removeLabel = 'Удалить', variant = 'ghost', children, className, ...rest },
+    { label, onRemove, removeLabel = 'Удалить', variant = 'ghost', tone, children, className, ...rest },
     ref
   ) {
     const isBadge = variant === 'badge';
@@ -129,6 +130,7 @@ export const TechChip = forwardRef<HTMLSpanElement, TechChipProps>(
         className={cn(
           styles.techChip,
           isBadge && styles.chipBadge,
+          tone !== undefined && styles[`tone-${tone}`],
           className
         )}
         {...rest}
@@ -155,6 +157,7 @@ export interface TagChipProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly onRemove?: () => void;
   readonly removeLabel?: string;
   readonly variant?: 'ghost' | 'badge';
+  readonly tone?: BadgeTone;
 }
 
 /**
@@ -168,6 +171,7 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
       onRemove,
       removeLabel = 'Удалить',
       variant = 'ghost',
+      tone,
       children,
       className,
       ...rest
@@ -181,6 +185,7 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
         className={cn(
           styles.tagChip,
           isBadge && styles.chipBadge,
+          tone !== undefined && styles[`tone-${tone}`],
           className
         )}
         {...rest}

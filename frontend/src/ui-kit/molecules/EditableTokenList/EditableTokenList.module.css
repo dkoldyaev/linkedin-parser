@@ -49,44 +49,26 @@
     flex-wrap: wrap;
     align-items: center;
     min-height: var(--ui-grid-cell);
-    gap: 0 16px;
+    gap: 0 12px;
     margin: 0;
     padding: 0;
   }
 
-  .token {
+  .tokenItem {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
     height: var(--ui-grid-cell);
     min-height: var(--ui-grid-cell);
-    color: var(--ui-text-secondary);
-    font-family: var(--ui-font-mono);
-    font-size: 0.75rem;
-    line-height: 1;
     box-sizing: border-box;
-  }
-
-  .tokenRemove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-    border: 0;
-    background: transparent;
-    color: var(--ui-primary);
-    cursor: pointer;
-    transition: background-color var(--ui-transition-fast);
-  }
-
-  .tokenRemove:hover {
-    background-color: var(--ui-primary-subtle);
   }
 
   /* Inline input reusing the Input atom, sized strictly to the 32px blueprint grid (7 cells = 224px wide, 1 cell = 32px high) */
   .tokenInput {
     width: calc(var(--ui-grid-cell) * 7);
     max-width: 100%;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    box-sizing: border-box;
     margin: 0;
   }
 }
