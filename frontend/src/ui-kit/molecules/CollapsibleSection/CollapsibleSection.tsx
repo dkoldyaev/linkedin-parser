@@ -8,6 +8,7 @@ export interface CollapsibleSectionProps
   readonly title: React.ReactNode;
   readonly icon?: React.ComponentType<{ size?: number | string; className?: string }>;
   readonly badge?: React.ReactNode;
+  readonly accessory?: React.ReactNode;
   readonly accessoryAction?: React.ReactNode;
   readonly open?: boolean;
   readonly defaultOpen?: boolean;
@@ -28,6 +29,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       title,
       icon: IconComponent,
       badge,
+      accessory,
       accessoryAction,
       open,
       defaultOpen = false,
@@ -43,6 +45,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
     const isControlled = open !== undefined;
     const [internalOpen, setInternalOpen] = useState(defaultOpen);
     const isOpen = isControlled ? open : internalOpen;
+    const accessorySlot = accessory ?? accessoryAction;
 
     const handleToggle = () => {
       const nextOpen = !isOpen;
@@ -52,16 +55,25 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       onOpenChange?.(nextOpen);
     };
 
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleToggle();
+      }
+    };
+
     return (
       <div
         ref={ref}
         className={cn(styles.section, className)}
         {...rest}
       >
-        <button
-          type="button"
+        <div
           className={cn(styles.header, isOpen && styles.headerExpanded)}
           onClick={handleToggle}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
           aria-expanded={isOpen}
         >
           <div className={styles.titleGroup}>
@@ -75,12 +87,13 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
           </div>
 
           <div className={styles.actionsGroup}>
-            {accessoryAction !== undefined && (
+            {accessorySlot !== undefined && (
               <div
                 className={styles.accessory}
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
-                {accessoryAction}
+                {accessorySlot}
               </div>
             )}
             <div className={styles.toggleHint}>
@@ -88,7 +101,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
               {isOpen ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
             </div>
           </div>
-        </button>
+        </div>
 
         {isOpen && <div className={styles.body}>{children}</div>}
       </div>

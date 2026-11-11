@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Check, Copy, FileText, Info } from 'lucide-react';
+import { Copy, FileText, Info } from 'lucide-react';
 import { CollapsibleSection } from './CollapsibleSection';
 import styles from './CollapsibleSectionStory.module.css';
 
@@ -18,7 +18,27 @@ export const DefaultCollapsed: Story = {
       <CollapsibleSection
         title="Оригинальный текст вакансии"
         icon={FileText}
-        accessoryAction={
+      >
+        <textarea
+          className={styles.textarea}
+          defaultValue={`We are looking for a Senior Frontend Engineer to lead the design and implementation of our next-generation UI architecture.
+Key Responsibilities:
+- Build high-performance React 19 apps with Vite and Bun.
+- Collaborate with design systems and backend engineers.
+- Maintain 100% test coverage and strict type safety.`}
+        />
+      </CollapsibleSection>
+    </div>
+  ),
+};
+
+export const WithAccessoryAction: Story = {
+  render: () => (
+    <div className={styles.storyWrapper}>
+      <CollapsibleSection
+        title="Оригинальный текст вакансии"
+        icon={FileText}
+        accessory={
           <button
             type="button"
             className={styles.actionBtn}
@@ -29,12 +49,6 @@ export const DefaultCollapsed: Story = {
           </button>
         }
       >
-        <div className={styles.actionsRow}>
-          <button type="button" className={styles.actionBtn}>
-            <Check size={12} />
-            <span>Сохранить правки</span>
-          </button>
-        </div>
         <textarea
           className={styles.textarea}
           defaultValue={`We are looking for a Senior Frontend Engineer to lead the design and implementation of our next-generation UI architecture.
