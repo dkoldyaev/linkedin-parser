@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Copy, FileText, Info } from 'lucide-react';
+import { FileText, Info, Settings, SlidersHorizontal } from 'lucide-react';
 import { CollapsibleSection } from './CollapsibleSection';
+import { Badge, Button } from '../../atoms';
 import styles from './CollapsibleSectionStory.module.css';
 
 const meta: Meta<typeof CollapsibleSection> = {
@@ -12,51 +13,56 @@ const meta: Meta<typeof CollapsibleSection> = {
 export default meta;
 type Story = StoryObj<typeof CollapsibleSection>;
 
-export const DefaultCollapsed: Story = {
+export const Default: Story = {
   render: () => (
     <div className={styles.storyWrapper}>
       <CollapsibleSection
-        title="Оригинальный текст вакансии"
-        icon={FileText}
+        title="Системная диагностика"
+        icon={Info}
       >
-        <textarea
-          className={styles.textarea}
-          defaultValue={`We are looking for a Senior Frontend Engineer to lead the design and implementation of our next-generation UI architecture.
-Key Responsibilities:
-- Build high-performance React 19 apps with Vite and Bun.
-- Collaborate with design systems and backend engineers.
-- Maintain 100% test coverage and strict type safety.`}
-        />
+        <p className={styles.infoText}>
+          Служба фоновой обработки активна. Метрики производительности обновляются в реальном времени.
+        </p>
       </CollapsibleSection>
     </div>
   ),
 };
 
-export const WithAccessoryAction: Story = {
+export const WithBadgeAccessory: Story = {
   render: () => (
     <div className={styles.storyWrapper}>
       <CollapsibleSection
-        title="Оригинальный текст вакансии"
+        title="Аналитический отчет"
         icon={FileText}
+        accessory={<Badge size="sm" tone="success">Готово</Badge>}
+      >
+        <p className={styles.infoText}>
+          Полный анализ вакансии успешно сформирован и сохранён в локальной базе данных.
+        </p>
+      </CollapsibleSection>
+    </div>
+  ),
+};
+
+export const WithButtonAccessory: Story = {
+  render: () => (
+    <div className={styles.storyWrapper}>
+      <CollapsibleSection
+        title="Параметры интеграции"
+        icon={SlidersHorizontal}
         accessory={
-          <button
-            type="button"
-            className={styles.actionBtn}
-            onClick={() => alert('Скопировано в буфер')}
+          <Button
+            size="icon"
+            variant="secondary"
+            aria-label="Настройки"
           >
-            <Copy size={12} />
-            <span>Копировать</span>
-          </button>
+            <Settings size={14} />
+          </Button>
         }
       >
-        <textarea
-          className={styles.textarea}
-          defaultValue={`We are looking for a Senior Frontend Engineer to lead the design and implementation of our next-generation UI architecture.
-Key Responsibilities:
-- Build high-performance React 19 apps with Vite and Bun.
-- Collaborate with design systems and backend engineers.
-- Maintain 100% test coverage and strict type safety.`}
-        />
+        <p className={styles.infoText}>
+          Настройки синхронизации и сетевые таймауты сконфигурированы.
+        </p>
       </CollapsibleSection>
     </div>
   ),
@@ -66,14 +72,13 @@ export const DefaultOpen: Story = {
   render: () => (
     <div className={styles.storyWrapper}>
       <CollapsibleSection
-        title="Системная диагностика"
-        icon={Info}
+        title="История активности"
         defaultOpen
         expandLabel="Подробнее"
         collapseLabel="Скрыть"
       >
         <p className={styles.infoText}>
-          Проиндексировано 48 параметров вакансии. Время экстракции: 124ms. Очередь фонового скоринга активна.
+          Раздел развернут по умолчанию. Здесь отображаются последние зафиксированные события сессии.
         </p>
       </CollapsibleSection>
     </div>

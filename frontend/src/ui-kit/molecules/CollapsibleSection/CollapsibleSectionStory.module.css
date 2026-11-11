@@ -1,51 +1,17 @@
 @layer ui-molecules {
   .storyWrapper {
-    max-width: 680px;
-    padding: var(--ui-space-4);
-  }
-
-  .actionBtn {
-    background: transparent;
-    border: 1px solid var(--ui-color-border-subtle);
-    color: var(--ui-color-text-secondary);
-    font-family: var(--ui-font-mono);
-    font-size: 0.72rem;
-    padding: 2px 8px;
-    height: 24px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-  }
-
-  .actionBtn:hover {
-    color: var(--ui-primary);
-    border-color: var(--ui-primary);
-  }
-
-  .textarea {
+    max-width: calc(var(--ui-grid-cell) * 18);
     width: 100%;
-    min-height: 120px;
+    padding: var(--ui-grid-cell);
     background-color: var(--ui-color-bg-surface);
     border: 1px solid var(--ui-color-border-subtle);
-    color: var(--ui-color-text-primary);
-    font-family: var(--ui-font-mono);
-    font-size: 0.8rem;
-    padding: 8px 10px;
     box-sizing: border-box;
-    resize: vertical;
-  }
-
-  .actionsRow {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--ui-space-2);
-    margin-bottom: var(--ui-space-2);
   }
 
   .infoText {
     margin: 0;
     font-size: 0.8125rem;
+    line-height: 1.5;
     color: var(--ui-color-text-secondary);
   }
 }

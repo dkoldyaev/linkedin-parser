@@ -5,55 +5,55 @@ import { CollapsibleSection } from '../CollapsibleSection';
 describe('CollapsibleSection molecule', () => {
   it('renders collapsed by default without accessory when not provided', () => {
     render(
-      <CollapsibleSection title="Оригинальный текст">
+      <CollapsibleSection title="Системная диагностика">
         <div>Содержимое секции</div>
       </CollapsibleSection>
     );
 
-    expect(screen.getByText('Оригинальный текст')).toBeTruthy();
+    expect(screen.getByText('Системная диагностика')).toBeTruthy();
     expect(screen.getByText('Показать полностью')).toBeTruthy();
     expect(screen.queryByText('Содержимое секции')).toBeNull();
   });
 
-  it('renders optional accessory slot when provided', () => {
+  it('renders optional accessory slot with arbitrary element when provided', () => {
     render(
       <CollapsibleSection
-        title="Оригинальный текст"
-        accessory={<button type="button">Копировать</button>}
+        title="Параметры интеграции"
+        accessory={<span data-testid="custom-tag">Параметры</span>}
       >
         <div>Содержимое секции</div>
       </CollapsibleSection>
     );
 
-    expect(screen.getByRole('button', { name: 'Копировать' })).toBeTruthy();
+    expect(screen.getByTestId('custom-tag')).toBeTruthy();
   });
 
   it('expands when clicking header', () => {
     render(
-      <CollapsibleSection title="Оригинальный текст">
+      <CollapsibleSection title="Системная диагностика">
         <div>Содержимое секции</div>
       </CollapsibleSection>
     );
 
-    fireEvent.click(screen.getByText('Оригинальный текст'));
+    fireEvent.click(screen.getByText('Системная диагностика'));
 
     expect(screen.getByText('Содержимое секции')).toBeTruthy();
     expect(screen.getByText('Свернуть')).toBeTruthy();
   });
 
-  it('does not toggle when clicking accessory', () => {
+  it('does not toggle when clicking accessory element', () => {
     const onToggle = vi.fn();
     render(
       <CollapsibleSection
-        title="Оригинальный текст"
+        title="Системная диагностика"
         onOpenChange={onToggle}
-        accessory={<button type="button">Копировать</button>}
+        accessory={<button type="button">Действие</button>}
       >
         <div>Содержимое секции</div>
       </CollapsibleSection>
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Копировать' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Действие' }));
     expect(onToggle).not.toHaveBeenCalled();
     expect(screen.queryByText('Содержимое секции')).toBeNull();
   });
