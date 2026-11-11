@@ -35,6 +35,8 @@ export type TextTone =
 
 export type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
+export type TextLineHeight = 'grid' | 0.5 | 'auto';
+
 export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   readonly as?: TextElement;
   readonly asChild?: boolean;
@@ -48,7 +50,13 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
    * the text vertically within each grid cell.
    */
   readonly snapToGrid?: boolean;
-  readonly gridAligned?: boolean;
+  /**
+   * Line height setting:
+   * - `'grid'`: 1 grid cell (`var(--ui-grid-cell)` = 32px)
+   * - `0.5`: half grid cell (`calc(var(--ui-grid-cell) * 0.5)` = 16px)
+   * - `'auto'`: natural line-height of the variant (default)
+   */
+  readonly lineHeight?: TextLineHeight;
 }
 
 /**
@@ -63,28 +71,34 @@ export const Text = forwardRef<HTMLElement, TextProps>(function Text(
     weight,
     truncate = false,
     snapToGrid = false,
-    gridAligned = false,
+    lineHeight = 'auto',
     className,
     children,
     ...rest
   },
   ref
 ) {
-  const isGridSnapped = snapToGrid || gridAligned;
   const Component: React.ElementType = asChild ? Slot : as;
   const isInline = as === 'span' || as === 'code' || as === 'strong';
+  const lineHeightClass =
+    lineHeight === 'grid'
+      ? styles['lineHeight-grid']
+      : lineHeight === 0.5
+        ? styles['lineHeight-half']
+        : undefined;
 
   return (
     <Component
       ref={ref}
-      data-bp-snap={isGridSnapped ? '' : undefined}
+      data-bp-snap={snapToGrid ? '' : undefined}
       className={cn(
         styles.text,
         styles[`variant-${variant}`],
         styles[`tone-${tone}`],
         weight !== undefined && styles[`weight-${weight}`],
+        lineHeightClass,
         truncate && styles.truncate,
-        isGridSnapped &&
+        snapToGrid &&
           (isInline ? styles.snapToGridInline : styles.snapToGrid),
         className
       )}

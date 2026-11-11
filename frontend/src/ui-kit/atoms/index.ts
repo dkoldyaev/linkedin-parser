@@ -9,6 +9,7 @@ export {
   type TextVariant,
   type TextTone,
   type TextWeight,
+  type TextLineHeight,
 } from './Text';
 export {
   Badge,

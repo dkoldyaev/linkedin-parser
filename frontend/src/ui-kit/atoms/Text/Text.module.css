@@ -122,4 +122,13 @@
     min-height: var(--ui-grid-cell);
     box-sizing: border-box;
   }
+
+  /* Explicit line-height quantizations */
+  .lineHeight-grid {
+    line-height: var(--ui-grid-cell);
+  }
+
+  .lineHeight-half {
+    line-height: calc(var(--ui-grid-cell) * 0.5);
+  }
 }
