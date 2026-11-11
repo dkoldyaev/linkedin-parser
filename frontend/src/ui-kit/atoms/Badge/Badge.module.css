@@ -3,7 +3,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ui-space-1);
-    height: calc(var(--ui-space-6));
+    height: var(--ui-space-6);
     padding: 0 var(--ui-space-2);
     font-family: var(--ui-font-mono);
     font-size: var(--ui-text-xs);
@@ -85,5 +85,226 @@
 
   .removeButton:focus-visible {
     outline: 1px solid var(--ui-color-border-focus);
+  }
+
+  /* ========================================================================
+     1. Match Score Badge (.card-match-badge in KanbanCard / VacancyModal)
+     ======================================================================== */
+  .matchBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--ui-font-sans);
+    font-size: 0.72rem;
+    font-weight: var(--ui-weight-bold);
+    padding: 0;
+    border-radius: var(--ui-radius-none);
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    transition: filter var(--ui-transition-fast);
+  }
+
+  .matchBadge:hover {
+    filter: brightness(1.12);
+  }
+
+  .matchHigh {
+    color: var(--ui-match-high-text);
+    background-color: var(--ui-match-high-bg);
+    border: 1px solid var(--ui-match-high-border);
+  }
+
+  .matchMedium {
+    color: var(--ui-match-medium-text);
+    background-color: var(--ui-match-medium-bg);
+    border: 1px solid var(--ui-match-medium-border);
+  }
+
+  .matchLow {
+    color: var(--ui-match-low-text);
+    background-color: var(--ui-match-low-bg);
+    border: 1px solid var(--ui-match-low-border);
+  }
+
+  /* ========================================================================
+     2. Tech Stack Chip (.tech-chip in KanbanCard)
+     ======================================================================== */
+  .techChip {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--ui-radius-none);
+    color: var(--ui-text-muted);
+    font: 400 0.68rem var(--ui-font-mono);
+    letter-spacing: -0.01em;
+  }
+
+  /* ========================================================================
+     3. Tag Chip (.tag-chip in KanbanCard)
+     ======================================================================== */
+  .tagChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--ui-radius-none);
+    color: var(--ui-primary);
+    font: 400 0.68rem var(--ui-font-mono);
+  }
+
+  /* ========================================================================
+     4. Top-Right Stage / Lane Badge (.card-lane-badge) & Closed Badge (.card-closed-badge)
+     ======================================================================== */
+  .stageBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(2 * var(--ui-grid));
+    height: calc(var(--ui-grid) + 1px);
+    line-height: var(--ui-grid);
+    padding: 0;
+    text-align: center;
+    font-family: var(--ui-font-mono);
+    font-size: 0.6875rem;
+    font-weight: var(--ui-weight-semibold);
+    white-space: nowrap;
+    box-sizing: border-box;
+    border: 1px solid var(--ui-stage-border, var(--ui-primary-border));
+    background-color: var(--ui-stage-bg, var(--ui-primary-subtle));
+    color: var(--ui-stage-color, var(--ui-primary));
+  }
+
+  .stageToneBacklog {
+    --ui-stage-color: var(--ui-status-backlog);
+    --ui-stage-bg: rgba(59, 130, 246, 0.14);
+    --ui-stage-border: rgba(59, 130, 246, 0.38);
+  }
+
+  .stageToneApplied {
+    --ui-stage-color: var(--ui-status-applied);
+    --ui-stage-bg: rgba(6, 182, 212, 0.14);
+    --ui-stage-border: rgba(6, 182, 212, 0.38);
+  }
+
+  .stageToneInterview {
+    --ui-stage-color: var(--ui-status-interview);
+    --ui-stage-bg: rgba(245, 158, 11, 0.14);
+    --ui-stage-border: rgba(245, 158, 11, 0.38);
+  }
+
+  .stageToneAssessment {
+    --ui-stage-color: var(--ui-status-assessment);
+    --ui-stage-bg: rgba(139, 92, 246, 0.14);
+    --ui-stage-border: rgba(139, 92, 246, 0.38);
+  }
+
+  .stageToneOffer {
+    --ui-stage-color: var(--ui-status-offer);
+    --ui-stage-bg: rgba(16, 185, 129, 0.14);
+    --ui-stage-border: rgba(16, 185, 129, 0.38);
+  }
+
+  .stageToneRejected {
+    --ui-stage-color: var(--ui-status-rejected);
+    --ui-stage-bg: rgba(239, 68, 68, 0.14);
+    --ui-stage-border: rgba(239, 68, 68, 0.38);
+  }
+
+  .closedBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: calc(var(--ui-grid) + 1px);
+    line-height: var(--ui-grid);
+    padding: 0 8px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.6875rem;
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--ui-closed-text);
+    background-color: var(--ui-closed-bg);
+    border: 1px solid var(--ui-closed-border);
+    box-sizing: border-box;
+  }
+
+  /* ========================================================================
+     5. Compatibility Severity Badge (.compatibility-severity-badge)
+     ======================================================================== */
+  .severityBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.68rem;
+    font-weight: var(--ui-weight-semibold);
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .severityCritical {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: var(--ui-danger-solid);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+  }
+
+  .severityHigh {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: var(--ui-danger);
+  }
+
+  .severityMedium {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: var(--ui-warning);
+  }
+
+  .severityLow {
+    background-color: rgba(107, 114, 128, 0.12);
+    color: var(--ui-text-muted);
+  }
+
+  /* ========================================================================
+     6. CV Sync Badge (.cv-sync-badge)
+     ======================================================================== */
+  .cvSyncBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    height: var(--ui-grid);
+    padding: 0 12px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.7rem;
+    font-weight: var(--ui-weight-bold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+
+  .cvSyncApproved {
+    background-color: var(--ui-color-status-success-bg);
+    color: var(--ui-color-status-success);
+    border-left: 1px solid var(--ui-color-status-success-border);
+    border-right: 1px solid var(--ui-color-status-success-border);
+  }
+
+  .cvSyncOutdated {
+    background-color: var(--ui-color-status-warning-bg);
+    color: var(--ui-color-status-warning);
+    border-left: 1px solid var(--ui-color-status-warning-border);
+    border-right: 1px solid var(--ui-color-status-warning-border);
+  }
+
+  .cvSyncDraft {
+    background-color: var(--ui-primary-subtle);
+    color: var(--ui-primary);
+    border-left: 1px solid var(--ui-primary-border);
+    border-right: 1px solid var(--ui-primary-border);
   }
 }

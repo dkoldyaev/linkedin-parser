@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { DashboardLayout } from './DashboardLayout';
-import { Card, Header } from '../../organisms';
+import { VacancyCard, Header } from '../../organisms';
 import { SearchBar } from '../../molecules';
 import { Badge, Button, Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
@@ -56,14 +56,36 @@ function DashboardDemo(): React.ReactElement {
         </div>
       }
     >
-      <Card
-        title="Kanban Workspace Zone"
-        subtitle="Multi-pane Blueprint workspace layout with header, toolbar, sidebar, and main canvas."
-      >
-        <Text as="p" variant="body">
-          Filter query: {search.length > 0 ? search : '(none)'}
-        </Text>
-      </Card>
+      <div className={layoutStyles.grid3}>
+        <VacancyCard
+          title="Software Engineer — API Integrations & CRM Development"
+          company="Unknown"
+          sourceUrl="https://linkedin.com/jobs/view/1"
+          matchScore={65}
+          workplace="remote"
+          location="Worldwide"
+          salary="USD11 200 / мес"
+          summary="Вакансия Software Engineer — API Integrations & CRM Development в Unknown (Worldwide). Ключевой стек: Javascript, Typescript, Php, Swift."
+          techStack={['Javascript', 'Typescript', 'Php', 'Swift']}
+          date="6 нояб."
+          historyCount={2}
+        />
+        <VacancyCard
+          title="Staff Frontend Architect — Design Systems"
+          company="Stripe"
+          sourceUrl="https://linkedin.com/jobs/view/2"
+          matchScore={92}
+          workplace="remote"
+          location="Remote (EU)"
+          salary="USD16 000 / мес"
+          summary="Архитектура дизайн-системы и UI-кита на React 19 + TypeScript. Filter: "
+          techStack={['React 19', 'Typescript', 'Storybook', 'Playwright']}
+          tags={['priority']}
+          date="11 нояб."
+          historyCount={3}
+          hasHistoryComment
+        />
+      </div>
     </DashboardLayout>
   );
 }

@@ -20,9 +20,9 @@
     --ui-space-16: 64px;
 
     /* 2. Typography Tokens */
-    --ui-font-sans: 'Inter', 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --ui-font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
-    --ui-font-display: 'Inter', 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ui-font-sans: 'Inter', 'Segoe UI', sans-serif;
+    --ui-font-mono: 'JetBrains Mono', monospace;
+    --ui-font-display: 'Inter', 'Segoe UI', sans-serif;
 
     --ui-font-size-2xs: 0.65rem;
     --ui-font-size-xs: 0.68rem;
@@ -185,10 +185,34 @@
     --ui-status-offer: #10b981;
     --ui-status-rejected: #ef4444;
 
-    /* Workplace Semantic Accents */
+    /* Workplace & Card Semantic Accents */
     --ui-workplace-remote: #99d9ff;
     --ui-workplace-hybrid: #d5b5ff;
     --ui-workplace-onsite: #f1d087;
+    --ui-salary-color: #9ee8bd;
+
+    /* Match Score Tier Tokens */
+    --ui-match-high-edge: #10b981;
+    --ui-match-high-text: #34d399;
+    --ui-match-high-bg: rgba(16, 185, 129, 0.15);
+    --ui-match-high-border: rgba(16, 185, 129, 0.35);
+
+    --ui-match-medium-edge: #f59e0b;
+    --ui-match-medium-text: #fbbf24;
+    --ui-match-medium-bg: rgba(245, 158, 11, 0.15);
+    --ui-match-medium-border: rgba(245, 158, 11, 0.35);
+
+    --ui-match-low-edge: #ef4444;
+    --ui-match-low-text: #f87171;
+    --ui-match-low-bg: rgba(239, 68, 68, 0.15);
+    --ui-match-low-border: rgba(239, 68, 68, 0.35);
+
+    /* Closed Vacancy & History Tokens */
+    --ui-closed-text: #fb7185;
+    --ui-closed-bg: rgba(244, 63, 94, 0.12);
+    --ui-closed-border: rgba(244, 63, 94, 0.32);
+    --ui-comment-dot: #38bdf8;
+    --ui-comment-dot-glow: 0 0 5px rgba(56, 189, 248, 0.8);
 
     /* 4. Border Radius (Blueprint Geometry: Square Corners by Default) */
     --ui-radius-none: 0px;
@@ -323,10 +347,18 @@
     --ui-workplace-remote: #176389;
     --ui-workplace-hybrid: #75409b;
     --ui-workplace-onsite: #865b00;
+    --ui-salary-color: #216b3a;
   }
 }
 
 @layer ui-reset {
+  .ui-root {
+    font-family: var(--ui-font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   .ui-root,
   .ui-root *,
   .ui-root *::before,

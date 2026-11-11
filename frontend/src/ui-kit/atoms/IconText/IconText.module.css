@@ -1,0 +1,180 @@
+@layer ui-atoms {
+  .iconText {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-sm);
+    font-weight: var(--ui-weight-regular);
+    line-height: 1.5;
+    white-space: nowrap;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-decoration: none;
+  }
+
+  .mono {
+    font-family: var(--ui-font-mono);
+  }
+
+  .uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .sizeXs {
+    font-size: var(--ui-text-2xs);
+    gap: 4px;
+  }
+
+  .sizeSm {
+    font-size: var(--ui-text-sm);
+    gap: 5px;
+  }
+
+  .sizeMd {
+    font-size: var(--ui-text-md);
+    gap: 6px;
+  }
+
+  .weightRegular {
+    font-weight: var(--ui-weight-regular);
+  }
+
+  .weightMedium {
+    font-weight: var(--ui-weight-medium);
+  }
+
+  .weightSemibold {
+    font-weight: var(--ui-weight-semibold);
+  }
+
+  .weightBold {
+    font-weight: var(--ui-weight-bold);
+  }
+
+  /* Semantic Tones */
+  .toneMuted {
+    color: var(--ui-text-muted);
+  }
+
+  .toneSecondary {
+    color: var(--ui-text-secondary);
+  }
+
+  .tonePrimary {
+    color: var(--ui-primary);
+  }
+
+  .toneSalary {
+    color: var(--ui-salary-color);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.01em;
+  }
+
+  .toneWorkplaceRemote {
+    color: var(--ui-workplace-remote);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.01em;
+    gap: 4px;
+  }
+
+  .toneWorkplaceHybrid {
+    color: var(--ui-workplace-hybrid);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.01em;
+    gap: 4px;
+  }
+
+  .toneWorkplaceOnsite {
+    color: var(--ui-workplace-onsite);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: 0.01em;
+    gap: 4px;
+  }
+
+  .toneMint {
+    color: var(--ui-color-status-success);
+    font-weight: var(--ui-weight-semibold);
+  }
+
+  .toneDanger {
+    color: var(--ui-danger);
+    font-weight: var(--ui-weight-semibold);
+  }
+
+  /* Specific Card Elements */
+  .companyLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.65rem;
+    font-weight: var(--ui-weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ui-primary);
+    text-decoration: none;
+    transition: color var(--ui-transition-fast);
+  }
+
+  a.companyLink:hover {
+    color: var(--ui-primary-hover);
+    text-decoration: underline;
+    text-decoration-color: var(--ui-border-strong);
+    text-underline-offset: 2px;
+  }
+
+  .historyText {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--ui-font-sans);
+    font-size: 0.6875rem;
+    font-weight: var(--ui-weight-semibold);
+    line-height: 1.5;
+    color: var(--ui-text-muted);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: default;
+    transition: color var(--ui-transition-fast);
+  }
+
+  .historyText:hover {
+    color: var(--ui-primary);
+  }
+
+  .commentDot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--ui-comment-dot);
+    box-shadow: var(--ui-comment-dot-glow);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .aiPending {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ui-primary);
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+  }
+
+  .spinIcon {
+    animation: uiIconSpin 1s linear infinite;
+  }
+
+  @keyframes uiIconSpin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
