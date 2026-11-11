@@ -32,7 +32,9 @@ export {
 } from './CollapsibleSection';
 export {
   StageStepper,
+  StageStep,
   type StageStepperProps,
+  type StageStepProps,
   type StageStepItem,
 } from './StageStepper';
 export {

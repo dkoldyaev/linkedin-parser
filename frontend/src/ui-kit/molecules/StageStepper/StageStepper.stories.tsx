@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { StageStepper, type StageStepItem } from './StageStepper';
+import { StageStep } from './StageStep';
 import styles from './StageStepperStory.module.css';
 
 const meta: Meta<typeof StageStepper> = {
@@ -44,6 +45,33 @@ export const Default: Story = {
         onEditComment={(id) => alert(`Редактировать комментарий ${id}`)}
         onDeleteComment={(id) => alert(`Удалить комментарий ${id}`)}
       />
+    </div>
+  ),
+};
+
+export const ComposedWithStageSteps: Story = {
+  render: () => (
+    <div className={styles.storyWrapper}>
+      <StageStepper>
+        <StageStep
+          stage="Оффер"
+          fromStage="Финал с фаундером"
+          timestamp="Сегодня, 16:00"
+          isCurrent
+          comment="Получен оффер с релокационным пакетом."
+        />
+        <StageStep
+          stage="Финал с фаундером"
+          fromStage="Технический этап"
+          timestamp="Вчера, 15:30"
+          comment="Пройден бар-рейзинг."
+        />
+        <StageStep
+          stage="Технический этап"
+          fromStage="Скрининг"
+          timestamp="3 дня назад"
+        />
+      </StageStepper>
     </div>
   ),
 };

@@ -12,12 +12,14 @@
     display: flex;
     align-items: center;
     gap: var(--ui-space-2);
-    padding: 12px 14px;
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: var(--ui-space-3) var(--ui-space-4);
     color: var(--ui-color-text-muted);
     font-size: 0.8125rem;
     font-family: var(--ui-font-mono);
     border: 1px dashed var(--ui-color-border-subtle);
     background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
   }
 
   .stepItem {
@@ -25,16 +27,17 @@
     position: relative;
     gap: var(--ui-space-3);
     padding-bottom: var(--ui-space-4);
+    box-sizing: border-box;
   }
 
-  .stepItem:last-child {
+  .stepItemLast {
     padding-bottom: 0;
   }
 
   .line {
     position: absolute;
     left: 4px;
-    top: 14px;
+    top: 21px;
     bottom: 0;
     width: 2px;
     background: linear-gradient(180deg, var(--ui-primary) 0%, rgba(255, 255, 255, 0.06) 100%);
@@ -47,7 +50,7 @@
     border: 2px solid var(--ui-primary);
     background-color: var(--ui-color-bg-surface);
     flex-shrink: 0;
-    margin-top: 4px;
+    margin-top: 11px;
     z-index: 2;
     transition: all var(--ui-transition-fast);
     box-sizing: border-box;
@@ -64,6 +67,7 @@
     flex-direction: column;
     gap: var(--ui-space-2);
     min-width: 0;
+    box-sizing: border-box;
   }
 
   .stepHeader {
@@ -72,7 +76,8 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--ui-space-2);
-    min-height: 24px;
+    min-height: var(--ui-grid-cell);
+    box-sizing: border-box;
   }
 
   .badgesRow {
@@ -93,6 +98,13 @@
     line-height: 1.4;
     white-space: nowrap;
     text-transform: uppercase;
+    box-sizing: border-box;
+  }
+
+  .stageBadgeCurrent {
+    border-color: var(--ui-primary);
+    color: var(--ui-primary);
+    background-color: rgba(56, 232, 172, 0.05);
   }
 
   .arrow {
@@ -103,37 +115,37 @@
 
   .time {
     font-family: var(--ui-font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--ui-color-text-muted);
     white-space: nowrap;
   }
 
-  /* Comments */
   .commentBubble {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--ui-space-2);
-    background-color: var(--ui-color-bg-card);
+    padding: var(--ui-space-2) var(--ui-space-3);
     border: 1px solid var(--ui-color-border-subtle);
-    border-left: 3px solid var(--ui-primary);
-    padding: 8px 12px;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    color: var(--ui-color-text-secondary);
+    background-color: var(--ui-color-bg-subtle, rgba(255, 255, 255, 0.02));
+    box-sizing: border-box;
   }
 
   .commentText {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    white-space: pre-wrap;
-    word-break: break-word;
+    gap: var(--ui-space-2);
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--ui-color-text-primary);
     flex: 1;
+    min-width: 0;
+    word-break: break-word;
   }
 
   .commentIcon {
-    color: var(--ui-primary);
+    color: var(--ui-color-text-muted);
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -142,23 +154,19 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    opacity: 0.7;
-    transition: opacity var(--ui-transition-fast);
-  }
-
-  .commentBubble:hover .commentTools {
-    opacity: 1;
+    flex-shrink: 0;
   }
 
   .toolBtn {
     background: transparent;
-    border: 0;
+    border: none;
     color: var(--ui-color-text-muted);
+    padding: 2px;
     cursor: pointer;
-    padding: 2px 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: color var(--ui-transition-fast);
   }
 
   .toolBtn:hover {
@@ -170,21 +178,23 @@
   }
 
   .addCommentBtn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     background: transparent;
     border: 1px dashed var(--ui-color-border-subtle);
     color: var(--ui-color-text-muted);
     font-family: var(--ui-font-mono);
     font-size: 0.7rem;
-    padding: 3px 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    padding: 2px 8px;
     cursor: pointer;
-    align-self: flex-start;
+    transition: all var(--ui-transition-fast);
+    box-sizing: border-box;
   }
 
   .addCommentBtn:hover {
-    color: var(--ui-primary);
     border-color: var(--ui-primary);
+    color: var(--ui-primary);
   }
 }

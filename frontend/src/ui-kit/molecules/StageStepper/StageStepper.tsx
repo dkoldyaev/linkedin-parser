@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
-import { ArrowRight, Edit3, History, MessageSquare, Plus, Trash2 } from 'lucide-react';
+import { History } from 'lucide-react';
 import { cn } from '../../utils';
+import { StageStep, type StageStepProps } from './StageStep';
 import styles from './StageStepper.module.css';
 
 export interface StageStepItem {
@@ -13,17 +14,18 @@ export interface StageStepItem {
 }
 
 export interface StageStepperProps extends React.HTMLAttributes<HTMLDivElement> {
-  readonly items: readonly StageStepItem[];
+  readonly items?: readonly StageStepItem[];
   readonly onAddComment?: (stepId: string) => void;
   readonly onEditComment?: (stepId: string) => void;
   readonly onDeleteComment?: (stepId: string) => void;
   readonly emptyLabel?: string;
+  readonly children?: React.ReactNode;
 }
 
 /**
  * StageStepper molecule.
- * Renders a vertical timeline representing movement history across recruitment stages,
- * with status indicators, timestamp badges, and stage commentary bubbles.
+ * Renders a vertical timeline container representing movement history across recruitment stages,
+ * supporting both declarative `items` or composable `<StageStep />` children.
  */
 export const StageStepper = forwardRef<HTMLDivElement, StageStepperProps>(
   function StageStepper(
@@ -33,11 +35,38 @@ export const StageStepper = forwardRef<HTMLDivElement, StageStepperProps>(
       onEditComment,
       onDeleteComment,
       emptyLabel = 'История переходов пуста',
+      children,
       className,
       ...rest
     },
     ref
   ) {
+    if (children) {
+      const childArray = React.Children.toArray(children);
+      if (childArray.length === 0) {
+        return (
+          <div ref={ref} className={cn(styles.empty, className)} {...rest}>
+            <History size={15} aria-hidden />
+            <span>{emptyLabel}</span>
+          </div>
+        );
+      }
+
+      return (
+        <div ref={ref} className={cn(styles.stepper, className)} {...rest}>
+          {childArray.map((child, idx) => {
+            if (React.isValidElement<StageStepProps>(child)) {
+              const isLast = idx === childArray.length - 1;
+              return React.cloneElement(child, {
+                isLast: child.props.isLast !== undefined ? child.props.isLast : isLast,
+              });
+            }
+            return child;
+          })}
+        </div>
+      );
+    }
+
     if (!items || items.length === 0) {
       return (
         <div ref={ref} className={cn(styles.empty, className)} {...rest}>
@@ -53,78 +82,19 @@ export const StageStepper = forwardRef<HTMLDivElement, StageStepperProps>(
           const isLast = idx === items.length - 1;
 
           return (
-            <div key={item.id} className={styles.stepItem}>
-              {!isLast && <div className={styles.line} aria-hidden />}
-              <div
-                className={cn(styles.dot, item.isCurrent && styles.dotCurrent)}
-                aria-hidden
-              />
-
-              <div className={styles.content}>
-                <div className={styles.stepHeader}>
-                  <div className={styles.badgesRow}>
-                    {item.fromStage && (
-                      <>
-                        <span className={styles.stageBadge}>{item.fromStage}</span>
-                        <ArrowRight size={12} className={styles.arrow} aria-hidden />
-                      </>
-                    )}
-                    <span className={styles.stageBadge}>{item.stage}</span>
-                  </div>
-
-                  {item.timestamp && (
-                    <span className={styles.time}>{item.timestamp}</span>
-                  )}
-                </div>
-
-                {item.comment ? (
-                  <div className={styles.commentBubble}>
-                    <div className={styles.commentText}>
-                      <MessageSquare size={13} className={styles.commentIcon} aria-hidden />
-                      <span>{item.comment}</span>
-                    </div>
-
-                    {(onEditComment || onDeleteComment) && (
-                      <div className={styles.commentTools}>
-                        {onEditComment && (
-                          <button
-                            type="button"
-                            className={styles.toolBtn}
-                            onClick={() => onEditComment(item.id)}
-                            title="Редактировать комментарий"
-                            aria-label="Редактировать комментарий"
-                          >
-                            <Edit3 size={12} />
-                          </button>
-                        )}
-                        {onDeleteComment && (
-                          <button
-                            type="button"
-                            className={cn(styles.toolBtn, styles.toolBtnDanger)}
-                            onClick={() => onDeleteComment(item.id)}
-                            title="Удалить комментарий"
-                            aria-label="Удалить комментарий"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  onAddComment && (
-                    <button
-                      type="button"
-                      className={styles.addCommentBtn}
-                      onClick={() => onAddComment(item.id)}
-                    >
-                      <Plus size={11} aria-hidden />
-                      <span>Добавить комментарий</span>
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
+            <StageStep
+              key={item.id}
+              id={item.id}
+              stage={item.stage}
+              fromStage={item.fromStage}
+              timestamp={item.timestamp}
+              isCurrent={item.isCurrent}
+              isLast={isLast}
+              comment={item.comment}
+              onAddComment={onAddComment ? () => onAddComment(item.id) : undefined}
+              onEditComment={onEditComment ? () => onEditComment(item.id) : undefined}
+              onDeleteComment={onDeleteComment ? () => onDeleteComment(item.id) : undefined}
+            />
           );
         })}
       </div>
