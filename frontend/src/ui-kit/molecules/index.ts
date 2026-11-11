@@ -20,3 +20,24 @@ export {
   type FilterOption,
   type FilterTag,
 } from './FilterList';
+export {
+  SectionHeader,
+  type SectionHeaderProps,
+  type SectionHeaderTone,
+  type SectionHeaderVariant,
+} from './SectionHeader';
+export {
+  CollapsibleSection,
+  type CollapsibleSectionProps,
+} from './CollapsibleSection';
+export {
+  StageStepper,
+  type StageStepperProps,
+  type StageStepItem,
+} from './StageStepper';
+export {
+  ScoreReportAccordion,
+  type ScoreReportAccordionProps,
+  type RequirementItem,
+  type SeniorityAssessment,
+} from './ScoreReportAccordion';

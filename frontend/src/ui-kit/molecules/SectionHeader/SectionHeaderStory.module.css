@@ -1,0 +1,50 @@
+@layer ui-molecules {
+  .storyWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+    max-width: 600px;
+    padding: var(--ui-space-4);
+    background-color: var(--ui-color-bg-surface);
+    border: 1px solid var(--ui-color-border-subtle);
+  }
+
+  .iconBtn {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    min-width: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--ui-color-border-subtle);
+    color: var(--ui-color-text-secondary);
+    cursor: pointer;
+  }
+
+  .iconBtn:hover {
+    color: var(--ui-primary);
+    border-color: var(--ui-primary);
+  }
+
+  .textBtn {
+    background: transparent;
+    border: 1px solid var(--ui-color-border-subtle);
+    color: var(--ui-color-text-secondary);
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .textBtn:hover {
+    color: var(--ui-primary);
+    border-color: var(--ui-primary);
+  }
+}

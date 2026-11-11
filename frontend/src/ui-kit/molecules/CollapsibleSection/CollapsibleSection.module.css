@@ -1,0 +1,102 @@
+@layer ui-molecules {
+  .section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--ui-color-border-subtle);
+    border-radius: 0;
+    background-color: var(--ui-color-bg-surface);
+    overflow: hidden;
+  }
+
+  .header {
+    width: 100%;
+    min-height: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background-color var(--ui-transition-fast);
+  }
+
+  .header:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .headerExpanded {
+    box-shadow: inset 0 -1px var(--ui-color-border-subtle);
+  }
+
+  .titleGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    min-width: 0;
+  }
+
+  .icon {
+    flex-shrink: 0;
+    color: var(--ui-color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .title {
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-color-text-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: var(--ui-grid-cell);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header:hover .title {
+    color: var(--ui-color-text-primary);
+  }
+
+  .actionsGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+  }
+
+  .accessory {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+  }
+
+  .toggleHint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.7rem;
+    color: var(--ui-color-text-muted);
+    transition: color var(--ui-transition-fast);
+  }
+
+  .header:hover .toggleHint {
+    color: var(--ui-color-text-secondary);
+  }
+
+  .body {
+    padding: var(--ui-space-3);
+    background-color: var(--ui-color-bg-card);
+    box-sizing: border-box;
+    width: 100%;
+  }
+}

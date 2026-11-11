@@ -1,0 +1,71 @@
+@layer ui-molecules {
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    box-sizing: border-box;
+    width: 100%;
+    user-select: none;
+    gap: var(--ui-space-2);
+  }
+
+  .titleGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    min-width: 0;
+  }
+
+  .icon {
+    flex-shrink: 0;
+    color: var(--ui-color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .iconMint {
+    color: var(--aspen-mint, #38e8ac);
+  }
+
+  .iconAccent {
+    color: var(--ui-primary);
+  }
+
+  .iconMuted {
+    color: var(--ui-color-text-muted);
+  }
+
+  .title {
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ui-color-text-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: var(--ui-grid-cell);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .titleSans {
+    font-family: var(--ui-font-sans);
+    font-size: 0.875rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .badge {
+    flex-shrink: 0;
+  }
+
+  .accessory {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    flex-shrink: 0;
+  }
+}
