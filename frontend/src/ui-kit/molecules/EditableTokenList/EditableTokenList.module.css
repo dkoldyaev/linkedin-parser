@@ -83,37 +83,10 @@
     background-color: var(--ui-primary-subtle);
   }
 
-  /* Inline input matches the exact 32px outer row height of .token (26px + 2*3px margin = 32px) so toggling addMode never jumps height */
+  /* Inline input reusing the Input atom, sized strictly to the 32px blueprint grid (7 cells = 224px wide, 1 cell = 32px high) */
   .tokenInput {
-    width: 210px;
+    width: calc(var(--ui-grid-cell) * 7);
     max-width: 100%;
-    height: 26px;
-    min-height: 26px;
-    max-height: 26px;
-    padding: 0 8px;
-    margin: 3px 0;
-    font-family: var(--ui-font-mono);
-    font-size: 0.8rem;
-    line-height: 24px;
-    color: var(--ui-text-primary);
-    background-color: var(--ui-bg-surface);
-    border: 1px solid var(--ui-border-strong);
-    border-radius: 0;
-    box-sizing: border-box;
-    outline: none;
-    transition:
-      border-color var(--ui-transition-fast),
-      box-shadow var(--ui-transition-fast),
-      background-color var(--ui-transition-fast);
-  }
-
-  .tokenInput::placeholder {
-    color: var(--ui-text-muted);
-  }
-
-  .tokenInput:focus {
-    background-color: var(--ui-bg-surface);
-    border-color: var(--ui-border-focus);
-    box-shadow: inset 0 0 0 1px var(--ui-border-focus);
+    margin: 0;
   }
 }

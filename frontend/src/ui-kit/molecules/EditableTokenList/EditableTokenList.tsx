@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Plus, Tag, X } from 'lucide-react';
-import { type BadgeTone, Label } from '../../atoms';
+import { type BadgeTone, Input, Label } from '../../atoms';
 import { useBlueprintGrid, useControllableState } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EditableTokenList.module.css';
@@ -191,9 +191,10 @@ export function EditableTokenList({
             </span>
           ))}
           {isEditing && (
-            <input
+            <Input
               ref={inputRef}
               type="text"
+              mono
               className={styles.tokenInput}
               aria-label={placeholder}
               placeholder={placeholder}
@@ -201,6 +202,7 @@ export function EditableTokenList({
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               onKeyDown={handleInputKeyDown}
+              autoFocus={autoFocusOnAddMode}
             />
           )}
         </div>
