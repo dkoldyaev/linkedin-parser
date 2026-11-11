@@ -5,10 +5,15 @@
     justify-content: space-between;
     min-height: var(--ui-grid-cell);
     height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
     box-sizing: border-box;
     width: 100%;
     user-select: none;
     gap: var(--ui-space-2);
+  }
+
+  .headerDivider {
+    box-shadow: inset 0 -1px var(--ui-color-border-subtle);
   }
 
   .titleGroup {
@@ -27,6 +32,14 @@
 
   .iconMint {
     color: var(--aspen-mint, #38e8ac);
+  }
+
+  .iconWarning {
+    color: var(--ui-color-status-warning);
+  }
+
+  .iconDanger {
+    color: var(--ui-color-status-danger);
   }
 
   .iconAccent {
@@ -56,6 +69,26 @@
     font-size: 0.875rem;
     text-transform: none;
     letter-spacing: normal;
+  }
+
+  .toneMint .title {
+    color: var(--aspen-mint, #38e8ac);
+  }
+
+  .toneWarning .title {
+    color: var(--ui-color-status-warning);
+  }
+
+  .toneDanger .title {
+    color: var(--ui-color-status-danger);
+  }
+
+  .toneAccent .title {
+    color: var(--ui-primary);
+  }
+
+  .toneMuted .title {
+    color: var(--ui-color-text-muted);
   }
 
   .badge {

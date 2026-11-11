@@ -10,10 +10,6 @@
     overflow: hidden;
   }
 
-  .header {
-    padding: 0 var(--ui-space-3);
-  }
-
   .content {
     padding: var(--ui-space-4);
     font-size: var(--ui-text-sm);

@@ -110,6 +110,43 @@ export const NotesWithSaveAction: Story = {
   },
 };
 
+export const SemanticTonesAndDividers: Story = {
+  render: () => (
+    <div className={styles.storyWrapper}>
+      <SectionHeader
+        title="СОВПАДЕНИЯ [3]"
+        variant="mono"
+        tone="mint"
+        divider
+      />
+      <SectionHeader
+        title="ПРОПУСКИ [2]"
+        variant="mono"
+        tone="warning"
+        divider
+      />
+      <SectionHeader
+        title="КРИТИЧЕСКИЕ РАСХОЖДЕНИЯ [1]"
+        variant="mono"
+        tone="danger"
+        divider
+      />
+      <SectionHeader
+        title="АКЦЕНТНЫЙ ЗАГОЛОВОК"
+        variant="mono"
+        tone="accent"
+        divider
+      />
+      <SectionHeader
+        title="ПРИГЛУШЕННЫЙ ЗАГОЛОВОК"
+        variant="mono"
+        tone="muted"
+        divider
+      />
+    </div>
+  ),
+};
+
 export const AllVacancySectionHeaders: Story = {
   render: () => (
     <div className={styles.storyWrapper}>

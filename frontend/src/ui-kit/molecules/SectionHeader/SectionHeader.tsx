@@ -3,11 +3,19 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../utils';
 import styles from './SectionHeader.module.css';
 
-export type SectionHeaderTone = 'default' | 'accent' | 'mint' | 'muted';
+export type SectionHeaderTone =
+  | 'default'
+  | 'accent'
+  | 'mint'
+  | 'warning'
+  | 'danger'
+  | 'muted';
+
 export type SectionHeaderVariant = 'mono' | 'sans';
 
 export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title: React.ReactNode;
+  readonly tone?: SectionHeaderTone;
   readonly icon?: React.ComponentType<{ size?: number | string; className?: string }>;
   readonly iconTone?: SectionHeaderTone;
   readonly badge?: React.ReactNode;
@@ -19,19 +27,23 @@ export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivEle
   readonly onToggle?: () => void;
   readonly expandLabel?: string;
   readonly collapseLabel?: string;
+  readonly divider?: boolean;
 }
 
 /**
  * SectionHeader molecule.
- * Provides a standardized Blueprint-grid header (height: 32px) with title,
- * optional leading icon, meta badge/counter, action accessory slot, and optional collapsible toggle.
+ * Standardized Blueprint-grid header (height: 32px) with title,
+ * optional leading icon, meta badge/counter, action accessory slot,
+ * semantic tone coloring ('mint' | 'warning' | 'danger' | 'accent' | 'muted'),
+ * bottom divider line, and optional collapsible toggle.
  */
 export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
   function SectionHeader(
     {
       title,
+      tone = 'default',
       icon: IconComponent,
-      iconTone = 'default',
+      iconTone,
       badge,
       accessory,
       variant = 'mono',
@@ -41,12 +53,14 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
       onToggle,
       expandLabel = 'Показать полностью',
       collapseLabel = 'Свернуть',
+      divider = false,
       className,
       ...rest
     },
     ref
   ) {
     const Component = as;
+    const effectiveIconTone = iconTone ?? tone;
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (collapsible && (event.key === 'Enter' || event.key === ' ')) {
@@ -60,6 +74,12 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
         ref={ref}
         className={cn(
           styles.header,
+          tone === 'mint' && styles.toneMint,
+          tone === 'warning' && styles.toneWarning,
+          tone === 'danger' && styles.toneDanger,
+          tone === 'accent' && styles.toneAccent,
+          tone === 'muted' && styles.toneMuted,
+          divider && styles.headerDivider,
           collapsible && styles.headerCollapsible,
           collapsible && open && styles.headerExpanded,
           className
@@ -76,9 +96,11 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
             <span
               className={cn(
                 styles.icon,
-                iconTone === 'mint' && styles.iconMint,
-                iconTone === 'accent' && styles.iconAccent,
-                iconTone === 'muted' && styles.iconMuted
+                effectiveIconTone === 'mint' && styles.iconMint,
+                effectiveIconTone === 'warning' && styles.iconWarning,
+                effectiveIconTone === 'danger' && styles.iconDanger,
+                effectiveIconTone === 'accent' && styles.iconAccent,
+                effectiveIconTone === 'muted' && styles.iconMuted
               )}
               aria-hidden
             >

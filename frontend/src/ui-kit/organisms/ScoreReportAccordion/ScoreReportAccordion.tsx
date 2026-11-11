@@ -103,6 +103,7 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
           icon={Shield}
           iconTone="accent"
           badge={roundedScore !== undefined && <MatchBadge score={roundedScore} />}
+          divider
           accessory={
             onReanalyze && (
               <Button
@@ -116,7 +117,6 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
               </Button>
             )
           }
-          className={styles.header}
         />
 
         {/* Error notice */}
@@ -150,7 +150,8 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
             <SectionHeader
               title={`СОВПАДЕНИЯ [${matchedAccordionItems.length}]`}
               variant="mono"
-              className={styles.headerMatched}
+              tone="mint"
+              divider
             />
             <Accordion items={matchedAccordionItems} />
           </div>
@@ -162,7 +163,8 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
             <SectionHeader
               title={`ПРОПУСКИ [${missingAccordionItems.length}]`}
               variant="mono"
-              className={styles.headerMissing}
+              tone="warning"
+              divider
             />
             <Accordion items={missingAccordionItems} />
           </div>
@@ -174,7 +176,8 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
             <SectionHeader
               title={`КРИТИЧЕСКИЕ РАСХОЖДЕНИЯ [${criticalAccordionItems.length}]`}
               variant="mono"
-              className={styles.headerCritical}
+              tone="danger"
+              divider
             />
             <Accordion items={criticalAccordionItems} />
           </div>

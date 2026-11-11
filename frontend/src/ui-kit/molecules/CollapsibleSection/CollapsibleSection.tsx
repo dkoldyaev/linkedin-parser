@@ -70,7 +70,6 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
           onToggle={handleToggle}
           expandLabel={expandLabel}
           collapseLabel={collapseLabel}
-          className={styles.header}
         />
 
         {isOpen && (
