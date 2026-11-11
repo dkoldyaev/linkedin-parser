@@ -82,6 +82,9 @@ export function Header({
   children,
   ...rest
 }: HeaderProps): React.ReactElement {
+  const [internalSearchFocused, setInternalSearchFocused] = React.useState(false);
+  const isSearchFocused = searchFocused || internalSearchFocused;
+
   const resolvedQueueLabel =
     queueLabel !== undefined
       ? queueLabel
@@ -117,13 +120,23 @@ export function Header({
 
   return (
     <header
-      className={cn(styles.header, searchFocused && styles.searchFocused, className)}
+      className={cn(styles.header, isSearchFocused && styles.searchFocused, className)}
       {...rest}
     >
       {brand !== undefined ? brand : defaultBrand}
 
       {search !== undefined && (
-        <div className={styles.headerCenter}>{search}</div>
+        <div
+          className={styles.headerCenter}
+          onFocus={() => setInternalSearchFocused(true)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setInternalSearchFocused(false);
+            }
+          }}
+        >
+          {search}
+        </div>
       )}
 
       <div className={styles.headerActions}>

@@ -24,6 +24,7 @@
     text-decoration: none;
     color: inherit;
     user-select: none;
+    max-width: 320px;
     transition:
       max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.2s ease,
@@ -129,6 +130,7 @@
     gap: var(--ui-space-2);
     height: var(--ui-grid-cell);
     flex-shrink: 0;
+    max-width: 800px;
     transition:
       max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.2s ease,
@@ -324,8 +326,8 @@
     }
   }
 
-  /* Tablet Landscape & Below (<= 960px) */
-  @media (max-width: 960px) {
+  /* Tablet Landscape & Below (<= 1000px) */
+  @media (max-width: 1000px) {
     .header {
       padding: 0 var(--ui-space-4);
     }
@@ -333,6 +335,7 @@
     .headerCenter {
       margin: 0 var(--ui-space-2);
       max-width: none;
+      min-width: var(--ui-grid-cell);
     }
 
     /* Collapse add vacancies text: become 32x32px icon-only button */
@@ -375,6 +378,7 @@
 
     /* Search focused expands to 100% of header bar */
     .header:has(input:focus) .brand,
+    .header:has([data-focused='true']) .brand,
     .searchFocused .brand {
       max-width: 0;
       opacity: 0;
@@ -386,6 +390,7 @@
     }
 
     .header:has(input:focus) .headerActions,
+    .header:has([data-focused='true']) .headerActions,
     .searchFocused .headerActions {
       max-width: 0;
       opacity: 0;
@@ -398,6 +403,7 @@
     }
 
     .header:has(input:focus) .headerCenter,
+    .header:has([data-focused='true']) .headerCenter,
     .searchFocused .headerCenter {
       max-width: 100%;
       width: 100%;
