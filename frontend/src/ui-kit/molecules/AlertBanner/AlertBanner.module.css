@@ -1,0 +1,53 @@
+@layer ui-molecules {
+  .banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--ui-space-3);
+    width: 100%;
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-space-3) var(--ui-space-4);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-sizing: border-box;
+  }
+
+  .body {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ui-space-3);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .textStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1);
+    min-width: 0;
+  }
+
+  .tone-info {
+    background-color: var(--ui-color-status-info-bg);
+    border-color: var(--ui-color-status-info-border);
+    color: var(--ui-color-status-info);
+  }
+
+  .tone-success {
+    background-color: var(--ui-color-status-success-bg);
+    border-color: var(--ui-color-status-success-border);
+    color: var(--ui-color-status-success);
+  }
+
+  .tone-warning {
+    background-color: var(--ui-color-status-warning-bg);
+    border-color: var(--ui-color-status-warning-border);
+    color: var(--ui-color-status-warning);
+  }
+
+  .tone-danger {
+    background-color: var(--ui-color-status-danger-bg);
+    border-color: var(--ui-color-status-danger-border);
+    color: var(--ui-color-status-danger);
+  }
+}

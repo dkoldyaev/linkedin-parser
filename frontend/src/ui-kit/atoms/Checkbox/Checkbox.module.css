@@ -1,0 +1,63 @@
+@layer ui-atoms {
+  .labelWrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    min-height: var(--ui-grid-cell);
+    cursor: pointer;
+    user-select: none;
+    color: var(--ui-color-text-primary);
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-base);
+  }
+
+  .disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast);
+  }
+
+  .input::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    transition: transform var(--ui-transition-fast);
+    background-color: var(--ui-color-accent-primary-hover);
+  }
+
+  .input:checked {
+    border-color: var(--ui-color-accent-primary);
+    background-color: var(--ui-color-accent-primary-subtle);
+  }
+
+  .input:checked::before {
+    transform: scale(1);
+  }
+
+  .input:focus-visible {
+    outline: 2px solid var(--ui-color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .input:disabled {
+    cursor: not-allowed;
+  }
+}

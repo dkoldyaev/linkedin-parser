@@ -1,0 +1,41 @@
+@layer ui-molecules {
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--ui-space-2);
+    width: 100%;
+  }
+
+  .swatch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-2);
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+      border-color var(--ui-transition-fast),
+      background-color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast);
+  }
+
+  .swatch:hover:not(:disabled) {
+    background-color: var(--ui-color-bg-hover);
+    border-color: var(--ui-color-text-secondary);
+  }
+
+  .swatch:focus-visible {
+    outline: 2px solid var(--ui-color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .selected {
+    border-color: var(--ui-color-accent-primary);
+    background-color: var(--ui-color-accent-primary-subtle);
+    box-shadow: var(--ui-shadow-glow-blue);
+  }
+}

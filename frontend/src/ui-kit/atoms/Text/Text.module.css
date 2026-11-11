@@ -1,0 +1,110 @@
+@layer ui-atoms {
+  .text {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Variants */
+  .variant-body {
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-base);
+    line-height: var(--ui-leading-normal);
+  }
+
+  .variant-caption {
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-sm);
+    line-height: var(--ui-leading-snug);
+  }
+
+  .variant-mono {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-sm);
+    line-height: var(--ui-leading-normal);
+  }
+
+  .variant-mono-label {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wider);
+    line-height: var(--ui-leading-snug);
+    text-transform: uppercase;
+  }
+
+  .variant-title {
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-lg);
+    font-weight: var(--ui-weight-semibold);
+    line-height: var(--ui-leading-snug);
+  }
+
+  .variant-heading {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xl);
+    font-weight: var(--ui-weight-bold);
+    letter-spacing: var(--ui-tracking-wide);
+    line-height: var(--ui-leading-tight);
+    text-transform: uppercase;
+  }
+
+  .variant-display {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-2xl);
+    font-weight: var(--ui-weight-extrabold);
+    letter-spacing: var(--ui-tracking-tight);
+    line-height: var(--ui-leading-tight);
+  }
+
+  /* Tones */
+  .tone-primary {
+    color: var(--ui-color-text-primary);
+  }
+
+  .tone-secondary {
+    color: var(--ui-color-text-secondary);
+  }
+
+  .tone-muted {
+    color: var(--ui-color-text-muted);
+  }
+
+  .tone-accent {
+    color: var(--ui-color-accent-primary-hover);
+  }
+
+  .tone-success {
+    color: var(--ui-color-status-success);
+  }
+
+  .tone-warning {
+    color: var(--ui-color-status-warning);
+  }
+
+  .tone-danger {
+    color: var(--ui-color-status-danger);
+  }
+
+  /* Weights */
+  .weight-regular {
+    font-weight: var(--ui-weight-regular);
+  }
+
+  .weight-medium {
+    font-weight: var(--ui-weight-medium);
+  }
+
+  .weight-semibold {
+    font-weight: var(--ui-weight-semibold);
+  }
+
+  .weight-bold {
+    font-weight: var(--ui-weight-bold);
+  }
+
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

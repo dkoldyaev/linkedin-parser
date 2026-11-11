@@ -1,0 +1,26 @@
+@layer ui-atoms {
+  .label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wider);
+    line-height: var(--ui-leading-snug);
+    text-transform: uppercase;
+    color: var(--ui-color-text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .requiredIndicator {
+    color: var(--ui-color-status-danger);
+    font-weight: var(--ui-weight-bold);
+  }
+
+  .disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

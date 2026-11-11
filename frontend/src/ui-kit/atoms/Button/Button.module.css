@@ -1,0 +1,174 @@
+@layer ui-atoms {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-2);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-sm);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wide);
+    line-height: var(--ui-leading-none);
+    text-transform: uppercase;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    border-radius: var(--ui-radius-none);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-elevated);
+    color: var(--ui-color-text-primary);
+    box-sizing: border-box;
+    transition:
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast),
+      color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast);
+  }
+
+  .button:focus-visible {
+    outline: 2px solid var(--ui-color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .button:disabled,
+  .button[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Sizes aligned to 32px Blueprint grid */
+  .size-md {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+  }
+
+  .size-sm {
+    height: var(--ui-space-6);
+    min-height: var(--ui-space-6);
+    padding: 0 var(--ui-space-3);
+    font-size: var(--ui-text-xs);
+  }
+
+  .size-lg {
+    height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    min-height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    padding: 0 var(--ui-space-6);
+    font-size: var(--ui-text-md);
+  }
+
+  .size-icon {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    min-width: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0;
+  }
+
+  .fullWidth {
+    width: 100%;
+  }
+
+  /* Variants matching legacy Blueprint aesthetic */
+  .variant-primary {
+    background-color: var(--ui-color-accent-primary-subtle);
+    border-color: var(--ui-color-accent-primary);
+    color: var(--ui-color-accent-primary-hover);
+  }
+
+  .variant-primary:hover:not(:disabled) {
+    background-color: var(--ui-color-accent-primary);
+    border-color: var(--ui-color-accent-primary-hover);
+    color: var(--ui-color-text-inverse);
+    box-shadow: var(--ui-shadow-glow-blue);
+  }
+
+  .variant-secondary {
+    background-color: var(--ui-color-bg-elevated);
+    border-color: var(--ui-color-border-strong);
+    color: var(--ui-color-text-primary);
+  }
+
+  .variant-secondary:hover:not(:disabled) {
+    background-color: var(--ui-color-bg-hover);
+    border-color: var(--ui-color-accent-primary);
+    color: var(--ui-color-text-primary);
+  }
+
+  .variant-danger {
+    background-color: var(--ui-color-status-danger-bg);
+    border-color: var(--ui-color-status-danger-border);
+    color: var(--ui-color-status-danger);
+  }
+
+  .variant-danger:hover:not(:disabled) {
+    background-color: var(--ui-color-status-danger);
+    border-color: var(--ui-color-status-danger);
+    color: var(--ui-color-text-primary);
+    box-shadow: var(--ui-shadow-glow-danger);
+  }
+
+  .variant-warning {
+    background-color: var(--ui-color-status-warning-bg);
+    border-color: var(--ui-color-status-warning-border);
+    color: var(--ui-color-status-warning);
+  }
+
+  .variant-warning:hover:not(:disabled) {
+    background-color: var(--ui-color-status-warning);
+    border-color: var(--ui-color-status-warning);
+    color: var(--ui-color-text-inverse);
+  }
+
+  .variant-mint {
+    background-color: var(--ui-color-status-success-bg);
+    border-color: var(--ui-color-status-success-border);
+    color: var(--ui-color-accent-mint);
+  }
+
+  .variant-mint:hover:not(:disabled) {
+    background-color: var(--ui-color-accent-mint);
+    border-color: var(--ui-color-accent-mint);
+    color: var(--ui-color-text-inverse);
+    box-shadow: var(--ui-shadow-glow-mint);
+  }
+
+  .variant-ghost {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--ui-color-text-secondary);
+  }
+
+  .variant-ghost:hover:not(:disabled) {
+    background-color: var(--ui-color-bg-hover);
+    border-color: var(--ui-color-border-default);
+    color: var(--ui-color-text-primary);
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: uiButtonSpin 0.65s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .iconSlot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  @keyframes uiButtonSpin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

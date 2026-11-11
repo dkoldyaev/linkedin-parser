@@ -1,0 +1,29 @@
+@layer ui-molecules {
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+    width: 100%;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-2);
+  }
+
+  .controlWrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hint {
+    color: var(--ui-color-text-muted);
+  }
+
+  .error {
+    color: var(--ui-color-status-danger);
+  }
+}

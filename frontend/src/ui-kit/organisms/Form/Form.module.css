@@ -1,0 +1,23 @@
+@layer ui-organisms {
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+    width: 100%;
+  }
+
+  .fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+    width: 100%;
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+  }
+}

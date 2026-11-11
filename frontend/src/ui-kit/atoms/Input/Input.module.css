@@ -1,0 +1,112 @@
+@layer ui-atoms {
+  .wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .input {
+    width: 100%;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-3);
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-base);
+    line-height: var(--ui-leading-normal);
+    color: var(--ui-color-text-primary);
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-sizing: border-box;
+    transition:
+      border-color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast),
+      background-color var(--ui-transition-fast);
+  }
+
+  .input::placeholder {
+    color: var(--ui-color-text-muted);
+  }
+
+  .input:hover:not(:disabled):not(:focus) {
+    border-color: var(--ui-color-text-secondary);
+  }
+
+  .input:focus,
+  .input:focus-visible {
+    outline: none;
+    border-color: var(--ui-color-border-focus);
+    box-shadow: var(--ui-shadow-glow-blue);
+  }
+
+  .input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--ui-color-bg-secondary);
+  }
+
+  .mono {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-sm);
+  }
+
+  .size-sm {
+    height: var(--ui-space-6);
+    min-height: var(--ui-space-6);
+    padding: 0 var(--ui-space-2);
+    font-size: var(--ui-text-sm);
+  }
+
+  .size-md {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+  }
+
+  .size-lg {
+    height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    min-height: calc(var(--ui-grid-cell) + var(--ui-space-2));
+    padding: 0 var(--ui-space-4);
+    font-size: var(--ui-text-md);
+  }
+
+  .invalid {
+    border-color: var(--ui-color-status-danger);
+    background-color: var(--ui-color-status-danger-bg);
+  }
+
+  .invalid:focus,
+  .invalid:focus-visible {
+    border-color: var(--ui-color-status-danger);
+    box-shadow: var(--ui-shadow-glow-danger);
+  }
+
+  .hasStartAdornment {
+    padding-left: var(--ui-space-8);
+  }
+
+  .hasEndAdornment {
+    padding-right: var(--ui-space-8);
+  }
+
+  .startAdornment,
+  .endAdornment {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ui-color-text-muted);
+    pointer-events: none;
+  }
+
+  .startAdornment {
+    left: var(--ui-space-3);
+  }
+
+  .endAdornment {
+    right: var(--ui-space-3);
+  }
+}

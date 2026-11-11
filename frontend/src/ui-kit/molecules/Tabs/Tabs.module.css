@@ -1,0 +1,68 @@
+@layer ui-molecules {
+  .root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .list {
+    display: flex;
+    align-items: center;
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-secondary);
+    overflow-x: auto;
+  }
+
+  .trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wider);
+    text-transform: uppercase;
+    color: var(--ui-color-text-secondary);
+    background: transparent;
+    border: none;
+    border-right: var(--ui-border-width) solid var(--ui-color-border-default);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition:
+      color var(--ui-transition-fast),
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast);
+  }
+
+  .trigger:hover:not(:disabled) {
+    color: var(--ui-color-text-primary);
+    background-color: var(--ui-color-bg-hover);
+  }
+
+  .trigger:focus-visible {
+    outline: 2px solid var(--ui-color-border-focus);
+    outline-offset: -2px;
+  }
+
+  .trigger[data-state='active'] {
+    color: var(--ui-color-accent-primary-hover);
+    background-color: var(--ui-color-bg-surface);
+    border-bottom-color: var(--ui-color-accent-primary);
+  }
+
+  .trigger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .content {
+    padding: var(--ui-space-4) 0;
+    outline: none;
+  }
+}

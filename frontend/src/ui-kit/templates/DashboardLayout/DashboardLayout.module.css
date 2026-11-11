@@ -1,0 +1,55 @@
+@layer ui-templates {
+  .dashboard {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--ui-color-bg-primary);
+    color: var(--ui-color-text-primary);
+    font-family: var(--ui-font-sans);
+    background-image:
+      linear-gradient(to right, var(--ui-color-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ui-color-grid-line) 1px, transparent 1px);
+    background-size: var(--ui-grid-cell) var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-4);
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: var(--ui-space-3) var(--ui-space-6);
+    background-color: var(--ui-color-bg-secondary);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+  }
+
+  .body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .sidebar {
+    width: calc(var(--ui-grid-cell) * 9);
+    flex-shrink: 0;
+    background-color: var(--ui-color-bg-surface);
+    border-right: var(--ui-border-width) solid var(--ui-color-border-strong);
+    padding: var(--ui-space-4);
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .workspace {
+    flex: 1;
+    min-width: 0;
+    padding: var(--ui-space-6);
+    box-sizing: border-box;
+    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-6);
+  }
+}

@@ -1,0 +1,96 @@
+@layer ui-molecules {
+  .trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-2);
+    width: 100%;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-3);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-sm);
+    color: var(--ui-color-text-primary);
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+      border-color var(--ui-transition-fast),
+      box-shadow var(--ui-transition-fast),
+      background-color var(--ui-transition-fast);
+  }
+
+  .trigger:hover:not(:disabled) {
+    border-color: var(--ui-color-text-secondary);
+  }
+
+  .trigger:focus,
+  .trigger:focus-visible {
+    outline: none;
+    border-color: var(--ui-color-border-focus);
+    box-shadow: var(--ui-shadow-glow-blue);
+  }
+
+  .trigger[data-disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .trigger[data-placeholder] {
+    color: var(--ui-color-text-muted);
+  }
+
+  .invalid {
+    border-color: var(--ui-color-status-danger);
+    background-color: var(--ui-color-status-danger-bg);
+  }
+
+  .content {
+    overflow: hidden;
+    background-color: var(--ui-color-bg-elevated);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-shadow: var(--ui-shadow-md);
+    z-index: var(--ui-z-dropdown);
+    min-width: var(--radix-select-trigger-width);
+    max-height: var(--radix-select-content-available-height);
+  }
+
+  .viewport {
+    padding: var(--ui-space-1);
+  }
+
+  .item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-3);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-sm);
+    color: var(--ui-color-text-primary);
+    border-radius: var(--ui-radius-none);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+  }
+
+  .item[data-highlighted] {
+    background-color: var(--ui-color-accent-primary-subtle);
+    color: var(--ui-color-accent-primary-hover);
+  }
+
+  .item[data-state='checked'] {
+    font-weight: var(--ui-weight-semibold);
+    color: var(--ui-color-accent-primary-hover);
+  }
+
+  .item[data-disabled] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}

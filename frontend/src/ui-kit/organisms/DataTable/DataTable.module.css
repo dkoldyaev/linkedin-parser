@@ -1,0 +1,110 @@
+@layer ui-organisms {
+  .wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .th {
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wider);
+    text-transform: uppercase;
+    color: var(--ui-color-text-secondary);
+    background-color: var(--ui-color-bg-secondary);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-right: var(--ui-border-width) solid var(--ui-color-border-default);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .th:last-child {
+    border-right: none;
+  }
+
+  .sortButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+
+  .sortButton:hover {
+    color: var(--ui-color-text-primary);
+  }
+
+  .sortButton:focus-visible {
+    outline: 2px solid var(--ui-color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .tr {
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-default);
+    transition: background-color var(--ui-transition-fast);
+  }
+
+  .tr:last-child {
+    border-bottom: none;
+  }
+
+  .tr:hover {
+    background-color: var(--ui-color-bg-hover);
+  }
+
+  .clickableRow {
+    cursor: pointer;
+  }
+
+  .td {
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-space-2) var(--ui-space-4);
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-text-sm);
+    color: var(--ui-color-text-primary);
+    border-right: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    vertical-align: middle;
+  }
+
+  .td:last-child {
+    border-right: none;
+  }
+
+  .align-left {
+    text-align: left;
+  }
+
+  .align-center {
+    text-align: center;
+  }
+
+  .align-right {
+    text-align: right;
+  }
+
+  .loadingState {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-8);
+    color: var(--ui-color-text-secondary);
+  }
+}

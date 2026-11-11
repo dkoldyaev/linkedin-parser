@@ -1,0 +1,89 @@
+@layer ui-atoms {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    height: calc(var(--ui-space-6));
+    padding: 0 var(--ui-space-2);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    font-weight: var(--ui-weight-semibold);
+    letter-spacing: var(--ui-tracking-wide);
+    line-height: var(--ui-leading-none);
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-radius: var(--ui-radius-none);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+  }
+
+  .size-sm {
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .size-md {
+    height: var(--ui-space-6);
+    padding: 0 var(--ui-space-2);
+  }
+
+  .tone-neutral {
+    background-color: var(--ui-color-bg-elevated);
+    border-color: var(--ui-color-border-strong);
+    color: var(--ui-color-text-secondary);
+  }
+
+  .tone-primary {
+    background-color: var(--ui-color-accent-primary-subtle);
+    border-color: var(--ui-color-accent-primary);
+    color: var(--ui-color-accent-primary-hover);
+  }
+
+  .tone-success {
+    background-color: var(--ui-color-status-success-bg);
+    border-color: var(--ui-color-status-success-border);
+    color: var(--ui-color-status-success);
+  }
+
+  .tone-warning {
+    background-color: var(--ui-color-status-warning-bg);
+    border-color: var(--ui-color-status-warning-border);
+    color: var(--ui-color-status-warning);
+  }
+
+  .tone-danger {
+    background-color: var(--ui-color-status-danger-bg);
+    border-color: var(--ui-color-status-danger-border);
+    color: var(--ui-color-status-danger);
+  }
+
+  .tone-info {
+    background-color: var(--ui-color-status-info-bg);
+    border-color: var(--ui-color-status-info-border);
+    color: var(--ui-color-status-info);
+  }
+
+  .removeButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+    margin-left: 2px;
+    background: transparent;
+    border: none;
+    color: currentColor;
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-text-xs);
+    cursor: pointer;
+    opacity: 0.75;
+  }
+
+  .removeButton:hover {
+    opacity: 1;
+  }
+
+  .removeButton:focus-visible {
+    outline: 1px solid var(--ui-color-border-focus);
+  }
+}

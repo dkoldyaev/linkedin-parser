@@ -1,0 +1,103 @@
+@layer ui-organisms {
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ui-z-modal-backdrop);
+    background-color: var(--ui-color-bg-overlay);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ui-space-4);
+  }
+
+  .content {
+    position: relative;
+    z-index: var(--ui-z-modal);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: calc(100vh - var(--ui-space-16));
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-shadow: var(--ui-shadow-lg);
+    color: var(--ui-color-text-primary);
+    box-sizing: border-box;
+    outline: none;
+  }
+
+  .size-sm {
+    max-width: 448px;
+  }
+
+  .size-md {
+    max-width: 576px;
+  }
+
+  .size-lg {
+    max-width: 768px;
+  }
+
+  .size-xl {
+    max-width: 1024px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-4);
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: var(--ui-space-4) var(--ui-space-6);
+    background-color: var(--ui-color-bg-secondary);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+  }
+
+  .titleGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1);
+    min-width: 0;
+  }
+
+  .titleRow {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--ui-space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--ui-space-3);
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: var(--ui-space-4) var(--ui-space-6);
+    background-color: var(--ui-color-bg-secondary);
+    border-top: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+  }
+
+  .srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

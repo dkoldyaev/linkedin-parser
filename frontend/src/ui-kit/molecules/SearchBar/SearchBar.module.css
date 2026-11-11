@@ -1,0 +1,24 @@
+@layer ui-molecules {
+  .searchBar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .clearButton {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 24px;
+    min-height: 24px;
+    width: 24px;
+    min-width: 24px;
+    padding: 0;
+  }
+
+  .hasClear {
+    padding-right: var(--ui-space-8);
+  }
+}

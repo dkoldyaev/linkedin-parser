@@ -1,0 +1,43 @@
+@layer ui-organisms {
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-4);
+    width: 100%;
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: 0 var(--ui-space-6);
+    background-color: var(--ui-color-bg-surface);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+    z-index: var(--ui-z-sticky);
+  }
+
+  .brandSection {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-4);
+    min-width: 0;
+  }
+
+  .brandTitle {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .centerSection {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    flex: 1;
+    justify-content: center;
+  }
+
+  .actionsSection {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+  }
+}

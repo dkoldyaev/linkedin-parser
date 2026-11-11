@@ -1,0 +1,44 @@
+@layer ui-templates {
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--ui-color-bg-primary);
+    color: var(--ui-color-text-primary);
+    font-family: var(--ui-font-sans);
+    background-image:
+      linear-gradient(to right, var(--ui-color-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ui-color-grid-line) 1px, transparent 1px);
+    background-size: var(--ui-grid-cell) var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .bannerSlot {
+    width: 100%;
+  }
+
+  .main {
+    flex: 1;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: var(--ui-space-6);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-6);
+  }
+
+  .fullBleed {
+    max-width: none;
+    padding: 0;
+  }
+
+  .footer {
+    min-height: calc(var(--ui-grid-cell) * 2);
+    padding: var(--ui-space-4) var(--ui-space-6);
+    border-top: var(--ui-border-width) solid var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-secondary);
+    box-sizing: border-box;
+  }
+}

@@ -1,0 +1,25 @@
+@layer ui-molecules {
+  .emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-8) var(--ui-space-6);
+    border: var(--ui-border-width) dashed var(--ui-color-border-strong);
+    background-color: var(--ui-color-bg-secondary);
+    box-sizing: border-box;
+  }
+
+  .description {
+    max-width: 420px;
+  }
+
+  .actions {
+    margin-top: var(--ui-space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+}

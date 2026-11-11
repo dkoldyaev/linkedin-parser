@@ -1,0 +1,33 @@
+@layer ui-molecules {
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+    width: 100%;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-2);
+  }
+
+  .tokens {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ui-space-2);
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-space-2);
+    background-color: var(--ui-color-bg-surface);
+    border: var(--ui-border-width) solid var(--ui-color-border-default);
+    box-sizing: border-box;
+  }
+
+  .addRow {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+}

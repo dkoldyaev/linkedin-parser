@@ -1,0 +1,94 @@
+@layer ui-atoms {
+  .dot {
+    display: inline-block;
+    width: var(--ui-space-2);
+    height: var(--ui-space-2);
+    flex-shrink: 0;
+    border-radius: var(--ui-radius-none);
+    border: var(--ui-border-width) solid var(--ui-color-border-strong);
+    box-sizing: border-box;
+  }
+
+  .pulse {
+    animation: uiDotPulse 2s ease-in-out infinite;
+  }
+
+  .tone-neutral {
+    background-color: var(--ui-color-text-muted);
+    border-color: var(--ui-color-text-muted);
+  }
+
+  .tone-primary {
+    background-color: var(--ui-color-accent-primary);
+    border-color: var(--ui-color-accent-primary-hover);
+    box-shadow: var(--ui-shadow-glow-blue);
+  }
+
+  .tone-success {
+    background-color: var(--ui-color-status-success);
+    border-color: var(--ui-color-status-success);
+    box-shadow: var(--ui-shadow-glow-mint);
+  }
+
+  .tone-warning {
+    background-color: var(--ui-color-status-warning);
+    border-color: var(--ui-color-status-warning);
+  }
+
+  .tone-danger {
+    background-color: var(--ui-color-status-danger);
+    border-color: var(--ui-color-status-danger);
+    box-shadow: var(--ui-shadow-glow-danger);
+  }
+
+  /* Palette tones for Kanban columns */
+  .palette-slate {
+    background-color: var(--ui-color-palette-slate);
+    border-color: var(--ui-color-palette-slate);
+  }
+
+  .palette-blue {
+    background-color: var(--ui-color-palette-blue);
+    border-color: var(--ui-color-palette-blue);
+  }
+
+  .palette-purple {
+    background-color: var(--ui-color-palette-purple);
+    border-color: var(--ui-color-palette-purple);
+  }
+
+  .palette-emerald {
+    background-color: var(--ui-color-palette-emerald);
+    border-color: var(--ui-color-palette-emerald);
+  }
+
+  .palette-amber {
+    background-color: var(--ui-color-palette-amber);
+    border-color: var(--ui-color-palette-amber);
+  }
+
+  .palette-rose {
+    background-color: var(--ui-color-palette-rose);
+    border-color: var(--ui-color-palette-rose);
+  }
+
+  .palette-cyan {
+    background-color: var(--ui-color-palette-cyan);
+    border-color: var(--ui-color-palette-cyan);
+  }
+
+  .palette-indigo {
+    background-color: var(--ui-color-palette-indigo);
+    border-color: var(--ui-color-palette-indigo);
+  }
+
+  @keyframes uiDotPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
