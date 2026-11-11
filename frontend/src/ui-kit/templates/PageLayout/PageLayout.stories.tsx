@@ -22,8 +22,9 @@ export const DefaultBlueprintPage: Story = {
       header={
         <Header
           title="CV.ALTER"
-          versionBadge="BLUEPRINT"
-          statusLabel="ONLINE"
+          subtitle="BLUEPRINT ARCHITECTURE"
+          showThemeToggle
+          user={{ name: 'Denis Koldyaev' }}
           actions={<Button size="sm" variant="primary">Dashboard</Button>}
         />
       }

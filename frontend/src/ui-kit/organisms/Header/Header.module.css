@@ -1,89 +1,301 @@
 @layer ui-organisms {
   .header {
+    height: calc(2 * var(--ui-grid-cell));
+    min-height: calc(2 * var(--ui-grid-cell));
+    max-height: calc(2 * var(--ui-grid-cell));
+    width: 100%;
+    padding: 0 var(--ui-space-6);
+    background-color: var(--ui-bg-surface);
+    border-bottom: 2px solid var(--ui-pixel-line);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--ui-space-4);
-    width: 100%;
-    min-height: calc(var(--ui-grid-cell) * 2);
-    padding: 0 var(--ui-space-6);
-    background-color: var(--ui-color-bg-surface);
-    border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
     box-sizing: border-box;
+    flex-shrink: 0;
     z-index: var(--ui-z-sticky);
   }
 
-  .brandSection {
-    display: flex;
-    align-items: center;
-    gap: var(--ui-space-4);
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    transition:
-      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.2s ease,
-      margin 0.25s ease,
-      transform 0.2s ease;
-  }
-
-  .brandTitle {
-    display: flex;
-    align-items: center;
-    gap: var(--ui-space-2);
-  }
-
-  .centerSection {
+  .brand {
     display: flex;
     align-items: center;
     gap: var(--ui-space-3);
-    flex: 1;
-    min-width: 0;
-    justify-content: center;
-    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    text-decoration: none;
+    color: inherit;
+    user-select: none;
   }
 
-  .actionsSection {
+  .brandIcon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    background-color: var(--ui-primary-subtle);
+    color: var(--ui-primary);
+    border: 1px solid var(--ui-pixel-line);
+    border-radius: var(--ui-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .blueprintMark {
+    width: 19px;
+    height: 19px;
+    display: block;
+    border: 1.5px solid currentColor;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .blueprintMark::before,
+  .blueprintMark::after {
+    content: '';
+    position: absolute;
+    background-color: currentColor;
+    opacity: 0.8;
+  }
+
+  .blueprintMark::before {
+    width: 1px;
+    height: 100%;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+  }
+
+  .blueprintMark::after {
+    height: 1px;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+  }
+
+  .brandText {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .brandTitle {
+    font-family: var(--ui-font-sans);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.07em;
+    color: var(--ui-text-primary);
+    margin: 0;
+    padding: 0;
+  }
+
+  .brandSubtitle {
+    font-family: var(--ui-font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ui-text-muted);
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+  }
+
+  .headerCenter {
+    flex: 1;
+    max-width: 440px;
+    margin: 0 var(--ui-space-4);
+    height: var(--ui-grid-cell);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .headerActions {
     display: flex;
     align-items: center;
     gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
     flex-shrink: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    max-width: 450px;
-    transition:
-      max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.2s ease,
-      transform 0.2s ease,
-      margin 0.25s ease,
-      gap 0.25s ease;
   }
 
-  @media (max-width: 960px) {
-    .header:has(input[role='searchbox']:focus) .brandSection {
-      max-width: 0;
-      opacity: 0;
-      margin: 0;
-      padding: 0;
-      pointer-events: none;
-      transform: scale(0.92);
-    }
+  .queuePill {
+    height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 var(--ui-space-2);
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    color: var(--ui-text-secondary);
+    background-color: var(--ui-bg-surface);
+    border: 1px solid var(--ui-color-border-default);
+    cursor: pointer;
+    box-sizing: border-box;
+    white-space: nowrap;
+    transition:
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast),
+      color var(--ui-transition-fast);
+  }
 
-    .header:has(input[role='searchbox']:focus) .actionsSection {
-      max-width: 0;
-      opacity: 0;
-      margin: 0;
-      padding: 0;
-      gap: 0;
-      pointer-events: none;
-      transform: scale(0.92);
-    }
+  .queuePill:hover {
+    color: var(--ui-primary);
+    border-color: var(--ui-primary);
+  }
 
-    .header:has(input[role='searchbox']:focus) .centerSection {
-      max-width: 100%;
-      width: 100%;
-      margin: 0;
-      flex: 1;
-    }
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  .addBtn {
+    height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #071729;
+    background-color: var(--ui-primary);
+    border: 1px solid var(--ui-primary);
+    border-radius: var(--ui-radius-sm);
+    cursor: pointer;
+    box-sizing: border-box;
+    white-space: nowrap;
+    transition:
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast);
+  }
+
+  .addBtn:hover {
+    background-color: var(--ui-primary-hover);
+    border-color: var(--ui-primary-hover);
+  }
+
+  .btnIcon {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    min-width: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    border-radius: var(--ui-radius-sm);
+    color: var(--ui-text-secondary);
+    cursor: pointer;
+    box-sizing: border-box;
+    transition:
+      color var(--ui-transition-fast),
+      background-color var(--ui-transition-fast);
+  }
+
+  .btnIcon:hover {
+    background-color: var(--ui-primary-subtle);
+    color: var(--ui-primary);
+  }
+
+  .guestLoginBtn {
+    height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    font-family: var(--ui-font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #071729;
+    background-color: var(--ui-primary);
+    border: 1px solid var(--ui-primary);
+    border-radius: var(--ui-radius-sm);
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .userProfileBadge {
+    height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 0 4px;
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-color-border-default);
+    background-color: var(--ui-bg-card);
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  .userAvatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .userAvatarPlaceholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--ui-primary);
+    color: #071729;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ui-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .userName {
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+    color: var(--ui-text-primary);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btnLogout {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    color: var(--ui-text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--ui-transition-fast);
+  }
+
+  .btnLogout:hover {
+    color: #ef4444;
+  }
+
+  .burger {
+    color: var(--ui-text-secondary);
+  }
+
+  .burgerOpen {
+    color: var(--ui-primary);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

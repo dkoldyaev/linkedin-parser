@@ -4,18 +4,15 @@ import {
   Ban,
   ChevronDown,
   Globe,
-  Loader2,
   MapPin,
-  Menu,
   MoreVertical,
   Plus,
-  RefreshCw,
   RotateCcw,
 } from 'lucide-react';
 import { DashboardLayout } from './DashboardLayout';
 import { VacancyCard, Header } from '../../organisms';
 import { SearchBar } from '../../molecules';
-import { Badge, Button } from '../../atoms';
+import { Badge } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './DashboardLayout.module.css';
 import storyStyles from './DashboardLayoutStory.module.css';
@@ -142,54 +139,30 @@ function KanbanDashboardDemo(): React.ReactElement {
     <DashboardLayout
       header={
         <Header
-          title={
-            <div className={storyStyles.menuBrandGroup}>
-              <button
-                type="button"
-                className={storyStyles.menuBtn}
-                title="Меню"
-                aria-label="Меню"
-              >
-                <Menu size={16} />
-              </button>
-              <span>CV.ALTER</span>
-            </div>
+          title="CV.ALTER"
+          subtitle="PARSER & TRACKER"
+          search={
+            <SearchBar
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Поиск по названию или компании..."
+              aria-label="Поиск вакансий"
+              expandOnFocus
+            />
           }
-          versionBadge="v2.0"
-          statusLabel="MERCURE SSE ACTIVE"
-          statusTone="success"
-          statusPulse
-          navigation={
-            <div className={storyStyles.searchWrapper}>
-              <SearchBar
-                value={search}
-                onValueChange={setSearch}
-                placeholder="Поиск по названию или компании..."
-                aria-label="Поиск вакансий"
-                expandOnFocus
-              />
-            </div>
-          }
-          actions={
-            <div className={storyStyles.headerActions}>
-              <div className={storyStyles.queuePill}>
-                <Loader2 size={13} className={storyStyles.spin} />
-                <span>2 В ОЧЕРЕДИ</span>
-              </div>
-              <Button size="sm" variant="primary">
-                <Plus size={14} />
-                <span>ДОБАВИТЬ ВАКАНСИИ</span>
-              </Button>
-              <button
-                type="button"
-                className={storyStyles.menuBtn}
-                title="Обновить"
-                aria-label="Обновить вакансии"
-              >
-                <RefreshCw size={14} />
-              </button>
-            </div>
-          }
+          queueCount={2}
+          onAddVacancies={() => alert('Add vacancies clicked')}
+          onRefresh={() => alert('Refresh clicked')}
+          showThemeToggle
+          onDownloadExtension={() => alert('Download extension')}
+          onSettingsClick={() => alert('Settings clicked')}
+          user={{
+            name: 'Denis Koldyaev',
+            email: 'denis@example.com',
+          }}
+          onLogout={() => alert('Logout clicked')}
+          menuOpen={false}
+          onMenuToggle={() => alert('Menu toggled')}
         />
       }
       filterBar={
