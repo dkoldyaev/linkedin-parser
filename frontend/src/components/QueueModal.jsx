@@ -1,79 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { X, Loader2, Trash2, AlertCircle, List, ExternalLink, Clock, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 
-export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQueue }) {
+export default function QueueModal({ isOpen, onClose, queueState }) {
   const { t } = useTranslation();
-  const [links, setLinks] = useState([]);
-  const [counts, setCounts] = useState({ total: 0, pending: 0, processing: 0, failed: 0 });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [parent] = useAutoAnimate();
 
-  const fetchQueueLinks = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/v2/queue/links');
-      if (!res.ok) throw new Error('Failed to fetch queue links');
-      const data = await res.json();
-      setLinks(data.links || []);
-      setCounts({
-        total: data.total || 0,
-        pending: data.pending_count || 0,
-        processing: data.processing_count || 0,
-        failed: data.failed_count || 0,
-      });
-      if ((data.links || []).length === 0 && queueRemaining > 0) {
-        onRefreshQueue?.();
-      }
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [queueRemaining, onRefreshQueue]);
+  const links = queueState.links;
+  const counts = {
+    total: queueState.total,
+    pending: queueState.pending_count,
+    processing: queueState.processing_count,
+    failed: queueState.failed_count,
+  };
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchQueueLinks();
-      onRefreshQueue?.();
-    } else {
-      setLinks([]);
-      setCounts({ total: 0, pending: 0, processing: 0, failed: 0 });
-      setError('');
-      setLoading(false);
-    }
-  }, [isOpen, queueRemaining, fetchQueueLinks, onRefreshQueue]);
-
+  // The list updates itself from the Mercure `queue_state` event after the DELETE requests below.
   const handleCancelLink = async (taskId) => {
     try {
-      setLinks((prev) => prev.filter(item => item.task_id !== taskId));
-      setCounts((prev) => ({
-        ...prev,
-        total: Math.max(0, prev.total - 1),
-      }));
       const res = await fetch(`/api/v2/queue/links/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel link processing');
-      onRefreshQueue?.();
     } catch (err) {
       alert(t('queueModal.cancel_error', { error: err.message }));
-      fetchQueueLinks();
     }
   };
 
   const handleClearAll = async () => {
     if (!window.confirm(t('queueModal.clear_all_confirm'))) return;
     try {
-      setLinks([]);
-      setCounts({ total: 0, pending: 0, processing: 0, failed: 0 });
       const res = await fetch('/api/v2/queue/links', { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to clear queue links');
-      onRefreshQueue?.();
     } catch (err) {
       alert(t('queueModal.clear_all_error', { error: err.message }));
-      fetchQueueLinks();
     }
   };
 
@@ -279,15 +237,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
         )}
 
         <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {loading ? (
-             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-               <Loader2 size={24} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
-             </div>
-          ) : error ? (
-             <div style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <AlertCircle size={16} /> {error}
-             </div>
-          ) : links.length === 0 ? (
+          {links.length === 0 ? (
              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                {t('queueModal.empty')}
              </div>

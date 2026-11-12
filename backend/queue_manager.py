@@ -30,6 +30,7 @@ from .mercure import (
     EVENT_TASK_FAILED,
     EVENT_QUEUE_UPDATED,
     EVENT_QUEUE_IDLE,
+    EVENT_QUEUE_STATE,
     EVENT_COMPATIBILITY_ANALYZED,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
@@ -78,8 +79,29 @@ def sync_db_queue_item(
                     item.vacancy_id = vacancy_id
                 item.updated_at = datetime.datetime.utcnow()
                 db.commit()
+                item_user_id = item.user_id
+            else:
+                item_user_id = None
     except Exception as e:
         logger.warning(f"Error syncing queue item {task_id} in DB: {e}")
+        return
+    if item_user_id is not None:
+        schedule_queue_state_publish(item_user_id)
+
+
+_queue_state_publish_tasks: set = set()
+
+
+def schedule_queue_state_publish(user_id: int) -> None:
+    """Publish the user's full queue snapshot to Mercure from sync code running inside the event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        logger.warning(f"No running event loop; queue_state for user {user_id} not published")
+        return
+    publish_task = loop.create_task(queue_manager.publish_queue_state(user_id))
+    _queue_state_publish_tasks.add(publish_task)
+    publish_task.add_done_callback(_queue_state_publish_tasks.discard)
 
 
 
@@ -330,6 +352,8 @@ class RedisQueueManager:
                 },
                 topic=mercure_topic,
             )
+        if user_id:
+            await self.publish_queue_state(user_id)
 
         logger.info(
             f"Enqueued {len(new_tasks)} URLs in batch {batch_id} for user {user_id} into Scrape Queue. "
@@ -418,6 +442,15 @@ class RedisQueueManager:
                 processing_count=processing_count,
                 failed_count=failed_count,
             )
+
+    async def publish_queue_state(self, user_id: int) -> None:
+        """Publish the full queue snapshot (links, stages, counters) to the user's Mercure topic."""
+        state = await self.get_active_links(user_id=user_id)
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_STATE,
+            data=state.model_dump(mode="json"),
+            topic=f"vacancies:{user_id}",
+        )
 
     async def get_link_info(self, task_id: str, user_id: int) -> Optional[ProcessingLinkInfo]:
         with SessionLocal() as db:
@@ -596,6 +629,7 @@ class RedisQueueManager:
             },
             topic=mercure_topic,
         )
+        await self.publish_queue_state(user_id)
         return len(all_task_ids)
 
 

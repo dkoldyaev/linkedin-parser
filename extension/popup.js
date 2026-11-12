@@ -3,14 +3,10 @@ const API_BASE = process.env.APP_URL;
 // --- Queue fetching ---
 async function fetchQueue() {
   try {
-    // /api/queue/tasks returns List[TaskInfo] with title, company, stage, status
-    const [tasksRes, statusRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v2/queue/tasks`, { credentials: "include" }),
-      fetch(`${API_BASE}/api/v2/queue/status`, { credentials: "include" }),
-    ]);
-    const tasks = tasksRes.ok ? await tasksRes.json() : [];
-    const status = statusRes.ok ? await statusRes.json() : {};
-    return { tasks, total_remaining: status.total_remaining ?? tasks.length };
+    // Queue state is held by background.js, which receives it only via Mercure `queue_state` events
+    await chrome.runtime.sendMessage({ type: "SYNC_QUEUE" });
+    const state = await chrome.runtime.sendMessage({ type: "GET_QUEUE_STATE" });
+    return { tasks: state.links, total_remaining: state.pending_count + state.processing_count };
   } catch {
     return null;
   }

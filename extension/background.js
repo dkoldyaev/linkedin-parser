@@ -5,6 +5,8 @@ let eventSource = null;
 let mercureConfig = null;
 let mercureRefreshTimer = null;
 let mercureConnecting = false;
+// Queue state is received only via Mercure `queue_state` events
+let queueState = { links: [], total: 0, pending_count: 0, processing_count: 0, failed_count: 0 };
 
 // ─── Captcha / block detection ────────────────────────────────────────────
 //
@@ -293,7 +295,25 @@ chrome.notifications.onClicked.addListener(async (notifId) => {
 
 // ─── Message handler (from popup) ─────────────────────────────────────────
 
+async function requestQueueSync() {
+  try {
+    await fetch(`${API_BASE}/api/v2/queue/sync`, { method: "POST", credentials: "include" });
+  } catch (err) {
+    console.error("Failed to request queue snapshot", err);
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "GET_QUEUE_STATE") {
+    sendResponse(queueState);
+    return false;
+  }
+
+  if (msg.type === "SYNC_QUEUE") {
+    requestQueueSync().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
   if (msg.type === "ENSURE_OFFSCREEN") {
     getOffscreenDocument().then(() => sendResponse({ ok: true }));
     return true;
@@ -714,6 +734,7 @@ async function connectMercure() {
   eventSource.onopen = () => {
     console.log("Mercure connected");
     processAllPendingTasks();
+    requestQueueSync();
   };
 
   eventSource.onmessage = (e) => {
@@ -721,6 +742,16 @@ async function connectMercure() {
       const data = JSON.parse(e.data);
       if (data.type === "extension_task") {
         enqueueTask({ task_id: data.task_id, url: data.url, title: data.title });
+      } else if (data.type === "queue_state") {
+        queueState = {
+          links: data.links,
+          total: data.total,
+          pending_count: data.pending_count,
+          processing_count: data.processing_count,
+          failed_count: data.failed_count,
+        };
+        // Popup may be closed: nobody listening is not an error
+        chrome.runtime.sendMessage({ type: "QUEUE_STATE", state: queueState }).catch(() => {});
       }
     } catch (err) {
       console.error("Error parsing Mercure message", err);
