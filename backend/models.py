@@ -255,4 +255,31 @@ class UserLLMTokenUsage(Base):
     user = relationship("User")
 
 
+class ProcessingQueueItem(Base):
+    __tablename__ = "processing_queue_items"
+    __table_args__ = (
+        Index("ix_pqi_user_status", "user_id", "status"),
+        Index("ix_pqi_user_norm_url", "user_id", "normalized_url"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(String(64), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    url = Column(String(2048), nullable=False)
+    normalized_url = Column(String(2048), nullable=False)
+    status = Column(String(32), nullable=False, index=True)  # pending, processing, failed, completed, cancelled
+    stage = Column(String(32), nullable=False)  # queued, scraping, ai_analysis, cv_scoring, failed, completed
+    attempts = Column(Integer, nullable=False, default=0, server_default="0")
+    max_attempts = Column(Integer, nullable=False, default=4, server_default="4")
+    error = Column(Text, nullable=True)
+    vacancy_id = Column(Integer, ForeignKey("vacancies.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
+
+    user = relationship("User")
+    vacancy = relationship("Vacancy")
+
+
+
+
 

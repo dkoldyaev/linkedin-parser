@@ -410,9 +410,10 @@ def ensure_db_schema():
 
 def ensure_query_indexes():
     """create_all does not add indexes to tables that already exist."""
-    from .models import Vacancy, VacancyStatusHistory
-    for table in (Vacancy.__table__, VacancyStatusHistory.__table__):
+    from .models import Vacancy, VacancyStatusHistory, ProcessingQueueItem
+    for table in (Vacancy.__table__, VacancyStatusHistory.__table__, ProcessingQueueItem.__table__):
         for index in table.indexes:
             if index.name in {"ix_vacancies_user_updated", "ix_vacancies_user_created",
-                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created"}:
+                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created",
+                              "ix_pqi_user_status", "ix_pqi_user_norm_url"}:
                 index.create(bind=engine, checkfirst=True)
