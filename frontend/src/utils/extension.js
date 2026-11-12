@@ -61,7 +61,7 @@ function pingExtension(extensionId, timeoutMs = 500) {
  */
 export async function getExtensionChangelog() {
   try {
-    const res = await fetch('/api/extension/changelog');
+    const res = await fetch('/api/v2/extension/changelog');
     if (res.ok) {
       return await res.json();
     }
@@ -105,7 +105,7 @@ export async function checkExtensionStatus() {
   let activeFromBackend = false;
 
   try {
-    const res = await fetch('/api/extension/status');
+    const res = await fetch('/api/v2/extension/status');
     if (res.ok) {
       const data = await res.json();
       activeFromBackend = !!data.active;

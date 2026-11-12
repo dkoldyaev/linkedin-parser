@@ -300,8 +300,8 @@ export const translations = {
       revoke_key_confirm: "Вы уверены, что хотите отозвать ключ «{name}»? Доступ по нему сразу прекратится.",
       openapi_docs_title: "Публичное API (OpenAPI):",
       openapi_docs_desc: "Интерактивная документация публичного API с доступом по API-ключу (Swagger / ReDoc):",
-      openapi_swagger_btn: "Swagger UI (/api/v1/docs)",
-      openapi_redoc_btn: "ReDoc (/api/v1/redoc)",
+      openapi_swagger_btn: "Swagger UI (/api/v2/docs)",
+      openapi_redoc_btn: "ReDoc (/api/v2/redoc)",
       openapi_json_btn: "Спецификация openapi.json",
     },
     mercure: {
@@ -827,8 +827,8 @@ export const translations = {
       revoke_key_confirm: "Are you sure you want to revoke the key \"{name}\"? Any application using it will lose access immediately.",
       openapi_docs_title: "Public API (OpenAPI):",
       openapi_docs_desc: "Interactive documentation for Public API authenticated via API Key (Swagger / ReDoc):",
-      openapi_swagger_btn: "Swagger UI (/api/v1/docs)",
-      openapi_redoc_btn: "ReDoc (/api/v1/redoc)",
+      openapi_swagger_btn: "Swagger UI (/api/v2/docs)",
+      openapi_redoc_btn: "ReDoc (/api/v2/redoc)",
       openapi_json_btn: "OpenAPI JSON Schema",
     },
     mercure: {

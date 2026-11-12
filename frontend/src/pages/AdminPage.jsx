@@ -51,7 +51,7 @@ export default function AdminPage({ user }) {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/v2/admin/users');
       if (res.status === 403) {
         setErrorMsg(t('pages.admin.access_denied_desc'));
         setUsers([]);
@@ -96,7 +96,7 @@ export default function AdminPage({ user }) {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/admin/users/${targetUser.id}`, {
+      const res = await fetch(`/api/v2/admin/users/${targetUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feature_flags: nextFlags })
@@ -134,7 +134,7 @@ export default function AdminPage({ user }) {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`/api/v2/admin/users/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feature_flags: editingFlags[userId] || [] })

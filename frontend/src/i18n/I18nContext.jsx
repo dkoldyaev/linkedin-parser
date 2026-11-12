@@ -26,9 +26,9 @@ export function I18nProvider({ children }) {
     return 'month';
   });
 
-  // Sync with /api/settings on initial mount if authenticated
+  // Sync with /api/v2/settings on initial mount if authenticated
   useEffect(() => {
-    fetch('/api/settings')
+    fetch('/api/v2/settings')
       .then(res => {
         if (!res.ok) return null;
         return res.json();

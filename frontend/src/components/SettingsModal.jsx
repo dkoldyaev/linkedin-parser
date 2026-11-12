@@ -28,7 +28,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
 
 
   const fetchSettings = () => {
-    fetch('/api/settings')
+    fetch('/api/v2/settings')
       .then(res => res.json())
       .then(data => {
         if (data.locale) {
@@ -67,7 +67,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
         salary_display_format: selectedSalaryFormat,
       };
 
-      const res = await fetch('/api/settings', {
+      const res = await fetch('/api/v2/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -90,7 +90,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   };
 
   const handleCreateColumn = async (newColData) => {
-    const res = await fetch('/api/columns', {
+    const res = await fetch('/api/v2/columns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newColData)
@@ -105,7 +105,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   };
 
   const handleSaveColumn = async (colId, updateData) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData)
@@ -120,7 +120,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   };
 
   const handleDeleteColumn = async (colId, migrateTo) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
       method: 'DELETE'
     });
     if (!res.ok) {
@@ -144,7 +144,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     setColumnsList(newCols);
 
     try {
-      const res = await fetch('/api/columns/order', {
+      const res = await fetch('/api/v2/columns/order', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ columns: newCols })

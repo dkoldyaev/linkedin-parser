@@ -34,7 +34,7 @@ export default function CVManagementPage({ user }) {
   // Fetch server approved CV
   const fetchServerApprovedCV = useCallback(async () => {
     try {
-      const res = await fetch('/api/cv/approved');
+      const res = await fetch('/api/v2/cv/approved');
       if (res.ok) {
         const data = await res.json();
         setServerCV(data);
@@ -48,7 +48,7 @@ export default function CVManagementPage({ user }) {
   // Fetch current user if not provided via props
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/v2/auth/me');
       if (res.ok) {
         const u = await res.json();
         setCurrentUser(u);
@@ -161,7 +161,7 @@ export default function CVManagementPage({ user }) {
       setIsSubmitting(true);
       setError(null);
 
-      const res = await fetch('/api/cv/approved', {
+      const res = await fetch('/api/v2/cv/approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,7 +202,7 @@ export default function CVManagementPage({ user }) {
     if (!window.confirm(t('pages.cv.confirm_delete_server'))) return;
     try {
       setIsSubmitting(true);
-      const res = await fetch('/api/cv/approved', { method: 'DELETE' });
+      const res = await fetch('/api/v2/cv/approved', { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete CV');
       setServerCV(null);
       setApprovedRevision(0);

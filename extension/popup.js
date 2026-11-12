@@ -3,15 +3,14 @@ const API_BASE = process.env.APP_URL;
 // --- Queue fetching ---
 async function fetchQueue() {
   try {
-    // /api/queue/links returns QueueLinksResponse with links, total, stages, status
-    const [linksRes, statusRes] = await Promise.all([
-      fetch(`${API_BASE}/api/queue/links`, { credentials: "include" }),
-      fetch(`${API_BASE}/api/queue/status`, { credentials: "include" }),
+    // /api/queue/tasks returns List[TaskInfo] with title, company, stage, status
+    const [tasksRes, statusRes] = await Promise.all([
+      fetch(`${API_BASE}/api/v2/queue/tasks`, { credentials: "include" }),
+      fetch(`${API_BASE}/api/v2/queue/status`, { credentials: "include" }),
     ]);
-    const linksData = linksRes.ok ? await linksRes.json() : {};
+    const tasks = tasksRes.ok ? await tasksRes.json() : [];
     const status = statusRes.ok ? await statusRes.json() : {};
-    const tasks = linksData.links || [];
-    return { tasks, total_remaining: linksData.total ?? status.total_remaining ?? tasks.length };
+    return { tasks, total_remaining: status.total_remaining ?? tasks.length };
   } catch {
     return null;
   }
@@ -217,7 +216,7 @@ document.getElementById("add-btn").addEventListener("click", async () => {
     if (results && results[0] && results[0].result) {
       statusEl.textContent = "Sending to server…";
 
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

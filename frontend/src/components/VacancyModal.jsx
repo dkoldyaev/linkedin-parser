@@ -194,7 +194,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       // Fetch cached compatibility analysis
       if (vacancy.id) {
         setLoadingCompatibility(true);
-        fetch(`/api/vacancies/${vacancy.id}/compatibility`)
+        fetch(`/api/v2/vacancies/${vacancy.id}/compatibility`)
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => setCompatibility(data))
           .catch((err) => console.warn('Failed to load compatibility:', err))
@@ -208,7 +208,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     setAnalyzingCompatibility(true);
     setCompatError(null);
     try {
-      const url = `/api/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
+      const url = `/api/v2/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
       const res = await fetch(url, { method: 'POST' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -237,7 +237,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         parent_version_id: parentVerId || selectedVersionId || null,
       };
 
-      const res = await fetch(`/api/vacancies/${vacancy.id}/adapt-cv`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/adapt-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload),
@@ -297,7 +297,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       });
     }
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -321,7 +321,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           vacancy_id: vacancy.id,
           stage: vacancy.status
         });
-        const res = await fetch(`/api/vacancies/${vacancy.id}/history`, {
+        const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -351,7 +351,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: historyCommentText.trim() || null })
@@ -377,7 +377,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: null })
@@ -401,7 +401,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       workplace_type: val || 'none'
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val })
@@ -420,7 +420,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       is_closed: nextVal
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal })
@@ -438,7 +438,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     const version = ++listSaveVersion.current;
     const vacancyId = vacancy.id;
     listSaveQueue.current = listSaveQueue.current.catch(() => {}).then(async () => {
-      const res = await fetch(`/api/vacancies/${vacancyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancyId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: values })
       });
@@ -465,7 +465,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     try {
       setSavingDescription(true);
       trackEvent(EVENTS.DESCRIPTION_EDIT, { vacancy_id: vacancy.id });
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description })
@@ -503,7 +503,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         salary_currency: salaryCurrency || null,
         salary_period: salaryPeriod || null,
       };
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -527,7 +527,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleSaveTitle = async () => {
     setSavingTitle(true);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title })
@@ -551,7 +551,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       notes_length: notes.length
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })
@@ -573,7 +573,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       language: locale
     });
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -599,7 +599,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       vacancy_id: vacancy.id
     });
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/reparse`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/reparse`, {
         method: 'POST'
       });
       if (!res.ok) {
@@ -637,7 +637,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         status: vacancy.status
       });
       try {
-        await fetch(`/api/vacancies/${vacancy.id}`, { method: 'DELETE' });
+        await fetch(`/api/v2/vacancies/${vacancy.id}`, { method: 'DELETE' });
         onDelete(vacancy.id);
         onClose();
       } catch (err) {

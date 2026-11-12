@@ -36,7 +36,7 @@ export default function UserManagementPage({ user }) {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/v2/users');
       if (res.status === 403) {
         setErrorMsg(t('pages.userManagement.access_denied_desc'));
         setUsers([]);
@@ -79,7 +79,7 @@ export default function UserManagementPage({ user }) {
     setStatusMsg(null);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/api/users/${userId}/feature-flags`, {
+      const res = await fetch(`/api/v2/users/${userId}/feature-flags`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
