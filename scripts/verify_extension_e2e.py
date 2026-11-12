@@ -21,7 +21,7 @@ app_url = os.getenv("APP_URL")
 if not app_url:
     raise ValueError("Strict Configuration Error: APP_URL is not set in .env")
 BASE_URL = app_url.rstrip("/")
-DEV_LOGIN_URL = f"{BASE_URL}/api/auth/dev-login"
+DEV_LOGIN_URL = f"{BASE_URL}/api/v2/auth/dev-login"
 PARSE_AND_ADD_URL = f"{BASE_URL}/api/extension/parse_and_add"
 QUEUE_LINKS_URL = f"{BASE_URL}/api/queue/links"
 QUEUE_STATUS_URL = f"{BASE_URL}/api/queue/status"

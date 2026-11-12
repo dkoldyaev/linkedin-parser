@@ -8,14 +8,14 @@ from backend.models import ProcessingQueueItem, Vacancy
 def test_queue_links_state_and_deduplication():
     with TestClient(app) as client:
         # Dev login
-        login_res = client.post("/api/auth/dev-login", json={"email": "links_queue_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "links_queue_test@local.user"})
         assert login_res.status_code == 200
         token = login_res.json()["token"]
         user_id = login_res.json()["user"]["id"]
         client.cookies.set("access_token", token)
 
         # 1. Initially queue should be empty
-        resp = client.get("/api/queue/links")
+        resp = client.get("/api/v2/queue/links")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
@@ -26,7 +26,7 @@ def test_queue_links_state_and_deduplication():
 
         # 2. Enqueue a link
         test_url = "https://www.linkedin.com/jobs/view/999111222333"
-        batch_resp = client.post("/api/vacancies/batch", json={
+        batch_resp = client.post("/api/v2/vacancies/batch", json={
             "urls": [test_url],
             "default_tags": ["python"]
         })
@@ -37,7 +37,7 @@ def test_queue_links_state_and_deduplication():
         task_id = batch_data["tasks"][0]["task_id"]
 
         # 3. Check /api/queue/links
-        resp = client.get("/api/queue/links")
+        resp = client.get("/api/v2/queue/links")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 1
@@ -52,17 +52,16 @@ def test_queue_links_state_and_deduplication():
         assert "999111222333" in link_info["url"]
 
         # Check single link info via GET /api/queue/links/{task_id}
-        single_resp = client.get(f"/api/queue/links/{task_id}")
+        single_resp = client.get(f"/api/v2/queue/links/{task_id}")
         assert single_resp.status_code == 200
         assert single_resp.json()["task_id"] == task_id
         assert single_resp.json()["stage"] == "queued"
 
-        # Verify old endpoints are removed (not 200 OK)
-        assert client.get("/api/queue/tasks").status_code == 404
-        assert client.delete(f"/api/queue/tasks/{task_id}").status_code in (404, 405)
+        # Legacy extension endpoints remain available on /api/queue/tasks
+        assert client.get("/api/queue/tasks").status_code == 200
 
         # 4. Deduplication: attempt to enqueue the exact same link again while it's in queue
-        dup_resp = client.post("/api/vacancies/batch", json={
+        dup_resp = client.post("/api/v2/vacancies/batch", json={
             "urls": [test_url],
             "default_tags": ["another-tag"]
         })
@@ -73,16 +72,16 @@ def test_queue_links_state_and_deduplication():
         assert len(dup_data["already_in_queue"]) == 1
 
         # Check total remaining is still 1 (no duplicates added)
-        resp = client.get("/api/queue/links")
+        resp = client.get("/api/v2/queue/links")
         data = resp.json()
         assert data["total"] == 1
 
         # 5. Cancel link via DELETE /api/queue/links/{task_id}
-        del_resp = client.delete(f"/api/queue/links/{task_id}")
+        del_resp = client.delete(f"/api/v2/queue/links/{task_id}")
         assert del_resp.status_code == 200
 
         # Now /api/queue/links should no longer return it as active
-        resp = client.get("/api/queue/links")
+        resp = client.get("/api/v2/queue/links")
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
@@ -96,7 +95,7 @@ def test_queue_links_state_and_deduplication():
 def test_reparse_deduplication():
     with TestClient(app) as client:
         # Dev login
-        login_res = client.post("/api/auth/dev-login", json={"email": "reparse_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "reparse_test@local.user"})
         assert login_res.status_code == 200
         token = login_res.json()["token"]
         user_id = login_res.json()["user"]["id"]
@@ -117,26 +116,26 @@ def test_reparse_deduplication():
             v_id = v.id
 
         # Reparse vacancy
-        r_resp = client.post(f"/api/vacancies/{v_id}/reparse")
+        r_resp = client.post(f"/api/v2/vacancies/{v_id}/reparse")
         assert r_resp.status_code == 200
         r_data = r_resp.json()
         assert r_data["status"] == "queued"
         task_id = r_data["task_id"]
 
         # Immediate reparse attempt should detect active queue task
-        r_resp_dup = client.post(f"/api/vacancies/{v_id}/reparse")
+        r_resp_dup = client.post(f"/api/v2/vacancies/{v_id}/reparse")
         assert r_resp_dup.status_code == 200
         dup_data = r_resp_dup.json()
         assert dup_data["status"] == "already_queued"
         assert dup_data["task_id"] == task_id
 
         # Clean up
-        client.delete(f"/api/queue/links/{task_id}")
+        client.delete(f"/api/v2/queue/links/{task_id}")
 
 
 def test_clear_all_queue_links():
     with TestClient(app) as client:
-        login_res = client.post("/api/auth/dev-login", json={"email": "clear_all_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "clear_all_test@local.user"})
         assert login_res.status_code == 200
         token = login_res.json()["token"]
         user_id = login_res.json()["user"]["id"]
@@ -148,22 +147,22 @@ def test_clear_all_queue_links():
             "https://www.linkedin.com/jobs/view/1110002",
             "https://www.linkedin.com/jobs/view/1110003",
         ]
-        b_res = client.post("/api/vacancies/batch", json={"urls": urls, "default_tags": []})
+        b_res = client.post("/api/v2/vacancies/batch", json={"urls": urls, "default_tags": []})
         assert b_res.status_code == 200
         assert b_res.json()["queued"] == 3
 
         # Verify all 3 appear in queue
-        q_res = client.get("/api/queue/links")
+        q_res = client.get("/api/v2/queue/links")
         assert q_res.status_code == 200
         assert q_res.json()["total"] == 3
 
         # Batch delete all links via DELETE /api/queue/links
-        clear_res = client.delete("/api/queue/links")
+        clear_res = client.delete("/api/v2/queue/links")
         assert clear_res.status_code == 200
         assert clear_res.json()["cleared"] == 3
 
         # Queue should now be completely empty
-        q_res2 = client.get("/api/queue/links")
+        q_res2 = client.get("/api/v2/queue/links")
         assert q_res2.status_code == 200
         assert q_res2.json()["total"] == 0
         assert len(q_res2.json()["links"]) == 0

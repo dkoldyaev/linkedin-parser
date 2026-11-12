@@ -380,12 +380,11 @@ legacy_api = APIRouter(prefix="/api")
 @api_v2.get("/openapi.json", include_in_schema=False)
 def get_v2_openapi_json(current_user: User = Depends(get_current_user_with_api_access)):
     """OpenAPI schema for Unified API v2."""
-    v2_routes = [r for r in app.routes if getattr(r, "path", "").startswith("/api/v2")]
     schema = get_openapi(
         title="Job Vacancies Unified API v2",
         version="2.0.0",
         description="Unified Public and Private API v2 for Job Vacancies Tracker. Authenticate via Session Cookie, JWT Bearer token, or Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
-        routes=v2_routes,
+        routes=api_v2.routes,
     )
     return JSONResponse(schema)
 
@@ -444,7 +443,7 @@ def health_check():
 @api_v2.get("/auth/config", response_model=AuthConfigResponse)
 @legacy_api.get("/auth/config", response_model=AuthConfigResponse)
 def get_auth_config():
-    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "").strip().lower() in ("true", "1", "yes")
     return AuthConfigResponse(
         google_configured=is_google_configured(),
         google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
@@ -787,7 +786,7 @@ async def google_callback(
 
 @api_v2.post("/auth/dev-login")
 def dev_login(payload: DevLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
-    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "").strip().lower() in ("true", "1", "yes")
     if not dev_enabled:
         raise HTTPException(status_code=403, detail="Dev login is disabled in production")
     
@@ -882,18 +881,31 @@ async def get_queue_tasks(current_user: User = Depends(get_current_user)):
     return await queue_manager.get_active_tasks(user_id=current_user.id)
 
 @api_v2.get("/queue/links", response_model=QueueLinksResponse)
+@legacy_api.get("/queue/links", response_model=QueueLinksResponse)
 async def get_queue_links(current_user: User = Depends(get_current_user)):
     """Get active links and their processing stages for the current user."""
     return await queue_manager.get_active_links(user_id=current_user.id)
 
 @api_v2.delete("/queue/links")
 @api_v2.delete("/queue/clear")
+@legacy_api.delete("/queue/links")
+@legacy_api.delete("/queue/clear")
 async def clear_queue_links(current_user: User = Depends(get_current_user)):
     """Clear/cancel all active and failed links in the processing queue for the current user."""
     cleared_count = await queue_manager.clear_user_queue(user_id=current_user.id)
     return {"message": "All queue links cleared", "cleared": cleared_count}
 
+@api_v2.get("/queue/links/{task_id}", response_model=ProcessingLinkInfo)
+@legacy_api.get("/queue/links/{task_id}", response_model=ProcessingLinkInfo)
+async def get_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
+    """Retrieve current stage and state of a single link task."""
+    info = await queue_manager.get_link_info(task_id=task_id, user_id=current_user.id)
+    if not info:
+        raise HTTPException(status_code=404, detail="Queue link task not found or access denied")
+    return info
+
 @api_v2.delete("/queue/links/{task_id}")
+@legacy_api.delete("/queue/links/{task_id}")
 async def cancel_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
     """Cancel/remove a link from the processing queue."""
     success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)

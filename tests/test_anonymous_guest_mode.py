@@ -6,8 +6,8 @@ from backend.models import User, Vacancy
 
 def test_anonymous_user_auto_creation_and_cookie():
     client = TestClient(app)
-    # 1. Unauthenticated request to /api/auth/me should auto-create anonymous user
-    res = client.get("/api/auth/me")
+    # 1. Unauthenticated request to /api/v2/auth/me should auto-create anonymous user
+    res = client.get("/api/v2/auth/me")
     assert res.status_code == 200
     user_data = res.json()
     assert user_data["is_anonymous"] is True
@@ -22,18 +22,18 @@ def test_anonymous_user_auto_creation_and_cookie():
     assert payload["sub"] == str(user_data["id"])
 
     # 2. Subsequent requests retain the same anonymous user
-    res2 = client.get("/api/auth/me")
+    res2 = client.get("/api/v2/auth/me")
     assert res2.status_code == 200
     assert res2.json()["id"] == user_data["id"]
 
 def test_anonymous_user_can_create_vacancies_and_migrate_on_login():
     client = TestClient(app)
     # Start guest session
-    res_me = client.get("/api/auth/me")
+    res_me = client.get("/api/v2/auth/me")
     anon_id = res_me.json()["id"]
 
     # Anonymous user adds vacancies
-    res_v1 = client.post("/api/vacancies", json={
+    res_v1 = client.post("/api/v2/vacancies", json={
         "title": "Guest Python Dev",
         "company": "Startup Inc",
         "url": "https://example.com/job/1"
@@ -42,7 +42,7 @@ def test_anonymous_user_can_create_vacancies_and_migrate_on_login():
     v1_id = res_v1.json()["id"]
     assert res_v1.json()["user_id"] == anon_id
 
-    res_v2 = client.post("/api/vacancies", json={
+    res_v2 = client.post("/api/v2/vacancies", json={
         "title": "Guest React Dev",
         "company": "Startup Inc",
         "url": "https://example.com/job/2"
@@ -51,14 +51,14 @@ def test_anonymous_user_can_create_vacancies_and_migrate_on_login():
     v2_id = res_v2.json()["id"]
 
     # Check vacancies list
-    res_list = client.get("/api/vacancies")
+    res_list = client.get("/api/v2/vacancies")
     assert res_list.status_code == 200
     vac_ids = [v["id"] for v in res_list.json()]
     assert v1_id in vac_ids
     assert v2_id in vac_ids
 
     # User now logs in via dev-login (e.g. to save progress across computers)
-    dev_res = client.post("/api/auth/dev-login", json={
+    dev_res = client.post("/api/v2/auth/dev-login", json={
         "name": "Ivan Permanent",
         "email": "ivan.perm@example.com"
     })
@@ -68,7 +68,7 @@ def test_anonymous_user_can_create_vacancies_and_migrate_on_login():
     assert perm_user["id"] != anon_id
 
     # Vacancies should now belong to the permanent user!
-    res_list_after = client.get("/api/vacancies")
+    res_list_after = client.get("/api/v2/vacancies")
     assert res_list_after.status_code == 200
     vacancies_after = res_list_after.json()
     assert len(vacancies_after) >= 2

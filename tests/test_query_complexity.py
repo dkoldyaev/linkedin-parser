@@ -20,32 +20,32 @@ def statements():
 
 def test_tags_stats_and_duplicates_do_not_load_history_objects():
     client = TestClient(app)
-    client.post('/api/auth/dev-login', json={'email': 'queries@test.local'})
+    client.post('/api/v2/auth/dev-login', json={'email': 'queries@test.local'})
     urls = []
     for i in range(12):
         url = f'https://example.com/jobs/{i}'
         urls.append(url)
-        assert client.post('/api/vacancies', json={'url': url, 'title': 'Engineer', 'company': 'Test', 'tags': ['Python']}).status_code == 200
+        assert client.post('/api/v2/vacancies', json={'url': url, 'title': 'Engineer', 'company': 'Test', 'tags': ['Python']}).status_code == 200
     with statements() as tags_sql:
-        assert client.get('/api/tags').json() == ['Python']
+        assert client.get('/api/v2/tags').json() == ['Python']
     assert not any('vacancy_status_history' in query for query in tags_sql)
     assert not any('vacancies.description' in query for query in tags_sql)
     with statements() as duplicate_sql:
-        response = client.post('/api/vacancies/check-duplicates', json={'urls': urls}).json()
+        response = client.post('/api/v2/vacancies/check-duplicates', json={'urls': urls}).json()
     assert len(response['duplicates']) == 12
     vacancy_lookups = [q for q in duplicate_sql if 'from vacancies' in q]
     assert len(vacancy_lookups) == 1
     with statements() as batch_sql:
-        batch = client.post('/api/vacancies/batch', json={'urls': urls}).json()
+        batch = client.post('/api/v2/vacancies/batch', json={'urls': urls}).json()
     assert batch['queued'] == 12
     assert len([q for q in batch_sql if 'from vacancies' in q]) == 1
     with statements() as stats_sql:
-        stats = client.get('/api/stats').json()
+        stats = client.get('/api/v2/stats').json()
     assert stats['total'] == 12
     assert not any('vacancies.description' in query for query in stats_sql)
     assert sum('from vacancy_status_history' in q for q in stats_sql) <= 1
     with statements() as filtered_sql:
-        assert len(client.get('/api/vacancies?tag=python').json()) == 12
+        assert len(client.get('/api/v2/vacancies?tag=python').json()) == 12
     assert any('json_each' in q and 'exists' in q for q in filtered_sql)
 
 
