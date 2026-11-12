@@ -838,15 +838,18 @@ async def get_queue_status(current_user: User = Depends(get_current_user)):
     """Get active parsing queue status and recent tasks scoped to user."""
     return await queue_manager.get_status(user_id=current_user.id)
 
-@app.get("/api/queue/tasks", response_model=List[TaskInfo])
-async def get_queue_tasks(current_user: User = Depends(get_current_user)):
-    """Get active tasks in the queue."""
-    return await queue_manager.get_active_tasks(user_id=current_user.id)
-
 @app.get("/api/queue/links", response_model=QueueLinksResponse)
 async def get_queue_links(current_user: User = Depends(get_current_user)):
     """Get active links and their processing stages for the current user."""
     return await queue_manager.get_active_links(user_id=current_user.id)
+
+@app.get("/api/queue/links/{task_id}", response_model=ProcessingLinkInfo)
+async def get_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
+    """Get status and current processing stage of a specific queued link."""
+    info = await queue_manager.get_link_info(task_id=task_id, user_id=current_user.id)
+    if not info:
+        raise HTTPException(status_code=404, detail="Queue link task not found or access denied")
+    return info
 
 @app.delete("/api/queue/links")
 @app.delete("/api/queue/clear")
@@ -862,14 +865,6 @@ async def cancel_queue_link(task_id: str, current_user: User = Depends(get_curre
     if not success:
         raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
     return {"message": "Link processing cancelled"}
-
-@app.delete("/api/queue/tasks/{task_id}")
-async def cancel_queue_task(task_id: str, current_user: User = Depends(get_current_user)):
-    """Cancel a task in the queue."""
-    success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
-    return {"message": "Task cancelled"}
 
 
 @app.get("/api/vacancies", response_model=List[VacancyResponse])

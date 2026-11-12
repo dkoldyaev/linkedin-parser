@@ -99,13 +99,17 @@ def test_system_vs_public_api_docs(api_user_fixture):
     assert "/vacancies/{vacancy_id}/history" in paths
     assert "/vacancies/{vacancy_id}/compatibility" in paths
     assert "/vacancies/batch" in paths
-    assert "/queue/tasks/{task_id}" in paths
+    assert "/queue/links" in paths
+    assert "/queue/links/{task_id}" in paths
     assert "/cv" in paths
     assert "/countries" in paths
     assert "/cities" in paths
     assert "/columns" in paths
     assert "/tags" in paths
     assert "/sources" in paths
+
+    # Old endpoints must NOT be present
+    assert "/queue/tasks/{task_id}" not in paths
 
     # Must NOT contain system or internal auth endpoints!
     assert "/api/auth/dev-login" not in paths
@@ -258,10 +262,20 @@ def test_public_api_access_control(api_user_fixture):
     assert len(batch_data["tasks"]) == 1
     task_id = batch_data["tasks"][0]["task_id"]
 
-    # 13. Queue task status endpoint
-    task_res = client.get(f"/api/v1/queue/tasks/{task_id}", headers={"X-API-Key": raw_api_key})
-    assert task_res.status_code == 200
-    assert task_res.json()["task_id"] == task_id
+    # 13. Queue links endpoints
+    links_res = client.get("/api/v1/queue/links", headers={"X-API-Key": raw_api_key})
+    assert links_res.status_code == 200
+    links_data = links_res.json()
+    assert links_data["total"] >= 1
+    assert any(item["task_id"] == task_id for item in links_data["links"])
+
+    link_res = client.get(f"/api/v1/queue/links/{task_id}", headers={"X-API-Key": raw_api_key})
+    assert link_res.status_code == 200
+    assert link_res.json()["task_id"] == task_id
+    assert link_res.json()["stage"] == "queued"
+
+    del_link_res = client.delete(f"/api/v1/queue/links/{task_id}", headers={"X-API-Key": raw_api_key})
+    assert del_link_res.status_code == 200
 
     # 14. Delete vacancy
     del_res = client.delete(f"/api/v1/vacancies/{vac_id}", headers={"X-API-Key": raw_api_key})
