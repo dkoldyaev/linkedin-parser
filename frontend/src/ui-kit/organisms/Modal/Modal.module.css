@@ -28,31 +28,42 @@
   }
 
   .size-sm {
-    max-width: 448px;
+    max-width: calc(var(--ui-grid-cell) * 14); /* 448px */
   }
 
   .size-md {
-    max-width: 576px;
+    max-width: calc(var(--ui-grid-cell) * 18); /* 576px */
   }
 
   .size-lg {
-    max-width: 768px;
+    max-width: calc(var(--ui-grid-cell) * 24); /* 768px */
   }
 
   .size-xl {
-    max-width: 1024px;
+    max-width: calc(var(--ui-grid-cell) * 26); /* 832px - vacancy card size */
+  }
+
+  .size-2xl {
+    max-width: calc(var(--ui-grid-cell) * 32); /* 1024px */
   }
 
   .header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ui-space-4);
+    flex-direction: column;
     min-height: calc(var(--ui-grid-cell) * 2);
     padding: var(--ui-space-4) var(--ui-space-6);
     background-color: var(--ui-color-bg-secondary);
     border-bottom: var(--ui-border-width) solid var(--ui-color-border-strong);
     box-sizing: border-box;
+    gap: var(--ui-space-3);
+  }
+
+  .headerTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-4);
+    width: 100%;
   }
 
   .titleGroup {
@@ -68,25 +79,74 @@
     gap: var(--ui-space-2);
   }
 
+  .headerIconWrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+  }
+
   .body {
     flex: 1;
     overflow-y: auto;
-    padding: var(--ui-space-6);
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-4);
+    box-sizing: border-box;
+  }
+
+  .body-padding-none {
+    padding: 0;
+  }
+
+  .body-padding-sm {
+    padding: var(--ui-space-4);
+  }
+
+  .body-padding-md {
+    padding: var(--ui-space-6);
+  }
+
+  .body-padding-lg {
+    padding: var(--ui-space-8);
+  }
+
+  .bodyNoScroll {
+    overflow-y: visible;
   }
 
   .footer {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: var(--ui-space-3);
     min-height: calc(var(--ui-grid-cell) * 2);
     padding: var(--ui-space-4) var(--ui-space-6);
     background-color: var(--ui-color-bg-secondary);
     border-top: var(--ui-border-width) solid var(--ui-color-border-strong);
     box-sizing: border-box;
+  }
+
+  .footer-justify-end {
+    justify-content: flex-end;
+  }
+
+  .footer-justify-between {
+    justify-content: space-between;
+  }
+
+  .footer-justify-start {
+    justify-content: flex-start;
+  }
+
+  .footer-justify-center {
+    justify-content: center;
   }
 
   .srOnly {

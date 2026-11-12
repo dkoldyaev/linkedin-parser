@@ -1,16 +1,18 @@
 import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
-import { Button, Icon, Text } from '../../atoms';
 import { cn } from '../../utils';
+import { ModalContext, type ModalContextValue } from './ModalContext';
+import { ModalHeader, type ModalHeaderProps } from './ModalHeader';
+import { ModalBody, type ModalBodyProps } from './ModalBody';
+import { ModalFooter, type ModalFooterProps, type ModalFooterJustify } from './ModalFooter';
 import styles from './Modal.module.css';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 export interface ModalProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly title: React.ReactNode;
+  readonly title?: React.ReactNode;
   readonly description?: React.ReactNode;
   readonly headerIcon?: React.ReactNode;
   readonly footer?: React.ReactNode;
@@ -24,8 +26,8 @@ export interface ModalProps {
 
 /**
  * Accessible Modal organism powered by `@radix-ui/react-dialog`.
- * Unifies the 9 duplicated modal implementations in legacy components with built-in focus trapping,
- * Escape-to-close, backdrop click handling, and ARIA title/description wiring.
+ * Decomposed into composable subcomponents (`ModalHeader`, `ModalBody`, `ModalFooter`)
+ * with built-in focus trapping, Escape-to-close, backdrop click handling, and ARIA wiring.
  */
 export function Modal({
   isOpen,
@@ -41,62 +43,73 @@ export function Modal({
   bodyClassName,
   children,
 }: ModalProps): React.ReactElement {
+  const contextValue: ModalContextValue = React.useMemo(
+    () => ({
+      isOpen,
+      onClose,
+      closeLabel,
+    }),
+    [isOpen, onClose, closeLabel]
+  );
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
+  const isShorthandMode = title !== undefined;
+
   return (
-    <DialogPrimitive.Root
-      open={isOpen}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          onClose();
-        }
-      }}
-    >
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className={styles.overlay}>
-          <DialogPrimitive.Content
-            className={cn(styles.content, styles[`size-${size}`], className)}
-          >
-            <div className={styles.header}>
-              <div className={styles.titleGroup}>
-                <div className={styles.titleRow}>
-                  {headerIcon !== undefined && (
-                    <span aria-hidden="true">{headerIcon}</span>
-                  )}
-                  <DialogPrimitive.Title asChild>
-                    <Text as="h2" variant="heading" tone="primary">
-                      {title}
-                    </Text>
-                  </DialogPrimitive.Title>
-                </div>
-                {description !== undefined ? (
-                  <DialogPrimitive.Description asChild>
-                    <Text as="p" variant="caption" tone="secondary">
-                      {description}
-                    </Text>
-                  </DialogPrimitive.Description>
-                ) : (
+    <ModalContext.Provider value={contextValue}>
+      <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className={styles.overlay}>
+            <DialogPrimitive.Content
+              className={cn(styles.content, styles[`size-${size}`], className)}
+            >
+              {isShorthandMode ? (
+                <>
+                  <ModalHeader
+                    title={title}
+                    description={description}
+                    headerIcon={headerIcon}
+                    hideCloseButton={hideCloseButton}
+                    closeLabel={closeLabel}
+                    onClose={onClose}
+                  />
+                  <ModalBody className={bodyClassName}>{children}</ModalBody>
+                  {footer !== undefined && <ModalFooter>{footer}</ModalFooter>}
+                </>
+              ) : (
+                <>
                   <DialogPrimitive.Description className={styles.srOnly}>
                     Dialog content
                   </DialogPrimitive.Description>
-                )}
-              </div>
-
-              {!hideCloseButton && (
-                <DialogPrimitive.Close asChild>
-                  <Button variant="ghost" size="icon" aria-label={closeLabel}>
-                    <Icon icon={X} size="md" />
-                  </Button>
-                </DialogPrimitive.Close>
+                  {children}
+                </>
               )}
-            </div>
-
-            <div className={cn(styles.body, bodyClassName)}>{children}</div>
-
-            {footer !== undefined && (
-              <div className={styles.footer}>{footer}</div>
-            )}
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Overlay>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Overlay>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </ModalContext.Provider>
   );
 }
+
+Modal.Header = ModalHeader;
+Modal.Body = ModalBody;
+Modal.Footer = ModalFooter;
+
+export {
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  type ModalHeaderProps,
+  type ModalBodyProps,
+  type ModalFooterProps,
+  type ModalFooterJustify,
+};

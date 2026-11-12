@@ -1,0 +1,13 @@
+@layer ui-organisms {
+  .tabsRow {
+    display: flex;
+    gap: var(--ui-space-2);
+    border-bottom: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    padding-top: var(--ui-space-2);
+  }
+
+  .actionsRow {
+    display: flex;
+    gap: var(--ui-space-2);
+  }
+}
