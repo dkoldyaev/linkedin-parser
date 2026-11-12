@@ -59,31 +59,31 @@ def test_api_keys_strict_user_isolation(users_fixture):
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
     # 1. User A creates an API key
-    res_a = client.post("/api/api-keys", json={"name": "Alice Secret Key"}, headers=headers_a)
+    res_a = client.post("/api/v2/api-keys", json={"name": "Alice Secret Key"}, headers=headers_a)
     assert res_a.status_code == 200
     key_a = res_a.json()
     key_a_id = key_a["id"]
     alice_raw_api_key = key_a["token"]
 
     # 2. User B lists API keys -> must NOT see Alice's key
-    res_b = client.get("/api/api-keys", headers=headers_b)
+    res_b = client.get("/api/v2/api-keys", headers=headers_b)
     assert res_b.status_code == 200
     b_keys = res_b.json()
     assert len(b_keys) == 0
     assert not any(k["id"] == key_a_id for k in b_keys)
 
     # 3. User B cannot delete/revoke Alice's key
-    res_del = client.delete(f"/api/api-keys/{key_a_id}", headers=headers_b)
+    res_del = client.delete(f"/api/v2/api-keys/{key_a_id}", headers=headers_b)
     assert res_del.status_code == 404
 
     # 4. User A can see their own key
-    res_list_a = client.get("/api/api-keys", headers=headers_a)
+    res_list_a = client.get("/api/v2/api-keys", headers=headers_a)
     assert len(res_list_a.json()) == 1
     assert res_list_a.json()[0]["id"] == key_a_id
 
     # 5. Alice API key only accesses Alice data
     alice_api_headers = {"X-API-Key": alice_raw_api_key}
-    res_me = client.get("/api/auth/me", headers=alice_api_headers)
+    res_me = client.get("/api/v2/auth/me", headers=alice_api_headers)
     assert res_me.status_code == 200
     assert res_me.json()["email"] == "iso_alice@test.com"
 
@@ -95,7 +95,7 @@ def test_vacancies_and_history_isolation(users_fixture):
     headers_b = {"Authorization": f"Bearer {create_access_token({'sub': str(user_b.id)})}"}
 
     # User A creates vacancy
-    v_a = client.post("/api/vacancies", json={
+    v_a = client.post("/api/v2/vacancies", json={
         "title": "Confidential A Job",
         "company": "Company A",
         "url": "https://www.linkedin.com/jobs/view/999111",
@@ -104,18 +104,18 @@ def test_vacancies_and_history_isolation(users_fixture):
     vac_id = v_a["id"]
 
     # User B cannot access, patch, resummarize, reparse, or delete vacancy
-    assert client.get(f"/api/vacancies/{vac_id}", headers=headers_b).status_code == 404
-    assert client.patch(f"/api/vacancies/{vac_id}", json={"title": "Hacked"}, headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/resummarize", headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/reparse", headers=headers_b).status_code == 404
-    assert client.delete(f"/api/vacancies/{vac_id}", headers=headers_b).status_code == 404
+    assert client.get(f"/api/v2/vacancies/{vac_id}", headers=headers_b).status_code == 404
+    assert client.patch(f"/api/v2/vacancies/{vac_id}", json={"title": "Hacked"}, headers=headers_b).status_code == 404
+    assert client.post(f"/api/v2/vacancies/{vac_id}/resummarize", headers=headers_b).status_code == 404
+    assert client.post(f"/api/v2/vacancies/{vac_id}/reparse", headers=headers_b).status_code == 404
+    assert client.delete(f"/api/v2/vacancies/{vac_id}", headers=headers_b).status_code == 404
 
     # User B cannot add or edit or delete history on User A's vacancy
-    assert client.post(f"/api/vacancies/{vac_id}/history", json={"to_status": "Написал"}, headers=headers_b).status_code == 404
+    assert client.post(f"/api/v2/vacancies/{vac_id}/history", json={"to_status": "Написал"}, headers=headers_b).status_code == 404
     if v_a.get("history"):
         hist_id = v_a["history"][0]["id"]
-        assert client.patch(f"/api/vacancies/{vac_id}/history/{hist_id}", json={"comment": "Hacked"}, headers=headers_b).status_code == 404
-        assert client.delete(f"/api/vacancies/{vac_id}/history/{hist_id}", headers=headers_b).status_code == 404
+        assert client.patch(f"/api/v2/vacancies/{vac_id}/history/{hist_id}", json={"comment": "Hacked"}, headers=headers_b).status_code == 404
+        assert client.delete(f"/api/v2/vacancies/{vac_id}/history/{hist_id}", headers=headers_b).status_code == 404
 
 def test_cv_and_analysis_isolation(users_fixture):
     user_a, user_b = users_fixture
@@ -125,19 +125,19 @@ def test_cv_and_analysis_isolation(users_fixture):
     headers_b = {"Authorization": f"Bearer {create_access_token({'sub': str(user_b.id)})}"}
 
     # User A saves approved CV
-    cv_res = client.post("/api/cv/approved", json={
+    cv_res = client.post("/api/v2/cv/approved", json={
         "content": "Alice Secret Resume Content",
         "revision": 1
     }, headers=headers_a)
     assert cv_res.status_code == 200
 
     # User B cannot see User A's approved CV
-    b_cv = client.get("/api/cv/approved", headers=headers_b)
+    b_cv = client.get("/api/v2/cv/approved", headers=headers_b)
     assert b_cv.status_code == 200
     assert b_cv.json() is None
 
     # User A creates a vacancy
-    v_a = client.post("/api/vacancies", json={
+    v_a = client.post("/api/v2/vacancies", json={
         "title": "Software Engineer",
         "company": "Top Secret Tech",
         "url": "https://www.linkedin.com/jobs/view/999222",
@@ -145,9 +145,9 @@ def test_cv_and_analysis_isolation(users_fixture):
     vac_id = v_a["id"]
 
     # User B cannot get or adapt CV analysis for User A's vacancy
-    assert client.get(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
-    assert client.post(f"/api/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 403
+    assert client.get(f"/api/v2/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
+    assert client.post(f"/api/v2/vacancies/{vac_id}/compatibility", headers=headers_b).status_code == 404
+    assert client.post(f"/api/v2/vacancies/{vac_id}/adapt-cv", headers=headers_b).status_code == 403
 
 def test_stats_and_metadata_isolation(users_fixture):
     user_a, user_b = users_fixture
@@ -157,7 +157,7 @@ def test_stats_and_metadata_isolation(users_fixture):
     headers_b = {"Authorization": f"Bearer {create_access_token({'sub': str(user_b.id)})}"}
 
     # User A has 1 vacancy
-    client.post("/api/vacancies", json={
+    client.post("/api/v2/vacancies", json={
         "title": "Engineer",
         "company": "Company A",
         "url": "https://www.linkedin.com/jobs/view/999333",
@@ -168,11 +168,11 @@ def test_stats_and_metadata_isolation(users_fixture):
     }, headers=headers_a)
 
     # User B stats must be 0
-    stats_b = client.get("/api/stats", headers=headers_b).json()
+    stats_b = client.get("/api/v2/stats", headers=headers_b).json()
     assert stats_b["total"] == 0
 
     # User B tags, countries, cities, sources must be empty
-    assert client.get("/api/tags", headers=headers_b).json() == []
-    assert client.get("/api/countries", headers=headers_b).json() == []
-    assert client.get("/api/cities", headers=headers_b).json() == []
-    assert client.get("/api/sources", headers=headers_b).json() == []
+    assert client.get("/api/v2/tags", headers=headers_b).json() == []
+    assert client.get("/api/v2/countries", headers=headers_b).json() == []
+    assert client.get("/api/v2/cities", headers=headers_b).json() == []
+    assert client.get("/api/v2/sources", headers=headers_b).json() == []

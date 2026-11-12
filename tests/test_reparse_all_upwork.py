@@ -5,7 +5,7 @@ from backend.models import Vacancy, User, STATUS_NOT_CONTACTED
 
 def test_reparse_all_includes_upwork():
     with TestClient(app) as client:
-        login_res = client.post("/api/auth/dev-login", json={"email": "reparse_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "reparse_test@local.user"})
         assert login_res.status_code == 200
         token = login_res.json()["token"]
         client.cookies.set("access_token", token)
@@ -39,7 +39,7 @@ def test_reparse_all_includes_upwork():
             db.commit()
 
         # Call reparse_all
-        res = client.post("/api/vacancies/reparse_all")
+        res = client.post("/api/v2/vacancies/reparse_all")
         assert res.status_code == 200, res.text
         data = res.json()
         print("reparse_all response:", data)

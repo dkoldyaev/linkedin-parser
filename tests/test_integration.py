@@ -8,13 +8,13 @@ def test_batch_import_and_card_lifecycle(monkeypatch):
     monkeypatch.setattr('backend.main.analyze_vacancy_with_llm', AsyncMock(return_value={
         'summary': 'Test summary', 'tech_stack': ['Python']}))
     client = TestClient(app)
-    login_res = client.post("/api/auth/dev-login", json={"email": "integration_test@local.user"})
+    login_res = client.post("/api/v2/auth/dev-login", json={"email": "integration_test@local.user"})
     token = login_res.json()["token"]
     client = TestClient(app, cookies={"access_token": token})
 
     url = "https://www.linkedin.com/jobs/view/4462938317"
     print("Sending batch import request (with wait=true)...")
-    import_resp = client.post("/api/vacancies/batch?wait=true", json={
+    import_resp = client.post("/api/v2/vacancies/batch?wait=true", json={
         "urls": [url],
         "default_tags": ["python", "remote-eu"]
     })
@@ -23,7 +23,7 @@ def test_batch_import_and_card_lifecycle(monkeypatch):
     print("Import status:", import_resp.status_code)
     print("Import result:", import_resp.json())
 
-    vac_list = client.get("/api/vacancies").json()
+    vac_list = client.get("/api/v2/vacancies").json()
     print("Total vacancies in DB:", len(vac_list))
     if vac_list:
         v = vac_list[0]
@@ -34,10 +34,10 @@ def test_batch_import_and_card_lifecycle(monkeypatch):
         print(f"Tech stack: {v['tech_stack']}")
         print(f"Summary: {v['ai_summary']}")
 
-        patch_resp = client.patch(f"/api/vacancies/{vid}", json={"status": "Написал"})
+        patch_resp = client.patch(f"/api/v2/vacancies/{vid}", json={"status": "Написал"})
         print("Patch status:", patch_resp.status_code, "New status:", patch_resp.json()["status"])
 
-        patch_resp2 = client.patch(f"/api/vacancies/{vid}", json={
+        patch_resp2 = client.patch(f"/api/v2/vacancies/{vid}", json={
             "tags": ["python", "remote-eu", "applied-today"],
             "notes": "Sent CV via recruiter on LinkedIn",
             "salary_min": 90000,
@@ -50,7 +50,7 @@ def test_batch_import_and_card_lifecycle(monkeypatch):
         assert patch_resp2.json()["salary_min"] == 90000
         assert patch_resp2.json()["salary_period"] == "year"
 
-    tags = client.get("/api/tags").json()
+    tags = client.get("/api/v2/tags").json()
     print("Distinct tags in DB:", tags)
     print("ALL TESTS PASSED SUCCESSFULLY!")
 

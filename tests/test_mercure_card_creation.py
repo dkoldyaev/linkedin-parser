@@ -25,15 +25,15 @@ def test_card_crud_mercure_events():
          patch("backend.queue_manager.publish_mercure_event", new=mock_publish):
         with TestClient(app) as client:
             # Login
-            login_res = client.post("/api/auth/dev-login", json={"email": "mercure_crud_test@example.com"})
+            login_res = client.post("/api/v2/auth/dev-login", json={"email": "mercure_crud_test@example.com"})
             assert login_res.status_code == 200
             token = login_res.json()["token"]
             user_id = login_res.json()["user"]["id"]
             client.cookies.set("access_token", token)
 
-            # 1. Test POST /api/vacancies publishes EVENT_VACANCY_CREATED
+            # 1. Test POST /api/v2/vacancies publishes EVENT_VACANCY_CREATED
             published_events.clear()
-            res = client.post("/api/vacancies", json={
+            res = client.post("/api/v2/vacancies", json={
                 "title": "Software Engineer Mercure",
                 "company": "Mercure Test Corp",
                 "url": f"https://example.com/jobs/{uuid.uuid4().hex[:10]}",
@@ -49,11 +49,11 @@ def test_card_crud_mercure_events():
             assert event["data"]["vacancy"]["id"] == vacancy_id
             assert event["data"]["message_code"] == MSG_VACANCY_CREATED
             assert event["topic"] == f"vacancies:{user_id}"
-            print("✓ POST /api/vacancies publishes Mercure EVENT_VACANCY_CREATED passed")
+            print("✓ POST /api/v2/vacancies publishes Mercure EVENT_VACANCY_CREATED passed")
 
-            # 2. Test PATCH /api/vacancies/{id} publishes EVENT_VACANCY_UPDATED
+            # 2. Test PATCH /api/v2/vacancies/{id} publishes EVENT_VACANCY_UPDATED
             published_events.clear()
-            patch_res = client.patch(f"/api/vacancies/{vacancy_id}", json={
+            patch_res = client.patch(f"/api/v2/vacancies/{vacancy_id}", json={
                 "status": "Написал",
                 "status_comment": "Applied via referral"
             })
@@ -65,11 +65,11 @@ def test_card_crud_mercure_events():
             assert up_event["data"]["vacancy"]["status"] == "Написал"
             assert up_event["data"]["message_code"] == MSG_VACANCY_UPDATED
             assert up_event["topic"] == f"vacancies:{user_id}"
-            print("✓ PATCH /api/vacancies/{id} publishes Mercure EVENT_VACANCY_UPDATED passed")
+            print("✓ PATCH /api/v2/vacancies/{id} publishes Mercure EVENT_VACANCY_UPDATED passed")
 
-            # 3. Test DELETE /api/vacancies/{id} publishes EVENT_VACANCY_DELETED
+            # 3. Test DELETE /api/v2/vacancies/{id} publishes EVENT_VACANCY_DELETED
             published_events.clear()
-            del_res = client.delete(f"/api/vacancies/{vacancy_id}")
+            del_res = client.delete(f"/api/v2/vacancies/{vacancy_id}")
             assert del_res.status_code == 204
             deleted_events = [e for e in published_events if e["event_type"] == EVENT_VACANCY_DELETED]
             assert len(deleted_events) >= 1, f"Expected EVENT_VACANCY_DELETED, got: {published_events}"
@@ -78,12 +78,12 @@ def test_card_crud_mercure_events():
             assert del_event["data"]["title"] == "Software Engineer Mercure"
             assert del_event["data"]["message_code"] == MSG_VACANCY_DELETED
             assert del_event["topic"] == f"vacancies:{user_id}"
-            print("✓ DELETE /api/vacancies/{id} publishes Mercure EVENT_VACANCY_DELETED passed")
+            print("✓ DELETE /api/v2/vacancies/{id} publishes Mercure EVENT_VACANCY_DELETED passed")
 
-            # 4. Test POST /api/vacancies/batch publishes EVENT_VACANCY_CREATED for new vacancy
+            # 4. Test POST /api/v2/vacancies/batch publishes EVENT_VACANCY_CREATED for new vacancy
             published_events.clear()
             batch_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}/"
-            res = client.post("/api/vacancies/batch", json={
+            res = client.post("/api/v2/vacancies/batch", json={
                 "urls": [batch_url],
                 "default_tags": ["batch-mercure-test"]
             })
@@ -92,7 +92,7 @@ def test_card_crud_mercure_events():
             assert len(batch_created_events) >= 1, f"Expected EVENT_VACANCY_CREATED in batch import, got: {published_events}"
             assert batch_created_events[0]["data"]["vacancy"]["url"] == batch_url
             assert batch_created_events[0]["topic"] == f"vacancies:{user_id}"
-            print("✓ POST /api/vacancies/batch publishes Mercure EVENT_VACANCY_CREATED passed")
+            print("✓ POST /api/v2/vacancies/batch publishes Mercure EVENT_VACANCY_CREATED passed")
 
             # 5. Test POST /api/extension/parse_and_add publishes EVENT_VACANCY_CREATED for new vacancy
             published_events.clear()

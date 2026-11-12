@@ -17,14 +17,14 @@ class TestAdminPanel(unittest.TestCase):
         self.db = SessionLocal()
 
         # Create or fetch non-admin user
-        res_user = self.client.post("/api/auth/dev-login", json={
+        res_user = self.client.post("/api/v2/auth/dev-login", json={
             "email": "regular_user@test.com",
             "name": "Regular User"
         })
         self.user_token = res_user.json()["token"]
 
         # Create or fetch admin user
-        res_admin = self.client.post("/api/auth/dev-login", json={
+        res_admin = self.client.post("/api/v2/auth/dev-login", json={
             "email": "admin_user@test.com",
             "name": "Admin User"
         })
@@ -54,22 +54,22 @@ class TestAdminPanel(unittest.TestCase):
         self.db.close()
 
     def test_admin_endpoints_require_admin_role(self):
-        # 1. Anonymous request to /api/admin/users -> 401
+        # 1. Anonymous request to /api/v2/admin/users -> 401
         anon_client = TestClient(app)
-        res_anon = anon_client.get("/api/admin/users")
+        res_anon = anon_client.get("/api/v2/admin/users")
         self.assertEqual(res_anon.status_code, 401)
 
-        # 2. Regular user request to /api/admin/users -> 403 Forbidden
-        res_user = self.user_client.get("/api/admin/users")
+        # 2. Regular user request to /api/v2/admin/users -> 403 Forbidden
+        res_user = self.user_client.get("/api/v2/admin/users")
         self.assertEqual(res_user.status_code, 403)
 
         # 3. Regular user PATCH -> 403
-        res_patch = self.user_client.patch("/api/admin/users/1", json={"feature_flags": ["admin"]})
+        res_patch = self.user_client.patch("/api/v2/admin/users/1", json={"feature_flags": ["admin"]})
         self.assertEqual(res_patch.status_code, 403)
 
     def test_admin_can_list_and_update_feature_flags(self):
         # 1. Admin can list users
-        res = self.admin_client.get("/api/admin/users")
+        res = self.admin_client.get("/api/v2/admin/users")
         self.assertEqual(res.status_code, 200)
         users = res.json()
         self.assertTrue(len(users) >= 2)
@@ -79,33 +79,33 @@ class TestAdminPanel(unittest.TestCase):
         self.assertNotIn("admin", reg_user.get("feature_flags", []))
 
         # 2. Admin assigns feature flags to regular user
-        patch_res = self.admin_client.patch(f"/api/admin/users/{reg_user['id']}", json={
+        patch_res = self.admin_client.patch(f"/api/v2/admin/users/{reg_user['id']}", json={
             "feature_flags": ["api_access"]
         })
         self.assertEqual(patch_res.status_code, 200)
         updated = patch_res.json()
         self.assertIn("api_access", updated["feature_flags"])
 
-        # 3. Regular user sees their feature flags in /api/auth/me
-        me_res = self.user_client.get("/api/auth/me")
+        # 3. Regular user sees their feature flags in /api/v2/auth/me
+        me_res = self.user_client.get("/api/v2/auth/me")
         self.assertEqual(me_res.status_code, 200)
         me_data = me_res.json()
         self.assertIn("api_access", me_data["feature_flags"])
 
         # 4. Admin promotes user to admin via "admin" feature flag
-        admin_promo_res = self.admin_client.patch(f"/api/admin/users/{reg_user['id']}", json={
+        admin_promo_res = self.admin_client.patch(f"/api/v2/admin/users/{reg_user['id']}", json={
             "feature_flags": ["api_access", "admin"]
         })
         self.assertEqual(admin_promo_res.status_code, 200)
         self.assertIn("admin", admin_promo_res.json()["feature_flags"])
 
         # 5. Newly promoted user can now access admin endpoint
-        res_promoted = self.user_client.get("/api/admin/users")
+        res_promoted = self.user_client.get("/api/v2/admin/users")
         self.assertEqual(res_promoted.status_code, 200)
 
     def test_admin_user_stats(self):
         # Regular user creates vacancy
-        v_res = self.user_client.post("/api/vacancies", json={
+        v_res = self.user_client.post("/api/v2/vacancies", json={
             "title": "Backend Engineer",
             "company": "Tech Corp",
             "url": "https://example.com/job/123",
@@ -115,7 +115,7 @@ class TestAdminPanel(unittest.TestCase):
         v_id = v_res.json()["id"]
 
         # Regular user updates vacancy status (interacts with board)
-        update_res = self.user_client.patch(f"/api/vacancies/{v_id}", json={
+        update_res = self.user_client.patch(f"/api/v2/vacancies/{v_id}", json={
             "status": "Написал"
         })
         self.assertEqual(update_res.status_code, 200)
@@ -144,7 +144,7 @@ class TestAdminPanel(unittest.TestCase):
         self.db.commit()
 
         # Admin fetches users and inspects stats
-        res = self.admin_client.get("/api/admin/users")
+        res = self.admin_client.get("/api/v2/admin/users")
         self.assertEqual(res.status_code, 200)
         users = res.json()
 
@@ -163,7 +163,7 @@ class TestAdminPanel(unittest.TestCase):
         reg_user_db.last_board_interaction_at = datetime.datetime.now(datetime.timezone.utc)
         self.db.commit()
 
-        res2 = self.admin_client.get("/api/admin/users")
+        res2 = self.admin_client.get("/api/v2/admin/users")
         self.assertEqual(res2.status_code, 200)
 
         # Check token usage in user stats

@@ -12,7 +12,7 @@ class TestVacancyHistory(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
         # Login dev user to get authenticated session
-        login_res = self.client.post("/api/auth/dev-login", json={"email": "history_test@example.com", "name": "History Tester"})
+        login_res = self.client.post("/api/v2/auth/dev-login", json={"email": "history_test@example.com", "name": "History Tester"})
         self.assertEqual(login_res.status_code, 200)
 
     def test_history_lifecycle(self):
@@ -23,7 +23,7 @@ class TestVacancyHistory(unittest.TestCase):
             "url": "https://www.linkedin.com/jobs/view/77777777/",
             "status": STATUS_NOT_CONTACTED
         }
-        res = self.client.post("/api/vacancies", json=create_payload)
+        res = self.client.post("/api/v2/vacancies", json=create_payload)
         self.assertEqual(res.status_code, 200)
         data = res.json()
         vacancy_id = data["id"]
@@ -41,7 +41,7 @@ class TestVacancyHistory(unittest.TestCase):
             "status": STATUS_CONTACTED,
             "status_comment": "Откликнулся через рекрутера в Telegram"
         }
-        res = self.client.patch(f"/api/vacancies/{vacancy_id}", json=update_payload)
+        res = self.client.patch(f"/api/v2/vacancies/{vacancy_id}", json=update_payload)
         self.assertEqual(res.status_code, 200)
         updated_data = res.json()
         self.assertEqual(updated_data["status"], STATUS_CONTACTED)
@@ -55,7 +55,7 @@ class TestVacancyHistory(unittest.TestCase):
         # 3. Update comment on step 2 via PATCH /history/{history_id}
         history_id = step2["id"]
         comment_update_res = self.client.patch(
-            f"/api/vacancies/{vacancy_id}/history/{history_id}",
+            f"/api/v2/vacancies/{vacancy_id}/history/{history_id}",
             json={"comment": "Обновленный комментарий: собеседование назначено на четверг"}
         )
         self.assertEqual(comment_update_res.status_code, 200)
@@ -64,7 +64,7 @@ class TestVacancyHistory(unittest.TestCase):
         self.assertEqual(step2_updated["comment"], "Обновленный комментарий: собеседование назначено на четверг")
 
         # 4. Move to another status without comment
-        res = self.client.patch(f"/api/vacancies/{vacancy_id}", json={"status": "Собеседование"})
+        res = self.client.patch(f"/api/v2/vacancies/{vacancy_id}", json={"status": "Собеседование"})
         self.assertEqual(res.status_code, 200)
         updated_data3 = res.json()
         self.assertEqual(len(updated_data3["history"]), 3)
@@ -75,7 +75,7 @@ class TestVacancyHistory(unittest.TestCase):
 
         # 5. Add comment to step 3 later
         res = self.client.patch(
-            f"/api/vacancies/{vacancy_id}/history/{step3['id']}",
+            f"/api/v2/vacancies/{vacancy_id}/history/{step3['id']}",
             json={"comment": "Техническое интервью прошло отлично"}
         )
         self.assertEqual(res.status_code, 200)
@@ -83,7 +83,7 @@ class TestVacancyHistory(unittest.TestCase):
         self.assertEqual(step3_updated["comment"], "Техническое интервью прошло отлично")
 
         # Cleanup
-        self.client.delete(f"/api/vacancies/{vacancy_id}")
+        self.client.delete(f"/api/v2/vacancies/{vacancy_id}")
 
 if __name__ == "__main__":
     unittest.main()

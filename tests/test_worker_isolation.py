@@ -9,10 +9,10 @@ from backend.queue_manager import queue_manager, JobTask, TASK_KEY_PREFIX
 
 def test_extension_worker_does_not_overwrite_same_url_of_other_user():
     a, b = TestClient(app), TestClient(app)
-    a_id = a.post('/api/auth/dev-login', json={'email': 'worker-a@test.local'}).json()['user']['id']
-    b_id = b.post('/api/auth/dev-login', json={'email': 'worker-b@test.local'}).json()['user']['id']
+    a_id = a.post('/api/v2/auth/dev-login', json={'email': 'worker-a@test.local'}).json()['user']['id']
+    b_id = b.post('/api/v2/auth/dev-login', json={'email': 'worker-b@test.local'}).json()['user']['id']
     url = 'https://www.linkedin.com/jobs/view/12345678/'
-    original = a.post('/api/vacancies', json={'url': url, 'title': 'A private card', 'company': 'A'}).json()
+    original = a.post('/api/v2/vacancies', json={'url': url, 'title': 'A private card', 'company': 'A'}).json()
 
     async def scenario():
         task = JobTask(task_id='isolation', url=url, default_tags=[], batch_id='test',
@@ -33,7 +33,7 @@ def test_extension_worker_does_not_overwrite_same_url_of_other_user():
 
 def test_extension_pending_list_uses_current_key_and_string_ids():
     client = TestClient(app)
-    user_id = client.post('/api/auth/dev-login', json={'email': 'extension@test.local'}).json()['user']['id']
+    user_id = client.post('/api/v2/auth/dev-login', json={'email': 'extension@test.local'}).json()['user']['id']
     async def seed():
         task = JobTask(task_id='pending-task', url='https://example.com/job', default_tags=[],
                        batch_id='test', user_id=user_id, status='pending_extension')

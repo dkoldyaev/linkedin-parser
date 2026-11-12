@@ -17,7 +17,7 @@ def test_missing_or_mismatched_oauth_state_never_exchanges_code():
             params = {'code': 'secret-code'}
             if state:
                 params['state'] = state
-            assert client.get('/api/auth/google/callback', params=params).status_code == 400
+            assert client.get('/api/v2/auth/google/callback', params=params).status_code == 400
         exchange.assert_not_awaited()
 
 
@@ -27,18 +27,18 @@ def test_valid_oauth_registration_and_logout():
     with patch('backend.main.exchange_google_code', new_callable=AsyncMock, return_value={'access_token': 'mock'}), \
          patch('backend.main.get_google_user_info', new_callable=AsyncMock, return_value={
              'sub': 'google-test', 'email': 'oauth@test.local', 'email_verified': True, 'name': 'OAuth User'}):
-        response = client.get('/api/auth/google/callback?code=test&state=expected', follow_redirects=False)
+        response = client.get('/api/v2/auth/google/callback?code=test&state=expected', follow_redirects=False)
     assert response.status_code == 302
-    user = client.get('/api/auth/me').json()
-    config = client.get('/api/config')
+    user = client.get('/api/v2/auth/me').json()
+    config = client.get('/api/v2/config')
     assert config.headers['cache-control'] == 'no-store'
     token = client.cookies.get('mercureAuthorization')
     claims = jwt.decode(token, get_mercure_secret(), algorithms=['HS256'])
     assert claims['mercure'] == {'subscribe': [f"vacancies:{user['id']}"]}
     assert 'HttpOnly' in config.headers['set-cookie']
-    assert client.post('/api/auth/logout').status_code == 200
+    assert client.post('/api/v2/auth/logout').status_code == 200
     assert client.cookies.get('mercureAuthorization') is None
-    me_after_logout = client.get('/api/auth/me')
+    me_after_logout = client.get('/api/v2/auth/me')
     assert me_after_logout.status_code == 200
     assert me_after_logout.json()['is_anonymous'] is True
     assert me_after_logout.json()['id'] != user['id']
@@ -60,11 +60,11 @@ def test_weak_or_missing_signing_key_fails_closed(monkeypatch):
 def test_dev_login_disabled_when_unconfigured(monkeypatch):
     monkeypatch.delenv('DEV_AUTH', raising=False)
     client = TestClient(app)
-    assert client.post('/api/auth/dev-login', json={'email': 'test@local'}).status_code == 403
+    assert client.post('/api/v2/auth/dev-login', json={'email': 'test@local'}).status_code == 403
 
 
 def test_disallowed_cors_origin():
-    response = TestClient(app).options('/api/settings', headers={
+    response = TestClient(app).options('/api/v2/settings', headers={
         'Origin': 'https://attacker.invalid', 'Access-Control-Request-Method': 'POST'})
     assert response.status_code == 400
     assert 'access-control-allow-origin' not in response.headers

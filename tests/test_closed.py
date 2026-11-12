@@ -79,12 +79,12 @@ class TestClosedVacancy(unittest.TestCase):
     def test_database_and_api(self):
         ensure_db_schema()
         client = TestClient(app)
-        login_res = client.post("/api/auth/dev-login", json={"email": "closed_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "closed_test@local.user"})
         token = login_res.json()["token"]
         client = TestClient(app, cookies={"access_token": token})
 
         # Create a vacancy with is_closed=False
-        res = client.post("/api/vacancies", json={
+        res = client.post("/api/v2/vacancies", json={
             "title": "Test Closed Field Engineer",
             "company": "ClosedTest Inc",
             "url": "https://www.linkedin.com/jobs/view/7777777777",
@@ -96,27 +96,27 @@ class TestClosedVacancy(unittest.TestCase):
         self.assertFalse(data["is_closed"])
 
         # Patch is_closed to True
-        res_patch = client.patch(f"/api/vacancies/{vid}", json={"is_closed": True})
+        res_patch = client.patch(f"/api/v2/vacancies/{vid}", json={"is_closed": True})
         self.assertEqual(res_patch.status_code, 200)
         self.assertTrue(res_patch.json()["is_closed"])
 
         # Filter API by is_closed
-        res_filter = client.get("/api/vacancies?is_closed=true")
+        res_filter = client.get("/api/v2/vacancies?is_closed=true")
         self.assertEqual(res_filter.status_code, 200)
         vacancies = res_filter.json()
         self.assertTrue(any(v["id"] == vid for v in vacancies))
 
         # Cleanup
-        client.delete(f"/api/vacancies/{vid}")
+        client.delete(f"/api/v2/vacancies/{vid}")
 
     def test_rejection_status_transition(self):
         client = TestClient(app)
-        login_res = client.post("/api/auth/dev-login", json={"email": "rejection_test@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "rejection_test@local.user"})
         token = login_res.json()["token"]
         client = TestClient(app, cookies={"access_token": token})
 
         # Create vacancy
-        res = client.post("/api/vacancies", json={
+        res = client.post("/api/v2/vacancies", json={
             "title": "Full Stack Dev",
             "company": "Reject Corp",
             "url": "https://www.linkedin.com/jobs/view/8888888888",
@@ -126,22 +126,22 @@ class TestClosedVacancy(unittest.TestCase):
         vid = res.json()["id"]
 
         # Move to 'Отказ'
-        patch_res = client.patch(f"/api/vacancies/{vid}", json={"status": STATUS_REJECTED})
+        patch_res = client.patch(f"/api/v2/vacancies/{vid}", json={"status": STATUS_REJECTED})
         self.assertEqual(patch_res.status_code, 200)
         self.assertEqual(patch_res.json()["status"], STATUS_REJECTED)
 
         # Filter by 'Отказ'
-        filter_res = client.get(f"/api/vacancies?status={STATUS_REJECTED}")
+        filter_res = client.get(f"/api/v2/vacancies?status={STATUS_REJECTED}")
         self.assertEqual(filter_res.status_code, 200)
         self.assertTrue(any(v["id"] == vid for v in filter_res.json()))
 
         # Restore to STATUS_NOT_CONTACTED
-        restore_res = client.patch(f"/api/vacancies/{vid}", json={"status": STATUS_NOT_CONTACTED})
+        restore_res = client.patch(f"/api/v2/vacancies/{vid}", json={"status": STATUS_NOT_CONTACTED})
         self.assertEqual(restore_res.status_code, 200)
         self.assertEqual(restore_res.json()["status"], STATUS_NOT_CONTACTED)
 
         # Cleanup
-        client.delete(f"/api/vacancies/{vid}")
+        client.delete(f"/api/v2/vacancies/{vid}")
 
 if __name__ == "__main__":
     unittest.main()

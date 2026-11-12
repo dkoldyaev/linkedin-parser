@@ -35,7 +35,7 @@ def api_user_fixture():
     client = TestClient(app)
     # Generate API key for this user
     jwt_token = create_access_token({"sub": str(user.id)})
-    res = client.post("/api/api-keys", json={"name": "Public Key"}, headers={"Authorization": f"Bearer {jwt_token}"})
+    res = client.post("/api/v2/api-keys", json={"name": "Public Key"}, headers={"Authorization": f"Bearer {jwt_token}"})
     raw_api_key = res.json()["token"]
 
     yield user, raw_api_key, jwt_token
@@ -79,15 +79,15 @@ def test_system_vs_public_api_docs(api_user_fixture):
     # Root redirects work for authorized users
     r_docs = client.get("/docs", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_docs.status_code == 307
-    assert r_docs.headers["location"] == "/api/v1/docs"
+    assert r_docs.headers["location"] == "/api/v2/docs"
 
     r_redoc = client.get("/redoc", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_redoc.status_code == 307
-    assert r_redoc.headers["location"] == "/api/v1/redoc"
+    assert r_redoc.headers["location"] == "/api/v2/redoc"
 
     r_schema = client.get("/openapi.json", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_schema.status_code == 307
-    assert r_schema.headers["location"] == "/api/v1/openapi.json"
+    assert r_schema.headers["location"] == "/api/v2/openapi.json"
 
     # Documentation must be specifically for Public API
     assert "Job Vacancies Public API" in schema["info"]["title"]
@@ -113,6 +113,7 @@ def test_system_vs_public_api_docs(api_user_fixture):
 
     # Must NOT contain system or internal auth endpoints!
     assert "/api/auth/dev-login" not in paths
+    assert "/api/v2/auth/dev-login" not in paths
     assert "/api/auth/google/login" not in paths
     assert "/api/auth/google/callback" not in paths
     assert "/api/auth/config" not in paths
