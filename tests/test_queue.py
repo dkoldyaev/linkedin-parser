@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.mercure import generate_publisher_jwt, get_mercure_secret
 import jwt
+from backend import queue_manager as queue_manager_module
 
 
 def test_queue_endpoints():
@@ -28,13 +29,8 @@ def test_queue_endpoints():
         assert "*" in decoded["mercure"]["publish"]
         print("✓ Mercure JWT generation test passed")
 
-        # 3. Test /api/queue/status
-        status_resp = client.get("/api/v2/queue/status")
-        assert status_resp.status_code == 200
-        status_data = status_resp.json()
-        assert "pending" in status_data
-        assert "total_remaining" in status_data
-        print("✓ /api/queue/status test passed:", status_data)
+        # 3. Queue status is not served over HTTP on v2 (Mercure only)
+        assert client.get("/api/v2/queue/status").status_code in (404, 405)
 
         # 4. Test async enqueue via /api/v2/vacancies/batch (without wait)
         test_url = "https://www.linkedin.com/jobs/view/4462938317"
@@ -50,15 +46,17 @@ def test_queue_endpoints():
         assert len(enqueue_data["tasks"]) == 1
         print("✓ Async batch enqueue test passed:", enqueue_data)
 
-        # 5. Check queue status immediately after enqueuing
-        q_status = client.get("/api/v2/queue/status").json()
-        print("✓ Queue status after enqueue:", q_status)
-
-        # Workers are deliberately disabled in endpoint tests. Verify the queued
-        # task contract deterministically; worker execution has dedicated tests.
-        assert q_status["total_remaining"] == 1
-        assert q_status["pending"] == 1
-        assert q_status["recent_tasks"][0]["task_id"] == enqueue_data["tasks"][0]["task_id"]
+        # 5. Workers are deliberately disabled in endpoint tests. Verify the queued
+        # task contract deterministically via the published Mercure snapshot.
+        published = [
+            c.kwargs["data"] for c in queue_manager_module.publish_mercure_event.call_args_list
+            if c.kwargs["event_type"] == "queue_state" and c.kwargs["topic"] == f"vacancies:{user_id}"
+        ]
+        assert published, "queue_state was not published to Mercure"
+        state = published[-1]
+        assert state["total"] == 1
+        assert state["pending_count"] == 1
+        assert state["links"][0]["task_id"] == enqueue_data["tasks"][0]["task_id"]
 
 
 if __name__ == "__main__":

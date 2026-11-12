@@ -868,23 +868,26 @@ def get_config(response: Response, current_user: User = Depends(get_current_user
     }
 
 
-@api_v2.get("/queue/status", response_model=QueueStatusResponse)
 @legacy_api.get("/queue/status", response_model=QueueStatusResponse)
 async def get_queue_status(current_user: User = Depends(get_current_user)):
     """Get active parsing queue status and recent tasks scoped to user."""
     return await queue_manager.get_status(user_id=current_user.id)
 
-@api_v2.get("/queue/tasks", response_model=List[TaskInfo])
 @legacy_api.get("/queue/tasks", response_model=List[TaskInfo])
 async def get_queue_tasks(current_user: User = Depends(get_current_user)):
     """Get active tasks in the queue."""
     return await queue_manager.get_active_tasks(user_id=current_user.id)
 
-@api_v2.get("/queue/links", response_model=QueueLinksResponse)
 @legacy_api.get("/queue/links", response_model=QueueLinksResponse)
 async def get_queue_links(current_user: User = Depends(get_current_user)):
     """Get active links and their processing stages for the current user."""
     return await queue_manager.get_active_links(user_id=current_user.id)
+
+@api_v2.post("/queue/sync", status_code=202)
+async def sync_queue_state(current_user: User = Depends(get_current_user)):
+    """Ask the backend to republish the current queue snapshot; the data is delivered only via Mercure `queue_state`."""
+    await queue_manager.publish_queue_state(user_id=current_user.id)
+    return Response(status_code=202)
 
 @api_v2.delete("/queue/links")
 @api_v2.delete("/queue/clear")
@@ -895,7 +898,6 @@ async def clear_queue_links(current_user: User = Depends(get_current_user)):
     cleared_count = await queue_manager.clear_user_queue(user_id=current_user.id)
     return {"message": "All queue links cleared", "cleared": cleared_count}
 
-@api_v2.get("/queue/links/{task_id}", response_model=ProcessingLinkInfo)
 @legacy_api.get("/queue/links/{task_id}", response_model=ProcessingLinkInfo)
 async def get_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
     """Retrieve current stage and state of a single link task."""
@@ -921,15 +923,6 @@ async def cancel_queue_task(task_id: str, current_user: User = Depends(get_curre
     if not success:
         raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
     return {"message": "Task cancelled"}
-
-
-@api_v2.get("/queue/tasks/{task_id}", response_model=TaskInfo)
-async def get_queue_task_by_id(task_id: str, current_user: User = Depends(get_current_user)):
-    """Get single task status by ID."""
-    task = await queue_manager.get_task(task_id=task_id, user_id=current_user.id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task.to_info()
 
 
 @api_v2.get("/vacancies", response_model=List[VacancyResponse])

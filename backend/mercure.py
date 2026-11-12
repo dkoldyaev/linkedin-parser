@@ -18,6 +18,7 @@ EVENT_VACANCY_DELETED = "vacancy_deleted"
 EVENT_TASK_FAILED = "task_failed"
 EVENT_QUEUE_UPDATED = "queue_updated"
 EVENT_QUEUE_IDLE = "queue_idle"
+EVENT_QUEUE_STATE = "queue_state"
 EVENT_EXTENSION_TASK = "extension_task"
 EVENT_COMPATIBILITY_ANALYZED = "compatibility_analyzed"
 

@@ -72,16 +72,6 @@ function buildTheme(mode) {
 
 // ── API helpers ──────────────────────────────────────────────────────────────
 
-async function fetchQueueData() {
-  const [tasksRes, statusRes] = await Promise.all([
-    fetch(`${API_BASE}/api/v2/queue/tasks`, { credentials: 'include' }),
-    fetch(`${API_BASE}/api/v2/queue/status`, { credentials: 'include' }),
-  ])
-  const tasks  = tasksRes.ok  ? await tasksRes.json()  : []
-  const status = statusRes.ok ? await statusRes.json() : {}
-  return { tasks, total: status.total_remaining ?? tasks.length }
-}
-
 async function getBlockedTabs() {
   try {
     return await chrome.runtime.sendMessage({ type: 'GET_BLOCKED_TABS' }) ?? {}
@@ -327,22 +317,39 @@ export default function Popup() {
     })
   }, [])
 
+  // Queue arrives only via Mercure (background.js relays `queue_state` events)
+  const applyQueueState = useCallback((state) => {
+    const tasks = state.links
+    setQueueTasks(tasks)
+    setQueueTotal(state.pending_count + state.processing_count)
+  }, [])
+
   const refresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      const [qd, blocked] = await Promise.all([fetchQueueData(), getBlockedTabs()])
-      setQueueTasks(qd.tasks || [])
-      setQueueTotal(qd.total)
+      const blocked = await getBlockedTabs()
       setBlockedTabs(blocked || {})
+      await chrome.runtime.sendMessage({ type: 'SYNC_QUEUE' })
     } catch { /* ignore */ } finally {
       setRefreshing(false)
     }
   }, [])
 
-  // Initial load + polling
+  useEffect(() => {
+    const onMessage = (msg) => {
+      if (msg.type === 'QUEUE_STATE') applyQueueState(msg.state)
+    }
+    chrome.runtime.onMessage.addListener(onMessage)
+    chrome.runtime.sendMessage({ type: 'GET_QUEUE_STATE' }).then(applyQueueState)
+    return () => chrome.runtime.onMessage.removeListener(onMessage)
+  }, [applyQueueState])
+
+  // Initial load + blocked tabs polling (blocked tabs are local browser state, not queue data)
   useEffect(() => {
     refresh()
-    intervalRef.current = setInterval(refresh, 5000)
+    intervalRef.current = setInterval(async () => {
+      setBlockedTabs((await getBlockedTabs()) || {})
+    }, 5000)
     return () => clearInterval(intervalRef.current)
   }, [refresh])
 

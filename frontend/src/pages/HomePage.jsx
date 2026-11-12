@@ -50,6 +50,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
+  const [queueState, setQueueState] = useState({ links: [], total: 0, pending_count: 0, processing_count: 0, failed_count: 0 });
   const [mercureStatus, setMercureStatus] = useState('connecting'); // 'connected' | 'connecting'
 
   // Modals state
@@ -235,21 +236,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     fetchCities('');
   };
 
-  const fetchQueueStatus = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/v2/queue/status');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.total_remaining !== undefined) {
-          setQueueRemaining(data.total_remaining);
-        }
-      }
-    } catch (err) {
-      console.debug('Failed to fetch queue status', err);
-    }
-  }, [user]);
-
   useEffect(() => {
     if (!user) return;
     fetchColumns();
@@ -257,8 +243,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     fetchCountries();
     fetchCities(selectedCountry);
     fetchSources();
-    fetchQueueStatus();
-  }, [user, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, fetchQueueStatus, selectedCountry]);
+  }, [user, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, selectedCountry]);
 
   useEffect(() => {
     const timer = setTimeout(fetchVacancies, 150);
@@ -276,7 +261,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     selectedCountry,
     selectedClosed,
     hasFilters: Boolean(search.trim() || selectedTag || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed),
-    fetchQueueStatus,
     showToast,
     t
   };
@@ -298,7 +282,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         cb.fetchCountries();
         cb.fetchCities(cb.selectedCountry);
         cb.fetchSources();
-        cb.fetchQueueStatus();
       }, 150);
     };
 
@@ -320,6 +303,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           if (isSubscribed) {
             setMercureStatus('connected');
             scheduleRefresh();
+            // Queue state is delivered only via Mercure: ask the backend to republish the snapshot
+            fetch('/api/v2/queue/sync', { method: 'POST', credentials: 'include' }).catch((err) => {
+              console.error('Failed to request queue snapshot', err);
+            });
           }
         };
 
@@ -403,6 +390,15 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               if (total_remaining !== undefined) {
                 setQueueRemaining(total_remaining);
               }
+            } else if (type === 'queue_state') {
+              setQueueState({
+                links: data.links,
+                total: data.total,
+                pending_count: data.pending_count,
+                processing_count: data.processing_count,
+                failed_count: data.failed_count,
+              });
+              setQueueRemaining(data.pending_count + data.processing_count);
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
               currentShowToast(currentT('mercure.queue_idle'));
@@ -1048,8 +1044,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       <QueueModal
         isOpen={isQueueOpen}
         onClose={() => setIsQueueOpen(false)}
-        queueRemaining={queueRemaining}
-        onRefreshQueue={fetchQueueStatus}
+        queueState={queueState}
       />
 
       {isGuestAuthModalOpen && (
