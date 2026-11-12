@@ -1,0 +1,12 @@
+@layer ui-templates {
+  .modalStoryContainer {
+    padding: var(--ui-space-6);
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .modalVacancyContent {
+    border: none;
+    max-width: 100%;
+  }
+}
