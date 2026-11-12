@@ -3,14 +3,15 @@ const API_BASE = process.env.APP_URL;
 // --- Queue fetching ---
 async function fetchQueue() {
   try {
-    // /api/queue/tasks returns List[TaskInfo] with title, company, stage, status
-    const [tasksRes, statusRes] = await Promise.all([
-      fetch(`${API_BASE}/api/queue/tasks`, { credentials: "include" }),
+    // /api/queue/links returns QueueLinksResponse with links, total, stages, status
+    const [linksRes, statusRes] = await Promise.all([
+      fetch(`${API_BASE}/api/queue/links`, { credentials: "include" }),
       fetch(`${API_BASE}/api/queue/status`, { credentials: "include" }),
     ]);
-    const tasks = tasksRes.ok ? await tasksRes.json() : [];
+    const linksData = linksRes.ok ? await linksRes.json() : {};
     const status = statusRes.ok ? await statusRes.json() : {};
-    return { tasks, total_remaining: status.total_remaining ?? tasks.length };
+    const tasks = linksData.links || [];
+    return { tasks, total_remaining: linksData.total ?? status.total_remaining ?? tasks.length };
   } catch {
     return null;
   }

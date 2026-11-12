@@ -23,7 +23,7 @@ if not app_url:
 BASE_URL = app_url.rstrip("/")
 DEV_LOGIN_URL = f"{BASE_URL}/api/auth/dev-login"
 PARSE_AND_ADD_URL = f"{BASE_URL}/api/extension/parse_and_add"
-QUEUE_TASKS_URL = f"{BASE_URL}/api/queue/tasks"
+QUEUE_LINKS_URL = f"{BASE_URL}/api/queue/links"
 QUEUE_STATUS_URL = f"{BASE_URL}/api/queue/status"
 VACANCIES_URL = f"{BASE_URL}/api/vacancies"
 
@@ -83,24 +83,25 @@ def verify_single_example(client, example_file, all_parsed):
         return False
     print(f"Created Vacancy ID: {vacancy_id}, Task ID: {task_id}")
 
-    # Step 3: Check queue tasks and status
-    print(f"\n--- Step 3: Checking /api/queue/tasks and /api/queue/status ---")
-    tasks_resp = client.get(QUEUE_TASKS_URL)
+    # Step 3: Check queue links and status
+    print(f"\n--- Step 3: Checking /api/queue/links and /api/queue/status ---")
+    links_resp = client.get(QUEUE_LINKS_URL)
     status_resp = client.get(QUEUE_STATUS_URL)
 
-    if tasks_resp.status_code != 200:
-        print(f"[FAIL] /api/queue/tasks returned {tasks_resp.status_code}: {tasks_resp.text}")
+    if links_resp.status_code != 200:
+        print(f"[FAIL] /api/queue/links returned {links_resp.status_code}: {links_resp.text}")
         return False
     if status_resp.status_code != 200:
         print(f"[FAIL] /api/queue/status returned {status_resp.status_code}: {status_resp.text}")
         return False
 
-    tasks = tasks_resp.json()
+    links_data = links_resp.json()
+    links = links_data.get("links", [])
     q_status = status_resp.json()
 
     print(f"Queue Status: pending={q_status.get('pending')}, processing={q_status.get('processing')}, total_remaining={q_status.get('total_remaining')}")
     
-    matching_active = [t for t in tasks if t.get("task_id") == task_id or t.get("vacancy_id") == vacancy_id]
+    matching_active = [t for t in links if t.get("task_id") == task_id or t.get("vacancy_id") == vacancy_id]
     recent_tasks = q_status.get("recent_tasks", [])
     matching_recent = [t for t in recent_tasks if t.get("task_id") == task_id or t.get("vacancy_id") == vacancy_id]
 
@@ -111,7 +112,7 @@ def verify_single_example(client, example_file, all_parsed):
         task_info = matching_recent[0]
         print(f"[PASS] Task in recent_tasks: ID={task_info.get('task_id')}, stage={task_info.get('stage')}, status={task_info.get('status')}")
     else:
-        print(f"[INFO] Task completed fast. Active={len(tasks)}, Recent={len(recent_tasks)}")
+        print(f"[INFO] Task completed fast. Active={len(links)}, Recent={len(recent_tasks)}")
 
     # Step 4: Verify vacancy appears in /api/vacancies and /api/vacancies/{id}
     print(f"\n--- Step 4: Checking /api/vacancies and /api/vacancies/{vacancy_id} ---")

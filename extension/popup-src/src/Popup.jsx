@@ -73,13 +73,14 @@ function buildTheme(mode) {
 // ── API helpers ──────────────────────────────────────────────────────────────
 
 async function fetchQueueData() {
-  const [tasksRes, statusRes] = await Promise.all([
-    fetch(`${API_BASE}/api/queue/tasks`, { credentials: 'include' }),
+  const [linksRes, statusRes] = await Promise.all([
+    fetch(`${API_BASE}/api/queue/links`, { credentials: 'include' }),
     fetch(`${API_BASE}/api/queue/status`, { credentials: 'include' }),
   ])
-  const tasks  = tasksRes.ok  ? await tasksRes.json()  : []
+  const linksData = linksRes.ok ? await linksRes.json() : {}
   const status = statusRes.ok ? await statusRes.json() : {}
-  return { tasks, total: status.total_remaining ?? tasks.length }
+  const tasks = linksData.links || []
+  return { tasks, total: linksData.total ?? status.total_remaining ?? tasks.length }
 }
 
 async function getBlockedTabs() {

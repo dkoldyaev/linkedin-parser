@@ -51,6 +51,16 @@ def test_queue_links_state_and_deduplication():
         assert link_info["status"] == "pending"
         assert "999111222333" in link_info["url"]
 
+        # Check single link info via GET /api/queue/links/{task_id}
+        single_resp = client.get(f"/api/queue/links/{task_id}")
+        assert single_resp.status_code == 200
+        assert single_resp.json()["task_id"] == task_id
+        assert single_resp.json()["stage"] == "queued"
+
+        # Verify old endpoints are removed (not 200 OK)
+        assert client.get("/api/queue/tasks").status_code == 404
+        assert client.delete(f"/api/queue/tasks/{task_id}").status_code in (404, 405)
+
         # 4. Deduplication: attempt to enqueue the exact same link again while it's in queue
         dup_resp = client.post("/api/vacancies/batch", json={
             "urls": [test_url],

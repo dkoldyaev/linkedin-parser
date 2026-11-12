@@ -419,6 +419,20 @@ class RedisQueueManager:
                 failed_count=failed_count,
             )
 
+    async def get_link_info(self, task_id: str, user_id: int) -> Optional[ProcessingLinkInfo]:
+        with SessionLocal() as db:
+            item = (
+                db.query(ProcessingQueueItem)
+                .filter(
+                    ProcessingQueueItem.task_id == task_id,
+                    ProcessingQueueItem.user_id == user_id,
+                )
+                .first()
+            )
+            if not item:
+                return None
+            return ProcessingLinkInfo.model_validate(item)
+
     async def get_active_tasks(self, user_id: Optional[int] = None) -> List[TaskInfo]:
         if not self.redis:
             return []

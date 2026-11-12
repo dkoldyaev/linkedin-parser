@@ -38,7 +38,10 @@ def test_valid_oauth_registration_and_logout():
     assert 'HttpOnly' in config.headers['set-cookie']
     assert client.post('/api/auth/logout').status_code == 200
     assert client.cookies.get('mercureAuthorization') is None
-    assert client.get('/api/auth/me').status_code == 401
+    me_after_logout = client.get('/api/auth/me')
+    assert me_after_logout.status_code == 200
+    assert me_after_logout.json()['is_anonymous'] is True
+    assert me_after_logout.json()['id'] != user['id']
 
 
 def test_subscriber_cannot_publish_or_subscribe_to_other_user():
