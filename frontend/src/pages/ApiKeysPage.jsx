@@ -35,7 +35,7 @@ export default function ApiKeysPage({ user }) {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/api-keys');
+      const res = await fetch('/api/v2/api-keys');
       if (res.status === 403) {
         setError('403');
         return;
@@ -63,7 +63,7 @@ export default function ApiKeysPage({ user }) {
     if (!hasApiAccess) return;
     setGeneratingKey(true);
     try {
-      const res = await fetch('/api/api-keys', {
+      const res = await fetch('/api/v2/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newKeyName.trim() || 'Default API Key' }),
@@ -96,7 +96,7 @@ export default function ApiKeysPage({ user }) {
     if (!window.confirm(confirmMsg)) return;
 
     try {
-      const res = await fetch(`/api/api-keys/${keyItem.id}`, {
+      const res = await fetch(`/api/v2/api-keys/${keyItem.id}`, {
         method: 'DELETE',
       });
       if (res.ok) {
@@ -120,15 +120,15 @@ export default function ApiKeysPage({ user }) {
           </div>
           {hasApiAccess && (
             <div className="bp-subbar-right">
-              <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
+              <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
                 <ExternalLink size={13} />
                 <span>Swagger UI</span>
               </a>
-              <a href="/api/v1/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
+              <a href="/api/v2/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
                 <ExternalLink size={13} />
                 <span>ReDoc</span>
               </a>
-              <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
+              <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
                 <Code2 size={13} />
                 <span>openapi.json</span>
               </a>
@@ -212,15 +212,15 @@ export default function ApiKeysPage({ user }) {
               <div className="api-docs-panel bp-snap" data-min-grids="3">
                 <p className="info-text">{t('settingsModal.openapi_docs_desc')}</p>
                 <div className="api-docs-links">
-                  <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                  <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
                     <ExternalLink size={14} />
                     <span>{t('settingsModal.openapi_swagger_btn')}</span>
                   </a>
-                  <a href="/api/v1/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                  <a href="/api/v2/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary">
                     <ExternalLink size={14} />
                     <span>{t('settingsModal.openapi_redoc_btn')}</span>
                   </a>
-                  <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                  <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
                     <ExternalLink size={14} />
                     <span>{t('settingsModal.openapi_json_btn')}</span>
                   </a>

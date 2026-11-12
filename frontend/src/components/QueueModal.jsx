@@ -14,7 +14,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
   const fetchQueueLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/queue/links');
+      const res = await fetch('/api/v2/queue/links');
       if (!res.ok) throw new Error('Failed to fetch queue links');
       const data = await res.json();
       setLinks(data.links || []);
@@ -54,7 +54,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
         ...prev,
         total: Math.max(0, prev.total - 1),
       }));
-      const res = await fetch(`/api/queue/links/${taskId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/v2/queue/links/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel link processing');
       onRefreshQueue?.();
     } catch (err) {
@@ -68,7 +68,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
     try {
       setLinks([]);
       setCounts({ total: 0, pending: 0, processing: 0, failed: 0 });
-      const res = await fetch('/api/queue/links', { method: 'DELETE' });
+      const res = await fetch('/api/v2/queue/links', { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to clear queue links');
       onRefreshQueue?.();
     } catch (err) {

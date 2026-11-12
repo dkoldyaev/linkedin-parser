@@ -248,7 +248,7 @@ export default function KanbanBoard({
   };
 
   const handleCreateColumn = async (newColData) => {
-    const res = await fetch('/api/columns', {
+    const res = await fetch('/api/v2/columns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newColData)
@@ -262,7 +262,7 @@ export default function KanbanBoard({
   };
 
   const handleSaveColumn = async (colId, updateData) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData)
@@ -276,7 +276,7 @@ export default function KanbanBoard({
   };
 
   const handleDeleteColumn = async (colId, migrateTo) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
       method: 'DELETE'
     });
     if (!res.ok) {

@@ -73,14 +73,13 @@ function buildTheme(mode) {
 // ── API helpers ──────────────────────────────────────────────────────────────
 
 async function fetchQueueData() {
-  const [linksRes, statusRes] = await Promise.all([
-    fetch(`${API_BASE}/api/queue/links`, { credentials: 'include' }),
-    fetch(`${API_BASE}/api/queue/status`, { credentials: 'include' }),
+  const [tasksRes, statusRes] = await Promise.all([
+    fetch(`${API_BASE}/api/v2/queue/tasks`, { credentials: 'include' }),
+    fetch(`${API_BASE}/api/v2/queue/status`, { credentials: 'include' }),
   ])
-  const linksData = linksRes.ok ? await linksRes.json() : {}
+  const tasks  = tasksRes.ok  ? await tasksRes.json()  : []
   const status = statusRes.ok ? await statusRes.json() : {}
-  const tasks = linksData.links || []
-  return { tasks, total: linksData.total ?? status.total_remaining ?? tasks.length }
+  return { tasks, total: status.total_remaining ?? tasks.length }
 }
 
 async function getBlockedTabs() {
@@ -364,7 +363,7 @@ export default function Popup() {
       if (!parsed?.success) throw new Error(parsed?.error || 'Failed to parse')
 
       setAddMsg('Sending to server…')
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

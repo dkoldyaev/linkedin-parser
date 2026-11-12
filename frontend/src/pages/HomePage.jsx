@@ -129,7 +129,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     const requestId = ++vacancyRequest.current;
     if (!user) return;
     try {
-      let url = '/api/vacancies';
+      let url = '/api/v2/vacancies';
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
       if (selectedTag) params.append('tag', selectedTag);
@@ -153,7 +153,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchTags = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/tags');
+      const res = await fetch('/api/v2/tags');
       if (res.ok) {
         const data = await res.json();
         setAllTags(data);
@@ -166,7 +166,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchCountries = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/countries');
+      const res = await fetch('/api/v2/countries');
       if (res.ok) {
         const data = await res.json();
         setAllCountries(data);
@@ -179,7 +179,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchCities = useCallback(async (countryFilter = '') => {
     if (!user) return;
     try {
-      const url = countryFilter ? `/api/cities?country=${encodeURIComponent(countryFilter)}` : '/api/cities';
+      const url = countryFilter ? `/api/v2/cities?country=${encodeURIComponent(countryFilter)}` : '/api/v2/cities';
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -200,7 +200,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchSources = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/sources');
+      const res = await fetch('/api/v2/sources');
       if (res.ok) {
         const data = await res.json();
         setAllSources(data);
@@ -213,7 +213,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchColumns = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/columns');
+      const res = await fetch('/api/v2/columns');
       if (res.ok) {
         const data = await res.json();
         setColumns(data);
@@ -238,7 +238,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const fetchQueueStatus = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await fetch('/api/queue/status');
+      const res = await fetch('/api/v2/queue/status');
       if (res.ok) {
         const data = await res.json();
         if (data.total_remaining !== undefined) {
@@ -305,7 +305,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     const initMercure = async () => {
       try {
         setMercureStatus('connecting');
-        const configRes = await fetch('/api/config', { credentials: 'include' });
+        const configRes = await fetch('/api/v2/config', { credentials: 'include' });
         if (!configRes.ok) throw new Error(`Mercure config HTTP ${configRes.status}`);
         const cfg = await configRes.json();
         if (!isSubscribed) return;
@@ -444,7 +444,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     }
 
     try {
-      const res = await fetch(`/api/vacancies/${vacancyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, lane: targetLane })
@@ -489,7 +489,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     }));
 
     try {
-      const res = await fetch('/api/vacancies/reorder', {
+      const res = await fetch('/api/v2/vacancies/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -519,7 +519,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v));
     try {
       await Promise.all(vacancyIds.map(vid => 
-        fetch(`/api/vacancies/${vid}`, {
+        fetch(`/api/v2/vacancies/${vid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus, lane: targetLane })
@@ -547,7 +547,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       const ids = targets.map(v => v.id);
       setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
       await Promise.all(ids.map(vid => 
-        fetch(`/api/vacancies/${vid}`, {
+        fetch(`/api/v2/vacancies/${vid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Отказ' })
@@ -700,9 +700,9 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               trackEvent(EVENTS.REFRESH_CLICK);
               try {
                 if (selectedIds.length > 0) {
-                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
+                  await Promise.all(selectedIds.map(id => fetch(`/api/v2/vacancies/${id}/reparse`, { method: 'POST' })));
                 } else {
-                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                  await fetch('/api/v2/vacancies/reparse_all', { method: 'POST' });
                 }
                 fetchVacancies();
               } catch (e) {
@@ -773,7 +773,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   if (!v) return;
                   const tags = new Set(v.tags || []);
                   tags.add(bulkTagInput.trim());
-                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+                  await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
                 fetchVacancies();
@@ -789,7 +789,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   if (!v) return;
                   const tags = new Set(v.tags || []);
                   tags.delete(bulkTagInput.trim());
-                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+                  await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
                 fetchVacancies();
@@ -801,7 +801,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             <button className="btn btn-danger btn-icon" onClick={async () => {
               if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
               try {
-                await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
+                await Promise.all(selectedIds.map(id => fetch(`/api/v2/vacancies/${id}`, { method: 'DELETE' })));
                 setSelectedIds([]);
                 fetchVacancies();
                 fetchTags();

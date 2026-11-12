@@ -198,7 +198,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         throw new Error(result?.error || 'Failed to parse');
       }
 
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -237,7 +237,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         throw new Error(result?.error || 'Failed to parse');
       }
 
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -348,7 +348,7 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
 
 async function fetchMercureConfig() {
   try {
-    const res = await fetch(`${API_BASE}/api/extension/mercure_config`, { credentials: "include" });
+    const res = await fetch(`${API_BASE}/api/v2/extension/mercure_config`, { credentials: "include" });
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
@@ -359,7 +359,7 @@ async function fetchMercureConfig() {
 
 async function fetchTasks() {
   try {
-    const res = await fetch(`${API_BASE}/api/extension/tasks`, { credentials: "include" });
+    const res = await fetch(`${API_BASE}/api/v2/extension/tasks`, { credentials: "include" });
     if (!res.ok) return [];
     return await res.json();
   } catch (err) {
@@ -382,7 +382,7 @@ async function getOffscreenDocument() {
 
 async function reportTaskError(taskId, message) {
   try {
-    await fetch(`${API_BASE}/api/extension/tasks/${taskId}/error`, {
+    await fetch(`${API_BASE}/api/v2/extension/tasks/${taskId}/error`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -396,7 +396,7 @@ async function reportTaskError(taskId, message) {
 // Remote logging to backend so logs can be inspected with `docker logs`
 async function remoteLog(level, message, data = null) {
   try {
-    await fetch(`${API_BASE}/api/extension/log`, {
+    await fetch(`${API_BASE}/api/v2/extension/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ level, message, data }),
@@ -433,7 +433,7 @@ async function submitTaskResult(taskId, url, html) {
     });
     console.log(`[Ext] Parsed result for task ${taskId}:`, vacancyData);
     // Send parsed JSON back to backend API instead of raw HTML
-    const res = await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
+    const res = await fetch(`${API_BASE}/api/v2/extension/tasks/${taskId}/result`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -738,7 +738,7 @@ async function connectMercure() {
 async function sendHeartbeat() {
   try {
     const version = chrome.runtime?.getManifest?.()?.version;
-    await fetch(`${API_BASE}/api/extension/ping`, {
+    await fetch(`${API_BASE}/api/v2/extension/ping`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

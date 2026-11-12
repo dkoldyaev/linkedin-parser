@@ -98,7 +98,7 @@ export default function App() {
   const checkAuth = useCallback(async () => {
     try {
       setAuthLoading(true);
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/v2/auth/me');
       if (res.ok) {
         const userData = await res.json();
         setUser(userData);
@@ -138,7 +138,7 @@ export default function App() {
   const handleLogout = async () => {
     trackEvent(EVENTS.LOGOUT);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/v2/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Logout failed', err);
     }
