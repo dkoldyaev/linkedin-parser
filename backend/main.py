@@ -28,6 +28,7 @@ from .models import (
     AdaptedCVVersion,
     ApiKey,
     UserLLMTokenUsage,
+    ProcessingQueueItem,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
     BASE_STATUSES,
@@ -48,6 +49,8 @@ from .schemas import (
     BatchImportRequest,
     BatchImportResponse,
     AsyncBatchImportResponse,
+    ProcessingLinkInfo,
+    QueueLinksResponse,
     CheckDuplicatesRequest,
     CheckDuplicatesResponse,
     DuplicateVacancyInfo,
@@ -840,6 +843,26 @@ async def get_queue_tasks(current_user: User = Depends(get_current_user)):
     """Get active tasks in the queue."""
     return await queue_manager.get_active_tasks(user_id=current_user.id)
 
+@app.get("/api/queue/links", response_model=QueueLinksResponse)
+async def get_queue_links(current_user: User = Depends(get_current_user)):
+    """Get active links and their processing stages for the current user."""
+    return await queue_manager.get_active_links(user_id=current_user.id)
+
+@app.delete("/api/queue/links")
+@app.delete("/api/queue/clear")
+async def clear_queue_links(current_user: User = Depends(get_current_user)):
+    """Clear/cancel all active and failed links in the processing queue for the current user."""
+    cleared_count = await queue_manager.clear_user_queue(user_id=current_user.id)
+    return {"message": "All queue links cleared", "cleared": cleared_count}
+
+@app.delete("/api/queue/links/{task_id}")
+async def cancel_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
+    """Cancel/remove a link from the processing queue."""
+    success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
+    return {"message": "Link processing cancelled"}
+
 @app.delete("/api/queue/tasks/{task_id}")
 async def cancel_queue_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Cancel a task in the queue."""
@@ -1322,13 +1345,34 @@ async def batch_import_vacancies(
                 unique_urls.append(canonical_u)
 
     job_ids = {extract_job_id(url) for url in unique_urls} - {None}
+
+    # Deduplicate against URLs currently active in the queue for this user
+    active_in_queue = db.query(ProcessingQueueItem.normalized_url).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url.in_(unique_urls),
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).all() if unique_urls else []
+    already_queued_urls = {row[0] for row in active_in_queue}
+
+    urls_to_process = [u for u in unique_urls if u not in already_queued_urls]
+
+    if not wait and not urls_to_process and already_queued_urls:
+        return AsyncBatchImportResponse(
+            status="already_queued",
+            queued=0,
+            batch_id="",
+            message="Все переданные ссылки уже находятся в очереди обработки",
+            tasks=[],
+            already_in_queue=list(already_queued_urls),
+        )
+
     matches = db.query(Vacancy.id, Vacancy.job_id, Vacancy.url).filter(
         Vacancy.user_id == current_user.id,
-        or_(Vacancy.url.in_(unique_urls), Vacancy.job_id.in_(job_ids))).all() if unique_urls else []
+        or_(Vacancy.url.in_(urls_to_process), Vacancy.job_id.in_(job_ids))).all() if urls_to_process else []
     ids_by_job = {row.job_id: row.id for row in matches if row.job_id}
     ids_by_url = {row.url: row.id for row in matches}
     vacancy_ids = []
-    for url in unique_urls:
+    for url in urls_to_process:
         job_id = extract_job_id(url)
         existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
         if not existing_id:
@@ -1375,14 +1419,18 @@ async def batch_import_vacancies(
     if not wait:
         # Default: Asynchronous queue processing
         batch_id, tasks = await queue_manager.enqueue(
-            unique_urls, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
+            urls_to_process, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
         )
+        msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
+        if already_queued_urls:
+            msg += f" ({len(already_queued_urls)} уже в очереди)"
         return AsyncBatchImportResponse(
             status="queued",
             queued=len(tasks),
             batch_id=batch_id,
-            message=f"{len(tasks)} вакансий успешно добавлено в очередь на обработку",
+            message=msg,
             tasks=[t.to_info() for t in tasks],
+            already_in_queue=list(already_queued_urls),
         )
 
     # Synchronous processing mode (if wait=True, e.g. for testing)
@@ -1635,6 +1683,20 @@ async def reparse_vacancy(
     if not v.url:
         raise HTTPException(status_code=400, detail="У вакансии отсутствует ссылка (URL)")
 
+    clean_url = normalize_url(v.url.strip())
+    active_in_queue = db.query(ProcessingQueueItem).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url == clean_url,
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).first()
+    if active_in_queue:
+        return {
+            "status": "already_queued",
+            "batch_id": "",
+            "task_id": active_in_queue.task_id,
+            "message": "Вакансия уже находится в очереди обработки",
+        }
+
     batch_id, tasks = await queue_manager.enqueue(
         [v.url], default_tags=[], vacancy_ids=[v.id], user_id=current_user.id
     )
@@ -1663,10 +1725,23 @@ async def reparse_all_vacancies(
         return {"message": "Нет вакансий для обновления", "enqueued": 0}
 
     urls = [v.url for v in vacancies]
-    vacancy_ids = [v.id for v in vacancies]
+    norm_urls = [normalize_url(u.strip()) for u in urls if u and normalize_url(u.strip())]
+    active_in_queue = db.query(ProcessingQueueItem.normalized_url).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url.in_(norm_urls),
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).all() if norm_urls else []
+    already_queued = {r[0] for r in active_in_queue}
+
+    vacs_to_reparse = [v for v in vacancies if normalize_url(v.url.strip()) not in already_queued]
+    if not vacs_to_reparse:
+        return {"message": "Все вакансии уже находятся в очереди обновления", "enqueued": 0}
+
+    urls_to_enqueue = [v.url for v in vacs_to_reparse]
+    vacancy_ids = [v.id for v in vacs_to_reparse]
 
     batch_id, tasks = await queue_manager.enqueue(
-        urls=urls, default_tags=[], vacancy_ids=vacancy_ids, user_id=current_user.id
+        urls=urls_to_enqueue, default_tags=[], vacancy_ids=vacancy_ids, user_id=current_user.id
     )
     
     return {
