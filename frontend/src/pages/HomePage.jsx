@@ -14,6 +14,69 @@ import LoginModal from '../components/LoginModal';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 
+function matchesFilters(vacancy, filters) {
+  if (!vacancy) return false;
+  const {
+    search,
+    selectedTag,
+    selectedCountry,
+    selectedCity,
+    selectedWorkplaceType,
+    selectedSource,
+    selectedClosed,
+  } = filters || {};
+
+  if (selectedClosed === 'false' && vacancy.is_closed) return false;
+  if (selectedClosed === 'true' && !vacancy.is_closed) return false;
+
+  if (selectedTag) {
+    const tags = Array.isArray(vacancy.tags) ? vacancy.tags : [];
+    if (!tags.includes(selectedTag)) return false;
+  }
+
+  if (selectedCountry && (vacancy.country || '').trim().toLowerCase() !== selectedCountry.trim().toLowerCase()) {
+    return false;
+  }
+
+  if (selectedCity && (vacancy.city || '').trim().toLowerCase() !== selectedCity.trim().toLowerCase()) {
+    return false;
+  }
+
+  if (selectedWorkplaceType && (vacancy.workplace_type || '').trim().toLowerCase() !== selectedWorkplaceType.trim().toLowerCase()) {
+    return false;
+  }
+
+  if (selectedSource && (vacancy.source || '').trim().toLowerCase() !== selectedSource.trim().toLowerCase()) {
+    return false;
+  }
+
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    const title = (vacancy.title || '').toLowerCase();
+    const company = (vacancy.company || '').toLowerCase();
+    const loc = (vacancy.location || '').toLowerCase();
+    const city = (vacancy.city || '').toLowerCase();
+    const country = (vacancy.country || '').toLowerCase();
+    const desc = (vacancy.description || '').toLowerCase();
+    const summary = (vacancy.ai_summary || '').toLowerCase();
+    const source = (vacancy.source || '').toLowerCase();
+    if (
+      !title.includes(q) &&
+      !company.includes(q) &&
+      !loc.includes(q) &&
+      !city.includes(q) &&
+      !country.includes(q) &&
+      !desc.includes(q) &&
+      !summary.includes(q) &&
+      !source.includes(q)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export default function HomePage({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
 
@@ -253,14 +316,20 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const callbacksRef = useRef({});
   callbacksRef.current = {
     fetchTags,
-    fetchVacancies,
     fetchColumns,
     fetchCountries,
     fetchCities,
     fetchSources,
     selectedCountry,
-    selectedClosed,
-    hasFilters: Boolean(search.trim() || selectedTag || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed),
+    filters: {
+      search,
+      selectedTag,
+      selectedCountry,
+      selectedCity,
+      selectedWorkplaceType,
+      selectedSource,
+      selectedClosed,
+    },
     showToast,
     t
   };
@@ -277,7 +346,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       reconcileTimer = setTimeout(() => {
         if (!isSubscribed) return;
         const cb = callbacksRef.current;
-        cb.fetchVacancies();
         cb.fetchTags();
         cb.fetchCountries();
         cb.fetchCities(cb.selectedCountry);
@@ -302,7 +370,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         eventSource.onopen = () => {
           if (isSubscribed) {
             setMercureStatus('connected');
-            scheduleRefresh();
             // Queue state is delivered only via Mercure: ask the backend to republish the snapshot
             fetch('/api/v2/queue/sync', { method: 'POST', credentials: 'include' }).catch((err) => {
               console.error('Failed to request queue snapshot', err);
@@ -322,13 +389,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             const data = JSON.parse(event.data);
             const { type, error_code, vacancy, vacancy_id, title, total_remaining, url } = data;
             const {
-              fetchTags: currentFetchTags,
-              fetchVacancies: currentFetchVacancies,
-              fetchCountries: currentFetchCountries,
-              fetchCities: currentFetchCities,
-              fetchSources: currentFetchSources,
-              selectedCountry: currentSelectedCountry,
-              selectedClosed: currentSelectedClosed,
               showToast: currentShowToast,
               t: currentT
             } = callbacksRef.current;
@@ -339,9 +399,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
             if (type === 'vacancy_created' && vacancy) {
               setVacancies(prev => {
-                if (callbacksRef.current.hasFilters) return prev;
-                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev;
-                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev;
+                const filters = callbacksRef.current.filters;
+                if (!matchesFilters(vacancy, filters)) {
+                  return prev.filter(v => v.id !== vacancy.id);
+                }
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
                   return prev.map(v => v.id === vacancy.id ? vacancy : v);
@@ -352,9 +413,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               scheduleRefresh();
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => {
-                if (callbacksRef.current.hasFilters) return prev;
-                if (currentSelectedClosed === 'false' && vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
-                if (currentSelectedClosed === 'true' && !vacancy.is_closed) return prev.filter(v => v.id !== vacancy.id);
+                const filters = callbacksRef.current.filters;
+                if (!matchesFilters(vacancy, filters)) {
+                  return prev.filter(v => v.id !== vacancy.id);
+                }
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
                   return prev.map(v => v.id === vacancy.id ? vacancy : v);
@@ -457,7 +519,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
       console.error('Failed to update status', err);
-      fetchVacancies();
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -504,7 +565,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       }
     } catch (err) {
       console.error('Failed to reorder vacancies', err);
-      fetchVacancies();
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -521,12 +581,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           body: JSON.stringify({ status: newStatus, lane: targetLane })
         })
       ));
-      fetchVacancies();
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
       console.error('Failed to update status', err);
-      fetchVacancies();
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -549,11 +607,9 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           body: JSON.stringify({ status: 'Отказ' })
         })
       ));
-      fetchVacancies();
       showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
     } catch (err) {
       console.error('Failed to move all to rejected', err);
-      fetchVacancies();
       showToast(t('nav.update_status_failed'), 'error');
     } finally {
       setIsMovingAllRejected(false);
@@ -588,7 +644,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   };
 
   const handleImportComplete = () => {
-    fetchVacancies();
     fetchTags();
     fetchCountries();
     fetchCities(selectedCountry);
@@ -665,7 +720,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           vacancies={vacancies}
           onColumnsUpdated={(newCols) => {
             setColumns(newCols);
-            fetchVacancies();
           }}
           onUserUpdated={onUserUpdated}
         >
@@ -700,7 +754,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 } else {
                   await fetch('/api/v2/vacancies/reparse_all', { method: 'POST' });
                 }
-                fetchVacancies();
               } catch (e) {
                 console.error(e);
               }
@@ -772,7 +825,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
-                fetchVacancies();
                 fetchTags();
                 showToast("Теги добавлены");
               } catch (e) { console.error(e); }
@@ -788,7 +840,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
-                fetchVacancies();
                 fetchTags();
                 showToast("Теги удалены");
               } catch (e) { console.error(e); }
@@ -799,7 +850,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               try {
                 await Promise.all(selectedIds.map(id => fetch(`/api/v2/vacancies/${id}`, { method: 'DELETE' })));
                 setSelectedIds([]);
-                fetchVacancies();
                 fetchTags();
                 fetchSources();
                 showToast("Карточки удалены");
@@ -1013,7 +1063,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           columns={columns}
           onColumnsChange={(newCols) => {
             setColumns(newCols);
-            fetchVacancies();
           }}
           onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
           onStatusChange={handleStatusChange}
