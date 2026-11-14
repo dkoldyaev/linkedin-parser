@@ -1,0 +1,16 @@
+@layer ui-templates {
+  .actionsButton {
+    background: transparent;
+    border: none;
+    color: var(--ui-color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ui-space-1);
+  }
+
+  .actionsButton:hover {
+    color: var(--ui-color-text-primary);
+  }
+}

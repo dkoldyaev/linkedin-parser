@@ -1,0 +1,191 @@
+@layer ui-templates {
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: calc(18 * var(--ui-grid-cell));
+    margin: 0;
+    padding: 0;
+    background-color: var(--ui-color-bg-primary);
+    color: var(--ui-color-text-primary);
+    overflow: hidden;
+    box-sizing: border-box;
+    position: relative;
+  }
+
+  .filterBar {
+    flex-shrink: 0;
+    border-bottom: var(--ui-border-width) solid var(--ui-pixel-line);
+    background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .toolbar {
+    flex-shrink: 0;
+    border-bottom: var(--ui-border-width) solid var(--ui-pixel-line);
+    background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
+    padding: 0 var(--ui-space-3);
+    min-height: var(--ui-grid-cell);
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--ui-color-bg-primary);
+    background-image:
+      linear-gradient(var(--ui-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--ui-grid-line) 1px, transparent 1px);
+    background-size: var(--ui-grid-cell) var(--ui-grid-cell);
+  }
+
+  .addColumnCol {
+    flex: 0 0 calc(8 * var(--ui-grid-cell));
+    width: calc(8 * var(--ui-grid-cell));
+    min-width: calc(8 * var(--ui-grid-cell));
+    max-width: calc(8 * var(--ui-grid-cell));
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: var(--ui-space-3);
+    border-right: var(--ui-border-width) solid var(--ui-pixel-line);
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .addColumnBtn {
+    background: transparent;
+    border: var(--ui-border-width) dashed var(--ui-border-subtle);
+    color: var(--ui-primary);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    font-weight: var(--ui-font-weight-semibold);
+    letter-spacing: var(--ui-letter-spacing-wide);
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    padding: var(--ui-space-2) var(--ui-space-3);
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  .addColumnBtn:hover {
+    background-color: var(--ui-color-bg-hover);
+    border-color: var(--ui-primary);
+    color: var(--ui-color-text-primary);
+  }
+
+  .emptyColContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(var(--ui-grid-cell) * 1.5) var(--ui-space-4);
+    gap: var(--ui-space-2);
+    color: var(--ui-color-text-muted);
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .emptyColIcon {
+    color: var(--ui-color-text-muted);
+    opacity: 0.6;
+  }
+
+  .emptyColTitle {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    font-weight: var(--ui-font-weight-semibold);
+    color: var(--ui-color-text-secondary);
+  }
+
+  .emptyColHint {
+    font-size: var(--ui-font-size-2xs);
+    color: var(--ui-color-text-muted);
+  }
+
+  /* Rejected drawer at the bottom */
+  .footer {
+    flex-shrink: 0;
+    border-top: var(--ui-border-width) solid var(--ui-pixel-line);
+    background-color: var(--ui-color-bg-surface);
+    box-sizing: border-box;
+  }
+
+  .rejectedBlock {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rejectedHeader {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--ui-space-3);
+    cursor: pointer;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background-color 150ms ease;
+  }
+
+  .rejectedHeader:hover {
+    background-color: var(--ui-color-bg-hover);
+  }
+
+  .rejectedHeaderInner {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .rejectedChevron {
+    color: var(--ui-color-text-muted);
+    transition: transform 200ms ease;
+  }
+
+  .rejectedChevronRotated {
+    transform: rotate(-90deg);
+  }
+
+  .rejectedChevronExpanded {
+    transform: rotate(0deg);
+  }
+
+  .rejectedLabel {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    font-weight: var(--ui-font-weight-semibold);
+    letter-spacing: var(--ui-letter-spacing-wide);
+    color: var(--ui-danger);
+  }
+
+  .rejectedToggleHint {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-2xs);
+    color: var(--ui-color-text-muted);
+    letter-spacing: var(--ui-letter-spacing-wide);
+  }
+
+  .rejectedContent {
+    max-height: calc(var(--ui-grid-cell) * 6);
+    overflow-y: auto;
+    display: flex;
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-2) var(--ui-space-3);
+    background-color: var(--ui-color-bg-secondary);
+    border-top: var(--ui-border-width) solid var(--ui-color-border-subtle);
+  }
+}

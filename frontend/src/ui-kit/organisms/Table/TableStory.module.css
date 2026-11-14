@@ -1,0 +1,115 @@
+@layer ui-organisms {
+  .storyWrapper {
+    width: 100%;
+    height: calc(var(--ui-grid-cell) * 14);
+    background-color: var(--ui-color-bg-primary);
+    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    display: flex;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .storyWrapperSmall {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 12);
+    background-color: var(--ui-color-bg-primary);
+    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .storyWrapperMedium {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 18);
+    background-color: var(--ui-color-bg-primary);
+    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .storyWrapperRow {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 22);
+    background-color: var(--ui-color-bg-primary);
+    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .sampleCard {
+    width: 100%;
+    padding: var(--ui-space-3);
+    background-color: var(--ui-bg-card-fill);
+    border: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+    box-sizing: border-box;
+  }
+
+  .sampleCardTitle {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-sm);
+    font-weight: var(--ui-font-weight-semibold);
+    color: var(--ui-color-text-primary);
+  }
+
+  .sampleCardCompany {
+    font-size: var(--ui-font-size-xs);
+    color: var(--ui-primary);
+  }
+
+  .emptyColContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: calc(var(--ui-grid-cell) * 1.5) var(--ui-space-4);
+    gap: var(--ui-space-2);
+    color: var(--ui-color-text-muted);
+    text-align: center;
+  }
+
+  .colActionsBtn {
+    background: transparent;
+    border: none;
+    color: var(--ui-color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ui-space-1);
+  }
+
+  .colActionsBtn:hover {
+    color: var(--ui-color-text-primary);
+  }
+
+  .cellId {
+    width: calc(var(--ui-grid-cell) * 3);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    color: var(--ui-primary);
+    flex-shrink: 0;
+  }
+
+  .cellTitle {
+    flex: 1;
+    font-size: var(--ui-font-size-sm);
+    color: var(--ui-color-text-primary);
+  }
+
+  .cellStatus {
+    width: calc(var(--ui-grid-cell) * 4);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    color: var(--ui-color-text-muted);
+    flex-shrink: 0;
+  }
+}
