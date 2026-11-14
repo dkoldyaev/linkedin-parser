@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { 
   Plus, Search, Filter, 
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
@@ -82,16 +82,35 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const [vacancies, setVacancies] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [allTags, setAllTags] = useState([]);
-  const [allCountries, setAllCountries] = useState([]);
-  const [allCities, setAllCities] = useState([]);
-  const [allSources, setAllSources] = useState([]);
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const search = searchParams.get('search') || '';
+  const selectedTag = searchParams.get('tag') || '';
+  const selectedCountry = searchParams.get('country') || '';
+  const selectedCity = searchParams.get('city') || '';
+  const selectedWorkplaceType = searchParams.get('workplace_type') || '';
+  const selectedSource = searchParams.get('source') || '';
+  const selectedClosed = searchParams.get('is_closed') || '';
+
+  const updateFilterParams = useCallback((updates, replaceOption) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && String(val) !== '') {
+          next.set(key, String(val));
+        } else {
+          next.delete(key);
+        }
+      });
+      return next;
+    }, { replace: Boolean(replaceOption) });
+  }, [setSearchParams]);
+
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = useRef(null);
   const onChangeSearch = (event) => {
     const val = event.target.value;
-    setSearch(val);
+    updateFilterParams({ search: val }, true);
   };
   const resetSearch = (e) => {
     if (e) {
@@ -99,17 +118,89 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       e.stopPropagation();
     }
     trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
-    setSearch('');
+    updateFilterParams({ search: '' }, true);
     if (isSearchFocused) {
       searchInputRef.current?.focus();
     }
   };
-  const [selectedTag, setSelectedTag] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
-  const [selectedWorkplaceType, setSelectedWorkplaceType] = useState('');
-  const [selectedSource, setSelectedSource] = useState('');
-  const [selectedClosed, setSelectedClosed] = useState('');
+
+  const allTags = useMemo(() => {
+    const tagSet = new Set();
+    for (const v of vacancies) {
+      if (Array.isArray(v.tags)) {
+        for (const tItem of v.tags) {
+          if (tItem && typeof tItem === 'string') {
+            tagSet.add(tItem);
+          }
+        }
+      }
+    }
+    return Array.from(tagSet).sort();
+  }, [vacancies]);
+
+  const allCountries = useMemo(() => {
+    const countrySet = new Set();
+    for (const v of vacancies) {
+      if (v.country && typeof v.country === 'string' && v.country.trim()) {
+        countrySet.add(v.country.trim());
+      }
+    }
+    return Array.from(countrySet).sort();
+  }, [vacancies]);
+
+  const allCities = useMemo(() => {
+    const citySet = new Set();
+    const countryLower = selectedCountry ? selectedCountry.trim().toLowerCase() : '';
+    for (const v of vacancies) {
+      if (countryLower && (v.country || '').trim().toLowerCase() !== countryLower) {
+        continue;
+      }
+      if (v.city && typeof v.city === 'string' && v.city.trim()) {
+        citySet.add(v.city.trim());
+      }
+    }
+    return Array.from(citySet).sort();
+  }, [vacancies, selectedCountry]);
+
+  const allSources = useMemo(() => {
+    const sourceSet = new Set();
+    for (const v of vacancies) {
+      if (v.source && typeof v.source === 'string' && v.source.trim()) {
+        sourceSet.add(v.source.trim());
+      }
+    }
+    return Array.from(sourceSet).sort();
+  }, [vacancies]);
+
+  const hiddenVacancyIds = useMemo(() => {
+    if (
+      !search.trim() &&
+      !selectedTag &&
+      !selectedCountry &&
+      !selectedCity &&
+      !selectedWorkplaceType &&
+      !selectedSource &&
+      selectedClosed === ''
+    ) {
+      return new Set();
+    }
+    const activeFilters = {
+      search,
+      selectedTag,
+      selectedCountry,
+      selectedCity,
+      selectedWorkplaceType,
+      selectedSource,
+      selectedClosed,
+    };
+    const hidden = new Set();
+    for (const v of vacancies) {
+      if (!matchesFilters(v, activeFilters)) {
+        hidden.add(v.id);
+      }
+    }
+    return hidden;
+  }, [vacancies, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
 
   // Queue & Mercure state
   const [queueRemaining, setQueueRemaining] = useState(0);
@@ -193,18 +284,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     const requestId = ++vacancyRequest.current;
     if (!user) return;
     try {
-      let url = '/api/v2/vacancies';
-      const params = new URLSearchParams();
-      if (search.trim()) params.append('search', search.trim());
-      if (selectedTag) params.append('tag', selectedTag);
-      if (selectedCountry) params.append('country', selectedCountry);
-      if (selectedCity) params.append('city', selectedCity);
-      if (selectedWorkplaceType) params.append('workplace_type', selectedWorkplaceType);
-      if (selectedSource) params.append('source', selectedSource);
-      if (selectedClosed !== '') params.append('is_closed', selectedClosed);
-      if (params.toString()) url += `?${params.toString()}`;
-
-      const res = await fetch(url);
+      const res = await fetch('/api/v2/vacancies');
       if (res.ok) {
         const data = await res.json();
         if (requestId === vacancyRequest.current) setVacancies(data);
@@ -212,67 +292,12 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [user, search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
-
-  const fetchTags = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/v2/tags');
-      if (res.ok) {
-        const data = await res.json();
-        setAllTags(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tags', err);
-    }
-  }, [user]);
-
-  const fetchCountries = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/v2/countries');
-      if (res.ok) {
-        const data = await res.json();
-        setAllCountries(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch countries', err);
-    }
-  }, [user]);
-
-  const fetchCities = useCallback(async (countryFilter = '') => {
-    if (!user) return;
-    try {
-      const url = countryFilter ? `/api/v2/cities?country=${encodeURIComponent(countryFilter)}` : '/api/v2/cities';
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setAllCities(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch cities', err);
-    }
   }, [user]);
 
   const handleCountryChange = (country) => {
     trackEvent(EVENTS.FILTER_COUNTRY, { country: country || 'all' });
-    setSelectedCountry(country);
-    setSelectedCity('');
-    fetchCities(country);
+    updateFilterParams({ country, city: '' }, false);
   };
-
-  const fetchSources = useCallback(async () => {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/v2/sources');
-      if (res.ok) {
-        const data = await res.json();
-        setAllSources(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch sources', err);
-    }
-  }, [user]);
 
   const fetchColumns = useCallback(async () => {
     if (!user) return;
@@ -289,47 +314,27 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const resetAllFilters = () => {
     trackEvent(EVENTS.FILTERS_RESET);
-    setSelectedTag('');
-    setSelectedCountry('');
-    setSelectedCity('');
-    setSelectedWorkplaceType('');
-    setSelectedSource('');
-    setSelectedClosed('');
-    setSearch('');
-    fetchCities('');
+    updateFilterParams({
+      search: '',
+      tag: '',
+      country: '',
+      city: '',
+      workplace_type: '',
+      source: '',
+      is_closed: '',
+    }, false);
   };
 
   useEffect(() => {
     if (!user) return;
     fetchColumns();
-    fetchTags();
-    fetchCountries();
-    fetchCities(selectedCountry);
-    fetchSources();
-  }, [user, fetchColumns, fetchTags, fetchCountries, fetchCities, fetchSources, selectedCountry]);
-
-  useEffect(() => {
-    const timer = setTimeout(fetchVacancies, 150);
-    return () => { clearTimeout(timer); vacancyRequest.current += 1; };
-  }, [fetchVacancies]);
+    fetchVacancies();
+    return () => { vacancyRequest.current += 1; };
+  }, [user, fetchColumns, fetchVacancies]);
 
   const callbacksRef = useRef({});
   callbacksRef.current = {
-    fetchTags,
     fetchColumns,
-    fetchCountries,
-    fetchCities,
-    fetchSources,
-    selectedCountry,
-    filters: {
-      search,
-      selectedTag,
-      selectedCountry,
-      selectedCity,
-      selectedWorkplaceType,
-      selectedSource,
-      selectedClosed,
-    },
     showToast,
     t
   };
@@ -340,18 +345,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     let eventSource = null;
     let isSubscribed = true;
     let refreshTimer;
-    let reconcileTimer;
-    const scheduleRefresh = () => {
-      clearTimeout(reconcileTimer);
-      reconcileTimer = setTimeout(() => {
-        if (!isSubscribed) return;
-        const cb = callbacksRef.current;
-        cb.fetchTags();
-        cb.fetchCountries();
-        cb.fetchCities(cb.selectedCountry);
-        cb.fetchSources();
-      }, 150);
-    };
 
     const initMercure = async () => {
       try {
@@ -399,10 +392,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
             if (type === 'vacancy_created' && vacancy) {
               setVacancies(prev => {
-                const filters = callbacksRef.current.filters;
-                if (!matchesFilters(vacancy, filters)) {
-                  return prev.filter(v => v.id !== vacancy.id);
-                }
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
                   return prev.map(v => v.id === vacancy.id ? vacancy : v);
@@ -410,13 +399,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 return [vacancy, ...prev];
               });
               currentShowToast(currentT('mercure.vacancy_created', { title: vacancy.title, company: vacancy.company }));
-              scheduleRefresh();
             } else if (type === 'vacancy_updated' && vacancy) {
               setVacancies(prev => {
-                const filters = callbacksRef.current.filters;
-                if (!matchesFilters(vacancy, filters)) {
-                  return prev.filter(v => v.id !== vacancy.id);
-                }
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
                   return prev.map(v => v.id === vacancy.id ? vacancy : v);
@@ -425,7 +409,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               });
               setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
-              scheduleRefresh();
             } else if (type === 'compatibility_analyzed') {
               const matchedId = vacancy_id || data.vacancy_id;
               const newScore = data.match_score !== undefined ? data.match_score : data.overall_score;
@@ -443,7 +426,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 if (delTitle) {
                   currentShowToast(currentT('mercure.vacancy_deleted', { title: delTitle }));
                 }
-                scheduleRefresh();
               }
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
@@ -464,7 +446,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             } else if (type === 'queue_idle') {
               setQueueRemaining(0);
               currentShowToast(currentT('mercure.queue_idle'));
-              scheduleRefresh();
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -484,7 +465,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     return () => {
       isSubscribed = false;
       clearTimeout(refreshTimer);
-      clearTimeout(reconcileTimer);
       if (eventSource) {
         eventSource.close();
       }
@@ -495,7 +475,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const handleStatusChange = async (vacancyId, newStatus, lane = 0) => {
     const targetCol = columns.find(c => c.id === newStatus);
     const targetLane = targetCol?.has_lanes ? lane : 0;
-    // Optimistic UI update
+    // Optimistic UI update for smooth drag & drop
     setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v));
     if (selectedVacancy && selectedVacancy.id === vacancyId) {
       setSelectedVacancy(prev => ({ ...prev, status: newStatus, lane: targetLane }));
@@ -509,11 +489,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       });
       if (!res.ok) {
         throw new Error('Update failed');
-      }
-      const updatedVacancy = await res.json();
-      setVacancies(prev => prev.map(v => v.id === vacancyId ? updatedVacancy : v));
-      if (selectedVacancy && selectedVacancy.id === vacancyId) {
-        setSelectedVacancy(updatedVacancy);
       }
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
@@ -557,12 +532,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         })
       });
       if (!res.ok) throw new Error('Reorder failed');
-      const updated = await res.json();
-      const byId = new Map(updated.map(v => [v.id, v]));
-      setVacancies(prev => prev.map(v => byId.get(v.id) || v));
-      if (selectedVacancy && byId.has(selectedVacancy.id)) {
-        setSelectedVacancy(byId.get(selectedVacancy.id));
-      }
     } catch (err) {
       console.error('Failed to reorder vacancies', err);
       showToast(t('nav.update_status_failed'), 'error');
@@ -590,7 +559,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   };
 
   const handleMoveAllClosedToRejected = async () => {
-    const targets = vacancies.filter(v => v.status !== 'Отказ');
+    const targets = vacancies.filter(v => v.is_closed && v.status !== 'Отказ');
     if (targets.length === 0) return;
     const confirmMsg = t('nav.move_all_to_rejected_confirm', { count: targets.length });
     if (!window.confirm(confirmMsg)) return;
@@ -599,7 +568,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     trackEvent(EVENTS.MOVE_ALL_CLOSED_REJECTED, { count: targets.length });
     try {
       const ids = targets.map(v => v.id);
-      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
       await Promise.all(ids.map(vid => 
         fetch(`/api/v2/vacancies/${vid}`, {
           method: 'PATCH',
@@ -616,38 +584,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     }
   };
 
-  const handleVacancyUpdate = (updatedVacancy) => {
-    setVacancies(prev => {
-      if (selectedClosed === 'false' && updatedVacancy.is_closed) {
-        return prev.filter(v => v.id !== updatedVacancy.id);
-      }
-      if (selectedClosed === 'true' && !updatedVacancy.is_closed) {
-        return prev.filter(v => v.id !== updatedVacancy.id);
-      }
-      return prev.map(v => v.id === updatedVacancy.id ? updatedVacancy : v);
-    });
-    setSelectedVacancy(updatedVacancy);
-    fetchTags();
-    fetchCountries();
-    fetchCities(selectedCountry);
-    fetchSources();
-  };
-
-  const handleVacancyDelete = (deletedId) => {
-    setVacancies(prev => prev.filter(v => v.id !== deletedId));
-    setSelectedVacancy(null);
-    fetchTags();
-    fetchCountries();
-    fetchCities(selectedCountry);
-    fetchSources();
-    showToast(t('nav.vacancy_deleted'));
-  };
-
   const handleImportComplete = () => {
-    fetchTags();
-    fetchCountries();
-    fetchCities(selectedCountry);
-    fetchSources();
     showToast(t('nav.batch_import_completed'));
   };
 
@@ -825,7 +762,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
-                fetchTags();
                 showToast("Теги добавлены");
               } catch (e) { console.error(e); }
             }}>Добавить тег</button>
@@ -840,7 +776,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   await fetch(`/api/v2/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
                 }));
                 setBulkTagInput('');
-                fetchTags();
                 showToast("Теги удалены");
               } catch (e) { console.error(e); }
             }}>Удалить тег</button>
@@ -850,8 +785,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               try {
                 await Promise.all(selectedIds.map(id => fetch(`/api/v2/vacancies/${id}`, { method: 'DELETE' })));
                 setSelectedIds([]);
-                fetchTags();
-                fetchSources();
                 showToast("Карточки удалены");
               } catch (e) { console.error(e); }
             }} title="Удалить выделенные">
@@ -895,7 +828,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   onChange={(e) => {
                     const city = e.target.value;
                     trackEvent(EVENTS.FILTER_CITY, { city: city || 'all' });
-                    setSelectedCity(city);
+                    updateFilterParams({ city }, false);
                   }}
                   title={t('nav.filter_all_cities')}
                 >
@@ -921,7 +854,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 onChange={(e) => {
                   const wp = e.target.value;
                   trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: wp || 'all' });
-                  setSelectedWorkplaceType(wp);
+                  updateFilterParams({ workplace_type: wp }, false);
                 }}
                 title={t('nav.filter_all_workplaces')}
               >
@@ -945,7 +878,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   onChange={(e) => {
                     const src = e.target.value;
                     trackEvent(EVENTS.FILTER_SOURCE, { source: src || 'all' });
-                    setSelectedSource(src);
+                    updateFilterParams({ source: src }, false);
                   }}
                   title={t('nav.filter_all_sources')}
                 >
@@ -971,7 +904,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 onChange={(e) => {
                   const val = e.target.value;
                   trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val || 'all' });
-                  setSelectedClosed(val);
+                  updateFilterParams({ is_closed: val }, false);
                 }}
                 title={t('nav.filter_all_closed')}
               >
@@ -985,7 +918,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
           {/* Move all closed to Rejected button */}
           {selectedClosed === 'true' && (() => {
-            const nonRejectedClosedCount = vacancies.filter(v => v.status !== 'Отказ').length;
+            const nonRejectedClosedCount = vacancies.filter(v => v.is_closed && v.status !== 'Отказ').length;
             return (
               <button
                 className="filter-reject-all-btn tag-filter-chip"
@@ -1021,10 +954,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
                 onClick={() => {
                   trackEvent(EVENTS.FILTER_TAG, { tag: 'all' });
-                  setSelectedTag('');
+                  updateFilterParams({ tag: '' }, false);
                 }}
               >
-                {t('nav.all_tags')} [{vacancies.length}]
+                {t('nav.all_tags')} [{vacancies.length - hiddenVacancyIds.size}]
               </button>
               {allTags.map(tag => (
                 <button
@@ -1033,7 +966,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   onClick={() => {
                     const nextTag = selectedTag === tag ? '' : tag;
                     trackEvent(EVENTS.FILTER_TAG, { tag: nextTag || 'all' });
-                    setSelectedTag(nextTag);
+                    updateFilterParams({ tag: nextTag }, false);
                   }}
                 >
                   #{tag}
@@ -1060,6 +993,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <KanbanBoard
           vacancies={vacancies}
+          hiddenVacancyIds={hiddenVacancyIds}
           columns={columns}
           onColumnsChange={(newCols) => {
             setColumns(newCols);
@@ -1086,8 +1020,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         isOpen={Boolean(selectedVacancy)}
         columns={columns}
         onClose={() => setSelectedVacancy(null)}
-        onUpdate={handleVacancyUpdate}
-        onDelete={handleVacancyDelete}
       />
 
       <QueueModal

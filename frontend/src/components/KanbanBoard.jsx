@@ -26,6 +26,7 @@ const sortByManualOrder = (list) => {
 
 export default function KanbanBoard({
   vacancies,
+  hiddenVacancyIds = new Set(),
   columns = DEFAULT_BOARD_COLUMNS,
   onColumnsChange,
   onCardClick,
@@ -162,10 +163,10 @@ export default function KanbanBoard({
     lists.forEach(list => mutations.observe(list, { childList: true }));
     update();
     return () => { cancelAnimationFrame(frame); observer.disconnect(); mutations.disconnect(); };
-  }, [columns, vacancies]);
+  }, [columns, vacancies, hiddenVacancyIds]);
 
   const computeDropIndex = (e) => {
-    const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging)'));
+    const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging):not(.is-hidden)'));
     let index = 0;
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
@@ -224,8 +225,11 @@ export default function KanbanBoard({
         const ids = sortByManualOrder(vacancies.filter(v => v.status === columnId))
             .map(v => v.id)
             .filter(id => id !== vid);
-        if (targetIndex !== null) {
-          ids.splice(Math.min(targetIndex, ids.length), 0, vid);
+        const visibleIds = ids.filter(id => !hiddenVacancyIds.has(id));
+        if (targetIndex !== null && targetIndex < visibleIds.length) {
+          const anchorId = visibleIds[targetIndex];
+          const insertIdx = ids.indexOf(anchorId);
+          ids.splice(insertIdx, 0, vid);
         } else {
           ids.push(vid);
         }
@@ -310,6 +314,7 @@ export default function KanbanBoard({
           const isLaneColumn = laneColumnIds.has(col.id);
           const columnVacancies = sortByManualOrder(vacancies.filter(v => v.status === col.id));
           if (isLaneColumn) columnVacancies.sort((a, b) => (b.lane ?? 0) - (a.lane ?? 0));
+          const visibleColumnCount = columnVacancies.reduce((acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1), 0);
           const columnName = t(`kanban.columns.${col.id}`);
           const isDragging = draggingId !== null;
           const isBase = BASE_STATUSES.includes(col.id);
@@ -326,11 +331,13 @@ export default function KanbanBoard({
 
           columnVacancies.forEach((vacancy) => {
             const isDragged = vacancy.id === draggingId;
-            if (showIndicator && !isDragged && dropIndex === visibleIndex) pushIndicator();
+            const isHidden = hiddenVacancyIds.has(vacancy.id);
+            if (showIndicator && !isDragged && !isHidden && dropIndex === visibleIndex) pushIndicator();
             cardsWithIndicator.push(
               <KanbanCard
                 key={vacancy.id}
                 vacancy={vacancy}
+                isHidden={isHidden}
                 onClick={onCardClick}
                 onStatusChange={onStatusChange}
                 isSelected={selectedIds.includes(vacancy.id)}
@@ -339,7 +346,7 @@ export default function KanbanBoard({
                 laneColumns={laneColumnIds}
               />
             );
-            if (!isDragged) visibleIndex += 1;
+            if (!isDragged && !isHidden) visibleIndex += 1;
           });
           if (showIndicator && dropIndex >= visibleIndex) pushIndicator();
 
@@ -359,7 +366,7 @@ export default function KanbanBoard({
                   <span className="column-index">{String(colIndex + 1).padStart(2, '0')}</span>
                   <span className="column-dot" style={{ background: col.color }} />
                   <span className="column-name" title={columnName}>{columnName}</span>
-                  <span className="column-badge">[{columnVacancies.length}]</span>
+                  <span className="column-badge">[{visibleColumnCount}]</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -411,7 +418,7 @@ export default function KanbanBoard({
               <div className="column-cards" onScroll={snapScroll}>
                 {cardsWithIndicator}
 
-                {columnVacancies.length === 0 && (
+                {visibleColumnCount === 0 && (
                   <div className="empty-column">
                     <Inbox className="empty-column-icon" size={20} aria-hidden="true" />
                     <span className="empty-column-title">{t('kanban.empty_column')}</span>
@@ -480,7 +487,7 @@ export default function KanbanBoard({
           <div className="column-title-group">
             <span className="column-dot" style={{ background: '#ef4444' }} />
             <span className="column-name">{t('kanban.rejected_title')}</span>
-            <span className="column-badge">[{rejectedVacancies.length}]</span>
+            <span className="column-badge">[{rejectedVacancies.reduce((acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1), 0)}]</span>
           </div>
 
           <button
@@ -500,17 +507,19 @@ export default function KanbanBoard({
 
         {!isRejectedCollapsed && (
           <div className="kanban-rejected-content">
-            {rejectedVacancies.length === 0 ? (
+            {rejectedVacancies.reduce((acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1), 0) === 0 && (
               <div className="kanban-rejected-empty">
                 <Ban size={15} />
                 <span>{t('kanban.rejected_empty')}</span>
               </div>
-            ) : (
-              <div className="kanban-rejected-cards">
+            )}
+            {rejectedVacancies.length > 0 && (
+              <div className="kanban-rejected-cards" style={rejectedVacancies.every(v => hiddenVacancyIds.has(v.id)) ? { display: 'none' } : undefined}>
                 {rejectedVacancies.map(vacancy => (
                   <KanbanCard
                     key={vacancy.id}
                     vacancy={vacancy}
+                    isHidden={hiddenVacancyIds.has(vacancy.id)}
                     onClick={onCardClick}
                     onStatusChange={onStatusChange}
                     isSelected={selectedIds.includes(vacancy.id)}

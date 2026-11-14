@@ -25,8 +25,9 @@ const DEFAULT_COLUMNS = [
   STATUS_OFFER,
 ];
 
-export default function KanbanCard({
+const KanbanCard = React.memo(function KanbanCard({
   vacancy,
+  isHidden = false,
   onClick,
   onStatusChange,
   isSelected,
@@ -42,6 +43,7 @@ export default function KanbanCard({
     const content = contentRef.current;
     if (!content) return;
     const updateHeight = () => {
+      if (content.offsetHeight === 0) return;
       // Snap the content area to the grid, leaving the footer on the next grid line.
       const height = Math.ceil(content.offsetHeight / 32) * 32;
       setGridHeight((previous) => previous === height ? previous : height);
@@ -137,7 +139,8 @@ export default function KanbanCard({
 
   return (
     <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${isHidden ? 'is-hidden' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
+      style={isHidden ? { display: 'none' } : undefined}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -353,4 +356,6 @@ export default function KanbanCard({
       </div>
     </div>
   );
-}
+});
+
+export default KanbanCard;

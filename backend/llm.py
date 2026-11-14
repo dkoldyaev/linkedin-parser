@@ -1,6 +1,8 @@
 import os
 import json
 import re
+import asyncio
+import random
 import logging
 from typing import Dict, Any, List, Optional
 import httpx
@@ -298,6 +300,42 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
                 raw_response, token_usage_info = call_res
             else:
                 raw_response = call_res
+        elif provider == "mock":
+            await asyncio.sleep(random.uniform(1.5, 4.0))
+            extracted_stack = extract_fallback_tech_stack(description)
+            if not extracted_stack:
+                extracted_stack = ["Python", "PostgreSQL", "Docker"]
+            is_en = language.startswith("en")
+            mock_payload = {
+                "title": title if title else "Software Engineer",
+                "location": location if location else "Berlin, Germany",
+                "city": "Berlin" if not location else location.split(",")[0].strip(),
+                "country": "Germany" if not location or "," not in location else location.split(",")[-1].strip(),
+                "summary": (
+                    f"[Mock LLM] Develop and maintain backend services at {company or 'Tech Corp'}. Key stack: {', '.join(extracted_stack[:5])}."
+                    if is_en
+                    else f"[Mock LLM] Разработка и поддержка сервисов в {company or 'Tech Corp'}. Ключевой стек: {', '.join(extracted_stack[:5])}."
+                ),
+                "tech_stack": extracted_stack,
+                "company_info": (
+                    f"{company or 'Company'} is a technology company operating in software development."
+                    if is_en
+                    else f"{company or 'Компания'} — технологическая компания в сфере разработки ПО."
+                ),
+                "workplace_type": "remote",
+                "salary_min": 5000,
+                "salary_max": 7500,
+                "salary_currency": "EUR",
+                "salary_period": "month",
+                "is_closed": False,
+            }
+            raw_response = json.dumps(mock_payload, ensure_ascii=False)
+            token_usage_info = {
+                "prompt_tokens": 250,
+                "completion_tokens": 120,
+                "total_tokens": 370,
+                "model": "mock-llm-v1",
+            }
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -519,6 +557,23 @@ async def anonymize_companies_with_llm(
             raw_response, token_usage_info = call_res
         else:
             raw_response = call_res
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(1.5, 4.0))
+        is_en = language.lower().startswith("en")
+        mock_replacements = [
+            {
+                "original": c,
+                "replacement": "Technology company" if is_en else "Технологическая компания",
+            }
+            for c in companies
+        ]
+        raw_response = json.dumps({"replacements": mock_replacements}, ensure_ascii=False)
+        token_usage_info = {
+            "prompt_tokens": 100,
+            "completion_tokens": 50,
+            "total_tokens": 150,
+            "model": "mock-llm-v1",
+        }
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -561,7 +616,7 @@ async def evaluate_vacancy_compatibility_with_llm(
     mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    active_model = mistral_model if provider == "mistral" else gemini_model
+    active_model = "mock-llm-v1" if provider == "mock" else (mistral_model if provider == "mistral" else gemini_model)
 
     json_format = compatibility_schema(language)
     schema = json.dumps(json_format, ensure_ascii=False, indent=2)
@@ -596,6 +651,48 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
             raw_response, token_usage_info = call_res
         else:
             raw_response = call_res
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(1.5, 4.0))
+        is_en = language.lower().startswith("en")
+        mock_compat = {
+            "overallScore": 82,
+            "summary": (
+                "[Mock LLM] Strong match on core backend technologies and software engineering experience."
+                if is_en
+                else "[Mock LLM] Высокое совпадение по основным технологиям разработки и релевантному опыту."
+            ),
+            "dimensionScores": {
+                "requiredTechnicalSkills": 85,
+                "relevantProfessionalExperience": 80,
+                "seniorityAlignment": 85,
+                "optionalTechnicalSkills": 75,
+                "domainExperience": 80,
+            },
+            "matchedRequirements": [
+                {
+                    "requirement": "Backend development",
+                    "evidence": "Experience building scalable web services and APIs",
+                }
+            ],
+            "missingRequirements": [],
+            "criticalGaps": [],
+            "seniorityAssessment": {
+                "status": "aligned",
+                "comment": "Experience level matches role expectations" if is_en else "Уровень опыта соответствует требованиям позиции",
+            },
+            "recommendations": [
+                "Highlight measurable achievements in backend architecture"
+                if is_en
+                else "Выделите измеримые достижения в разработке архитектуры"
+            ],
+        }
+        raw_response = json.dumps(mock_compat, ensure_ascii=False)
+        token_usage_info = {
+            "prompt_tokens": 400,
+            "completion_tokens": 180,
+            "total_tokens": 580,
+            "model": "mock-llm-v1",
+        }
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -716,6 +813,31 @@ DEVELOPER CV JSON SCHEMA:
             raw_response, token_usage_info = call_res
         else:
             raw_response = call_res
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(1.5, 4.0))
+        mock_cv = {
+            "name": "[PERSON_NAME]",
+            "headline": "Software Engineer",
+            "summary": "[Mock LLM] Tailored CV summary for target vacancy.",
+            "contact": {
+                "email": "candidate@anonymized.local",
+                "phone": "[PHONE]",
+                "location": {"city": None, "country": "Unspecified"},
+                "links": [],
+            },
+            "workExperience": [],
+            "skills": [],
+            "languages": [],
+            "education": [],
+            "volunteerExperience": [],
+        }
+        raw_response = json.dumps(mock_cv, ensure_ascii=False)
+        token_usage_info = {
+            "prompt_tokens": 350,
+            "completion_tokens": 150,
+            "total_tokens": 500,
+            "model": "mock-llm-v1",
+        }
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
