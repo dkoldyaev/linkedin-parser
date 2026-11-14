@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Layers, ExternalLink, RefreshCw, Trash2, FileText, Shield } from 'lucide-react';
-import { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
+import { Modal } from './Modal';
 import { Button, Icon, Input, Text } from '../../atoms';
 import { ColorPicker, FormField } from '../../molecules';
 import { useDisclosure } from '../../hooks';
@@ -64,9 +64,9 @@ function ComposableModalDemo(): React.ReactElement {
         Open Composable Compound Modal
       </Button>
       <Modal isOpen={isOpen} onClose={close} size="lg">
-        <ModalHeader
+        <Modal.Header
           title="Component Inspector"
-          description="Decomposed into ModalHeader, ModalBody, and ModalFooter."
+          description="Decomposed into Modal.Header, Modal.Body, and Modal.Footer."
           headerIcon={<Icon icon={Layers} size="md" tone="accent" />}
           actions={
             <>
@@ -98,19 +98,19 @@ function ComposableModalDemo(): React.ReactElement {
               <span>Audit Log</span>
             </Button>
           </div>
-        </ModalHeader>
+        </Modal.Header>
 
-        <ModalBody padding="md">
+        <Modal.Body padding="md">
           <Text as="p" variant="body" tone="secondary">
             Active view: <strong>{activeTab.toUpperCase()}</strong>.
           </Text>
           <Text as="p" variant="body">
-            This demonstrates composition where `ModalHeader` holds custom accessories and tabs,
-            `ModalBody` provides grid-aligned scrollable content, and `ModalFooter` formats split action triggers.
+            This demonstrates composition where `Modal.Header` holds custom accessories and tabs,
+            `Modal.Body` provides grid-aligned scrollable content, and `Modal.Footer` formats split action triggers.
           </Text>
-        </ModalBody>
+        </Modal.Body>
 
-        <ModalFooter justify="between">
+        <Modal.Footer justify="between">
           <Button variant="danger" size="sm" onClick={close}>
             <Icon icon={Trash2} size="sm" />
             <span>Delete Entity</span>
@@ -123,7 +123,7 @@ function ComposableModalDemo(): React.ReactElement {
               Save Changes
             </Button>
           </div>
-        </ModalFooter>
+        </Modal.Footer>
       </Modal>
     </div>
   );

@@ -1,4 +1,53 @@
 @layer ui-organisms {
+  .container {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 18);
+    background-color: var(--ui-color-surface-elevated);
+    border: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .containerWide {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 26);
+    background-color: var(--ui-color-surface-elevated);
+    border: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .scrollContainer {
+    width: 100%;
+    max-width: calc(var(--ui-grid-cell) * 18);
+    height: calc(var(--ui-grid-cell) * 7);
+    background-color: var(--ui-color-surface-elevated);
+    border: var(--ui-border-width) solid var(--ui-color-border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .variantsStack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+  }
+
+  .variantsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--ui-grid-cell) * 8), 1fr));
+    gap: var(--ui-space-4);
+  }
+
+  .variantItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+  }
+
   .tabsRow {
     display: flex;
     gap: var(--ui-space-2);
@@ -9,5 +58,31 @@
   .actionsRow {
     display: flex;
     gap: var(--ui-space-2);
+  }
+
+  .metaBadgesRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .customHeaderSub {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+  }
+
+  .bodyContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+  }
+
+  .bodyItem {
+    padding: var(--ui-space-2) var(--ui-space-3);
+    background-color: var(--ui-color-surface-subtle);
+    border: var(--ui-border-width) solid var(--ui-color-border-subtle);
   }
 }
