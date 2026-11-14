@@ -192,12 +192,13 @@ function dokployRequest(endpoint, method = 'GET', body = null) {
 }
 
 // 4. Generate Compose environment variables
-function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
+function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
   const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
   const createMockData = enableMockData ? 'true' : (envVars['CREATE_MOCK_DATA'] || 'false');
   const llmProvider = enableMockLlm ? 'mock' : (envVars['LLM_PROVIDER'] || 'mistral');
+  const mercureInternalHost = composeAppName ? `${composeAppName}-mercure-1` : 'mercure';
 
   return [
     `APP_URL=${fullDomain}`,
@@ -208,7 +209,7 @@ function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbNam
     `MISTRAL_MODEL=${envVars['MISTRAL_MODEL'] || 'mistral-small-latest'}`,
     `GEMINI_API_KEY=${envVars['GEMINI_API_KEY'] || ''}`,
     `GEMINI_MODEL=${envVars['GEMINI_MODEL'] || 'gemini-2.5-flash'}`,
-    `MERCURE_URL=http://mercure/.well-known/mercure`,
+    `MERCURE_URL=http://${mercureInternalHost}/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
     `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
@@ -412,6 +413,7 @@ async function main() {
 
   const composeEnv = generateComposeEnv({
     domainHost,
+    composeAppName: composeApp.appName,
     pgAppName: pgService.appName,
     pgUser: pgService.databaseUser,
     pgPassword: pgService.databasePassword,
