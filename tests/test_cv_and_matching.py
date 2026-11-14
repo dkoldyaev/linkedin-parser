@@ -183,19 +183,40 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             mock_eval_fn.assert_not_called()
 
     def test_save_approved_cv_enqueues_scoring_tasks_for_all_vacancies(self):
-        """Saving approved CV enqueues CV scoring tasks for each user vacancy and notifies Mercure."""
-        for idx in range(2):
-            res = self.client.post(
-                "/api/v2/vacancies",
-                json={
-                    "title": f"Engineer {idx}",
-                    "company": "Acme",
-                    "url": f"https://example.com/job/cv-queue-{idx}",
-                    "description": "Python FastAPI developer",
-                },
-                cookies=self.cookies_alice,
-            )
-            self.assertEqual(res.status_code, 200)
+        """Saving approved CV enqueues CV scoring tasks ONLY for vacancies in 'Еще не написал'."""
+        v_not_contacted = self.client.post(
+            "/api/v2/vacancies",
+            json={
+                "title": "Engineer Not Contacted",
+                "company": "Acme",
+                "url": "https://example.com/job/cv-queue-0",
+                "description": "Python FastAPI developer",
+                "status": "Еще не написал",
+            },
+            cookies=self.cookies_alice,
+        ).json()
+        self.client.post(
+            "/api/v2/vacancies",
+            json={
+                "title": "Engineer Contacted",
+                "company": "Acme",
+                "url": "https://example.com/job/cv-queue-1",
+                "description": "Python FastAPI developer",
+                "status": "Написал",
+            },
+            cookies=self.cookies_alice,
+        )
+        self.client.post(
+            "/api/v2/vacancies",
+            json={
+                "title": "Engineer Rejected",
+                "company": "Acme",
+                "url": "https://example.com/job/cv-queue-2",
+                "description": "Python FastAPI developer",
+                "status": "Отказ",
+            },
+            cookies=self.cookies_alice,
+        )
 
         with patch("backend.main.queue_manager.enqueue_cv_scoring", new_callable=AsyncMock) as mock_enqueue:
             save_res = self.client.post(
@@ -206,8 +227,53 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             self.assertEqual(save_res.status_code, 200)
             mock_enqueue.assert_awaited_once()
             enqueued_vacancies, user_id = mock_enqueue.call_args.args
-            self.assertEqual(len(enqueued_vacancies), 2)
+            self.assertEqual(len(enqueued_vacancies), 1)
+            self.assertEqual(enqueued_vacancies[0].id, v_not_contacted["id"])
             self.assertEqual(user_id, save_res.json()["user_id"])
+
+    def test_reparse_all_and_selected_vacancies_scoring_rules(self):
+        """
+        - Reparse all (without selected ids) skips 'Отказ' and sets force_cv_scoring=False.
+        - Reparse with selected ids updates only selected cards (even in 'Отказ'/'Написал') and sets force_cv_scoring=True.
+        """
+        v1 = self.client.post(
+            "/api/v2/vacancies",
+            json={"title": "V1", "company": "C1", "url": "https://example.com/job/rep-1", "status": "Еще не написал"},
+            cookies=self.cookies_alice,
+        ).json()
+        v2 = self.client.post(
+            "/api/v2/vacancies",
+            json={"title": "V2", "company": "C2", "url": "https://example.com/job/rep-2", "status": "Написал"},
+            cookies=self.cookies_alice,
+        ).json()
+        v3_rej = self.client.post(
+            "/api/v2/vacancies",
+            json={"title": "V3", "company": "C3", "url": "https://example.com/job/rep-3", "status": "Отказ"},
+            cookies=self.cookies_alice,
+        ).json()
+
+        with patch("backend.main.queue_manager.enqueue", new_callable=AsyncMock) as mock_enqueue:
+            mock_enqueue.return_value = ("batch1", [])
+            # 1. Refresh without selection -> skips 'Отказ', force_cv_scoring=False
+            res_all = self.client.post("/api/v2/vacancies/reparse_all", cookies=self.cookies_alice)
+            self.assertEqual(res_all.status_code, 200)
+            mock_enqueue.assert_awaited_once()
+            kwargs_all = mock_enqueue.call_args.kwargs
+            self.assertEqual(set(kwargs_all["vacancy_ids"]), {v1["id"], v2["id"]})
+            self.assertFalse(kwargs_all["force_cv_scoring"])
+
+            mock_enqueue.reset_mock()
+            # 2. Refresh WITH selected checkboxes (including 'Написал' and 'Отказ') -> only selected, force_cv_scoring=True
+            res_sel = self.client.post(
+                "/api/v2/vacancies/reparse_all",
+                json={"ids": [v2["id"], v3_rej["id"]]},
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(res_sel.status_code, 200)
+            mock_enqueue.assert_awaited_once()
+            kwargs_sel = mock_enqueue.call_args.kwargs
+            self.assertEqual(set(kwargs_sel["vacancy_ids"]), {v2["id"], v3_rej["id"]})
+            self.assertTrue(kwargs_sel["force_cv_scoring"])
 
 
 if __name__ == "__main__":

@@ -82,6 +82,7 @@ from .schemas import (
     ApiKeyResponse,
     ApiKeyCreatedResponse,
     UserStatsSummary,
+    ReparseAllRequest,
 )
 from .auth import (
     get_current_user,
@@ -1485,7 +1486,11 @@ async def batch_import_vacancies(
             vacancy_ids.append(existing_id)
 
     batch_id, tasks = await queue_manager.enqueue(
-        urls_to_process, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
+        urls_to_process,
+        payload.default_tags,
+        vacancy_ids=vacancy_ids,
+        user_id=current_user.id,
+        force_cv_scoring=False,
     )
     msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
     if already_queued_urls:
@@ -1602,7 +1607,11 @@ async def reparse_vacancy(
         }
 
     batch_id, tasks = await queue_manager.enqueue(
-        [v.url], default_tags=[], vacancy_ids=[v.id], user_id=current_user.id
+        [v.url],
+        default_tags=[],
+        vacancy_ids=[v.id],
+        user_id=current_user.id,
+        force_cv_scoring=True,
     )
     return {
         "status": "queued",
@@ -1614,16 +1623,28 @@ async def reparse_vacancy(
 
 @api_v2.post("/vacancies/reparse_all")
 async def reparse_all_vacancies(
+    payload: Optional[ReparseAllRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add all vacancies with valid URLs to background processing queue to re-scrape and update DB."""
-    vacancies = db.query(Vacancy).filter(
-        Vacancy.user_id == current_user.id,
-        Vacancy.url != None,
-        Vacancy.url != "",
-        Vacancy.status != "Отказ",
-    ).all()
+    """Add vacancies with valid URLs to background processing queue to re-scrape and update DB."""
+    has_selected_ids = bool(payload and payload.ids)
+    if has_selected_ids:
+        vacancies = db.query(Vacancy).filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.id.in_(payload.ids),
+            Vacancy.url != None,
+            Vacancy.url != "",
+        ).all()
+        force_scoring = True
+    else:
+        vacancies = db.query(Vacancy).filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.url != None,
+            Vacancy.url != "",
+            Vacancy.status != "Отказ",
+        ).all()
+        force_scoring = False
 
     if not vacancies:
         return {"message": "Нет вакансий для обновления", "enqueued": 0}
@@ -1645,7 +1666,11 @@ async def reparse_all_vacancies(
     vacancy_ids = [v.id for v in vacs_to_reparse]
 
     batch_id, tasks = await queue_manager.enqueue(
-        urls=urls_to_enqueue, default_tags=[], vacancy_ids=vacancy_ids, user_id=current_user.id
+        urls=urls_to_enqueue,
+        default_tags=[],
+        vacancy_ids=vacancy_ids,
+        user_id=current_user.id,
+        force_cv_scoring=force_scoring,
     )
     
     return {
@@ -2282,7 +2307,11 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
                 topic=mercure_topic,
             )
         batch_id, tasks = await queue_manager.enqueue(
-            [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
+            [url],
+            default_tags=[],
+            vacancy_ids=[vacancy.id],
+            user_id=current_user.id,
+            force_cv_scoring=False,
         )
         return {"status": "queued", "vacancy_id": vacancy.id, "batch_id": batch_id}
 
@@ -2489,7 +2518,10 @@ async def save_approved_cv(
 
     user_vacancies = (
         db.query(Vacancy)
-        .filter(Vacancy.user_id == current_user.id)
+        .filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.status == STATUS_NOT_CONTACTED,
+        )
         .order_by(Vacancy.id.asc())
         .all()
     )
