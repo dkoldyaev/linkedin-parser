@@ -1,0 +1,35 @@
+@layer ui-organisms {
+  .report {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border: 1px solid var(--ui-border-strong);
+    background-color: var(--ui-bg-surface);
+    box-sizing: border-box;
+  }
+
+  .summaryBox {
+    padding: var(--ui-space-4);
+    border-bottom: 1px solid var(--ui-border-subtle);
+    background-color: var(--ui-bg-subtle);
+  }
+
+  .summaryText {
+    margin: 0;
+  }
+
+  .sectionsList {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sectionBlock {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .sectionBlock:last-child {
+    border-bottom: none;
+  }
+}

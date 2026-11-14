@@ -1,0 +1,159 @@
+@layer ui-molecules {
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    box-sizing: border-box;
+    width: 100%;
+    user-select: none;
+    gap: var(--ui-space-2);
+  }
+
+  .headerDivider {
+    box-shadow: inset 0 -1px var(--ui-border-subtle);
+  }
+
+  .titleGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    min-width: 0;
+  }
+
+  .icon {
+    flex-shrink: 0;
+    color: var(--ui-text-secondary);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .iconMint {
+    color: var(--ui-success);
+  }
+
+  .iconWarning {
+    color: var(--ui-warning);
+  }
+
+  .iconDanger {
+    color: var(--ui-danger);
+  }
+
+  .iconAccent {
+    color: var(--ui-primary);
+  }
+
+  .iconMuted {
+    color: var(--ui-text-muted);
+  }
+
+  .title {
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    font-weight: var(--ui-font-weight-semibold);
+    color: var(--ui-text-secondary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: var(--ui-grid-cell);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .titleSans {
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-font-size-sm);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .toneMint .title {
+    color: var(--ui-success);
+  }
+
+  .toneWarning .title {
+    color: var(--ui-warning);
+  }
+
+  .toneDanger .title {
+    color: var(--ui-danger);
+  }
+
+  .toneAccent .title {
+    color: var(--ui-primary);
+  }
+
+  .toneMuted .title {
+    color: var(--ui-text-muted);
+  }
+
+  .badge {
+    flex-shrink: 0;
+  }
+
+  .accessory {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+    height: var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .headerCollapsible {
+    cursor: pointer;
+    transition: background-color var(--ui-transition-fast);
+  }
+
+  .headerCollapsible:hover {
+    background-color: var(--ui-bg-subtle);
+  }
+
+  .headerCollapsible:focus-visible {
+    outline: 1px solid var(--ui-border-focus);
+    outline-offset: -1px;
+  }
+
+  .headerExpanded {
+    box-shadow: inset 0 -1px var(--ui-border-subtle);
+  }
+
+  .actionsGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    flex-shrink: 0;
+    height: var(--ui-grid-cell);
+    box-sizing: border-box;
+  }
+
+  .toggleHint {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1-5);
+    color: var(--ui-text-muted);
+    transition: color var(--ui-transition-fast);
+  }
+
+  .toggleLabel {
+    color: inherit;
+    font-size: var(--ui-font-size-xs);
+  }
+
+  .headerCollapsible:hover .toggleHint {
+    color: var(--ui-text-secondary);
+  }
+
+  .chevron {
+    color: var(--ui-text-muted);
+    transition: color var(--ui-transition-fast);
+  }
+
+  .headerCollapsible:hover .chevron {
+    color: var(--ui-text-secondary);
+  }
+}

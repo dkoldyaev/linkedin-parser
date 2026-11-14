@@ -1,0 +1,20 @@
+@layer ui-molecules {
+  .content {
+    z-index: var(--ui-z-tooltip);
+    max-width: calc(var(--ui-grid-cell) * 9);
+    padding: var(--ui-space-2) var(--ui-space-3);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    line-height: var(--ui-line-height-snug);
+    color: var(--ui-text-primary);
+    background-color: var(--ui-bg-subtle);
+    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-shadow: var(--ui-shadow-md);
+    user-select: none;
+  }
+
+  .arrow {
+    fill: var(--ui-border-strong);
+  }
+}

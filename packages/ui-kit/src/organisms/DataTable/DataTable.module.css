@@ -1,0 +1,103 @@
+@layer ui-organisms {
+  .wrapper {
+    width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+    overflow-x: auto;
+    border: var(--ui-border-width) solid var(--ui-border-strong);
+    background-color: var(--ui-bg-surface);
+    box-sizing: border-box;
+  }
+
+  .table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+  }
+
+  .th {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-xs);
+    font-weight: var(--ui-font-weight-semibold);
+    letter-spacing: var(--ui-letter-spacing-wider);
+    text-transform: uppercase;
+    color: var(--ui-text-secondary);
+    background-color: var(--ui-bg-subtle);
+    border-bottom: var(--ui-border-width) solid var(--ui-border-strong);
+    border-right: var(--ui-border-width) solid var(--ui-border-subtle);
+    white-space: nowrap;
+    user-select: none;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .th:last-child {
+    border-right: none;
+  }
+
+  .tr {
+    height: var(--ui-grid-cell);
+    border-bottom: var(--ui-border-width) solid var(--ui-border-subtle);
+    transition: background-color var(--ui-transition-fast);
+  }
+
+  .tr:last-child td {
+    border-bottom: none;
+  }
+
+  .tr:hover td {
+    background-color: var(--ui-bg-subtle);
+  }
+
+  .clickableRow {
+    cursor: pointer;
+  }
+
+  .td {
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    font-family: var(--ui-font-sans);
+    font-size: var(--ui-font-size-sm);
+    color: var(--ui-text-primary);
+    border-right: var(--ui-border-width) solid var(--ui-border-subtle);
+    border-bottom: var(--ui-border-width) solid var(--ui-border-subtle);
+    vertical-align: middle;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .td:last-child {
+    border-right: none;
+  }
+
+  .align-left {
+    text-align: left;
+  }
+
+  .align-center {
+    text-align: center;
+  }
+
+  .align-right {
+    text-align: right;
+  }
+
+  .loadingState {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-8);
+    color: var(--ui-text-secondary);
+  }
+}

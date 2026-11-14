@@ -11,6 +11,7 @@ RUN apk add --no-cache zip
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
+COPY packages/ui-kit /app/packages/ui-kit
 COPY frontend/ ./
 RUN npm run build
 

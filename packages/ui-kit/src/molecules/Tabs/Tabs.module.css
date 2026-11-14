@@ -1,0 +1,103 @@
+@layer ui-molecules {
+  .root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+  }
+
+  .list {
+    display: flex;
+    align-items: center;
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    gap: 0;
+    border: 0;
+    box-shadow: var(--ui-shadow-grid-row);
+    background-color: transparent;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    box-sizing: border-box;
+  }
+
+  .list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ui-space-2);
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    padding: 0 var(--ui-space-4);
+    font-family: var(--ui-font-mono);
+    font-size: var(--ui-font-size-sm);
+    font-weight: var(--ui-font-weight-semibold);
+    letter-spacing: var(--ui-letter-spacing-wide);
+    text-transform: uppercase;
+    color: var(--ui-text-muted);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    outline: none;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    box-sizing: border-box;
+    transition:
+      color var(--ui-transition-fast),
+      background-color var(--ui-transition-fast),
+      border-color var(--ui-transition-fast);
+  }
+
+  .tabLabel {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+  }
+
+  .trigger:hover:not(:disabled) {
+    color: var(--ui-text-primary);
+  }
+
+  .trigger:focus,
+  .trigger:focus-visible {
+    outline: none;
+  }
+
+  .trigger[data-state='active'] {
+    color: var(--ui-primary);
+    background-color: transparent;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-primary);
+  }
+
+  .iconSlot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .countBadge {
+    border: 0;
+  }
+
+  .trigger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .content {
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-grid-unit) 0;
+    outline: none;
+  }
+}

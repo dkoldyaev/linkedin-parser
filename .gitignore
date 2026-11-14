@@ -20,4 +20,8 @@ docker-compose.override.yml
 examples/
 # build artifacts
 packages/parsers/dist
+packages/ui-kit/dist
+packages/ui-kit/node_modules
+packages/ui-kit/storybook-static
+frontend/storybook-static
 services/parser-api/dist

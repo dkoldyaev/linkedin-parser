@@ -1,0 +1,70 @@
+@layer ui-molecules {
+  .banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-3);
+    width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
+    min-height: var(--ui-grid-cell);
+    padding: var(--ui-space-2) var(--ui-space-4);
+    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border-radius: var(--ui-radius-none);
+    box-sizing: border-box;
+  }
+
+  .hasDismiss {
+    padding-right: var(--ui-grid-cell);
+  }
+
+  .body {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .icon {
+    flex-shrink: 0;
+  }
+
+  .textStack {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--ui-space-0-5);
+    min-width: 0;
+  }
+
+  .dismissButton {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .tone-info {
+    background-color: var(--ui-info-subtle);
+    border-color: var(--ui-info-border);
+    color: var(--ui-info);
+  }
+
+  .tone-success {
+    background-color: var(--ui-success-subtle);
+    border-color: var(--ui-success-border);
+    color: var(--ui-success);
+  }
+
+  .tone-warning {
+    background-color: var(--ui-warning-subtle);
+    border-color: var(--ui-warning-border);
+    color: var(--ui-warning);
+  }
+
+  .tone-danger {
+    background-color: var(--ui-danger-subtle);
+    border-color: var(--ui-danger-border);
+    color: var(--ui-danger);
+  }
+}

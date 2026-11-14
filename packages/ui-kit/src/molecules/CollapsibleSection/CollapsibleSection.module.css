@@ -1,0 +1,20 @@
+@layer ui-molecules {
+  .section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--ui-border-subtle);
+    border-radius: 0;
+    background-color: var(--ui-bg-surface);
+    overflow: hidden;
+  }
+
+  .content {
+    padding: var(--ui-space-4);
+    font-size: var(--ui-font-size-sm);
+    color: var(--ui-text-primary);
+    line-height: var(--ui-line-height-relaxed);
+    box-sizing: border-box;
+  }
+}

@@ -23,3 +23,5 @@ tests
 
 services/parser-api/dist
 packages/parsers/dist
+packages/ui-kit/dist
+packages/ui-kit/storybook-static

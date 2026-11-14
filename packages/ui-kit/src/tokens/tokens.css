@@ -1,0 +1,282 @@
+@layer legacy, ui-tokens, ui-reset, ui-atoms, ui-molecules, ui-organisms, ui-layouts, ui-utilities;
+
+@layer ui-tokens {
+  :root {
+    /* 1. Blueprint 32px Drafting Grid & Spacing Scale */
+    --ui-grid: 32px;
+    --ui-grid-cell: 32px;
+    --ui-grid-unit: 8px;
+    --ui-border-width: 1px;
+    --ui-line-height-grid: calc(var(--ui-grid) * 0.75);
+
+    --ui-space-0: 0px;
+    --ui-space-0-5: 2px;
+    --ui-space-1: 4px;
+    --ui-space-1-5: 6px;
+    --ui-space-2: 8px;
+    --ui-space-2-5: 10px;
+    --ui-space-3: 12px;
+    --ui-space-3-5: 14px;
+    --ui-space-4: 16px;
+    --ui-space-5: 20px;
+    --ui-space-6: 24px;
+    --ui-space-8: 32px;
+    --ui-space-10: 40px;
+    --ui-space-12: 48px;
+    --ui-space-16: 64px;
+
+    /* 2. Control & Element Sizing Scale */
+    --ui-control-height-2xs: 18px;
+    --ui-control-height-xs: 20px;
+    --ui-control-height-sm: 24px;
+    --ui-control-height-md: 32px;
+    --ui-control-height-lg: 40px;
+    --ui-control-height-xl: 48px;
+
+    --ui-dot-size-sm: 6px;
+    --ui-dot-size-md: 8px;
+    --ui-dot-size-lg: 10px;
+
+    /* 3. Typography Tokens */
+    --ui-font-sans: 'Inter', 'Segoe UI', sans-serif;
+    --ui-font-mono: 'JetBrains Mono', monospace;
+    --ui-font-display: 'Inter', 'Segoe UI', sans-serif;
+
+    --ui-font-size-2xs: 0.65rem;
+    --ui-font-size-xs: 0.6875rem;
+    --ui-font-size-sm: 0.75rem;
+    --ui-font-size-md: 0.8125rem;
+    --ui-font-size-base: 0.875rem;
+    --ui-font-size-lg: 1rem;
+    --ui-font-size-xl: 1.25rem;
+    --ui-font-size-2xl: 1.5rem;
+
+    --ui-font-weight-regular: 400;
+    --ui-font-weight-medium: 500;
+    --ui-font-weight-semibold: 600;
+    --ui-font-weight-bold: 700;
+    --ui-font-weight-extrabold: 800;
+
+    --ui-letter-spacing-tight: -0.03em;
+    --ui-letter-spacing-normal: 0em;
+    --ui-letter-spacing-wide: 0.06em;
+    --ui-letter-spacing-wider: 0.1em;
+
+    --ui-line-height-none: 1;
+    --ui-line-height-tight: 1.25;
+    --ui-line-height-snug: 1.375;
+    --ui-line-height-normal: 1.5;
+    --ui-line-height-relaxed: 1.65;
+
+    /* 4. Color Palette — Dark Blueprint (Default) */
+    --ui-bg-main: #0a1729;
+    --ui-bg-secondary: #0d1c31;
+    --ui-bg-surface: #101f35;
+    --ui-bg-subtle: #182c46;
+    --ui-bg-card: #101f35;
+    --ui-bg-card-hover: #192d48;
+    --ui-bg-card-active: #203956;
+    --ui-bg-overlay: rgba(10, 23, 41, 0.72);
+    --ui-bg-header-fill: rgba(16, 31, 53, 0.72);
+    --ui-bg-card-fill: rgba(16, 31, 53, 0.66);
+    --ui-bg-card-fill-strong: rgba(16, 31, 53, 0.90);
+    --ui-bg-glass-subtle: rgba(121, 174, 255, 0.06);
+
+    --ui-text-primary: #e7f1ff;
+    --ui-text-secondary: #b0c4db;
+    --ui-text-muted: #91a9c3;
+    --ui-text-inverse: #0a1729;
+    --ui-text-on-primary: #071729;
+    --ui-text-on-success: #071729;
+
+    --ui-border-subtle: #304c6c;
+    --ui-border-strong: #527292;
+    --ui-border-focus: #79aeff;
+    --ui-pixel-line: #527aa3;
+    --ui-column-divider: #58718c;
+    --ui-grid-line: rgba(153, 196, 242, 0.16);
+    --ui-modal-grid-line: rgba(153, 196, 242, 0.09);
+
+    /* 5. Semantic Colors */
+    --ui-neutral: #91a9c3;
+    --ui-neutral-hover: #b0c4db;
+    --ui-neutral-subtle: rgba(145, 169, 195, 0.12);
+    --ui-neutral-border: rgba(145, 169, 195, 0.32);
+
+    --ui-primary: #79aeff;
+    --ui-primary-solid: #3b82f6;
+    --ui-primary-hover: #a2c9ff;
+    --ui-primary-subtle: #1a3559;
+    --ui-primary-border: #4d78a8;
+
+    --ui-success: #7eddb0;
+    --ui-success-bright: #34d399;
+    --ui-success-subtle: #173d3a;
+    --ui-success-border: #3d826c;
+
+    --ui-warning: #f59e0b;
+    --ui-warning-subtle: rgba(245, 158, 11, 0.14);
+    --ui-warning-border: rgba(245, 158, 11, 0.40);
+
+    --ui-danger: #f87171;
+    --ui-danger-hover: #fca5a5;
+    --ui-danger-solid: #dc2626;
+    --ui-danger-subtle: rgba(239, 68, 68, 0.14);
+    --ui-danger-border: rgba(239, 68, 68, 0.40);
+
+    --ui-info: #99d9ff;
+    --ui-info-subtle: rgba(56, 189, 248, 0.14);
+    --ui-info-border: rgba(56, 189, 248, 0.38);
+
+    /* 6. Universal Accent Palette */
+    --ui-palette-slate: #64748b;
+    --ui-palette-slate-subtle: rgba(100, 116, 139, 0.16);
+    --ui-palette-slate-border: rgba(100, 116, 139, 0.38);
+
+    --ui-palette-blue: #3b82f6;
+    --ui-palette-blue-subtle: rgba(59, 130, 246, 0.16);
+    --ui-palette-blue-border: rgba(59, 130, 246, 0.38);
+
+    --ui-palette-cyan: #06b6d4;
+    --ui-palette-cyan-subtle: rgba(6, 182, 212, 0.16);
+    --ui-palette-cyan-border: rgba(6, 182, 212, 0.38);
+
+    --ui-palette-indigo: #6366f1;
+    --ui-palette-indigo-subtle: rgba(99, 102, 241, 0.16);
+    --ui-palette-indigo-border: rgba(99, 102, 241, 0.38);
+
+    --ui-palette-purple: #a855f7;
+    --ui-palette-purple-subtle: rgba(168, 85, 247, 0.16);
+    --ui-palette-purple-border: rgba(168, 85, 247, 0.38);
+
+    --ui-palette-emerald: #10b981;
+    --ui-palette-emerald-subtle: rgba(16, 185, 129, 0.16);
+    --ui-palette-emerald-border: rgba(16, 185, 129, 0.38);
+
+    --ui-palette-amber: #f59e0b;
+    --ui-palette-amber-subtle: rgba(245, 158, 11, 0.16);
+    --ui-palette-amber-border: rgba(245, 158, 11, 0.38);
+
+    --ui-palette-rose: #f43f5e;
+    --ui-palette-rose-subtle: rgba(244, 63, 94, 0.16);
+    --ui-palette-rose-border: rgba(244, 63, 94, 0.38);
+
+    /* 7. Border Radius (Blueprint Geometry: Square Corners by Default) */
+    --ui-radius-none: 0px;
+    --ui-radius-xs: 0px;
+    --ui-radius-sm: 0px;
+    --ui-radius-md: 0px;
+    --ui-radius-pill: 0px;
+    --ui-radius-circle: 50%;
+
+    /* 8. Elevation & Grid Borders */
+    --ui-shadow-none: none;
+    --ui-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
+    --ui-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --ui-shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.45);
+    --ui-shadow-glow-primary: 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
+    --ui-shadow-glow-success: 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+    --ui-shadow-glow-danger: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
+    --ui-shadow-dot-glow: 0 0 6px currentColor;
+    --ui-shadow-card-hover: 0 5px 14px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--ui-border-subtle);
+    --ui-shadow-grid-row: inset 0 -1px var(--ui-border-subtle);
+    --ui-shadow-grid-top: inset 0 1px var(--ui-border-subtle);
+    --ui-shadow-pixel-row: inset 0 -1px var(--ui-pixel-line);
+    --ui-shadow-pixel-top: inset 0 1px var(--ui-pixel-line);
+    --ui-shadow-border: inset 0 0 0 1px var(--ui-border-subtle);
+    --ui-shadow-focus: inset 0 0 0 1px var(--ui-border-focus);
+
+    /* 9. Z-Index Scale */
+    --ui-z-base: 1;
+    --ui-z-elevated: 2;
+    --ui-z-sticky: 20;
+    --ui-z-dropdown: 50;
+    --ui-z-drawer: 100;
+    --ui-z-modal-backdrop: 990;
+    --ui-z-modal: 999;
+    --ui-z-tooltip: 1100;
+    --ui-z-toast: 9999;
+
+    /* 10. Motion & Transitions */
+    --ui-transition-fast: 140ms ease;
+    --ui-transition-normal: 220ms ease;
+    --ui-transition-smooth: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :root[data-theme='light'],
+  [data-theme='light'] {
+    --ui-bg-main: #f4f4f1;
+    --ui-bg-secondary: #e9eae4;
+    --ui-bg-surface: #ffffff;
+    --ui-bg-subtle: #efefeb;
+    --ui-bg-card: #ffffff;
+    --ui-bg-card-hover: #f7f8f5;
+    --ui-bg-card-active: #ecefeb;
+    --ui-bg-overlay: rgba(25, 26, 24, 0.48);
+    --ui-bg-header-fill: rgba(255, 255, 255, 0.76);
+    --ui-bg-card-fill: rgba(255, 255, 255, 0.70);
+    --ui-bg-card-fill-strong: rgba(255, 255, 255, 0.90);
+    --ui-bg-glass-subtle: rgba(48, 75, 222, 0.05);
+
+    --ui-text-primary: #222321;
+    --ui-text-secondary: #555a54;
+    --ui-text-muted: #6c716a;
+    --ui-text-inverse: #ffffff;
+    --ui-text-on-primary: #ffffff;
+    --ui-text-on-success: #ffffff;
+
+    --ui-border-subtle: #d7d8d2;
+    --ui-border-strong: #a8aaa4;
+    --ui-border-focus: #304bde;
+    --ui-pixel-line: #98a8b8;
+    --ui-column-divider: #a8b2be;
+    --ui-grid-line: rgba(69, 103, 145, 0.14);
+    --ui-modal-grid-line: rgba(69, 103, 145, 0.08);
+
+    --ui-neutral: #555a54;
+    --ui-neutral-hover: #222321;
+    --ui-neutral-subtle: rgba(85, 90, 84, 0.10);
+    --ui-neutral-border: rgba(85, 90, 84, 0.28);
+
+    --ui-primary: #304bde;
+    --ui-primary-solid: #304bde;
+    --ui-primary-hover: #2137b1;
+    --ui-primary-subtle: #edf0ff;
+    --ui-primary-border: #aab5f2;
+
+    --ui-success: #237844;
+    --ui-success-bright: #1b6136;
+    --ui-success-subtle: #e0f8e7;
+    --ui-success-border: #9fd6ad;
+
+    --ui-warning: #9b5f00;
+    --ui-warning-subtle: #fef3c7;
+    --ui-warning-border: #f59e0b;
+
+    --ui-danger: #b63840;
+    --ui-danger-hover: #991b1b;
+    --ui-danger-solid: #b91c1c;
+    --ui-danger-subtle: rgba(185, 28, 28, 0.10);
+    --ui-danger-border: rgba(185, 28, 28, 0.35);
+
+    --ui-info: #176389;
+    --ui-info-subtle: #e8f4fa;
+    --ui-info-border: #b9dbe9;
+  }
+}
+
+@layer ui-reset {
+  .ui-root {
+    font-family: var(--ui-font-sans);
+    line-height: var(--ui-line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .ui-root,
+  .ui-root *,
+  .ui-root *::before,
+  .ui-root *::after {
+    box-sizing: border-box;
+  }
+}

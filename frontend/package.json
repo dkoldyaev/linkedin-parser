@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint && eslint \"src/ui-kit/**/*.{ts,tsx}\"",
-    "lint:boundaries": "eslint \"src/ui-kit/**/*.{ts,tsx}\"",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "storybook": "storybook dev -p 6006 --no-open --ci",
-    "storybook:build": "storybook build",
+    "lint": "oxlint && npm --prefix ../packages/ui-kit run lint",
+    "lint:boundaries": "npm --prefix ../packages/ui-kit run lint:boundaries",
+    "typecheck": "npm --prefix ../packages/ui-kit run typecheck",
+    "test": "npm --prefix ../packages/ui-kit run test",
+    "storybook": "npm --prefix ../packages/ui-kit run storybook",
+    "storybook:build": "npm --prefix ../packages/ui-kit run storybook:build",
     "preview": "vite preview",
     "test:api": "node test_api.mjs"
   },

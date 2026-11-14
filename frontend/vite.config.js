@@ -15,6 +15,12 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        '@blueprint/ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src'),
+        '@ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src'),
+      },
+    },
     server: {
       port: 5173,
       proxy: {

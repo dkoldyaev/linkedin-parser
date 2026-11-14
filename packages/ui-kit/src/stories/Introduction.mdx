@@ -1,0 +1,35 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# @blueprint/ui-kit // Standalone Design System
+
+Добро пожаловать в **`@blueprint/ui-kit`** — полностью независимую библиотеку React-компонентов на 32px Blueprint-сетке, выделенную в самостоятельный пакет (`packages/ui-kit`) и готовую к подключению в любые проекты.
+
+---
+
+## 1. Ключевые архитектурные принципы
+
+1. **Полная независимость от бизнес-домена**:
+   UI-Kit не содержит доменных сущностей (`Vacancy`, `MatchBadge`, `WorkplaceText` и т.д.). Все доменные сценарии собираются исключительно через универсальные пропсы (`variant`, `tone`, `size`, `startIcon`, `endIcon`) и показаны в разделе **`Showcases (Job Tracker)`**.
+2. **Строгая композиция примитивов (Zero Markup Duplication)**:
+   Каждая молекула, организм и лейаут использует дочерние атомы (`Text`, `Heading`, `Paragraph`, `Link`, `Icon`, `Badge`, `StatusDot`, `Button`, `Input`, `Checkbox`, `Spinner`) вместо дублирования собственных HTML-оберток.
+3. **Каноническая система токенов (`--ui-*`) и автоматический линтер (`check-tokens.mjs`)**:
+   Запрещены сырые цвета (`#hex`, `rgb/rgba`), произвольные размеры шрифтов и числовые `size={...}` на иконках. Соблюдение проверяется при каждом запуске `npm run lint`.
+4. **Однонаправленная иерархия слоев (Enforced by `eslint-plugin-boundaries`)**:
+   ```
+   tokens -> utils -> hooks -> atoms -> molecules -> organisms -> layouts
+   ```
+
+---
+
+## 2. Слои библиотеки `@blueprint/ui-kit`
+
+| Слой | Назначение | Экспортируемые модули |
+|---|---|---|
+| **Foundations (`tokens`)** | Канонические CSS-переменные `--ui-*` + TS-константы | `COLOR_TOKENS`, `PALETTE_TOKENS`, `TYPOGRAPHY_TOKENS`, `SPACING_TOKENS`, `ICON_SIZE_PX`, `GRID_TOKENS`, `BREAKPOINT_TOKENS` |
+| **Atoms (`atoms`)** | Базовые неделимые примитивы | `Button`, `SortButton`, `Input`, `Textarea`, `Label`, `Text`, `Heading`, `Paragraph`, `Code`, `Blockquote`, `List`, `ListItem`, `Link`, `Badge`, `StatusDot`, `Spinner`, `Checkbox`, `Icon` |
+| **Molecules (`molecules`)** | Композиции атомов с локальной логикой | `FormField`, `SearchBar`, `Select`, `Tabs`, `Tooltip`, `AlertBanner`, `ColorPicker`, `EmptyState`, `TokenList`, `FilterBar`, `Stepper`, `SectionHeader`, `CollapsibleSection`, `Accordion` |
+| **Organisms (`organisms`)** | Универсальные составные блоки интерфейса | `Modal`, `Table`, `DataTable`, `Card`, `Header`, `Form`, `ReportAccordion` |
+| **Layouts (`layouts`)** | Каркасы страниц на 32px Blueprint-сетке | `PageLayout`, `DashboardLayout` |
+| **Hooks (`hooks`)** | Переиспользуемая UI-логика | `useBlueprintGrid`, `useGridScroll`, `useDisclosure`, `useControllableState`, `useDebounce`, `useMediaQuery`, `useClickOutside`, `useFocusTrap`, `useKeyboardNavigation`, `useForm`, `useCopyToClipboard`, `useId` |

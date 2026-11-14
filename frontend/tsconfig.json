@@ -17,9 +17,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@ui-kit": ["./src/ui-kit/index.ts"],
-      "@ui-kit/*": ["./src/ui-kit/*"]
+      "@blueprint/ui-kit": ["../packages/ui-kit/src/index.ts"],
+      "@blueprint/ui-kit/*": ["../packages/ui-kit/src/*"],
+      "@ui-kit": ["../packages/ui-kit/src/index.ts"],
+      "@ui-kit/*": ["../packages/ui-kit/src/*"]
     }
   },
-  "include": ["src/ui-kit"]
+  "include": ["../packages/ui-kit/src"]
 }

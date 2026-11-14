@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    include: ['src/ui-kit/**/*.test.{ts,tsx}'],
+    include: ['../packages/ui-kit/src/**/*.test.{ts,tsx}'],
     globals: true,
   },
 });

@@ -1,0 +1,118 @@
+@layer ui-atoms {
+  .dot {
+    display: inline-block;
+    width: var(--ui-dot-size-md);
+    height: var(--ui-dot-size-md);
+    flex-shrink: 0;
+    border-radius: var(--ui-radius-none);
+    border: var(--ui-border-width) solid var(--ui-border-strong);
+    box-sizing: border-box;
+  }
+
+  .size-sm {
+    width: var(--ui-dot-size-sm);
+    height: var(--ui-dot-size-sm);
+  }
+
+  .size-md {
+    width: var(--ui-dot-size-md);
+    height: var(--ui-dot-size-md);
+  }
+
+  .size-lg {
+    width: var(--ui-dot-size-lg);
+    height: var(--ui-dot-size-lg);
+  }
+
+  .pulse {
+    animation: uiDotPulse 2s ease-in-out infinite;
+  }
+
+  .glow {
+    box-shadow: var(--ui-shadow-dot-glow);
+  }
+
+  .tone-neutral {
+    background-color: var(--ui-text-muted);
+    border-color: var(--ui-text-muted);
+  }
+
+  .tone-primary {
+    background-color: var(--ui-primary-solid);
+    border-color: var(--ui-primary);
+    box-shadow: var(--ui-shadow-glow-primary);
+  }
+
+  .tone-success {
+    background-color: var(--ui-success);
+    border-color: var(--ui-success);
+    box-shadow: var(--ui-shadow-glow-success);
+  }
+
+  .tone-warning {
+    background-color: var(--ui-warning);
+    border-color: var(--ui-warning);
+  }
+
+  .tone-danger {
+    background-color: var(--ui-danger);
+    border-color: var(--ui-danger);
+    box-shadow: var(--ui-shadow-glow-danger);
+  }
+
+  .tone-info {
+    background-color: var(--ui-info);
+    border-color: var(--ui-info);
+  }
+
+  /* Universal Palette Tones */
+  .palette-slate {
+    background-color: var(--ui-palette-slate);
+    border-color: var(--ui-palette-slate);
+  }
+
+  .palette-blue {
+    background-color: var(--ui-palette-blue);
+    border-color: var(--ui-palette-blue);
+  }
+
+  .palette-purple {
+    background-color: var(--ui-palette-purple);
+    border-color: var(--ui-palette-purple);
+  }
+
+  .palette-emerald {
+    background-color: var(--ui-palette-emerald);
+    border-color: var(--ui-palette-emerald);
+  }
+
+  .palette-amber {
+    background-color: var(--ui-palette-amber);
+    border-color: var(--ui-palette-amber);
+  }
+
+  .palette-rose {
+    background-color: var(--ui-palette-rose);
+    border-color: var(--ui-palette-rose);
+  }
+
+  .palette-cyan {
+    background-color: var(--ui-palette-cyan);
+    border-color: var(--ui-palette-cyan);
+  }
+
+  .palette-indigo {
+    background-color: var(--ui-palette-indigo);
+    border-color: var(--ui-palette-indigo);
+  }
+
+  @keyframes uiDotPulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}

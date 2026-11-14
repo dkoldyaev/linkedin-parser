@@ -1,0 +1,57 @@
+@layer ui-atoms {
+  .spinner {
+    display: inline-block;
+    border-style: solid;
+    border-color: currentColor;
+    border-right-color: transparent;
+    border-radius: var(--ui-radius-circle);
+    animation: uiSpinnerRotate 0.7s linear infinite;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .size-xs {
+    width: var(--ui-space-3);
+    height: var(--ui-space-3);
+    border-width: var(--ui-space-0-5);
+  }
+
+  .size-sm {
+    width: var(--ui-space-3-5);
+    height: var(--ui-space-3-5);
+    border-width: var(--ui-space-0-5);
+  }
+
+  .size-md {
+    width: var(--ui-space-5);
+    height: var(--ui-space-5);
+    border-width: var(--ui-space-0-5);
+  }
+
+  .size-lg {
+    width: var(--ui-grid-cell);
+    height: var(--ui-grid-cell);
+    border-width: 3px;
+  }
+
+  .srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @keyframes uiSpinnerRotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}

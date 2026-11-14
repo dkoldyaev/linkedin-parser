@@ -1,0 +1,75 @@
+@layer ui-atoms {
+  .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: var(--ui-line-height-none);
+  }
+
+  .size-2xs {
+    width: var(--ui-space-2-5);
+    height: var(--ui-space-2-5);
+  }
+
+  .size-xs {
+    width: var(--ui-space-3);
+    height: var(--ui-space-3);
+  }
+
+  .size-sm {
+    width: var(--ui-space-3-5);
+    height: var(--ui-space-3-5);
+  }
+
+  .size-md {
+    width: var(--ui-space-4);
+    height: var(--ui-space-4);
+  }
+
+  .size-lg {
+    width: var(--ui-space-5);
+    height: var(--ui-space-5);
+  }
+
+  .size-xl {
+    width: var(--ui-space-6);
+    height: var(--ui-space-6);
+  }
+
+  .tone-inherit {
+    color: inherit;
+  }
+
+  .tone-primary {
+    color: var(--ui-text-primary);
+  }
+
+  .tone-secondary {
+    color: var(--ui-text-secondary);
+  }
+
+  .tone-muted {
+    color: var(--ui-text-muted);
+  }
+
+  .tone-accent {
+    color: var(--ui-primary);
+  }
+
+  .tone-success {
+    color: var(--ui-success);
+  }
+
+  .tone-warning {
+    color: var(--ui-warning);
+  }
+
+  .tone-danger {
+    color: var(--ui-danger);
+  }
+
+  .tone-info {
+    color: var(--ui-info);
+  }
+}

@@ -4,7 +4,7 @@
   "private": true,
   "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
   "workspaces": [
-    "packages/*",
+    "packages/parsers",
     "services/*"
   ],
   "scripts": {
