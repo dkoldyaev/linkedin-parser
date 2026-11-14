@@ -84,7 +84,7 @@ async function main() {
   if (!compose) throw new Error(`No compose application found in environment ${envName}`);
 
   const composeId = compose.composeId;
-  const composeAppName = compose.name; // used in container names by Dokploy
+  const composeAppName = compose.appName || compose.name; // used in container names by Dokploy
 
   console.log(`📦 Fetching logs for Compose ID: ${composeId}`);
   const allContainers = await dokployRequest('/docker.getContainers');
