@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Icon, Text } from '../../atoms';
-import { useControllableState } from '../../hooks';
+import { useBlueprintGrid, useControllableState } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './Accordion.module.css';
 
@@ -87,8 +87,19 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
       }
     };
 
+    const gridRef = useBlueprintGrid<HTMLDivElement>([items, activeExpandedIds]);
+
+    const setMergedRef = (node: HTMLDivElement | null) => {
+      gridRef.current = node;
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    };
+
     return (
-      <div ref={ref} className={cn(styles.accordion, className)} {...rest}>
+      <div ref={setMergedRef} className={cn(styles.accordion, className)} {...rest}>
         {items.map((item) => {
           const isExpanded = activeExpandedIds.includes(item.id);
           const hasContent = item.content !== undefined && item.content !== null;
@@ -105,6 +116,7 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
               )}
             >
               <div
+                data-ui-snap
                 className={cn(
                   styles.header,
                   item.disabled && styles.headerDisabled,
@@ -148,7 +160,12 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(
               </div>
 
               {isExpanded && hasContent && (
-                <div className={styles.content} role="region" aria-label={typeof item.title === 'string' ? item.title : undefined}>
+                <div
+                  data-ui-snap
+                  className={styles.content}
+                  role="region"
+                  aria-label={typeof item.title === 'string' ? item.title : undefined}
+                >
                   {item.content}
                 </div>
               )}

@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { SectionHeader } from '../SectionHeader';
-import { useControllableState } from '../../hooks';
+import { useBlueprintGrid, useControllableState } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './CollapsibleSection.module.css';
 
@@ -48,7 +48,17 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       defaultValue: defaultOpen,
       onChange: onOpenChange,
     });
+    const gridRef = useBlueprintGrid<HTMLDivElement>([isOpen, children]);
     const accessorySlot = accessory ?? accessoryAction;
+
+    const setMergedRef = (node: HTMLDivElement | null) => {
+      gridRef.current = node;
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref) {
+        ref.current = node;
+      }
+    };
 
     const handleToggle = () => {
       setIsOpen(!isOpen);
@@ -56,7 +66,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
 
     return (
       <div
-        ref={ref}
+        ref={setMergedRef}
         className={cn(styles.section, className)}
         {...rest}
       >
@@ -74,6 +84,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
 
         {isOpen && (
           <div
+            data-ui-snap
             className={styles.content}
             role="region"
             aria-label={typeof title === 'string' ? title : undefined}

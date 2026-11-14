@@ -3,18 +3,28 @@
     display: flex;
     flex-direction: column;
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     box-sizing: border-box;
-    border: 1px solid var(--ui-border-subtle);
+    border: 0;
     border-radius: 0;
     background-color: var(--ui-bg-surface);
-    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 0 var(--ui-border-subtle),
+      inset 1px 0 0 0 var(--ui-border-subtle),
+      1px 0 0 0 var(--ui-border-subtle),
+      0 1px 0 0 var(--ui-border-subtle),
+      1px 1px 0 0 var(--ui-border-subtle);
   }
 
   .content {
+    min-height: var(--ui-grid-cell);
     padding: var(--ui-space-4);
     font-size: var(--ui-font-size-sm);
     color: var(--ui-text-primary);
     line-height: var(--ui-line-height-relaxed);
+    box-shadow:
+      inset 0 1px 0 0 var(--ui-border-subtle),
+      inset 1px 0 0 0 var(--ui-border-subtle);
     box-sizing: border-box;
   }
 }

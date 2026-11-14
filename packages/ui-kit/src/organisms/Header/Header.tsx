@@ -165,7 +165,7 @@ export function Header({
         {queueCount !== undefined && queueCount > 0 && (
           <Button
             variant="secondary"
-            size="sm"
+            size="m"
             onClick={onQueueClick}
             className={styles.queuePill}
             title={resolvedQueueLabel}
@@ -178,7 +178,7 @@ export function Header({
         {onPrimaryAction !== undefined && (
           <Button
             variant="primary"
-            size="sm"
+            size="m"
             onClick={onPrimaryAction}
             className={styles.addBtn}
             startIcon={<Icon icon={Plus} size="sm" />}
@@ -230,7 +230,7 @@ export function Header({
           user.isAnonymous ? (
             <Button
               variant="secondary"
-              size="sm"
+              size="m"
               onClick={onLogin}
               title={loginLabel}
               startIcon={<Icon icon={LogIn} size="sm" />}
@@ -256,7 +256,7 @@ export function Header({
               {onLogout !== undefined && (
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
                   tone="danger"
                   onClick={onLogout}
                   title={logoutLabel}

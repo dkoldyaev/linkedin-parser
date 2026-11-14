@@ -191,7 +191,7 @@ export function DataTable<T>({
           </colgroup>
         )}
         {caption !== undefined && (
-          <caption className="sr-only">{caption}</caption>
+          <caption className={styles.caption}>{caption}</caption>
         )}
         <thead>
           <tr>

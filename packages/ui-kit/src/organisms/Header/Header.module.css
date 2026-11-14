@@ -4,9 +4,17 @@
     min-height: calc(2 * var(--ui-grid-cell));
     max-height: calc(2 * var(--ui-grid-cell));
     width: 100%;
+    width: round(down, 100%, var(--ui-grid-cell));
     padding: 0 var(--ui-space-6);
     background-color: var(--ui-bg-surface);
-    border-bottom: 2px solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow:
+      inset 0 1px 0 0 var(--ui-pixel-line),
+      inset 1px 0 0 0 var(--ui-pixel-line),
+      inset 0 -1px 0 0 var(--ui-pixel-line),
+      1px 0 0 0 var(--ui-pixel-line),
+      0 1px 0 0 var(--ui-pixel-line),
+      1px 1px 0 0 var(--ui-pixel-line);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -39,7 +47,8 @@
     min-height: var(--ui-grid-cell);
     background-color: var(--ui-primary-subtle);
     color: var(--ui-primary);
-    border: 1px solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-pixel-line);
     border-radius: var(--ui-radius-sm);
     display: flex;
     align-items: center;

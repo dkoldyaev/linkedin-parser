@@ -12,7 +12,7 @@ export type ButtonVariant =
   | 'mint'
   | 'ghost';
 
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm' | 'icon-xs';
+export type ButtonSize = 'sm' | 'md' | 'm' | 'lg' | 'icon' | 'icon-sm' | 'icon-xs';
 export type ButtonTone = 'default' | 'danger' | 'accent' | 'success' | 'muted';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -50,11 +50,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const isDisabled = Boolean(disabled) || loading;
   const Comp = asChild ? Slot : 'button';
+  const normalizedSize = size === 'm' ? 'md' : size;
 
   const composedClassName = cn(
     styles.button,
     styles[`variant-${variant}`],
-    styles[`size-${size}`],
+    styles[`size-${normalizedSize}`],
     tone !== 'default' && styles[`tone-${tone}`],
     fullWidth && styles.fullWidth,
     className
