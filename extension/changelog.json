@@ -1,6 +1,19 @@
 {
-  "latest_version": "1.0.7",
+  "latest_version": "2.0.0",
   "releases": {
+    "2.0.0": {
+      "date": "2026-11-12",
+      "changes": {
+        "ru": [
+          "Миграция на унифицированный API v2 (/api/v2)",
+          "Поддержка нового формата очереди ссылок"
+        ],
+        "en": [
+          "Migration to Unified API v2 (/api/v2)",
+          "Support for new queue links format"
+        ]
+      }
+    },
     "1.0.7": {
       "date": "2026-11-08",
       "changes": {

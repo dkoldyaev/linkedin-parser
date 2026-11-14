@@ -56,7 +56,7 @@ export default function NavDrawer({ user }) {
     trackEvent(EVENTS.LANGUAGE_CHANGE, { locale: targetLocale });
     if (user) {
       try {
-        await fetch('/api/settings', {
+        await fetch('/api/v2/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ locale: targetLocale }),

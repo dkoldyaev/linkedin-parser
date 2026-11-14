@@ -9,8 +9,8 @@ Comprehensive integration test for all parsers with the current application code
 4. LLM keyword extraction compatibility.
 5. End-to-End FastAPI Endpoint Verification for each parser source:
    - /api/extension/parse_and_add
-   - /api/vacancies
-   - /api/vacancies/{id}
+   - /api/v2/vacancies
+   - /api/v2/vacancies/{id}
 """
 
 import os
@@ -54,7 +54,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
         cls.client = TestClient(app)
         
         # Authenticate test client via dev-login
-        login_res = cls.client.post("/api/auth/dev-login", json={"email": "parser_integration_tester@example.com", "name": "Parser Tester"})
+        login_res = cls.client.post("/api/v2/auth/dev-login", json={"email": "parser_integration_tester@example.com", "name": "Parser Tester"})
         cls.token = login_res.json()["token"]
         cls.user_id = login_res.json()["user"]["id"]
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
@@ -209,8 +209,8 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
             vacancy_id = data.get("vacancy_id")
             self.assertIsNotNone(vacancy_id)
 
-            # GET /api/vacancies/{id}
-            get_resp = self.client.get(f"/api/vacancies/{vacancy_id}", headers=self.headers)
+            # GET /api/v2/vacancies/{id}
+            get_resp = self.client.get(f"/api/v2/vacancies/{vacancy_id}", headers=self.headers)
             self.assertEqual(get_resp.status_code, 200)
             v_data = get_resp.json()
 
@@ -221,7 +221,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
             self.assertIsNotNone(v_data["status"])
 
             # Clean up created vacancy
-            del_resp = self.client.delete(f"/api/vacancies/{vacancy_id}", headers=self.headers)
+            del_resp = self.client.delete(f"/api/v2/vacancies/{vacancy_id}", headers=self.headers)
             self.assertIn(del_resp.status_code, (200, 204))
 
 
