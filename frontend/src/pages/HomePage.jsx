@@ -687,7 +687,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               trackEvent(EVENTS.REFRESH_CLICK);
               try {
                 if (selectedIds.length > 0) {
-                  await Promise.all(selectedIds.map(id => fetch(`/api/v2/vacancies/${id}/reparse`, { method: 'POST' })));
+                  await fetch('/api/v2/vacancies/reparse_all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: selectedIds }),
+                  });
                 } else {
                   await fetch('/api/v2/vacancies/reparse_all', { method: 'POST' });
                 }

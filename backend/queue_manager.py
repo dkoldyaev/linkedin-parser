@@ -122,6 +122,7 @@ class JobTask:
     error: Optional[str] = None
     attempts: int = 0
     next_retry_at: Optional[float] = None
+    force_cv_scoring: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -144,6 +145,7 @@ class JobTask:
             error=data.get("error"),
             attempts=data.get("attempts", 0),
             next_retry_at=data.get("next_retry_at"),
+            force_cv_scoring=bool(data.get("force_cv_scoring", False)),
         )
 
     def to_info(self) -> TaskInfo:
@@ -255,8 +257,9 @@ class RedisQueueManager:
         self,
         urls: List[str],
         default_tags: List[str],
-        vacancy_ids: Optional[List[int]] = None,
-        user_id: Optional[int] = None,
+        vacancy_ids: Optional[List[int]],
+        user_id: Optional[int],
+        force_cv_scoring: bool,
     ) -> Tuple[str, List[JobTask]]:
         """Add URLs to Stage 1 (Scraping) queue in Redis. Returns (batch_id, list_of_tasks)."""
         if not self.redis:
@@ -295,6 +298,7 @@ class RedisQueueManager:
                     stage="queued",
                     vacancy_id=v_id,
                     user_id=user_id,
+                    force_cv_scoring=force_cv_scoring,
                 )
                 new_tasks.append(task)
 
@@ -832,14 +836,18 @@ class RedisQueueManager:
             # 1. Scrape job publicly via parser registry
             needs_extension = False
             scraped = {}
-            parser = parser_registry.find(task.url)
-            if parser and parser.needs_extension:
-                needs_extension = True
+            if task.url.startswith("https://example.com/mock/jobs/"):
+                import random
+                await asyncio.sleep(random.uniform(0.5, 1.5))
             else:
-                scraped = await scrape_job(task.url)
+                parser = parser_registry.find(task.url)
+                if parser and parser.needs_extension:
+                    needs_extension = True
+                else:
+                    scraped = await scrape_job(task.url)
 
-            if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
-                needs_extension = True
+                if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
+                    needs_extension = True
 
             if needs_extension:
                 task.status = "pending_extension"
@@ -895,7 +903,7 @@ class RedisQueueManager:
                     existing.company = scraped.get("company") or existing.company
                     existing.company_url = scraped.get("company_url") or existing.company_url
                     existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
+                    existing.city = scraped.get("city") or existing.city
                     existing.country = scraped.get("country") or existing.country
                     existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):
@@ -1001,7 +1009,14 @@ class RedisQueueManager:
 
             # 4. Enqueue into Stage 2 (AI Queue)
             has_desc = bool(saved_vacancy.description and saved_vacancy.description.strip())
-            if "upwork.com" in task.url.lower() or not has_desc:
+            is_upwork = "upwork.com" in task.url.lower()
+            upwork_needs_cv_scoring = False
+            if is_upwork and has_desc and (task.force_cv_scoring or saved_vacancy.status == STATUS_NOT_CONTACTED):
+                with SessionLocal() as db:
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == task.user_id).first()
+                    upwork_needs_cv_scoring = bool(approved_cv and approved_cv.content and approved_cv.content.strip())
+
+            if (is_upwork and not upwork_needs_cv_scoring) or not has_desc:
                 task.status = "completed"
                 task.stage = "completed"
                 task.updated_at = time.time()
@@ -1010,6 +1025,7 @@ class RedisQueueManager:
                     pipe.hincrby(STATS_KEY, "completed", 1)
                     pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                     pipe.srem(SCRAPE_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
                     await pipe.execute()
                 sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, saved_vacancy.id)
                 
@@ -1025,7 +1041,8 @@ class RedisQueueManager:
                                 topic=top,
                             )
             else:
-                task.stage = "ai_analysis"
+                next_stage = "cv_scoring" if is_upwork else "ai_analysis"
+                task.stage = next_stage
                 task.status = "pending"
                 task.updated_at = time.time()
 
@@ -1034,7 +1051,7 @@ class RedisQueueManager:
                     pipe.rpush(AI_QUEUE_KEY, task_id)
                     pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                     await pipe.execute()
-                sync_db_queue_item(task_id, "pending", "ai_analysis", task.attempts, None, saved_vacancy.id)
+                sync_db_queue_item(task_id, "pending", next_stage, task.attempts, None, saved_vacancy.id)
 
         except Exception as e:
             await self._fail_or_retry(task, e)
@@ -1344,7 +1361,12 @@ class RedisQueueManager:
 
                 compat_res = None
                 has_description = bool(vacancy.description and vacancy.description.strip())
-                if approved_cv and approved_cv.content and approved_cv.content.strip() and has_description:
+                should_run_cv_scoring = (
+                    is_cv_scoring_only
+                    or task.force_cv_scoring
+                    or vacancy.status == STATUS_NOT_CONTACTED
+                )
+                if should_run_cv_scoring and approved_cv and approved_cv.content and approved_cv.content.strip() and has_description:
                     if not is_cv_scoring_only:
                         task.stage = "cv_scoring"
                         task.updated_at = time.time()
@@ -1576,7 +1598,7 @@ class RedisQueueManager:
                     existing.company = scraped.get("company") or existing.company
                     existing.company_url = scraped.get("company_url") or existing.company_url
                     existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
+                    existing.city = scraped.get("city") or existing.city
                     existing.country = scraped.get("country") or existing.country
                     existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):

@@ -423,7 +423,9 @@ async def batch_import_vacancies(
     batch_id, tasks = await queue_manager.enqueue(
         urls=urls_to_process,
         default_tags=initial_tags,
+        vacancy_ids=None,
         user_id=current_user.id,
+        force_cv_scoring=False,
     )
     task_infos = [t.to_info() for t in tasks]
     return AsyncBatchImportResponse(

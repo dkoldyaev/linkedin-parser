@@ -383,4 +383,9 @@ class ApiKeyCreatedResponse(ApiKeyResponse):
     token: str
 
 
+class ReparseAllRequest(BaseModel):
+    ids: Optional[List[int]] = None
+
+
+
 
