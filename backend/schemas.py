@@ -171,21 +171,6 @@ class CheckDuplicatesResponse(BaseModel):
     duplicates: List[DuplicateVacancyInfo]
     requires_extension: bool = False
 
-class ImportItemResult(BaseModel):
-    url: str
-    job_id: Optional[str] = None
-    success: bool
-    title: Optional[str] = None
-    company: Optional[str] = None
-    vacancy_id: Optional[int] = None
-    error: Optional[str] = None
-
-class BatchImportResponse(BaseModel):
-    total: int
-    imported: int
-    failed: int
-    results: List[ImportItemResult]
-
 class TaskInfo(BaseModel):
     task_id: str
     url: str

@@ -47,7 +47,6 @@ from .schemas import (
     VacancyHistoryUpdate,
     VacancyHistoryCreate,
     BatchImportRequest,
-    BatchImportResponse,
     AsyncBatchImportResponse,
     ProcessingLinkInfo,
     QueueLinksResponse,
@@ -56,7 +55,6 @@ from .schemas import (
     DuplicateVacancyInfo,
     QueueStatusResponse,
     TaskInfo,
-    ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
     ColumnItem,
@@ -1394,15 +1392,14 @@ async def check_duplicates(
     return duplicate_response(db, current_user.id, payload.urls)
 
 
-@api_v2.post("/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse])
+@api_v2.post("/vacancies/batch", response_model=AsyncBatchImportResponse)
 async def batch_import_vacancies(
     payload: BatchImportRequest,
-    wait: bool = Query(False, description="If True, wait synchronously for all URLs to finish"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Enqueue a list of LinkedIn URLs to background queue, or optionally process synchronously.
+    Enqueue a list of LinkedIn URLs to background queue.
     """
     # Filter out blank lines, normalize URLs, and deduplicate
     unique_urls = []
@@ -1427,7 +1424,7 @@ async def batch_import_vacancies(
 
     urls_to_process = [u for u in unique_urls if u not in already_queued_urls]
 
-    if not wait and not urls_to_process and already_queued_urls:
+    if not urls_to_process and already_queued_urls:
         return AsyncBatchImportResponse(
             status="already_queued",
             queued=0,
@@ -1487,183 +1484,19 @@ async def batch_import_vacancies(
         else:
             vacancy_ids.append(existing_id)
 
-    if not wait:
-        # Default: Asynchronous queue processing
-        batch_id, tasks = await queue_manager.enqueue(
-            urls_to_process, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
-        )
-        msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
-        if already_queued_urls:
-            msg += f" ({len(already_queued_urls)} уже в очереди)"
-        return AsyncBatchImportResponse(
-            status="queued",
-            queued=len(tasks),
-            batch_id=batch_id,
-            message=msg,
-            tasks=[t.to_info() for t in tasks],
-            already_in_queue=list(already_queued_urls),
-        )
-
-    # Synchronous processing mode (if wait=True, e.g. for testing)
-    results: List[ImportItemResult] = []
-    imported_count = 0
-    failed_count = 0
-
-    for url in unique_urls:
-        try:
-            job_id = extract_job_id(url)
-            
-            existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
-            existing = db.get(Vacancy, existing_id) if existing_id else None
-
-            # Scrape vacancy via parser registry
-            scraped = await scrape_job(url)
-            
-            llm_provider = os.getenv("LLM_PROVIDER")
-            language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
-
-            # Run LLM summarization only if description is present
-            has_desc = bool(scraped.get("description") and scraped["description"].strip())
-            llm_res = {}
-            if has_desc:
-                llm_res = await analyze_vacancy_with_llm(
-                    title=scraped.get("title") or "Untitled",
-                    company=scraped.get("company") or "Unknown",
-                    location=scraped.get("location"),
-                    description=scraped.get("description"),
-                    provider=llm_provider,
-                    language=language,
-                    db=db,
-                    user_id=current_user.id,
-                )
-
-            # Combine tags
-            initial_tags = list(payload.default_tags)
-
-            if existing:
-                # Update existing vacancy
-                existing.title = scraped.get("title") or existing.title
-                existing.company = scraped.get("company") or existing.company
-                existing.company_url = scraped.get("company_url") or existing.company_url
-                existing.company_info = llm_res.get("company_info") or scraped.get("company_info")
-                existing.location = scraped.get("location") or existing.location
-                existing.city = scraped.get("city")
-                existing.country = scraped.get("country") or existing.country
-                existing.description = scraped.get("description") or existing.description
-                existing.ai_summary = llm_res.get("summary")
-                existing.tech_stack = llm_res.get("tech_stack", [])
-                
-                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
-                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
-                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
-                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
-                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
-                if s_min is not None: existing.salary_min = s_min
-                if s_max is not None: existing.salary_max = s_max
-                if s_curr is not None: existing.salary_currency = s_curr
-                if s_per is not None: existing.salary_period = s_per
-                if w_type: existing.workplace_type = w_type
-                if "is_closed" in scraped: existing.is_closed = scraped["is_closed"]
-                if scraped.get("source"): existing.source = scraped["source"]
-
-                # Merge tags without duplicating
-                current_tags = set(existing.tags or [])
-                for t in initial_tags:
-                    current_tags.add(t)
-                existing.tags = list(current_tags)
-                
-                db.commit()
-                db.refresh(existing)
-                
-                results.append(ImportItemResult(
-                    url=url,
-                    job_id=job_id,
-                    success=True,
-                    title=existing.title,
-                    company=existing.company,
-                    vacancy_id=existing.id,
-                ))
-                imported_count += 1
-            else:
-                # Create new vacancy
-                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
-                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
-                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
-                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
-                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
-
-                new_v = Vacancy(
-                    user_id=current_user.id,
-                    job_id=scraped.get("job_id"),
-                    source=scraped.get("source"),
-                    url=url,
-                    title=scraped.get("title") or "Untitled",
-                    company=scraped.get("company") or "Unknown",
-                    company_url=scraped.get("company_url"),
-                    company_info=llm_res.get("company_info") or scraped.get("company_info"),
-                    location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped.get("location"),
-                    city=scraped.get("city"),
-                    country=scraped.get("country"),
-                    description=scraped.get("description"),
-                    workplace_type=w_type,
-                    is_closed=scraped.get("is_closed", False),
-                    salary_min=s_min,
-                    salary_max=s_max,
-                    salary_currency=s_curr,
-                    salary_period=s_per,
-                    ai_summary=llm_res.get("summary"),
-                    tech_stack=llm_res.get("tech_stack", []),
-                    tags=initial_tags,
-                    status=STATUS_NOT_CONTACTED,
-                )
-                db.add(new_v)
-                db.flush()
-                db.add(VacancyStatusHistory(
-                    vacancy_id=new_v.id,
-                    from_status=None,
-                    to_status=new_v.status,
-                    created_at=new_v.created_at,
-                ))
-                db.commit()
-                db.refresh(new_v)
-
-                mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-                vacancy_data = VacancyResponse.model_validate(new_v).model_dump(mode="json")
-                await publish_mercure_event(
-                        event_type=EVENT_VACANCY_CREATED,
-                        data={
-                            "message_code": MSG_VACANCY_CREATED,
-                            "vacancy": vacancy_data,
-                            "url": url,
-                        },
-                        topic=mercure_topic,
-                    )
-
-                results.append(ImportItemResult(
-                    url=url,
-                    job_id=job_id,
-                    success=True,
-                    title=new_v.title,
-                    company=new_v.company,
-                    vacancy_id=new_v.id,
-                ))
-                imported_count += 1
-
-        except Exception as e:
-            logger.error(f"Failed to process vacancy {url}: {e}", exc_info=True)
-            results.append(ImportItemResult(
-                url=url,
-                job_id=extract_job_id(url),
-                success=False,
-                error=str(e),
-            ))
-            failed_count += 1
-
-    return BatchImportResponse(
-        total=len(unique_urls),
-        imported=imported_count,
-        failed=failed_count,
-        results=results,
+    batch_id, tasks = await queue_manager.enqueue(
+        urls_to_process, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
+    )
+    msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
+    if already_queued_urls:
+        msg += f" ({len(already_queued_urls)} уже в очереди)"
+    return AsyncBatchImportResponse(
+        status="queued",
+        queued=len(tasks),
+        batch_id=batch_id,
+        message=msg,
+        tasks=[t.to_info() for t in tasks],
+        already_in_queue=list(already_queued_urls),
     )
 
 
@@ -2070,7 +1903,7 @@ def create_column(
 
 
 @api_v2.patch("/columns/{column_id}", response_model=List[ColumnItem])
-def update_column(
+async def update_column(
     column_id: str,
     payload: ColumnUpdateRequest,
     current_user: User = Depends(get_current_user),
@@ -2083,6 +1916,7 @@ def update_column(
         raise HTTPException(status_code=404, detail="Column not found")
 
     target = cols[target_idx]
+    vacancies_to_rename = []
 
     if payload.new_name is not None:
         new_name = payload.new_name.strip()
@@ -2094,6 +1928,11 @@ def update_column(
             raise HTTPException(status_code=400, detail=f"Column with name '{new_name}' already exists")
 
         if new_name != column_id:
+            vacancies_to_rename = db.query(Vacancy).filter(
+                Vacancy.user_id == current_user.id,
+                Vacancy.status == column_id
+            ).all()
+
             # Update all vacancies belonging to current user that have this status
             db.query(Vacancy).filter(
                 Vacancy.user_id == current_user.id,
@@ -2126,11 +1965,26 @@ def update_column(
     save_user_columns(db, current_user.id, cols)
     touch_user_board_interaction(db, current_user.id)
     db.commit()
+
+    if vacancies_to_rename:
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        for v in vacancies_to_rename:
+            db.refresh(v)
+            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                },
+                topic=mercure_topic,
+            )
+
     return [ColumnItem(**c) for c in cols]
 
 
 @api_v2.delete("/columns/{column_id}", response_model=List[ColumnItem])
-def delete_column(
+async def delete_column(
     column_id: str,
     migrate_to: Optional[str] = Query(STATUS_NOT_CONTACTED, alias="migrate_to"),
     current_user: User = Depends(get_current_user),
@@ -2172,6 +2026,21 @@ def delete_column(
     save_user_columns(db, current_user.id, remaining_cols)
     touch_user_board_interaction(db, current_user.id)
     db.commit()
+
+    if vacancies_to_migrate:
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        for v in vacancies_to_migrate:
+            db.refresh(v)
+            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                },
+                topic=mercure_topic,
+            )
+
     return [ColumnItem(**c) for c in remaining_cols]
 
 
@@ -2400,6 +2269,18 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     # enqueue into scrape pipeline so extension will open tab and extract DOM.
     parser = parser_registry.find(url)
     if not payload.get("html") and parser and parser.needs_extension:
+        if not is_new:
+            mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+            vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                    "url": url,
+                },
+                topic=mercure_topic,
+            )
         batch_id, tasks = await queue_manager.enqueue(
             [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
         )

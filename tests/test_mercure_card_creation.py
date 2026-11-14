@@ -110,7 +110,65 @@ def test_card_crud_mercure_events():
             assert ext_created_events[0]["data"]["vacancy"]["url"] == ext_url
             print("✓ POST /api/extension/parse_and_add publishes Mercure EVENT_VACANCY_CREATED passed")
 
+            # 6. Test PATCH /api/v2/columns/{column_id} and DELETE /api/v2/columns/{column_id} publish EVENT_VACANCY_UPDATED
+            custom_col_name = f"Stage_{uuid.uuid4().hex[:6]}"
+            renamed_col_name = f"Renamed_{uuid.uuid4().hex[:6]}"
+            col_res = client.post("/api/v2/columns", json={"name": custom_col_name, "color": "#6366f1", "has_lanes": False})
+            assert col_res.status_code == 200
+
+            v_col_res = client.post("/api/v2/vacancies", json={
+                "title": "Column Migration Vacancy",
+                "company": "Col Corp",
+                "url": f"https://example.com/jobs/{uuid.uuid4().hex[:10]}",
+                "status": custom_col_name,
+            })
+            assert v_col_res.status_code == 200
+            col_vacancy_id = v_col_res.json()["id"]
+
+            published_events.clear()
+            rename_res = client.patch(f"/api/v2/columns/{custom_col_name}", json={"new_name": renamed_col_name})
+            assert rename_res.status_code == 200
+            rename_events = [
+                e for e in published_events
+                if e["event_type"] == EVENT_VACANCY_UPDATED and e["data"]["vacancy"]["id"] == col_vacancy_id
+            ]
+            assert len(rename_events) == 1
+            assert rename_events[0]["data"]["vacancy"]["status"] == renamed_col_name
+            assert rename_events[0]["topic"] == f"vacancies:{user_id}"
+
+            published_events.clear()
+            del_col_res = client.delete(f"/api/v2/columns/{renamed_col_name}?migrate_to={STATUS_NOT_CONTACTED}")
+            assert del_col_res.status_code == 200
+            migrate_events = [
+                e for e in published_events
+                if e["event_type"] == EVENT_VACANCY_UPDATED and e["data"]["vacancy"]["id"] == col_vacancy_id
+            ]
+            assert len(migrate_events) == 1
+            assert migrate_events[0]["data"]["vacancy"]["status"] == STATUS_NOT_CONTACTED
+            assert migrate_events[0]["topic"] == f"vacancies:{user_id}"
+
+
+def test_mock_llm_provider():
+    from backend.llm import analyze_vacancy_with_llm
+    res = asyncio.run(
+        analyze_vacancy_with_llm(
+            title="Backend Developer",
+            company="MockTech",
+            location="Berlin, Germany",
+            description="We need Python, FastAPI, PostgreSQL and Docker experience.",
+            provider="mock",
+            language="ru",
+            db=None,
+            user_id=None,
+        )
+    )
+    assert res["ai_error"] is None
+    assert "[Mock LLM]" in res["summary"]
+    assert "Python" in res["tech_stack"]
+    assert res["workplace_type"] == "remote"
+
 
 if __name__ == "__main__":
     test_card_crud_mercure_events()
+    test_mock_llm_provider()
     print("\nAll Mercure card CRUD tests passed successfully!")

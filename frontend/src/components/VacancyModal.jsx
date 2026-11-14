@@ -17,7 +17,7 @@ import {
   DEFAULT_COLUMNS,
 } from '../constants/columns';
 
-export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
+export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat } = useTranslation();
   const snapScroll = useGridScroll();
   const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
@@ -297,17 +297,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       });
     }
     try {
-      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      } else {
-        onUpdate({ ...vacancy, status: newStatus });
-      }
     } catch (err) {
       console.error('Failed to update status', err);
     }
@@ -321,7 +315,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           vacancy_id: vacancy.id,
           stage: vacancy.status
         });
-        const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history`, {
+        await fetch(`/api/v2/vacancies/${vacancy.id}/history`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -331,10 +325,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             comment: historyCommentText.trim() || null
           })
         });
-        if (res.ok) {
-          const updated = await res.json();
-          onUpdate(updated);
-        }
       } catch (err) {
         console.error('Failed to create history comment', err);
       } finally {
@@ -351,15 +341,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: historyCommentText.trim() || null })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      }
     } catch (err) {
       console.error('Failed to save history comment', err);
     } finally {
@@ -377,15 +363,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: null })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      }
     } catch (err) {
       console.error('Failed to delete history comment', err);
     } finally {
@@ -406,7 +388,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val })
       });
-      onUpdate({ ...vacancy, workplace_type: val });
     } catch (err) {
       console.error('Failed to update workplace type', err);
     }
@@ -425,7 +406,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal })
       });
-      onUpdate({ ...vacancy, is_closed: nextVal });
     } catch (err) {
       console.error('Failed to update closed status', err);
     }
@@ -435,7 +415,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     listValues.current = { ...listValues.current, [field]: values };
     if (field === 'tags') setTags(values); else setTechStack(values);
     trackEvent(eventName, { vacancy_id: vacancy.id, ...eventData });
-    const version = ++listSaveVersion.current;
+    ++listSaveVersion.current;
     const vacancyId = vacancy.id;
     listSaveQueue.current = listSaveQueue.current.catch(() => {}).then(async () => {
       const res = await fetch(`/api/v2/vacancies/${vacancyId}`, {
@@ -443,8 +423,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         body: JSON.stringify({ [field]: values })
       });
       if (!res.ok) throw new Error('Failed to save vacancy list');
-      const updated = await res.json();
-      if (version === listSaveVersion.current) onUpdate(updated);
     }).catch(err => console.error('Failed to save vacancy list', err));
   };
 
@@ -471,8 +449,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         body: JSON.stringify({ description })
       });
       if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
         setSavedDescriptionSuccess(true);
         setTimeout(() => setSavedDescriptionSuccess(false), 2000);
       }
@@ -503,20 +479,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         salary_currency: salaryCurrency || null,
         salary_period: salaryPeriod || null,
       };
-      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      onUpdate({
-        ...vacancy,
-        salary_min: payload.salary_min,
-        salary_max: payload.salary_max,
-        salary_currency: payload.salary_currency,
-        salary_period: payload.salary_period,
-      });
-      setSavedSalarySuccess(true);
-      setTimeout(() => setSavedSalarySuccess(false), 2000);
+      if (res.ok) {
+        setSavedSalarySuccess(true);
+        setTimeout(() => setSavedSalarySuccess(false), 2000);
+      }
     } catch (err) {
       console.error('Failed to save salary', err);
     } finally {
@@ -533,7 +504,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         body: JSON.stringify({ title })
       });
       if (res.ok) {
-        onUpdate(await res.json());
         setSavedTitleSuccess(true);
         setTimeout(() => setSavedTitleSuccess(false), 2000);
       }
@@ -551,14 +521,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       notes_length: notes.length
     });
     try {
-      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })
       });
-      onUpdate({ ...vacancy, notes });
-      setSavedNotesSuccess(true);
-      setTimeout(() => setSavedNotesSuccess(false), 2000);
+      if (res.ok) {
+        setSavedNotesSuccess(true);
+        setTimeout(() => setSavedNotesSuccess(false), 2000);
+      }
     } catch (err) {
       console.error('Failed to save notes', err);
     } finally {
@@ -580,8 +551,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         trackEvent(EVENTS.AI_RESUMMARIZE_SUCCESS, {
           vacancy_id: vacancy.id
         });
-        const updated = await res.json();
-        onUpdate(updated);
       }
     } catch (err) {
       console.error('Failed to resummarize', err);
@@ -638,7 +607,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       });
       try {
         await fetch(`/api/v2/vacancies/${vacancy.id}`, { method: 'DELETE' });
-        onDelete(vacancy.id);
         onClose();
       } catch (err) {
         console.error('Failed to delete', err);
