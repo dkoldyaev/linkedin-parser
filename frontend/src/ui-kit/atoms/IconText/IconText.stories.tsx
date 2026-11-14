@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Calendar, Flame, Globe, Sparkles } from 'lucide-react';
+import { Award, Calendar, Flame, Globe, Sparkles } from 'lucide-react';
 import {
   IconText,
   WorkplaceText,
@@ -10,7 +10,7 @@ import {
   AiPendingText,
   type WorkplaceType,
 } from './IconText';
-import { MatchBadge } from '../Badge';
+import { Badge } from '../Badge';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 interface EditableIconTextStoryArgs {
@@ -63,7 +63,13 @@ export const VacancyCardMetaElements: Story = {
         <CompanyLink company={args.company} href={args.sourceUrl} />
       </div>
       <div className={layoutStyles.row}>
-        <MatchBadge score={args.matchScore} />
+        <Badge
+          variant="match"
+          tone={args.matchScore >= 75 ? 'high' : args.matchScore >= 50 ? 'medium' : 'low'}
+          icon={<Award size={11} aria-hidden="true" />}
+        >
+          {args.matchScore}%
+        </Badge>
         <WorkplaceText workplace={args.workplace} />
         <LocationText>{args.location}</LocationText>
       </div>

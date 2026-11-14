@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Award, Ban, CheckCircle2, Clock, FileEdit, Tag, X } from 'lucide-react';
+import { Award, Ban, CheckCircle2, Clock, FileEdit, Tag } from 'lucide-react';
 import { cn } from '../../utils';
 import styles from './Badge.module.css';
 
@@ -9,26 +9,54 @@ export type BadgeTone =
   | 'success'
   | 'warning'
   | 'danger'
-  | 'info';
+  | 'info'
+  // Stage / Pipeline tones
+  | 'backlog'
+  | 'applied'
+  | 'interview'
+  | 'assessment'
+  | 'offer'
+  | 'rejected'
+  // Severity & Match tiers
+  | 'critical'
+  | 'high'
+  | 'medium'
+  | 'low';
 
-export type BadgeSize = 'sm' | 'md';
+export type BadgeVariant =
+  | 'badge'
+  | 'chip'
+  | 'ghost'
+  | 'match'
+  | 'stage'
+  | 'severity'
+  | 'sync';
+
+export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  readonly icon?: React.ReactNode;
   readonly tone?: BadgeTone;
+  readonly variant?: BadgeVariant;
   readonly size?: BadgeSize;
   readonly onRemove?: () => void;
   readonly removeLabel?: string;
+  readonly children?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**
- * Atomic Badge / Tag component for status indicators, column counts, and keyword tokens.
+ * Atomic Badge component for status indicators, scores, keyword tokens, and metadata tags.
+ * Fully configurable through `icon`, `variant`, `size`, and `tone` props.
  */
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
   {
+    icon,
     tone = 'neutral',
+    variant = 'badge',
     size = 'md',
     onRemove,
-    removeLabel = 'Remove',
+    removeLabel = 'Удалить',
     className,
     children,
     ...rest
@@ -40,13 +68,19 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
       ref={ref}
       className={cn(
         styles.badge,
+        styles[`variant-${variant}`],
         styles[`tone-${tone}`],
         styles[`size-${size}`],
         className
       )}
       {...rest}
     >
-      <span>{children}</span>
+      {icon !== undefined && (
+        <span className={styles.iconSlot} aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      {children !== undefined && <span>{children}</span>}
       {onRemove !== undefined && (
         <button
           type="button"
@@ -61,6 +95,10 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
   );
 });
 
+/* ========================================================================
+   Backwards Compatibility Wrappers (Deprecated - use <Badge> with props)
+   ======================================================================== */
+
 export type MatchTier = 'high' | 'medium' | 'low';
 
 export interface MatchBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -70,15 +108,11 @@ export interface MatchBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Match Score Badge (`.card-match-badge`) used in KanbanCard and VacancyModal.
- * Automatically assigns `high` (>=75%), `medium` (>=50%), or `low` (<50%) tier.
+ * @deprecated Use `<Badge variant="match" tone={...} icon={<Award size={11} />}>{score}%</Badge>`
  */
 export const MatchBadge = forwardRef<HTMLSpanElement, MatchBadgeProps>(
-  function MatchBadge(
-    { score, tier, showIcon = true, className, ...rest },
-    ref
-  ) {
-    const resolvedTier: MatchTier =
+  function MatchBadge({ score, tier, showIcon = true, className, ...rest }, ref) {
+    const resolvedTier: BadgeTone =
       tier !== undefined
         ? tier
         : score >= 75
@@ -87,22 +121,17 @@ export const MatchBadge = forwardRef<HTMLSpanElement, MatchBadgeProps>(
             ? 'medium'
             : 'low';
 
-    const tierClass =
-      resolvedTier === 'high'
-        ? styles.matchHigh
-        : resolvedTier === 'medium'
-          ? styles.matchMedium
-          : styles.matchLow;
-
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(styles.matchBadge, tierClass, className)}
+        variant="match"
+        tone={resolvedTier}
+        icon={showIcon ? <Award size={11} aria-hidden="true" /> : undefined}
+        className={className}
         {...rest}
       >
-        {showIcon && <Award size={11} aria-hidden="true" />}
-        <span>{score}%</span>
-      </span>
+        {score}%
+      </Badge>
     );
   }
 );
@@ -116,37 +145,26 @@ export interface TechChipProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Monospace Tech Stack Chip (`.tech-chip`) used inside KanbanCard and EditableTokenList.
+ * @deprecated Use `<Badge variant={variant === 'badge' ? 'chip' : 'ghost'} size="xs">{label}</Badge>`
  */
 export const TechChip = forwardRef<HTMLSpanElement, TechChipProps>(
   function TechChip(
-    { label, onRemove, removeLabel = 'Удалить', variant = 'ghost', tone, children, className, ...rest },
+    { label, onRemove, removeLabel, variant = 'ghost', tone = 'neutral', children, className, ...rest },
     ref
   ) {
-    const isBadge = variant === 'badge';
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(
-          styles.techChip,
-          isBadge && styles.chipBadge,
-          tone !== undefined && styles[`tone-${tone}`],
-          className
-        )}
+        variant={variant === 'badge' ? 'chip' : 'ghost'}
+        tone={tone}
+        size="xs"
+        onRemove={onRemove}
+        removeLabel={removeLabel}
+        className={className}
         {...rest}
       >
-        <span>{label !== undefined ? label : children}</span>
-        {onRemove !== undefined && (
-          <button
-            type="button"
-            className={styles.chipRemove}
-            onClick={onRemove}
-            aria-label={removeLabel}
-          >
-            <X size={12} aria-hidden />
-          </button>
-        )}
-      </span>
+        {label !== undefined ? label : children}
+      </Badge>
     );
   }
 );
@@ -161,7 +179,7 @@ export interface TagChipProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * Tag Chip (`.tag-chip`) with `Tag` icon used inside KanbanCard and EditableTokenList.
+ * @deprecated Use `<Badge variant={variant === 'badge' ? 'chip' : 'ghost'} icon={<Tag size={10} />}>{label}</Badge>`
  */
 export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
   function TagChip(
@@ -169,40 +187,29 @@ export const TagChip = forwardRef<HTMLSpanElement, TagChipProps>(
       label,
       showIcon = true,
       onRemove,
-      removeLabel = 'Удалить',
+      removeLabel,
       variant = 'ghost',
-      tone,
+      tone = 'primary',
       children,
       className,
       ...rest
     },
     ref
   ) {
-    const isBadge = variant === 'badge';
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(
-          styles.tagChip,
-          isBadge && styles.chipBadge,
-          tone !== undefined && styles[`tone-${tone}`],
-          className
-        )}
+        variant={variant === 'badge' ? 'chip' : 'ghost'}
+        tone={tone}
+        size="xs"
+        icon={showIcon ? <Tag size={variant === 'badge' ? 11 : 10} aria-hidden="true" /> : undefined}
+        onRemove={onRemove}
+        removeLabel={removeLabel}
+        className={className}
         {...rest}
       >
-        {showIcon && <Tag size={isBadge ? 11 : 10} aria-hidden="true" />}
-        <span>{label !== undefined ? label : children}</span>
-        {onRemove !== undefined && (
-          <button
-            type="button"
-            className={styles.chipRemove}
-            onClick={onRemove}
-            aria-label={removeLabel}
-          >
-            <X size={12} aria-hidden />
-          </button>
-        )}
-      </span>
+        {label !== undefined ? label : children}
+      </Badge>
     );
   }
 );
@@ -219,109 +226,87 @@ export interface StageBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly stageTone?: StageBadgeTone;
 }
 
-const STAGE_TONE_CLASS: Record<StageBadgeTone, string> = {
-  backlog: styles.stageToneBacklog,
-  applied: styles.stageToneApplied,
-  interview: styles.stageToneInterview,
-  assessment: styles.stageToneAssessment,
-  offer: styles.stageToneOffer,
-  rejected: styles.stageToneRejected,
-};
-
 /**
- * Top-right 64×33px Stage / Lane Badge (`.card-lane-badge`) used on rejected or cross-column cards.
+ * @deprecated Use `<Badge variant="stage" tone={stageTone}>{children}</Badge>`
  */
 export const StageBadge = forwardRef<HTMLSpanElement, StageBadgeProps>(
-  function StageBadge(
-    { stageTone = 'backlog', className, children, ...rest },
-    ref
-  ) {
+  function StageBadge({ stageTone = 'backlog', className, children, ...rest }, ref) {
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(
-          styles.stageBadge,
-          STAGE_TONE_CLASS[stageTone],
-          className
-        )}
+        variant="stage"
+        tone={stageTone}
+        className={className}
         {...rest}
       >
         {children}
-      </span>
+      </Badge>
     );
   }
 );
 
-export interface ClosedBadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement> {
+export interface ClosedBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly label?: React.ReactNode;
 }
 
 /**
- * Closed Vacancy Badge (`.card-closed-badge`) with `Ban` icon.
+ * @deprecated Use `<Badge variant="stage" tone="rejected" icon={<Ban size={11} />}>{label}</Badge>`
  */
 export const ClosedBadge = forwardRef<HTMLSpanElement, ClosedBadgeProps>(
   function ClosedBadge({ label = 'Закрыта', children, className, ...rest }, ref) {
     return (
-      <span ref={ref} className={cn(styles.closedBadge, className)} {...rest}>
-        <Ban size={11} aria-hidden="true" />
-        <span>{children !== undefined ? children : label}</span>
-      </span>
+      <Badge
+        ref={ref}
+        variant="stage"
+        tone="rejected"
+        icon={<Ban size={11} aria-hidden="true" />}
+        className={className}
+        {...rest}
+      >
+        {children !== undefined ? children : label}
+      </Badge>
     );
   }
 );
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low';
 
-export interface SeverityBadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement> {
+export interface SeverityBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly severity: SeverityLevel;
 }
 
 /**
- * Compatibility Gap Severity Badge (`.compatibility-severity-badge`) used in VacancyModal.
+ * @deprecated Use `<Badge variant="severity" tone={severity}>{children}</Badge>`
  */
 export const SeverityBadge = forwardRef<HTMLSpanElement, SeverityBadgeProps>(
   function SeverityBadge({ severity, className, children, ...rest }, ref) {
-    const sevClass =
-      severity === 'critical'
-        ? styles.severityCritical
-        : severity === 'high'
-          ? styles.severityHigh
-          : severity === 'medium'
-            ? styles.severityMedium
-            : styles.severityLow;
-
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(styles.severityBadge, sevClass, className)}
+        variant="severity"
+        tone={severity}
+        className={className}
         {...rest}
       >
-        {children !== undefined ? children : severity}
-      </span>
+        {children !== undefined ? children : severity.toUpperCase()}
+      </Badge>
     );
   }
 );
 
 export type CvSyncState = 'approved' | 'outdated' | 'draft';
 
-export interface CvSyncBadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement> {
+export interface CvSyncBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly status: CvSyncState;
 }
 
 /**
- * CV Synchronization Status Badge (`.cv-sync-badge`) used in CvPage and Header.
+ * @deprecated Use `<Badge variant="sync" tone={...} icon={...}>{children}</Badge>`
  */
 export const CvSyncBadge = forwardRef<HTMLSpanElement, CvSyncBadgeProps>(
   function CvSyncBadge({ status, className, children, ...rest }, ref) {
-    const stateClass =
-      status === 'approved'
-        ? styles.cvSyncApproved
-        : status === 'outdated'
-          ? styles.cvSyncOutdated
-          : styles.cvSyncDraft;
+    const tone: BadgeTone =
+      status === 'approved' ? 'success' : status === 'outdated' ? 'warning' : 'primary';
 
     const icon =
       status === 'approved' ? (
@@ -333,14 +318,16 @@ export const CvSyncBadge = forwardRef<HTMLSpanElement, CvSyncBadgeProps>(
       );
 
     return (
-      <span
+      <Badge
         ref={ref}
-        className={cn(styles.cvSyncBadge, stateClass, className)}
+        variant="sync"
+        tone={tone}
+        icon={icon}
+        className={className}
         {...rest}
       >
-        {icon}
-        <span>{children}</span>
-      </span>
+        {children}
+      </Badge>
     );
   }
 );

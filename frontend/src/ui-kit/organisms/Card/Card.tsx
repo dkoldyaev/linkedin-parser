@@ -1,22 +1,18 @@
 import React, { forwardRef, useLayoutEffect, useRef } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { Award, Ban, RotateCcw, Tag } from 'lucide-react';
 import {
   AiPendingText,
+  Badge,
   Button,
   Checkbox,
-  ClosedBadge,
   CompanyLink,
   HistoryText,
   Icon,
   LocationText,
-  MatchBadge,
   SalaryText,
-  StageBadge,
-  TagChip,
-  TechChip,
   WorkplaceText,
+  type BadgeTone,
   type MatchTier,
-  type StageBadgeTone,
   type WorkplaceType,
 } from '../../atoms';
 import { cn } from '../../utils';
@@ -472,7 +468,7 @@ export interface VacancyCardProps
   readonly isClosed?: boolean;
   readonly isRejected?: boolean;
   readonly stageBadgeLabel?: string;
-  readonly stageBadgeTone?: StageBadgeTone;
+  readonly stageBadgeTone?: BadgeTone;
   readonly canMoveLeft?: boolean;
   readonly canMoveRight?: boolean;
   readonly onMoveLeft?: () => void;
@@ -528,9 +524,13 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
       stageBadgeLabel !== undefined || isClosed ? (
         <>
           {stageBadgeLabel !== undefined && (
-            <StageBadge stageTone={stageBadgeTone}>{stageBadgeLabel}</StageBadge>
+            <Badge variant="stage" tone={stageBadgeTone}>{stageBadgeLabel}</Badge>
           )}
-          {isClosed && <ClosedBadge />}
+          {isClosed && (
+            <Badge variant="stage" tone="rejected" icon={<Ban size={11} aria-hidden="true" />}>
+              Закрыта
+            </Badge>
+          )}
         </>
       ) : undefined;
 
@@ -556,7 +556,15 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
           />
 
           <div className={styles.cardMeta}>
-            {matchScore !== undefined && <MatchBadge score={matchScore} />}
+            {matchScore !== undefined && (
+              <Badge
+                variant="match"
+                tone={matchScore >= 75 ? 'high' : matchScore >= 50 ? 'medium' : 'low'}
+                icon={<Award size={11} aria-hidden="true" />}
+              >
+                {matchScore}%
+              </Badge>
+            )}
             {workplace !== undefined && <WorkplaceText workplace={workplace} />}
             {location !== undefined && <LocationText>{location}</LocationText>}
             {salary !== undefined && <SalaryText>{salary}</SalaryText>}
@@ -573,12 +581,14 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
               {visibleTech.length > 0 && (
                 <div className={styles.cardTechStack}>
                   {visibleTech.map((tech) => (
-                    <TechChip key={tech}>{tech}</TechChip>
+                    <Badge key={tech} variant="ghost" size="xs">
+                      {tech}
+                    </Badge>
                   ))}
                   {hiddenTech.length > 0 && (
-                    <TechChip title={hiddenTech.join(', ')}>
+                    <Badge variant="ghost" size="xs" title={hiddenTech.join(', ')}>
                       +{hiddenTech.length}
-                    </TechChip>
+                    </Badge>
                   )}
                 </div>
               )}
@@ -588,7 +598,15 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
           {tags.length > 0 && (
             <div className={styles.cardTags}>
               {tags.map((tag) => (
-                <TagChip key={tag}>{tag}</TagChip>
+                <Badge
+                  key={tag}
+                  variant="ghost"
+                  size="xs"
+                  tone="primary"
+                  icon={<Tag size={10} aria-hidden="true" />}
+                >
+                  {tag}
+                </Badge>
               ))}
             </div>
           )}

@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
-import { RefreshCw, Shield } from 'lucide-react';
-import { Button, Icon, MatchBadge, SeverityBadge } from '../../atoms';
+import { Award, RefreshCw, Shield } from 'lucide-react';
+import { Badge, Button, Icon } from '../../atoms';
 import { AlertBanner, SectionHeader, Accordion, type AccordionItem } from '../../molecules';
 import { cn } from '../../utils';
 import styles from './ScoreReportAccordion.module.css';
@@ -75,7 +75,9 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
         title: (
           <span className={styles.requirementTitle}>
             <span>{item.requirement}</span>
-            <SeverityBadge severity={sev} />
+            <Badge variant="severity" tone={sev}>
+              {sev.toUpperCase()}
+            </Badge>
           </span>
         ),
         content: item.reason,
@@ -88,7 +90,9 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
       title: (
         <span className={styles.requirementTitle}>
           <span>{item.requirement}</span>
-          <SeverityBadge severity="critical" />
+          <Badge variant="severity" tone="critical">
+            CRITICAL
+          </Badge>
         </span>
       ),
       content: item.reason,
@@ -97,12 +101,22 @@ export const ScoreReportAccordion = forwardRef<HTMLDivElement, ScoreReportAccord
 
     return (
       <div ref={ref} className={cn(styles.report, className)} {...rest}>
-        {/* Header composed of SectionHeader, MatchBadge, and Button */}
+        {/* Header composed of SectionHeader, Badge, and Button */}
         <SectionHeader
           title="Совместимость с резюме"
           icon={Shield}
           iconTone="accent"
-          badge={roundedScore !== undefined && <MatchBadge score={roundedScore} />}
+          badge={
+            roundedScore !== undefined && (
+              <Badge
+                variant="match"
+                tone={roundedScore >= 75 ? 'high' : roundedScore >= 50 ? 'medium' : 'low'}
+                icon={<Award size={11} aria-hidden="true" />}
+              >
+                {roundedScore}%
+              </Badge>
+            )
+          }
           divider
           accessory={
             onReanalyze && (

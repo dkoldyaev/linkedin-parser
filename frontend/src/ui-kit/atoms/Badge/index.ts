@@ -9,6 +9,7 @@ export {
   CvSyncBadge,
   type BadgeProps,
   type BadgeTone,
+  type BadgeVariant,
   type BadgeSize,
   type MatchTier,
   type MatchBadgeProps,

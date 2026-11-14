@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
-  Badge,
-  MatchBadge,
-  TechChip,
-  TagChip,
-  StageBadge,
-  ClosedBadge,
-  SeverityBadge,
-  CvSyncBadge,
-} from './Badge';
+  Award,
+  Ban,
+  CheckCircle2,
+  Clock,
+  FileEdit,
+  MapPin,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
+import { Badge } from './Badge';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Badge> = {
@@ -17,17 +18,39 @@ const meta: Meta<typeof Badge> = {
   tags: ['autodocs'],
   args: {
     tone: 'primary',
+    variant: 'badge',
     size: 'md',
     children: 'Badge Text',
   },
   argTypes: {
     tone: {
       control: 'select',
-      options: ['neutral', 'primary', 'success', 'warning', 'danger', 'info'],
+      options: [
+        'neutral',
+        'primary',
+        'success',
+        'warning',
+        'danger',
+        'info',
+        'backlog',
+        'applied',
+        'interview',
+        'assessment',
+        'offer',
+        'rejected',
+        'critical',
+        'high',
+        'medium',
+        'low',
+      ],
+    },
+    variant: {
+      control: 'select',
+      options: ['badge', 'chip', 'ghost', 'match', 'stage', 'severity', 'sync'],
     },
     size: {
       control: 'inline-radio',
-      options: ['sm', 'md'],
+      options: ['xs', 'sm', 'md', 'lg'],
     },
     children: {
       control: 'text',
@@ -38,107 +61,138 @@ const meta: Meta<typeof Badge> = {
 export default meta;
 type Story = StoryObj<typeof Badge>;
 
-export const EditableBadge: Story = {
-  name: 'Editable Badge (Controls)',
+export const Default: Story = {
+  name: 'Interactive Badge (Controls)',
   render: (args) => <Badge {...args} />,
 };
 
-export const MatchScoreBadges: StoryObj<typeof MatchBadge> = {
-  name: 'Match Score Badges (KanbanCard & VacancyModal)',
-  args: {
-    score: 65,
-    showIcon: true,
-  },
-  argTypes: {
-    score: {
-      control: { type: 'range', min: 0, max: 100, step: 1 },
-    },
-    showIcon: {
-      control: 'boolean',
-    },
-  },
-  render: (args) => (
+export const WithIcons: Story = {
+  name: 'Badges with Icons (icon prop)',
+  render: () => (
     <div className={layoutStyles.row}>
-      <MatchBadge score={args.score} showIcon={args.showIcon} />
-      <MatchBadge score={92} title="AI Match Score: 92%" />
-      <MatchBadge score={65} title="AI Match Score: 65%" />
-      <MatchBadge score={38} title="AI Match Score: 38%" />
+      <Badge icon={<Sparkles size={12} />} tone="primary">
+        AI Generated
+      </Badge>
+      <Badge icon={<MapPin size={12} />} tone="neutral">
+        Berlin, Germany
+      </Badge>
+      <Badge icon={<Award size={12} />} tone="success">
+        Match 92%
+      </Badge>
+      <Badge icon={<Tag size={12} />} tone="info">
+        Full-time
+      </Badge>
+      <Badge icon={<Ban size={12} />} tone="danger">
+        Closed
+      </Badge>
+    </div>
+  ),
+};
+
+export const MatchScoreVariants: Story = {
+  name: 'Match Score Badges (variant="match")',
+  render: () => (
+    <div className={layoutStyles.row}>
+      <Badge variant="match" tone="high" icon={<Award size={11} aria-hidden />}>
+        92%
+      </Badge>
+      <Badge variant="match" tone="medium" icon={<Award size={11} aria-hidden />}>
+        65%
+      </Badge>
+      <Badge variant="match" tone="low" icon={<Award size={11} aria-hidden />}>
+        38%
+      </Badge>
     </div>
   ),
 };
 
 export const TechAndTagChips: Story = {
-  name: 'Tech Stack & Tag Chips (KanbanCard)',
-  args: {
-    children: 'Javascript',
-  },
-  render: (args) => (
+  name: 'Tech & Tag Chips (variant="ghost" and variant="chip")',
+  render: () => (
     <div className={layoutStyles.stackSm}>
       <div className={layoutStyles.row}>
-        <TechChip>{args.children}</TechChip>
-        <TechChip>Typescript</TechChip>
-        <TechChip>Php</TechChip>
-        <TechChip>Swift</TechChip>
-        <TechChip title="React, Node.js, Docker">+3</TechChip>
+        <Badge variant="ghost" size="xs">TypeScript</Badge>
+        <Badge variant="ghost" size="xs">React 19</Badge>
+        <Badge variant="ghost" size="xs">Vite</Badge>
+        <Badge variant="ghost" size="xs">Docker</Badge>
+        <Badge variant="ghost" size="xs" tone="neutral">+3</Badge>
       </div>
       <div className={layoutStyles.row}>
-        <TagChip>{args.children}</TagChip>
-        <TagChip>referral</TagChip>
-        <TagChip>fintech</TagChip>
+        <Badge variant="ghost" size="xs" tone="primary" icon={<Tag size={10} aria-hidden />}>
+          referral
+        </Badge>
+        <Badge variant="ghost" size="xs" tone="primary" icon={<Tag size={10} aria-hidden />}>
+          fintech
+        </Badge>
+        <Badge variant="ghost" size="xs" tone="primary" icon={<Tag size={10} aria-hidden />}>
+          senior-level
+        </Badge>
+      </div>
+      <div className={layoutStyles.row}>
+        <Badge variant="chip" size="sm" tone="primary" onRemove={() => alert('Removed')}>
+          Editable Token 1
+        </Badge>
+        <Badge variant="chip" size="sm" tone="success" onRemove={() => alert('Removed')}>
+          Editable Token 2
+        </Badge>
       </div>
     </div>
   ),
 };
 
-export const StageAndClosedBadges: Story = {
-  name: 'Stage (Lane) & Closed Badges (Card Top-Right)',
-  args: {
-    children: 'Закрыта',
-  },
-  render: (args) => (
+export const StageAndClosedVariants: Story = {
+  name: 'Stage (Lane) & Closed Badges (variant="stage")',
+  render: () => (
     <div className={layoutStyles.row}>
-      <StageBadge stageTone="backlog">Backlog</StageBadge>
-      <StageBadge stageTone="applied">Applied</StageBadge>
-      <StageBadge stageTone="interview">Interview</StageBadge>
-      <StageBadge stageTone="assessment">Test</StageBadge>
-      <StageBadge stageTone="offer">Offer</StageBadge>
-      <ClosedBadge>{args.children}</ClosedBadge>
+      <Badge variant="stage" tone="backlog">Backlog</Badge>
+      <Badge variant="stage" tone="applied">Applied</Badge>
+      <Badge variant="stage" tone="interview">Interview</Badge>
+      <Badge variant="stage" tone="assessment">Test</Badge>
+      <Badge variant="stage" tone="offer">Offer</Badge>
+      <Badge variant="stage" tone="rejected" icon={<Ban size={11} aria-hidden />}>
+        Закрыта
+      </Badge>
     </div>
   ),
 };
 
-export const CompatibilitySeverityBadges: Story = {
-  name: 'Compatibility Severity Badges (VacancyModal)',
+export const SeverityVariants: Story = {
+  name: 'Compatibility Severity Badges (variant="severity")',
   render: () => (
     <div className={layoutStyles.row}>
-      <SeverityBadge severity="critical">Critical</SeverityBadge>
-      <SeverityBadge severity="high">High</SeverityBadge>
-      <SeverityBadge severity="medium">Medium</SeverityBadge>
-      <SeverityBadge severity="low">Low</SeverityBadge>
+      <Badge variant="severity" tone="critical">Critical</Badge>
+      <Badge variant="severity" tone="high">High</Badge>
+      <Badge variant="severity" tone="medium">Medium</Badge>
+      <Badge variant="severity" tone="low">Low</Badge>
     </div>
   ),
 };
 
-export const CvSyncStatusBadges: Story = {
-  name: 'CV Sync Status Badges (CvPage & Header)',
+export const CvSyncStatusVariants: Story = {
+  name: 'CV Sync Status Badges (variant="sync")',
   render: () => (
     <div className={layoutStyles.row}>
-      <CvSyncBadge status="approved">CV одобрено</CvSyncBadge>
-      <CvSyncBadge status="outdated">Требует пересчёта</CvSyncBadge>
-      <CvSyncBadge status="draft">Черновик</CvSyncBadge>
+      <Badge variant="sync" tone="success" icon={<CheckCircle2 size={13} aria-hidden />}>
+        CV одобрено
+      </Badge>
+      <Badge variant="sync" tone="warning" icon={<Clock size={13} aria-hidden />}>
+        Требует пересчёта
+      </Badge>
+      <Badge variant="sync" tone="primary" icon={<FileEdit size={13} aria-hidden />}>
+        Черновик
+      </Badge>
     </div>
   ),
 };
 
-export const AllTones: Story = {
+export const AllSizes: Story = {
+  name: 'Sizes (size="xs" | "sm" | "md" | "lg")',
   render: () => (
     <div className={layoutStyles.row}>
-      <Badge tone="neutral">Neutral (12)</Badge>
-      <Badge tone="primary">Primary</Badge>
-      <Badge tone="success">Completed</Badge>
-      <Badge tone="warning">Queued</Badge>
-      <Badge tone="danger">Failed</Badge>
-      <Badge tone="info">Remote</Badge>
+      <Badge size="xs" tone="primary">XS Badge</Badge>
+      <Badge size="sm" tone="primary">SM Badge</Badge>
+      <Badge size="md" tone="primary">MD Badge</Badge>
+      <Badge size="lg" tone="primary">LG Badge</Badge>
     </div>
   ),
 };

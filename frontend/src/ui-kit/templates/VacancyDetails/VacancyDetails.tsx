@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  Award,
+  Ban,
   Banknote,
   Building2,
   Calendar,
@@ -13,18 +15,16 @@ import {
   X,
 } from 'lucide-react';
 import {
+  Badge,
   Button,
-  ClosedBadge,
   CompanyLink,
   Icon,
   LocationText,
-  MatchBadge,
   SalaryText,
-  StageBadge,
   Text,
   Textarea,
   WorkplaceText,
-  type StageBadgeTone,
+  type BadgeTone,
   type WorkplaceType,
 } from '../../atoms';
 import {
@@ -64,7 +64,7 @@ export interface VacancyDetailsData {
   readonly workplace?: WorkplaceType;
   readonly dateAdded?: string;
   readonly status: string;
-  readonly stageTone?: StageBadgeTone;
+  readonly stageTone?: BadgeTone;
   readonly isClosed?: boolean;
   readonly score?: number;
   readonly salaryText?: string;
@@ -182,7 +182,7 @@ export function VacancyDetails({
     onSaveNotes?.(notes);
   };
 
-  const stageTone: StageBadgeTone =
+  const stageTone: BadgeTone =
     vacancy.stageTone ??
     (vacancy.status === 'rejected'
       ? 'rejected'
@@ -240,12 +240,22 @@ export function VacancyDetails({
 
         <div className={styles.badgesRow}>
           {vacancy.score !== undefined && (
-            <MatchBadge score={vacancy.score} />
+            <Badge
+              variant="match"
+              tone={vacancy.score >= 75 ? 'high' : vacancy.score >= 50 ? 'medium' : 'low'}
+              icon={<Award size={11} aria-hidden="true" />}
+            >
+              {vacancy.score}%
+            </Badge>
           )}
-          <StageBadge stageTone={stageTone}>
+          <Badge variant="stage" tone={stageTone}>
             {vacancy.status.toUpperCase()}
-          </StageBadge>
-          {vacancy.isClosed && <ClosedBadge />}
+          </Badge>
+          {vacancy.isClosed && (
+            <Badge variant="stage" tone="rejected" icon={<Ban size={11} aria-hidden="true" />}>
+              Закрыта
+            </Badge>
+          )}
         </div>
 
         <h1 className={styles.title}>{vacancy.title}</h1>

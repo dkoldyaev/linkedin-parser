@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Button, Icon, Input, Label, TagChip, type BadgeTone } from '../../atoms';
+import { Plus, Tag } from 'lucide-react';
+import { Badge, Button, Icon, Input, Label, type BadgeTone } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './EditableTokenList.module.css';
@@ -150,14 +150,15 @@ export function EditableTokenList({
         <div className={styles.tokenList}>
           {currentTokens.map((token, index) => (
             <div key={`${token}-${index}`} className={styles.tokenItem}>
-              <TagChip
-                label={token}
-                showIcon={showTagIcon}
-                variant="badge"
-                tone={tone}
+              <Badge
+                variant="chip"
+                tone={tone ?? 'neutral'}
+                icon={showTagIcon ? <Tag size={11} aria-hidden="true" /> : undefined}
                 onRemove={!readOnly ? () => handleRemove(index) : undefined}
                 removeLabel={`${removeLabelPrefix} ${token}`}
-              />
+              >
+                {token}
+              </Badge>
             </div>
           ))}
           {isEditing && (

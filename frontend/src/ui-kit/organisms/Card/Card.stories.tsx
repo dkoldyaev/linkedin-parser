@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Award, Ban, Tag } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -9,13 +10,9 @@ import {
   type VacancyCardProps,
 } from './Card';
 import {
-  ClosedBadge,
+  Badge,
   LocationText,
-  MatchBadge,
   SalaryText,
-  StageBadge,
-  TagChip,
-  TechChip,
   WorkplaceText,
 } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
@@ -199,11 +196,15 @@ export const CardHeaderSubcomponent: Story = {
       Boolean(args.isClosed) ? (
         <>
           {args.stageBadgeLabel !== undefined && args.stageBadgeLabel !== '' && (
-            <StageBadge stageTone={args.stageBadgeTone}>
+            <Badge variant="stage" tone={args.stageBadgeTone}>
               {args.stageBadgeLabel}
-            </StageBadge>
+            </Badge>
           )}
-          {Boolean(args.isClosed) && <ClosedBadge>Закрыта</ClosedBadge>}
+          {Boolean(args.isClosed) && (
+            <Badge variant="stage" tone="rejected" icon={<Ban size={11} aria-hidden="true" />}>
+              Закрыта
+            </Badge>
+          )}
         </>
       ) : undefined;
 
@@ -232,7 +233,7 @@ export const CardHeaderSubcomponent: Story = {
                 selectable
                 checked
                 statusIndicators={
-                  <StageBadge stageTone="interview">Interview</StageBadge>
+                  <Badge variant="stage" tone="interview">Interview</Badge>
                 }
               />
             </CardBody>
@@ -246,7 +247,11 @@ export const CardHeaderSubcomponent: Story = {
                 title="Senior Product Engineer"
                 selectable
                 checked={false}
-                statusIndicators={<ClosedBadge>Закрыта</ClosedBadge>}
+                statusIndicators={
+                  <Badge variant="stage" tone="rejected" icon={<Ban size={11} aria-hidden="true" />}>
+                    Закрыта
+                  </Badge>
+                }
               />
             </CardBody>
           </Card>
@@ -321,7 +326,13 @@ export const ComposableCardParts: Story = {
           />
           <div className={layoutStyles.row}>
             {args.matchScore !== undefined && (
-              <MatchBadge score={args.matchScore} />
+              <Badge
+                variant="match"
+                tone={args.matchScore >= 75 ? 'high' : args.matchScore >= 50 ? 'medium' : 'low'}
+                icon={<Award size={11} aria-hidden="true" />}
+              >
+                {args.matchScore}%
+              </Badge>
             )}
             {args.workplace !== undefined && (
               <WorkplaceText workplace={args.workplace} />
@@ -334,14 +345,24 @@ export const ComposableCardParts: Story = {
           {args.techStack !== undefined && args.techStack.length > 0 && (
             <div className={layoutStyles.row}>
               {args.techStack.map((tech) => (
-                <TechChip key={tech}>{tech}</TechChip>
+                <Badge key={tech} variant="ghost" size="xs">
+                  {tech}
+                </Badge>
               ))}
             </div>
           )}
           {args.tags !== undefined && args.tags.length > 0 && (
             <div className={layoutStyles.row}>
               {args.tags.map((tag) => (
-                <TagChip key={tag}>{tag}</TagChip>
+                <Badge
+                  key={tag}
+                  variant="ghost"
+                  size="xs"
+                  tone="primary"
+                  icon={<Tag size={10} aria-hidden="true" />}
+                >
+                  {tag}
+                </Badge>
               ))}
             </div>
           )}
