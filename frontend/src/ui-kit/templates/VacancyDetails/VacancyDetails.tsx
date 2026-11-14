@@ -32,6 +32,7 @@ import {
   EditableTokenList,
   SectionHeader,
   StageStepper,
+  Tabs,
   type StageStepItem,
 } from '../../molecules';
 import {
@@ -299,56 +300,17 @@ export function VacancyDetails({
 
       {/* 4. Tabs navigation */}
       <div className={styles.tabsRoot}>
-        <div role="tablist" aria-label="Секции вакансии" className={styles.tabsList}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={currentTab === 'overview'}
-            className={cn(
-              styles.stageOption,
-              currentTab === 'overview' && styles.stageOptionActive
-            )}
-            onClick={() => handleTabClick('overview')}
-          >
-            Обзор
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={currentTab === 'compatibility'}
-            className={cn(
-              styles.stageOption,
-              currentTab === 'compatibility' && styles.stageOptionActive
-            )}
-            onClick={() => handleTabClick('compatibility')}
-          >
-            Совместимость с резюме
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={currentTab === 'history'}
-            className={cn(
-              styles.stageOption,
-              currentTab === 'history' && styles.stageOptionActive
-            )}
-            onClick={() => handleTabClick('history')}
-          >
-            История переходов
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={currentTab === 'notes'}
-            className={cn(
-              styles.stageOption,
-              currentTab === 'notes' && styles.stageOptionActive
-            )}
-            onClick={() => handleTabClick('notes')}
-          >
-            Заметки
-          </button>
-        </div>
+        <Tabs
+          value={currentTab}
+          onValueChange={(val) => handleTabClick(val as VacancyDetailsTab)}
+          items={[
+            { value: 'overview', label: 'Обзор' },
+            { value: 'compatibility', label: 'Совместимость с резюме' },
+            { value: 'history', label: 'История переходов' },
+            { value: 'notes', label: 'Заметки' },
+          ]}
+          ariaLabel="Секции вакансии"
+        />
 
         {/* Tab 1: Overview */}
         {currentTab === 'overview' && (

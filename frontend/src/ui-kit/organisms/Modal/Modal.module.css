@@ -93,6 +93,21 @@
     flex-shrink: 0;
   }
 
+  .headerWithTabs {
+    padding-bottom: 0;
+  }
+
+  .headerMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .headerTabs {
+    width: 100%;
+  }
+
   .body {
     flex: 1;
     overflow-y: auto;
@@ -131,6 +146,12 @@
     background-color: var(--ui-color-bg-secondary);
     border-top: var(--ui-border-width) solid var(--ui-color-border-strong);
     box-sizing: border-box;
+  }
+
+  .footerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
   }
 
   .footer-justify-end {

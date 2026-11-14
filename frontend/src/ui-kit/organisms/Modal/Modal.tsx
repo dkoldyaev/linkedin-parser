@@ -2,9 +2,9 @@ import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '../../utils';
 import { ModalContext, type ModalContextValue } from './ModalContext';
-import { ModalHeader, type ModalHeaderProps } from './ModalHeader';
+import { ModalHeader, ModalHeaderMeta, type ModalHeaderProps, type ModalHeaderMetaProps } from './ModalHeader';
 import { ModalBody, type ModalBodyProps } from './ModalBody';
-import { ModalFooter, type ModalFooterProps, type ModalFooterJustify } from './ModalFooter';
+import { ModalFooter, ModalFooterActions, type ModalFooterProps, type ModalFooterActionsProps, type ModalFooterJustify } from './ModalFooter';
 import styles from './Modal.module.css';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -106,10 +106,14 @@ Modal.Footer = ModalFooter;
 
 export {
   ModalHeader,
+  ModalHeaderMeta,
   ModalBody,
   ModalFooter,
+  ModalFooterActions,
   type ModalHeaderProps,
+  type ModalHeaderMetaProps,
   type ModalBodyProps,
   type ModalFooterProps,
+  type ModalFooterActionsProps,
   type ModalFooterJustify,
 };

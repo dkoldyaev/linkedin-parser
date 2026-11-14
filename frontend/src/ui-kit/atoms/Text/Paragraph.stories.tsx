@@ -25,19 +25,13 @@ export default meta;
 type Story = StoryObj<typeof Paragraph>;
 
 export const Default: Story = {
-  render: () => (
-    <div>
-      <Paragraph spacing="md">
-        Архитектура дизайн-системы Blueprint построена на строгой сетке кратности 32px.
-        Каждый элемент интерфейса (кнопки, ячейки, карточки, модальные окна) синхронизирован
-        с чертежным полотном, исключая случайные сдвиги и расхождения верстки.
-      </Paragraph>
-      <Paragraph spacing="md" tone="secondary">
-        Вторичный абзац текста: отображает пояснительную информацию, технические комментарии
-        или вспомогательные сведения с уменьшенной контрастностью.
-      </Paragraph>
-    </div>
-  ),
+  args: {
+    spacing: 'md',
+    tone: 'primary',
+    children:
+      'Архитектура дизайн-системы Blueprint построена на строгой сетке кратности 32px. Каждый элемент интерфейса (кнопки, ячейки, карточки, модальные окна) синхронизирован с чертежным полотном, исключая случайные сдвиги и расхождения верстки.',
+  },
+  render: (args) => <Paragraph {...args} />,
 };
 
 export const SpacingVariants: Story = {
@@ -60,8 +54,14 @@ export const SpacingVariants: Story = {
 };
 
 export const ToneVariants: Story = {
-  render: () => (
+  args: {
+    spacing: 'md',
+    tone: 'accent',
+    children: 'Интерактивный абзац: контролируется через Storybook Controls (&args=tone:...)',
+  },
+  render: (args) => (
     <div>
+      <Paragraph {...args} />
       <Paragraph tone="primary">Primary tone: основной читаемый текст интерфейса.</Paragraph>
       <Paragraph tone="secondary">Secondary tone: пояснительный и мета-текст.</Paragraph>
       <Paragraph tone="muted">Muted tone: неактивный или третичный текст.</Paragraph>

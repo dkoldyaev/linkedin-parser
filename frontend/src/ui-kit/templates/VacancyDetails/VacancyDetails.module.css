@@ -145,18 +145,6 @@
     box-sizing: border-box;
   }
 
-  .tabsList {
-    display: flex;
-    align-items: center;
-    min-height: var(--ui-grid-cell);
-    padding: 0 var(--ui-space-6);
-    box-shadow: inset 0 -1px var(--ui-color-border-subtle);
-    background-color: var(--ui-color-bg-primary);
-    gap: var(--ui-space-2);
-    overflow-x: auto;
-    box-sizing: border-box;
-  }
-
   .tabContent {
     display: flex;
     flex-direction: column;
@@ -231,7 +219,6 @@
     }
 
     .metaBar,
-    .tabsList,
     .stageBar,
     .sectionBody,
     .salaryDisplay,

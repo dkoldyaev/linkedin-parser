@@ -48,32 +48,6 @@
     gap: var(--ui-space-2);
   }
 
-  .tabsRow {
-    display: flex;
-    gap: var(--ui-space-2);
-    border-bottom: var(--ui-border-width) solid var(--ui-color-border-subtle);
-    padding-top: var(--ui-space-2);
-  }
-
-  .actionsRow {
-    display: flex;
-    gap: var(--ui-space-2);
-  }
-
-  .metaBadgesRow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ui-space-2);
-  }
-
-  .customHeaderSub {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ui-space-3);
-    padding-top: var(--ui-space-2);
-  }
-
   .bodyContent {
     display: flex;
     flex-direction: column;

@@ -3,9 +3,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Layers, ExternalLink, RefreshCw, Trash2, FileText, Shield } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button, Icon, Input, Text } from '../../atoms';
-import { ColorPicker, FormField } from '../../molecules';
+import { ColorPicker, FormField, Tabs } from '../../molecules';
 import { useDisclosure } from '../../hooks';
-import styles from './ModalStory.module.css';
 
 const meta: Meta<typeof Modal> = {
   title: 'Organisms/Modal',
@@ -79,26 +78,25 @@ function ComposableModalDemo(): React.ReactElement {
               </Button>
             </>
           }
-        >
-          <div className={styles.tabsRow}>
-            <Button
-              variant={activeTab === 'details' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('details')}
-            >
-              <Icon icon={FileText} size="sm" />
-              <span>Details</span>
-            </Button>
-            <Button
-              variant={activeTab === 'audit' ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab('audit')}
-            >
-              <Icon icon={Shield} size="sm" />
-              <span>Audit Log</span>
-            </Button>
-          </div>
-        </Modal.Header>
+          tabs={
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => setActiveTab(val as 'details' | 'audit')}
+              items={[
+                {
+                  value: 'details',
+                  label: 'Details',
+                  icon: <Icon icon={FileText} size="sm" />,
+                },
+                {
+                  value: 'audit',
+                  label: 'Audit Log',
+                  icon: <Icon icon={Shield} size="sm" />,
+                },
+              ]}
+            />
+          }
+        />
 
         <Modal.Body padding="md">
           <Text as="p" variant="body" tone="secondary">
@@ -115,14 +113,14 @@ function ComposableModalDemo(): React.ReactElement {
             <Icon icon={Trash2} size="sm" />
             <span>Delete Entity</span>
           </Button>
-          <div className={styles.actionsRow}>
+          <Modal.Footer.Actions>
             <Button variant="secondary" size="sm" onClick={close}>
               Cancel
             </Button>
             <Button variant="primary" size="sm" onClick={close}>
               Save Changes
             </Button>
-          </div>
+          </Modal.Footer.Actions>
         </Modal.Footer>
       </Modal>
     </div>

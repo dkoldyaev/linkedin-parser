@@ -67,6 +67,11 @@ export function Tabs({
             disabled={item.disabled}
             data-bp-snap-width=""
             className={styles.trigger}
+            onClick={() => {
+              if (!item.disabled && onValueChange !== undefined) {
+                onValueChange(item.value);
+              }
+            }}
           >
             {item.icon !== undefined && (
               <span className={styles.iconSlot} aria-hidden="true">

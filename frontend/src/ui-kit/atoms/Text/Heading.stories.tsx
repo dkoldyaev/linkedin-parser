@@ -21,6 +21,15 @@ const meta: Meta<typeof Heading> = {
 export default meta;
 type Story = StoryObj<typeof Heading>;
 
+export const Default: Story = {
+  args: {
+    level: 2,
+    tone: 'primary',
+    children: 'Platform Architecture Heading',
+  },
+  render: (args) => <Heading {...args} />,
+};
+
 export const AllLevels: Story = {
   render: () => (
     <div>
@@ -58,9 +67,17 @@ export const AllLevels: Story = {
 };
 
 export const ToneVariants: Story = {
-  render: () => (
+  args: {
+    level: 2,
+    tone: 'accent',
+    children: 'Interactive Heading (контролируется через Storybook Controls &args=tone:...)',
+  },
+  render: (args) => (
     <div>
+      <Heading {...args} />
       <Heading level={2} tone="primary">Primary Heading</Heading>
+      <Heading level={2} tone="secondary">Secondary Heading</Heading>
+      <Heading level={2} tone="muted">Muted Heading</Heading>
       <Heading level={2} tone="accent">Accent Heading</Heading>
       <Heading level={2} tone="success">Success Heading</Heading>
       <Heading level={2} tone="warning">Warning Heading</Heading>

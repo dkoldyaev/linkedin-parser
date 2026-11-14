@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ModalHeader } from './ModalHeader';
 import { Button, Icon, Badge } from '../../atoms';
+import { Tabs } from '../../molecules/Tabs';
 import styles from './ModalStory.module.css';
 
 const meta: Meta<typeof ModalHeader> = {
@@ -82,9 +83,8 @@ export const CompoundWithTabsAndBadges: Story = {
             </>
           }
           onClose={() => alert('Close clicked')}
-        >
-          <div className={styles.customHeaderSub}>
-            <div className={styles.metaBadgesRow}>
+          meta={
+            <>
               <Badge tone="neutral">
                 <Icon icon={MapPin} size="xs" />
                 <span>Berlin, Germany</span>
@@ -97,19 +97,26 @@ export const CompoundWithTabsAndBadges: Story = {
                 <Icon icon={Banknote} size="xs" />
                 <span>€85,000 – €110,000 / yr</span>
               </Badge>
-            </div>
-            <div className={styles.tabsRow}>
-              <Button variant="primary" size="sm">
-                <Icon icon={FileText} size="sm" />
-                <span>Details</span>
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Icon icon={Shield} size="sm" />
-                <span>Compatibility 88%</span>
-              </Button>
-            </div>
-          </div>
-        </ModalHeader>
+            </>
+          }
+          tabs={
+            <Tabs
+              defaultValue="details"
+              items={[
+                {
+                  value: 'details',
+                  label: 'Details',
+                  icon: <Icon icon={FileText} size="sm" />,
+                },
+                {
+                  value: 'compatibility',
+                  label: 'Compatibility 88%',
+                  icon: <Icon icon={Shield} size="sm" />,
+                },
+              ]}
+            />
+          }
+        />
       </div>
     );
   },

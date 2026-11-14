@@ -23,14 +23,14 @@ export const JustifyEnd: Story = {
   render: () => (
     <div className={styles.container}>
       <ModalFooter justify="end">
-        <div className={styles.actionsRow}>
+        <ModalFooter.Actions>
           <Button variant="secondary" size="sm" onClick={() => alert('Cancel')}>
             Cancel
           </Button>
           <Button variant="primary" size="sm" onClick={() => alert('Save Changes')}>
             Save Changes
           </Button>
-        </div>
+        </ModalFooter.Actions>
       </ModalFooter>
     </div>
   ),
@@ -44,14 +44,14 @@ export const JustifyBetween: Story = {
           <Icon icon={Trash2} size="sm" />
           <span>Delete Column</span>
         </Button>
-        <div className={styles.actionsRow}>
+        <ModalFooter.Actions>
           <Button variant="secondary" size="sm" onClick={() => alert('Cancel')}>
             Cancel
           </Button>
           <Button variant="primary" size="sm" onClick={() => alert('Apply Changes')}>
             Apply Changes
           </Button>
-        </div>
+        </ModalFooter.Actions>
       </ModalFooter>
     </div>
   ),
@@ -77,14 +77,14 @@ export const JustifyStart: Story = {
   render: () => (
     <div className={styles.container}>
       <ModalFooter justify="start">
-        <div className={styles.actionsRow}>
+        <ModalFooter.Actions>
           <Button variant="primary" size="sm" onClick={() => alert('Download')}>
             Download Report
           </Button>
           <Button variant="secondary" size="sm" onClick={() => alert('Copy Link')}>
             Copy Link
           </Button>
-        </div>
+        </ModalFooter.Actions>
       </ModalFooter>
     </div>
   ),

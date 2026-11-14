@@ -12,6 +12,8 @@ export interface ModalHeaderProps
   readonly description?: React.ReactNode;
   readonly headerIcon?: React.ReactNode;
   readonly actions?: React.ReactNode;
+  readonly meta?: React.ReactNode;
+  readonly tabs?: React.ReactNode;
   readonly hideCloseButton?: boolean;
   readonly closeLabel?: string;
   readonly onClose?: () => void;
@@ -19,16 +21,38 @@ export interface ModalHeaderProps
   readonly className?: string;
 }
 
+export interface ModalHeaderMetaProps extends React.HTMLAttributes<HTMLDivElement> {
+  readonly children: React.ReactNode;
+  readonly className?: string;
+}
+
+/**
+ * Metadata row subcomponent inside ModalHeader for badges and indicators.
+ */
+export function ModalHeaderMeta({
+  children,
+  className,
+  ...restProps
+}: ModalHeaderMetaProps): React.ReactElement {
+  return (
+    <div className={cn(styles.headerMeta, className)} {...restProps}>
+      {children}
+    </div>
+  );
+}
+
 /**
  * Accessible header organism for modal dialogs and inspect panels.
- * Decomposes the dialog header into standard title/description/action zones
- * or custom compound content while preserving Radix UI ARIA wiring.
+ * Decomposes the dialog header into standard title/description/action zones,
+ * metadata badges, and tabs while preserving Radix UI ARIA wiring.
  */
-export function ModalHeader({
+function ModalHeaderRoot({
   title,
   description,
   headerIcon,
   actions,
+  meta,
+  tabs,
   hideCloseButton = false,
   closeLabel,
   onClose,
@@ -40,6 +64,7 @@ export function ModalHeader({
   const effectiveOnClose = onClose ?? modalContext?.onClose;
   const effectiveCloseLabel = closeLabel ?? modalContext?.closeLabel ?? 'Close modal';
   const isInsideDialog = modalContext !== null;
+  const hasTabs = tabs !== undefined;
 
   const showTopRow =
     title !== undefined ||
@@ -47,7 +72,10 @@ export function ModalHeader({
     (!hideCloseButton && effectiveOnClose !== undefined);
 
   return (
-    <div className={cn(styles.header, className)} {...restProps}>
+    <div
+      className={cn(styles.header, hasTabs && styles.headerWithTabs, className)}
+      {...restProps}
+    >
       {showTopRow && (
         <div className={styles.headerTop}>
           <div className={styles.titleGroup}>
@@ -118,7 +146,13 @@ export function ModalHeader({
           </div>
         </div>
       )}
+      {meta !== undefined && <div className={styles.headerMeta}>{meta}</div>}
+      {tabs !== undefined && <div className={styles.headerTabs}>{tabs}</div>}
       {children}
     </div>
   );
 }
+
+export const ModalHeader = Object.assign(ModalHeaderRoot, {
+  Meta: ModalHeaderMeta,
+});

@@ -10,11 +10,31 @@ export interface ModalFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly className?: string;
 }
 
+export interface ModalFooterActionsProps extends React.HTMLAttributes<HTMLDivElement> {
+  readonly children: React.ReactNode;
+  readonly className?: string;
+}
+
+/**
+ * Group wrapper for action buttons inside ModalFooter.
+ */
+export function ModalFooterActions({
+  children,
+  className,
+  ...restProps
+}: ModalFooterActionsProps): React.ReactElement {
+  return (
+    <div className={cn(styles.footerActions, className)} {...restProps}>
+      {children}
+    </div>
+  );
+}
+
 /**
  * Bottom action bar for modal dialogs and inspect cards.
  * Supports standard right-aligned action buttons or space-between layouts (e.g. Delete vs Close).
  */
-export function ModalFooter({
+function ModalFooterRoot({
   justify = 'end',
   children,
   className,
@@ -29,3 +49,7 @@ export function ModalFooter({
     </div>
   );
 }
+
+export const ModalFooter = Object.assign(ModalFooterRoot, {
+  Actions: ModalFooterActions,
+});

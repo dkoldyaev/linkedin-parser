@@ -56,35 +56,6 @@
     line-height: var(--ui-leading-tight);
   }
 
-  /* Tones */
-  .tone-primary {
-    color: var(--ui-color-text-primary);
-  }
-
-  .tone-secondary {
-    color: var(--ui-color-text-secondary);
-  }
-
-  .tone-muted {
-    color: var(--ui-color-text-muted);
-  }
-
-  .tone-accent {
-    color: var(--ui-color-accent-primary-hover);
-  }
-
-  .tone-success {
-    color: var(--ui-color-status-success);
-  }
-
-  .tone-warning {
-    color: var(--ui-color-status-warning);
-  }
-
-  .tone-danger {
-    color: var(--ui-color-status-danger);
-  }
-
   /* Weights */
   .weight-regular {
     font-weight: var(--ui-weight-regular);
@@ -138,7 +109,6 @@
     font-family: var(--ui-font-sans);
     font-size: var(--ui-text-base);
     line-height: var(--ui-leading-normal);
-    color: var(--ui-color-text-primary);
   }
 
   .paragraphSpacingNone { margin-bottom: 0; }
@@ -151,7 +121,6 @@
     margin: 0;
     padding-left: var(--ui-space-6);
     box-sizing: border-box;
-    color: var(--ui-color-text-primary);
   }
 
   .orderedList {
@@ -184,7 +153,6 @@
     font-family: var(--ui-font-sans);
     font-size: var(--ui-text-base);
     line-height: var(--ui-leading-normal);
-    color: var(--ui-color-text-primary);
   }
 
   .listItemCustom {
@@ -248,7 +216,6 @@
   .heading {
     margin: 0;
     box-sizing: border-box;
-    color: var(--ui-color-text-primary);
   }
 
   .headingLevel1 {
@@ -345,5 +312,34 @@
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
+  }
+
+  /* Tones: positioned at end of layer to cleanly override any base text colors */
+  .tone-primary {
+    color: var(--ui-color-text-primary);
+  }
+
+  .tone-secondary {
+    color: var(--ui-color-text-secondary);
+  }
+
+  .tone-muted {
+    color: var(--ui-color-text-muted);
+  }
+
+  .tone-accent {
+    color: var(--ui-color-accent-primary);
+  }
+
+  .tone-success {
+    color: var(--ui-color-status-success);
+  }
+
+  .tone-warning {
+    color: var(--ui-color-status-warning);
+  }
+
+  .tone-danger {
+    color: var(--ui-color-status-danger);
   }
 }
