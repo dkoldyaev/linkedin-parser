@@ -1,6 +1,22 @@
 import React, { forwardRef } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cn } from '../../utils';
+import { Paragraph, type ParagraphProps } from './Paragraph';
+import {
+  List,
+  OrderedList,
+  UnorderedList,
+  ListItem,
+  type ListProps,
+  type OrderedListProps,
+  type UnorderedListProps,
+  type ListItemProps,
+  type ListSpacing,
+} from './List';
+import { Blockquote, type BlockquoteProps, type BlockquoteTone } from './Blockquote';
+import { Heading, type HeadingProps, type HeadingLevel } from './Heading';
+import { Code, Kbd, type CodeProps, type KbdProps } from './Code';
+import { Link, type LinkProps } from './Link';
 import styles from './Text.module.css';
 
 export type TextElement =
@@ -62,7 +78,7 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
 /**
  * Polymorphic typography atom supporting Blueprint technical and sans-serif tokens.
  */
-export const Text = forwardRef<HTMLElement, TextProps>(function Text(
+const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
   {
     as = 'span',
     asChild = false,
@@ -108,3 +124,42 @@ export const Text = forwardRef<HTMLElement, TextProps>(function Text(
     </Component>
   );
 });
+
+export const Text = Object.assign(TextBase, {
+  Paragraph,
+  List,
+  OrderedList,
+  UnorderedList,
+  ListItem,
+  Blockquote,
+  Heading,
+  Code,
+  Kbd,
+  Link,
+});
+
+export {
+  Paragraph,
+  List,
+  OrderedList,
+  UnorderedList,
+  ListItem,
+  Blockquote,
+  Heading,
+  Code,
+  Kbd,
+  Link,
+  type ParagraphProps,
+  type ListProps,
+  type OrderedListProps,
+  type UnorderedListProps,
+  type ListItemProps,
+  type ListSpacing,
+  type BlockquoteProps,
+  type BlockquoteTone,
+  type HeadingProps,
+  type HeadingLevel,
+  type CodeProps,
+  type KbdProps,
+  type LinkProps,
+};
