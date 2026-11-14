@@ -10,6 +10,9 @@ export interface ModalHeaderProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;
   readonly description?: React.ReactNode;
+  /** Primary icon displayed alongside title in the header */
+  readonly icon?: React.ReactNode;
+  /** @deprecated Use `icon` instead */
   readonly headerIcon?: React.ReactNode;
   readonly actions?: React.ReactNode;
   readonly meta?: React.ReactNode;
@@ -49,6 +52,7 @@ export function ModalHeaderMeta({
 function ModalHeaderRoot({
   title,
   description,
+  icon,
   headerIcon,
   actions,
   meta,
@@ -65,6 +69,7 @@ function ModalHeaderRoot({
   const effectiveCloseLabel = closeLabel ?? modalContext?.closeLabel ?? 'Close modal';
   const isInsideDialog = modalContext !== null;
   const hasTabs = tabs !== undefined;
+  const effectiveIcon = icon ?? headerIcon;
 
   const showTopRow =
     title !== undefined ||
@@ -81,9 +86,9 @@ function ModalHeaderRoot({
           <div className={styles.titleGroup}>
             {title !== undefined && (
               <div className={styles.titleRow}>
-                {headerIcon !== undefined && (
+                {effectiveIcon !== undefined && (
                   <span aria-hidden="true" className={styles.headerIconWrapper}>
-                    {headerIcon}
+                    {effectiveIcon}
                   </span>
                 )}
                 {isInsideDialog ? (

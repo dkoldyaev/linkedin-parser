@@ -28,7 +28,7 @@ function ShorthandModalDemo(): React.ReactElement {
         onClose={close}
         title="Create Kanban Column"
         description="Configure a new pipeline stage on the 32px Blueprint board."
-        headerIcon={<Icon icon={Layers} size="md" tone="accent" />}
+        icon={<Icon icon={Layers} size="md" tone="accent" />}
         footer={
           <>
             <Button variant="secondary" onClick={close}>
@@ -66,7 +66,7 @@ function ComposableModalDemo(): React.ReactElement {
         <Modal.Header
           title="Component Inspector"
           description="Decomposed into Modal.Header, Modal.Body, and Modal.Footer."
-          headerIcon={<Icon icon={Layers} size="md" tone="accent" />}
+          icon={<Icon icon={Layers} size="md" tone="accent" />}
           actions={
             <>
               <Button variant="ghost" size="sm">

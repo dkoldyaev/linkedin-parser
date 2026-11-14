@@ -49,7 +49,7 @@ export const WithIconAndActions: Story = {
       <ModalHeader
         title="Sync Configuration"
         description="Mercure SSE real-time stream status and poll frequency."
-        headerIcon={<Icon icon={Settings} size="md" tone="accent" />}
+        icon={<Icon icon={Settings} size="md" tone="accent" />}
         actions={
           <Button variant="ghost" size="sm" onClick={() => alert('Syncing...')}>
             <Icon icon={RefreshCw} size="sm" />
@@ -69,7 +69,7 @@ export const CompoundWithTabsAndBadges: Story = {
         <ModalHeader
           title="Senior Frontend Platform Engineer"
           description="Linear • Berlin, Germany"
-          headerIcon={<Icon icon={Briefcase} size="md" tone="accent" />}
+          icon={<Icon icon={Briefcase} size="md" tone="accent" />}
           actions={
             <>
               <Button variant="ghost" size="sm" onClick={() => alert('Reparse')}>
@@ -85,17 +85,14 @@ export const CompoundWithTabsAndBadges: Story = {
           onClose={() => alert('Close clicked')}
           meta={
             <>
-              <Badge tone="neutral">
-                <Icon icon={MapPin} size="xs" />
-                <span>Berlin, Germany</span>
+              <Badge tone="neutral" icon={<Icon icon={MapPin} size="xs" />}>
+                Berlin, Germany
               </Badge>
-              <Badge tone="info">
-                <Icon icon={Laptop} size="xs" />
-                <span>Remote</span>
+              <Badge tone="info" icon={<Icon icon={Laptop} size="xs" />}>
+                Remote
               </Badge>
-              <Badge tone="success">
-                <Icon icon={Banknote} size="xs" />
-                <span>€85,000 – €110,000 / yr</span>
+              <Badge tone="success" icon={<Icon icon={Banknote} size="xs" />}>
+                €85,000 – €110,000 / yr
               </Badge>
             </>
           }
@@ -128,7 +125,7 @@ export const WithoutCloseButton: Story = {
       <ModalHeader
         title="Step 2 of 3: Account Verification"
         description="Please complete verification before continuing."
-        headerIcon={<Icon icon={Layers} size="md" tone="accent" />}
+        icon={<Icon icon={Layers} size="md" tone="accent" />}
         hideCloseButton
       />
     </div>

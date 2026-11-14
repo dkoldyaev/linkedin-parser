@@ -14,6 +14,9 @@ export interface ModalProps {
   readonly onClose: () => void;
   readonly title?: React.ReactNode;
   readonly description?: React.ReactNode;
+  /** Primary icon displayed alongside title in the header */
+  readonly icon?: React.ReactNode;
+  /** @deprecated Use `icon` instead */
   readonly headerIcon?: React.ReactNode;
   readonly footer?: React.ReactNode;
   readonly size?: ModalSize;
@@ -34,6 +37,7 @@ export function Modal({
   onClose,
   title,
   description,
+  icon,
   headerIcon,
   footer,
   size = 'md',
@@ -62,6 +66,7 @@ export function Modal({
   );
 
   const isShorthandMode = title !== undefined;
+  const effectiveIcon = icon ?? headerIcon;
 
   return (
     <ModalContext.Provider value={contextValue}>
@@ -76,7 +81,7 @@ export function Modal({
                   <ModalHeader
                     title={title}
                     description={description}
-                    headerIcon={headerIcon}
+                    icon={effectiveIcon}
                     hideCloseButton={hideCloseButton}
                     closeLabel={closeLabel}
                     onClose={onClose}
