@@ -2450,14 +2450,15 @@ def get_approved_cv(
 
 
 @api_v2.post("/cv/approved", response_model=ApprovedCVResponse)
-def save_approved_cv(
+async def save_approved_cv(
     payload: ApprovedCVCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Stores or replaces the user's approved anonymized CV.
-    Marks any existing compatibility analyses as outdated since the CV revision changed.
+    Marks any existing compatibility analyses as outdated since the CV revision changed,
+    and enqueues a CV compatibility scoring task for every user vacancy.
     """
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     now = datetime.datetime.utcnow()
@@ -2485,6 +2486,16 @@ def save_approved_cv(
 
     db.commit()
     db.refresh(approved_cv)
+
+    user_vacancies = (
+        db.query(Vacancy)
+        .filter(Vacancy.user_id == current_user.id)
+        .order_by(Vacancy.id.asc())
+        .all()
+    )
+    if user_vacancies:
+        await queue_manager.enqueue_cv_scoring(user_vacancies, current_user.id)
+
     return ApprovedCVResponse.model_validate(approved_cv)
 
 

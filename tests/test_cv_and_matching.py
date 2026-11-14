@@ -182,5 +182,33 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             self.assertEqual(eval_res.status_code, 400)
             mock_eval_fn.assert_not_called()
 
+    def test_save_approved_cv_enqueues_scoring_tasks_for_all_vacancies(self):
+        """Saving approved CV enqueues CV scoring tasks for each user vacancy and notifies Mercure."""
+        for idx in range(2):
+            res = self.client.post(
+                "/api/v2/vacancies",
+                json={
+                    "title": f"Engineer {idx}",
+                    "company": "Acme",
+                    "url": f"https://example.com/job/cv-queue-{idx}",
+                    "description": "Python FastAPI developer",
+                },
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(res.status_code, 200)
+
+        with patch("backend.main.queue_manager.enqueue_cv_scoring", new_callable=AsyncMock) as mock_enqueue:
+            save_res = self.client.post(
+                "/api/v2/cv/approved",
+                json={"content": "Senior Python Engineer", "revision": 3},
+                cookies=self.cookies_alice,
+            )
+            self.assertEqual(save_res.status_code, 200)
+            mock_enqueue.assert_awaited_once()
+            enqueued_vacancies, user_id = mock_enqueue.call_args.args
+            self.assertEqual(len(enqueued_vacancies), 2)
+            self.assertEqual(user_id, save_res.json()["user_id"])
+
+
 if __name__ == "__main__":
     unittest.main()
