@@ -19,7 +19,7 @@ export interface StepperProps extends React.HTMLAttributes<HTMLDivElement> {
  * Stepper molecule.
  * Universal vertical timeline stepper composing StepperItem, Button, Icon, and EmptyState.
  */
-export function Stepper({
+function StepperRoot({
   items,
   maxCollapsedItems,
   expandLabel = (count) => `Show ${count} earlier steps`,
@@ -77,3 +77,7 @@ export function Stepper({
     </div>
   );
 }
+
+export const Stepper = Object.assign(StepperRoot, {
+  Item: StepperItem,
+});

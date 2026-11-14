@@ -26,4 +26,211 @@
     flex-direction: column;
     gap: var(--ui-space-2);
   }
+
+  /* Status Bar */
+  .metaBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-2) var(--ui-space-4);
+    background-color: var(--ui-bg-surface);
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .statusButtonGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    flex-wrap: wrap;
+  }
+
+  .statusButtonsList {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+    flex-wrap: wrap;
+  }
+
+  .metaControlsGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-3);
+    flex-wrap: wrap;
+  }
+
+  .workplaceControl {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  /* Salary editing */
+  .salaryContainer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-3) var(--ui-space-4);
+    background-color: var(--ui-bg-surface);
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .salaryHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--ui-grid-cell);
+  }
+
+  .salaryDisplay {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .salaryFormGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: var(--ui-space-3);
+    padding-top: var(--ui-space-2);
+  }
+
+  .salaryFieldItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1);
+  }
+
+  /* AI Summary block */
+  .aiSummarySection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-4);
+    background-color: var(--ui-bg-surface);
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .companyInfoBox {
+    padding-top: var(--ui-space-2);
+    border-top: 1px solid var(--ui-border-subtle);
+  }
+
+  /* History item comments */
+  .historyItemWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1-5);
+    width: 100%;
+  }
+
+  .historyCommentBubble {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-1-5) var(--ui-space-3);
+    background-color: var(--ui-bg-subtle);
+    border: 1px solid var(--ui-border-subtle);
+  }
+
+  .historyCommentForm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-2);
+    background-color: var(--ui-bg-subtle);
+    border: 1px solid var(--ui-border-subtle);
+  }
+
+  .historyCommentActions {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  /* Compatibility section additions */
+  .assessmentBox {
+    padding: var(--ui-space-3) var(--ui-space-4);
+    background-color: var(--ui-bg-subtle);
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .recommendationsBox {
+    padding: var(--ui-space-3) var(--ui-space-4);
+    background-color: var(--ui-bg-surface);
+  }
+
+  .recommendationsList {
+    margin: 0;
+    padding-left: var(--ui-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1-5);
+  }
+
+  /* Utility classes replacing inline styles */
+  .companyLinkWrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .salaryActions {
+    display: flex;
+    gap: var(--ui-space-2);
+  }
+
+  .paddedSection {
+    padding: var(--ui-space-4);
+    border-bottom: 1px solid var(--ui-border-subtle);
+  }
+
+  .paddedSectionLast {
+    padding: var(--ui-space-4);
+  }
+
+  .ptSm {
+    padding-top: var(--ui-space-2);
+  }
+
+  .ptMd {
+    padding-top: var(--ui-space-4);
+  }
+
+  .historyList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .commentContent {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+  }
+
+  .commentTools {
+    display: flex;
+    gap: var(--ui-space-1);
+  }
+
+  .collapsibleActions {
+    display: flex;
+    gap: var(--ui-space-2);
+  }
+
+  .compatibilityContainer {
+    padding: var(--ui-space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-4);
+  }
+
+  .levelAssessment {
+    margin-top: var(--ui-space-3);
+  }
 }
