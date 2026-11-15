@@ -17,7 +17,7 @@ def test_exchange_rates_endpoint():
     db.commit()
 
     with TestClient(app) as client:
-        res = client.get("/api/exchange-rates")
+        res = client.get("/api/v2/exchange-rates")
         assert res.status_code == 200
         data = res.json()
         assert "rates" in data
@@ -27,7 +27,7 @@ def test_exchange_rates_endpoint():
 
 def test_vacancies_backend_currency_conversion():
     with TestClient(app) as client:
-        login_res = client.post("/api/auth/dev-login", json={"email": "currency_user@local.user"})
+        login_res = client.post("/api/v2/auth/dev-login", json={"email": "currency_user@local.user"})
         assert login_res.status_code == 200
 
         # Ensure rate USD -> EUR is 0.9 in DB
@@ -41,7 +41,7 @@ def test_vacancies_backend_currency_conversion():
         db.commit()
 
         # Create a vacancy with USD salary
-        v_res = client.post("/api/vacancies", json={
+        v_res = client.post("/api/v2/vacancies", json={
             "url": "https://example.com/test-currency-job",
             "title": "Software Engineer USD",
             "company": "Tech Corp",
@@ -54,8 +54,8 @@ def test_vacancies_backend_currency_conversion():
         v_id = v_res.json()["id"]
 
         # 1. Without target currency setting ("не конвертировать")
-        client.post("/api/settings", json={"salary_target_currency": ""})
-        res = client.get("/api/vacancies")
+        client.post("/api/v2/settings", json={"salary_target_currency": ""})
+        res = client.get("/api/v2/vacancies")
         assert res.status_code == 200
         v_list = [v for v in res.json() if v["id"] == v_id]
         assert len(v_list) == 1
@@ -64,8 +64,8 @@ def test_vacancies_backend_currency_conversion():
         assert v_list[0]["salary_currency"] == "USD"
 
         # 2. With target currency = EUR
-        client.post("/api/settings", json={"salary_target_currency": "EUR"})
-        res = client.get("/api/vacancies")
+        client.post("/api/v2/settings", json={"salary_target_currency": "EUR"})
+        res = client.get("/api/v2/vacancies")
         assert res.status_code == 200
         v_list = [v for v in res.json() if v["id"] == v_id]
         assert len(v_list) == 1
