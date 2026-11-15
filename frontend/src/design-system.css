@@ -134,7 +134,18 @@ body { background: var(--bg-main); }
 }
 .card-source-link { color: var(--primary); text-decoration-color: var(--border-strong); text-underline-offset: 2px; }
 .card-source-link:hover { color: var(--primary-hover); }
-.login-card > .theme-toggle { position: absolute; top: 12px; right: 12px; }
+.login-top-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+.login-top-actions .login-close-btn {
+  position: static;
+}
 @media (max-width: 700px) {
   .header-actions { overflow-x: auto; max-width: calc(100vw - 48px); }
   .header-actions > * { flex-shrink: 0; }

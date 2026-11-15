@@ -58,18 +58,20 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
   return (
     <div className="login-overlay" onClick={isGuestPromotion && onClose ? onClose : undefined}>
       <div className="login-card" onClick={(e) => e.stopPropagation()}>
-        <ThemeToggle />
-        {onClose && (
-          <button 
-            type="button" 
-            className="login-close-btn" 
-            onClick={onClose} 
-            title={t('common.close') || 'Закрыть'}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
+        <div className="login-top-actions">
+          <ThemeToggle />
+          {onClose && (
+            <button 
+              type="button" 
+              className="login-close-btn" 
+              onClick={onClose} 
+              title={t('common.close') || 'Закрыть'}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          )}
+        </div>
         {/* Brand Header */}
         <div className="login-brand">
           <div className="login-logo-glow">
