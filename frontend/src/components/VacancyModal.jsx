@@ -126,7 +126,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
     window.addEventListener('resize', alignControls);
     document.fonts?.ready.then(alignControls);
     return () => window.removeEventListener('resize', alignControls);
-  }, [isOpen, locale, columns, activeTab, compatibility?.calculated_score, compatibility?.overall_score]);
+  }, [isOpen, locale, columns, activeTab, compatibility?.calculated_score]);
   useLayoutEffect(() => {
     const modal = modalRef.current;
     if (!isOpen || !modal) return;
@@ -849,8 +849,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
           >
             <Shield size={15} color={compatibility ? '#34d399' : undefined} />
             <span>{t('vacancyModal.tab_cv_compatibility')}</span>
-            {compatibility && (() => {
-              const tabScore = compatibility.calculated_score != null ? compatibility.calculated_score : compatibility.overall_score;
+            {compatibility && compatibility.calculated_score != null && (() => {
+              const tabScore = compatibility.calculated_score;
               return (
                 <span style={{
                   background: tabScore >= 70 ? '#059669' : tabScore >= 45 ? '#d97706' : '#ef4444',
@@ -1510,8 +1510,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
               <div className="compatibility-header-title">
                 <Shield size={18} color="var(--aspen-mint)" />
                 <span>{t('vacancyModal.compat_title')}</span>
-                {compatibility && (() => {
-                  const displayScore = compatibility.calculated_score != null ? compatibility.calculated_score : compatibility.overall_score;
+                {compatibility && compatibility.calculated_score != null && (() => {
+                  const displayScore = compatibility.calculated_score;
                   return (
                     <div className="compatibility-scores">
                       <span style={{

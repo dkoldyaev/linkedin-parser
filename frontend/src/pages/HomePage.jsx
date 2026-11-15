@@ -411,10 +411,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
             } else if (type === 'compatibility_analyzed') {
               const matchedId = vacancy_id || data.vacancy_id;
-              const newScore = data.match_score !== undefined ? data.match_score : data.overall_score;
+              const newScore = data.calculated_score;
               if (matchedId && newScore !== undefined) {
-                setVacancies(prev => prev.map(v => (v.id === matchedId ? { ...v, match_score: newScore } : v)));
-                setSelectedVacancy(prev => (prev && prev.id === matchedId ? { ...prev, match_score: newScore } : prev));
+                setVacancies(prev => prev.map(v => (v.id === matchedId ? { ...v, calculated_score: newScore } : v)));
+                setSelectedVacancy(prev => (prev && prev.id === matchedId ? { ...prev, calculated_score: newScore } : prev));
               }
             } else if (type === 'vacancy_deleted') {
               const delId = vacancy_id || (vacancy && vacancy.id);

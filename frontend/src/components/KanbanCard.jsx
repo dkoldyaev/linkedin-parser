@@ -73,7 +73,7 @@ const KanbanCard = React.memo(function KanbanCard({
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
   // Match score tier classification
-  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : null;
+  const matchScore = vacancy.calculated_score != null ? Math.round(vacancy.calculated_score) : null;
   let matchTier = '';
   let matchTierLabel = '';
   if (matchScore !== null) {

@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
 from .models import STATUS_NOT_CONTACTED
 
 class UserApiKeyAdminItem(BaseModel):
@@ -147,6 +147,11 @@ class VacancyResponse(VacancyBase):
     sort_order: Optional[float] = None
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def calculated_score(self) -> Optional[float]:
+        return self.match_score
 
     model_config = ConfigDict(from_attributes=True)
 
