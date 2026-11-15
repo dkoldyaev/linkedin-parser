@@ -27,7 +27,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
 
   if (!isOpen || !column) return null;
 
-  const isBase = BASE_STATUSES.includes(column.id);
+  const isBase = Boolean(column.is_base || column.system_role || BASE_STATUSES.includes(column.id));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +36,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
     setError('');
     try {
       await onSave(column.id, {
-        new_name: isBase ? undefined : name.trim(),
+        new_name: name.trim(),
         color,
         has_lanes: hasLanes
       });
@@ -76,13 +76,11 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
                 className="form-input"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                disabled={isBase}
-                title={isBase ? "Базовую колонку нельзя переименовать" : ""}
                 required
               />
               {isBase && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '4px', height: 'var(--grid)', display: 'block' }}>
-                  {t('settingsModal.col_is_base_badge')}
+                  {t('settingsModal.col_is_base_badge')} — {t('settingsModal.base_column_hint')}
                 </span>
               )}
             </div>

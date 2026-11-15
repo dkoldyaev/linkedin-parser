@@ -1,0 +1,77 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`com.docker.compose.project`, `linkedinparser`)"
+      - "--entrypoints.web.address=:${PORT:-8000}"
+    ports:
+      - "127.0.0.1:${PORT:-8000}:8000"
+      - "127.0.0.1:8081:8080" # Traefik dashboard (optional, can be accessed via localhost:8080)
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  app:
+    environment:
+      APP_URL: http://localhost:${PORT:-8000}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/linkedin_tracker
+      BROKER_URL: redis://redis:6379/0
+      # Use the external traefik port for public URL
+      MERCURE_PUBLIC_URL: http://localhost:${PORT:-8000}/.well-known/mercure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedinparser-app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.linkedinparser-app.entrypoints=web"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.server.port=8000"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.timeout=3s"
+
+  mercure:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedinparser-mercure.rule=PathPrefix(`/.well-known/mercure`)"
+      - "traefik.http.routers.linkedinparser-mercure.entrypoints=web"
+      - "traefik.http.services.linkedinparser-mercure.loadbalancer.server.port=80"
+
+  parser-api:
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: linkedin_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linkedin_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+volumes:
+  postgres_data:
+  redis_data:

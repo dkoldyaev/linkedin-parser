@@ -10,6 +10,7 @@ import {
 export const translations = {
   ru: {
     common: {
+      edit: "Редактировать",
       save: "Сохранить",
       cancel: "Отмена",
       delete: "Удалить",
@@ -96,10 +97,10 @@ export const translations = {
       new_stage: "Новый этап",
       stage_n: "Этап {n}",
       stage_badge: "этап {n}",
-      match_badge: "Совпадение: {score}%",
-      match_high: "Высокое совпадение",
-      match_medium: "Среднее совпадение",
-      match_low: "Низкое совпадение",
+      match_badge: "Резюме соответствует на {score}%",
+      match_high: "Высокое соответствие",
+      match_medium: "Среднее соответствие",
+      match_low: "Низкое соответствие",
     },
     workplace: {
       remote: "Удаленка",
@@ -142,9 +143,22 @@ export const translations = {
       compat_empty: "Сравните вакансию с сохранённым CV, чтобы оценить навыки, уровень опыта и недостающие требования.",
       compat_no_description: "Для скоринга резюме заполните исходный текст вакансии на вкладке «Описание и детали».",
       compat_seniority: "Соответствие уровня:",
+      compat_seniority_status: {
+        matched: "Соответствует",
+        partially_matched: "Частично соответствует",
+        mismatched: "Не соответствует",
+        unclear: "Не определено"
+      },
       compat_matched: "Подтверждённые требования ({count}):",
       compat_missing: "Неподтверждённые требования ({count}):",
       compat_evidence: "Подтверждение",
+      compat_details: "Подробности",
+      compat_severity: {
+        critical: "Критическая важность для вакансии",
+        high: "Высокая важность для вакансии",
+        medium: "Средняя важность",
+        low: "Низкая важность"
+      },
       compat_gaps: "Критические несоответствия:",
       compat_recommendations: "Рекомендации для CV:",
       compat_outdated: "CV изменилось после проверки. Показан результат для версии {revision}. Запустите проверку повторно.",
@@ -163,7 +177,8 @@ export const translations = {
       reparse_short: "Обновить",
       reparsing: "Перепарсинг...",
       reparse_queued: "Вакансия отправлена на повторную обработку в фоне",
-      salary_title: "Зарплата (компенсация)",
+      salary_title: "Зарплата",
+      salary_not_specified: "не указана",
       monthly_total: "Итого за месяц: {amount}",
       save_salary: "Сохранить ЗП",
       saved_salary: "Сохранено!",
@@ -209,7 +224,9 @@ export const translations = {
       history_delete_comment: "Удалить комментарий",
       history_badge_hint: "{count} этапов",
       history_badge_with_comments: "{count} этапов, есть комментарии",
-      delete_confirm: "Вы уверены, что хотите удалить эту вакансию?",
+      move_to_rejected: "В отказ",
+      delete_permanent: "Удалить вакансию",
+      delete_confirm: "Вы уверены, что хотите навсегда удалить эту вакансию?",
       close_btn: "Закрыть",
     },
     queueModal: {
@@ -280,6 +297,7 @@ export const translations = {
       feature_admin_desc: "Полные административные привилегии в системе.",
       columns_desc: "Настройте список колонок на вашей Канбан-доске. Вы можете менять их названия, цвета, порядок и включать поддержку этапов (subcolumns).",
       col_is_base_badge: "Базовая (системная)",
+      base_column_hint: "Нельзя удалить, но можно переименовать и настроить цвет.",
       col_stages_enabled: "Этапы включены",
       col_no_stages: "Обычная колонка",
       col_move_up: "Поднять выше",
@@ -537,6 +555,7 @@ export const translations = {
   },
   en: {
     common: {
+      edit: "Edit",
       save: "Save",
       cancel: "Cancel",
       delete: "Delete",
@@ -623,7 +642,7 @@ export const translations = {
       new_stage: "New stage",
       stage_n: "Stage {n}",
       stage_badge: "stage {n}",
-      match_badge: "Match: {score}%",
+      match_badge: "CV matches by {score}%",
       match_high: "High match",
       match_medium: "Moderate match",
       match_low: "Low match",
@@ -669,9 +688,22 @@ export const translations = {
       compat_empty: "Compare this job description against your saved CV using your configured LLM to evaluate skill coverage, seniority alignment, and missing requirements.",
       compat_no_description: "Please provide the original job description in the 'Details & Notes' tab to run CV scoring.",
       compat_seniority: "Seniority Alignment:",
+      compat_seniority_status: {
+        matched: "Matches",
+        partially_matched: "Partially matches",
+        mismatched: "Mismatches",
+        unclear: "Unclear"
+      },
       compat_matched: "Matched Requirements ({count}):",
       compat_missing: "Missing / Unconfirmed Requirements ({count}):",
       compat_evidence: "Evidence",
+      compat_details: "Details",
+      compat_severity: {
+        critical: "Critical importance for vacancy",
+        high: "High importance for vacancy",
+        medium: "Medium importance",
+        low: "Low importance"
+      },
       compat_gaps: "Critical Incompatibilities:",
       compat_recommendations: "Recommendations for CV Presentation:",
       compat_outdated: "CV was updated since last evaluation. Showing result for Rev {revision}. Re-analyze to update.",
@@ -690,7 +722,8 @@ export const translations = {
       reparse_short: "Refresh",
       reparsing: "Reparsing...",
       reparse_queued: "Vacancy queued for re-parsing in background",
-      salary_title: "Salary (compensation)",
+      salary_title: "Salary",
+      salary_not_specified: "not specified",
       monthly_total: "Monthly total: {amount}",
       save_salary: "Save Salary",
       saved_salary: "Saved!",
@@ -736,7 +769,9 @@ export const translations = {
       history_delete_comment: "Delete comment",
       history_badge_hint: "{count} stages",
       history_badge_with_comments: "{count} stages, has comments",
-      delete_confirm: "Are you sure you want to delete this vacancy?",
+      move_to_rejected: "Reject",
+      delete_permanent: "Delete Vacancy",
+      delete_confirm: "Are you sure you want to permanently delete this vacancy?",
       close_btn: "Close",
     },
     queueModal: {
@@ -807,6 +842,7 @@ export const translations = {
       feature_admin_desc: "Full administrative privileges across the system.",
       columns_desc: "Customize your Kanban board columns. You can rename, change color, reorder, and enable multi-stage subcolumns (Jira-style).",
       col_is_base_badge: "Base (System)",
+      base_column_hint: "Cannot be deleted, but can be renamed and recolored.",
       col_stages_enabled: "Stages enabled",
       col_no_stages: "Regular column",
       col_move_up: "Move up",
