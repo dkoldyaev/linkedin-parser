@@ -1507,7 +1507,6 @@ class RedisQueueManager:
                         "message_code": MSG_COMPATIBILITY_ANALYZED,
                         "vacancy_id": vacancy.id,
                         "overall_score": compat_res.get("overallScore"),
-                        "llm_score": compat_res.get("llmScore"),
                         "calculated_score": compat_res.get("calculatedScore"),
                         "summary": compat_res.get("summary"),
                         "matched_requirements": compat_res.get("matchedRequirements", []),

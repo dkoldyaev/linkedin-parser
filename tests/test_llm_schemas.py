@@ -22,7 +22,6 @@ class ResponseSchemasTest(unittest.TestCase):
         self.assertIn('русском', vacancy['properties']['summary']['description'])
         self.assertEqual(vacancy['properties']['salary_period']['enum'], ['year', 'month', 'hour', 'day', 'week', None])
         compatibility = compatibility_schema('en')
-        self.assertEqual(compatibility['properties']['overallScore']['maximum'], 100)
         missing = compatibility['properties']['missingRequirements']['items']
         self.assertEqual(missing['properties']['severity']['enum'], ['low', 'medium', 'high', 'critical'])
         self.assertIn('reason', missing['required'])

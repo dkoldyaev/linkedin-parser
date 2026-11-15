@@ -695,7 +695,6 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
         await asyncio.sleep(random.uniform(1.5, 4.0))
         is_en = language.lower().startswith("en")
         mock_compat = {
-            "overallScore": 82,
             "summary": (
                 "[Mock LLM] Strong match on core backend technologies and software engineering experience."
                 if is_en
@@ -763,25 +762,11 @@ Return a valid JSON object without Markdown conforming to this JSON Schema: {sch
     }
     crit_gaps = data.get("criticalGaps") or []
     calculated_score = calculate_compatibility_score(dim_scores, len(crit_gaps))
-
-    # Use LLM direct assessment score when provided by the model; fallback to calculated if missing/invalid
-    raw_llm_score = data.get("overallScore")
-    if raw_llm_score is not None:
-        try:
-            llm_score = float(raw_llm_score)
-            llm_score = max(0.0, min(100.0, round(llm_score, 1)))
-        except (ValueError, TypeError):
-            llm_score = calculated_score
-    else:
-        llm_score = calculated_score
-
-    # Primary overallScore is the LLM score
-    overall_score = llm_score
+    overall_score = calculated_score
 
     return {
         **data,
         "overallScore": overall_score,
-        "llmScore": llm_score,
         "calculatedScore": calculated_score,
         "scoringPolicyVersion": SCORING_POLICY_VERSION,
         "model": active_model,
