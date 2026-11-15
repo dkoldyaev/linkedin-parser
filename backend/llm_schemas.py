@@ -56,7 +56,6 @@ def compatibility_schema(language):
     reason = lambda: text("Explanation grounded in the documents.", "Обоснование на основе документов.")
     return obj({
         "summary": text("Concise compatibility assessment in English.", "Краткая оценка соответствия на русском языке."),
-        "overallScore": score("Overall compatibility score.", "Общая оценка соответствия."),
         "matchedRequirements": array(obj({"requirement": requirement(), "evidence": text("Exact supporting quote from the CV in its original language.", "Точная подтверждающая цитата из резюме на языке оригинала.")}), d("Requirements supported by CV evidence.", "Требования, подтверждённые резюме.")),
         "missingRequirements": array(obj({"requirement": requirement(), "severity": field("string", d("Severity of the unconfirmed requirement.", "Значимость неподтверждённого требования."), enum=["low", "medium", "high", "critical"]), "reason": reason()}), d("Requirements without CV evidence.", "Требования без подтверждения в резюме.")),
         "criticalGaps": array(obj({"requirement": requirement(), "reason": reason()}), d("Explicit hard blockers.", "Явные критические препятствия.")),

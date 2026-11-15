@@ -5,6 +5,8 @@ let eventSource = null;
 let mercureConfig = null;
 let mercureRefreshTimer = null;
 let mercureConnecting = false;
+// Queue state is received only via Mercure `queue_state` events
+let queueState = { links: [], total: 0, pending_count: 0, processing_count: 0, failed_count: 0 };
 
 // ─── Captcha / block detection ────────────────────────────────────────────
 //
@@ -198,7 +200,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         throw new Error(result?.error || 'Failed to parse');
       }
 
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -237,7 +239,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         throw new Error(result?.error || 'Failed to parse');
       }
 
-      const res = await fetch(`${API_BASE}/api/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -293,7 +295,25 @@ chrome.notifications.onClicked.addListener(async (notifId) => {
 
 // ─── Message handler (from popup) ─────────────────────────────────────────
 
+async function requestQueueSync() {
+  try {
+    await fetch(`${API_BASE}/api/v2/queue/sync`, { method: "POST", credentials: "include" });
+  } catch (err) {
+    console.error("Failed to request queue snapshot", err);
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "GET_QUEUE_STATE") {
+    sendResponse(queueState);
+    return false;
+  }
+
+  if (msg.type === "SYNC_QUEUE") {
+    requestQueueSync().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
   if (msg.type === "ENSURE_OFFSCREEN") {
     getOffscreenDocument().then(() => sendResponse({ ok: true }));
     return true;
@@ -348,7 +368,7 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
 
 async function fetchMercureConfig() {
   try {
-    const res = await fetch(`${API_BASE}/api/extension/mercure_config`, { credentials: "include" });
+    const res = await fetch(`${API_BASE}/api/v2/extension/mercure_config`, { credentials: "include" });
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
@@ -359,7 +379,7 @@ async function fetchMercureConfig() {
 
 async function fetchTasks() {
   try {
-    const res = await fetch(`${API_BASE}/api/extension/tasks`, { credentials: "include" });
+    const res = await fetch(`${API_BASE}/api/v2/extension/tasks`, { credentials: "include" });
     if (!res.ok) return [];
     return await res.json();
   } catch (err) {
@@ -382,7 +402,7 @@ async function getOffscreenDocument() {
 
 async function reportTaskError(taskId, message) {
   try {
-    await fetch(`${API_BASE}/api/extension/tasks/${taskId}/error`, {
+    await fetch(`${API_BASE}/api/v2/extension/tasks/${taskId}/error`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -396,7 +416,7 @@ async function reportTaskError(taskId, message) {
 // Remote logging to backend so logs can be inspected with `docker logs`
 async function remoteLog(level, message, data = null) {
   try {
-    await fetch(`${API_BASE}/api/extension/log`, {
+    await fetch(`${API_BASE}/api/v2/extension/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ level, message, data }),
@@ -433,7 +453,7 @@ async function submitTaskResult(taskId, url, html) {
     });
     console.log(`[Ext] Parsed result for task ${taskId}:`, vacancyData);
     // Send parsed JSON back to backend API instead of raw HTML
-    const res = await fetch(`${API_BASE}/api/extension/tasks/${taskId}/result`, {
+    const res = await fetch(`${API_BASE}/api/v2/extension/tasks/${taskId}/result`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -714,6 +734,7 @@ async function connectMercure() {
   eventSource.onopen = () => {
     console.log("Mercure connected");
     processAllPendingTasks();
+    requestQueueSync();
   };
 
   eventSource.onmessage = (e) => {
@@ -721,6 +742,16 @@ async function connectMercure() {
       const data = JSON.parse(e.data);
       if (data.type === "extension_task") {
         enqueueTask({ task_id: data.task_id, url: data.url, title: data.title });
+      } else if (data.type === "queue_state") {
+        queueState = {
+          links: data.links,
+          total: data.total,
+          pending_count: data.pending_count,
+          processing_count: data.processing_count,
+          failed_count: data.failed_count,
+        };
+        // Popup may be closed: nobody listening is not an error
+        chrome.runtime.sendMessage({ type: "QUEUE_STATE", state: queueState }).catch(() => {});
       }
     } catch (err) {
       console.error("Error parsing Mercure message", err);
@@ -738,7 +769,7 @@ async function connectMercure() {
 async function sendHeartbeat() {
   try {
     const version = chrome.runtime?.getManifest?.()?.version;
-    await fetch(`${API_BASE}/api/extension/ping`, {
+    await fetch(`${API_BASE}/api/v2/extension/ping`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

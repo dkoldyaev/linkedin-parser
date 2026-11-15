@@ -13,7 +13,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/auth/config')
+    fetch('/api/v2/auth/config')
       .then(res => res.json())
       .then(data => setAuthConfig(data))
       .catch(err => console.error('Failed to load auth config', err));
@@ -21,7 +21,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
 
   const handleGoogleLogin = () => {
     trackEvent(EVENTS.LOGIN_GOOGLE_CLICK);
-    window.location.href = '/api/auth/google/login';
+    window.location.href = '/api/v2/auth/google/login';
   };
 
   const handleDevLogin = async (e) => {
@@ -29,7 +29,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/dev-login', {
+      const res = await fetch('/api/v2/auth/dev-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: devName, email: devEmail })

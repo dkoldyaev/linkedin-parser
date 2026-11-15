@@ -18,7 +18,7 @@ from backend.llm import (
 @pytest.mark.parametrize('provider', ['mistral', 'gemini'])
 def test_compatibility_prompt_uses_interface_language(language, instruction, document, provider):
     with patch.dict('os.environ', {f'{provider.upper()}_API_KEY': 'test-key'}), patch(
-        f'backend.llm.call_{provider}', new_callable=AsyncMock, return_value=json.dumps({'overallScore': 75})
+        f'backend.llm.call_{provider}', new_callable=AsyncMock, return_value=json.dumps({'dimensionScores': {'requiredTechnicalSkills': 75}})
     ) as call:
         asyncio.run(evaluate_vacancy_compatibility_with_llm(
             vacancy_text='VACANCY DATA', cv_text='CV DATA', provider=provider, language=language

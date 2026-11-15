@@ -2,8 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   X, ExternalLink, MapPin, Building2, Sparkles, Tag, Plus, 
   Trash2, RefreshCw, Check, Loader2, FileText, StickyNote, Banknote,
-  Laptop, Layers, Building, Ban, History, MessageSquare, ArrowRight, Edit3,
-  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe
+  Laptop, Layers, Building, Ban, History, MessageSquare, Edit3,
+  ChevronDown, ChevronUp, Copy, Shield, Award, AlertCircle, Globe, XCircle
 } from 'lucide-react';
 import { getSalaryDisplay } from '../utils/salary';
 import { useGridScroll } from '../utils/useGridScroll';
@@ -17,7 +17,7 @@ import {
   DEFAULT_COLUMNS,
 } from '../constants/columns';
 
-export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDelete, columns = DEFAULT_COLUMNS }) {
+export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAULT_COLUMNS }) {
   const { t, locale, formatDate, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
   const snapScroll = useGridScroll();
   const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
@@ -25,6 +25,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const modalColumns = Array.isArray(columns) && columns.length > 0
     ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
     : DEFAULT_COLUMNS;
+
+  const rejectedColumn = modalColumns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || modalColumns.find(c => c.id === STATUS_REJECTED) || modalColumns.find(c => c.is_base && c.system_role !== 'not_contacted');
+  const rejectedStatusId = rejectedColumn ? rejectedColumn.id : STATUS_REJECTED;
 
   const stageColorMap = modalColumns.reduce((acc, col) => {
     acc[col.id] = col.color;
@@ -57,6 +60,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const [salaryMax, setSalaryMax] = useState(vacancy?.salary_max ?? '');
   const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
+  const [isEditingSalary, setIsEditingSalary] = useState(false);
+  const salarySnapshot = useRef({
+    min: vacancy?.salary_min ?? '',
+    max: vacancy?.salary_max ?? '',
+    currency: vacancy?.salary_currency || '$',
+    period: vacancy?.salary_period || 'month'
+  });
   const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
   const [isClosed, setIsClosed] = useState(vacancy?.is_closed || false);
   const [hoverToggle, setHoverToggle] = useState(false);
@@ -116,34 +126,46 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     window.addEventListener('resize', alignControls);
     document.fonts?.ready.then(alignControls);
     return () => window.removeEventListener('resize', alignControls);
-  }, [isOpen, locale, columns, activeTab, compatibility?.overall_score]);
+  }, [isOpen, locale, columns, activeTab, compatibility?.calculated_score]);
   useLayoutEffect(() => {
-    const body = detailBodyRef.current;
-    if (!isOpen || !body) return;
+    const modal = modalRef.current;
+    if (!isOpen || !modal) return;
     const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
 
-    const sections = activeTab === 'details'
-      ? Array.from(body.querySelectorAll(':scope > .stage-history-section, :scope > .vacancy-notes-section, :scope > .orig-desc-section'))
-      : Array.from(body.querySelectorAll(
-          '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
-        ));
-
-    let frame;
-    const align = () => {
+    const alignAll = () => {
+      const modalTop = modal.getBoundingClientRect().top;
+      const sections = modal.querySelectorAll(
+        activeTab === 'details'
+          ? '.vacancy-salary, .vacancy-ai-summary, .vacancy-tokens-section, .stage-history-section, .vacancy-notes-section, .orig-desc-section'
+          : '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
+      );
       sections.forEach(section => {
         section.style.minHeight = '0px';
         section.style.minHeight = `${Math.ceil(section.offsetHeight / grid) * grid}px`;
       });
+
+      const company = modal.querySelector('.vacancy-ai-company');
+      if (company) {
+        company.style.marginTop = '0px';
+        const companyTop = company.getBoundingClientRect().top;
+        const offsetMod = (companyTop - modalTop) % grid;
+        if (offsetMod > 0.05 && offsetMod < grid - 0.05) {
+          const extra = grid - offsetMod;
+          company.style.marginTop = `${extra}px`;
+        }
+      }
     };
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(align); };
+
+    let frame;
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(alignAll); };
     const resize = new ResizeObserver(schedule);
-    resize.observe(body);
-    sections.forEach(section => resize.observe(section));
+    resize.observe(modal);
+    modal.querySelectorAll('.modal-body > *').forEach(el => resize.observe(el));
     const mutation = new MutationObserver(schedule);
-    sections.forEach(section => mutation.observe(section, { childList: true, subtree: true, characterData: true }));
-    align();
+    mutation.observe(modal, { childList: true, subtree: true, characterData: true });
+    alignAll();
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); };
-  }, [isOpen, activeTab, compatibility, showEvidenceMap]);
+  }, [isOpen, activeTab, compatibility, showEvidenceMap, vacancy]);
 
 
 
@@ -176,6 +198,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       setSalaryMax(vacancy.salary_max ?? '');
       setSalaryCurrency(vacancy.salary_currency || '$');
       setSalaryPeriod(vacancy.salary_period || 'month');
+      setIsEditingSalary(false);
+      salarySnapshot.current = {
+        min: vacancy.salary_min ?? '',
+        max: vacancy.salary_max ?? '',
+        currency: vacancy.salary_currency || '$',
+        period: vacancy.salary_period || 'month'
+      };
       setWorkplaceType(vacancy.workplace_type || '');
       setIsClosed(Boolean(vacancy.is_closed));
       setReparsing(false);
@@ -194,7 +223,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       // Fetch cached compatibility analysis
       if (vacancy.id) {
         setLoadingCompatibility(true);
-        fetch(`/api/vacancies/${vacancy.id}/compatibility`)
+        fetch(`/api/v2/vacancies/${vacancy.id}/compatibility`)
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => setCompatibility(data))
           .catch((err) => console.warn('Failed to load compatibility:', err))
@@ -208,7 +237,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     setAnalyzingCompatibility(true);
     setCompatError(null);
     try {
-      const url = `/api/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
+      const url = `/api/v2/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
       const res = await fetch(url, { method: 'POST' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -237,7 +266,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         parent_version_id: parentVerId || selectedVersionId || null,
       };
 
-      const res = await fetch(`/api/vacancies/${vacancy.id}/adapt-cv`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/adapt-cv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload),
@@ -290,24 +319,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       to_status: newStatus,
       method: 'modal_button'
     });
-    if (newStatus === 'Отказ') {
+    if (newStatus === rejectedStatusId) {
       trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
         vacancy_id: vacancy.id,
         method: 'modal_status_button'
       });
     }
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      } else {
-        onUpdate({ ...vacancy, status: newStatus });
-      }
     } catch (err) {
       console.error('Failed to update status', err);
     }
@@ -321,7 +344,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           vacancy_id: vacancy.id,
           stage: vacancy.status
         });
-        const res = await fetch(`/api/vacancies/${vacancy.id}/history`, {
+        await fetch(`/api/v2/vacancies/${vacancy.id}/history`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -331,10 +354,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
             comment: historyCommentText.trim() || null
           })
         });
-        if (res.ok) {
-          const updated = await res.json();
-          onUpdate(updated);
-        }
       } catch (err) {
         console.error('Failed to create history comment', err);
       } finally {
@@ -351,15 +370,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: historyCommentText.trim() || null })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      }
     } catch (err) {
       console.error('Failed to save history comment', err);
     } finally {
@@ -377,15 +392,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         vacancy_id: vacancy.id,
         history_id: historyId
       });
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: null })
       });
-      if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
-      }
     } catch (err) {
       console.error('Failed to delete history comment', err);
     } finally {
@@ -401,12 +412,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       workplace_type: val || 'none'
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val })
       });
-      onUpdate({ ...vacancy, workplace_type: val });
     } catch (err) {
       console.error('Failed to update workplace type', err);
     }
@@ -420,12 +430,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       is_closed: nextVal
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal })
       });
-      onUpdate({ ...vacancy, is_closed: nextVal });
     } catch (err) {
       console.error('Failed to update closed status', err);
     }
@@ -435,16 +444,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     listValues.current = { ...listValues.current, [field]: values };
     if (field === 'tags') setTags(values); else setTechStack(values);
     trackEvent(eventName, { vacancy_id: vacancy.id, ...eventData });
-    const version = ++listSaveVersion.current;
+    ++listSaveVersion.current;
     const vacancyId = vacancy.id;
     listSaveQueue.current = listSaveQueue.current.catch(() => {}).then(async () => {
-      const res = await fetch(`/api/vacancies/${vacancyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancyId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: values })
       });
       if (!res.ok) throw new Error('Failed to save vacancy list');
-      const updated = await res.json();
-      if (version === listSaveVersion.current) onUpdate(updated);
     }).catch(err => console.error('Failed to save vacancy list', err));
   };
 
@@ -465,14 +472,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
     try {
       setSavingDescription(true);
       trackEvent(EVENTS.DESCRIPTION_EDIT, { vacancy_id: vacancy.id });
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description })
       });
       if (res.ok) {
-        const updated = await res.json();
-        onUpdate(updated);
         setSavedDescriptionSuccess(true);
         setTimeout(() => setSavedDescriptionSuccess(false), 2000);
       }
@@ -485,6 +490,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
   const handleRemoveTech = (techToRemove) => {
     saveList('tech_stack', listValues.current.tech_stack.filter(tech => tech !== techToRemove), EVENTS.TECH_REMOVE, { tech: techToRemove });
+  };
+
+  const handleStartEditSalary = () => {
+    salarySnapshot.current = {
+      min: salaryMin,
+      max: salaryMax,
+      currency: salaryCurrency,
+      period: salaryPeriod
+    };
+    setIsEditingSalary(true);
+  };
+
+  const handleCancelEditSalary = () => {
+    setSalaryMin(salarySnapshot.current.min);
+    setSalaryMax(salarySnapshot.current.max);
+    setSalaryCurrency(salarySnapshot.current.currency);
+    setSalaryPeriod(salarySnapshot.current.period);
+    setIsEditingSalary(false);
   };
 
   const handleSaveSalary = async () => {
@@ -503,18 +526,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         salary_currency: salaryCurrency || null,
         salary_period: salaryPeriod || null,
       };
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      onUpdate({
-        ...vacancy,
-        salary_min: payload.salary_min,
-        salary_max: payload.salary_max,
-        salary_currency: payload.salary_currency,
-        salary_period: payload.salary_period,
-      });
+      salarySnapshot.current = {
+        min: salaryMin,
+        max: salaryMax,
+        currency: salaryCurrency,
+        period: salaryPeriod
+      };
+      setIsEditingSalary(false);
       setSavedSalarySuccess(true);
       setTimeout(() => setSavedSalarySuccess(false), 2000);
     } catch (err) {
@@ -527,13 +550,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
   const handleSaveTitle = async () => {
     setSavingTitle(true);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title })
       });
       if (res.ok) {
-        onUpdate(await res.json());
         setSavedTitleSuccess(true);
         setTimeout(() => setSavedTitleSuccess(false), 2000);
       }
@@ -551,14 +573,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       notes_length: notes.length
     });
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })
       });
-      onUpdate({ ...vacancy, notes });
-      setSavedNotesSuccess(true);
-      setTimeout(() => setSavedNotesSuccess(false), 2000);
+      if (res.ok) {
+        setSavedNotesSuccess(true);
+        setTimeout(() => setSavedNotesSuccess(false), 2000);
+      }
     } catch (err) {
       console.error('Failed to save notes', err);
     } finally {
@@ -573,15 +596,13 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       language: locale
     });
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
         method: 'POST'
       });
       if (res.ok) {
         trackEvent(EVENTS.AI_RESUMMARIZE_SUCCESS, {
           vacancy_id: vacancy.id
         });
-        const updated = await res.json();
-        onUpdate(updated);
       }
     } catch (err) {
       console.error('Failed to resummarize', err);
@@ -599,7 +620,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
       vacancy_id: vacancy.id
     });
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/reparse`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/reparse`, {
         method: 'POST'
       });
       if (!res.ok) {
@@ -637,8 +658,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
         status: vacancy.status
       });
       try {
-        await fetch(`/api/vacancies/${vacancy.id}`, { method: 'DELETE' });
-        onDelete(vacancy.id);
+        await fetch(`/api/v2/vacancies/${vacancy.id}`, { method: 'DELETE' });
         onClose();
       } catch (err) {
         console.error('Failed to delete', err);
@@ -829,19 +849,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           >
             <Shield size={15} color={compatibility ? '#34d399' : undefined} />
             <span>{t('vacancyModal.tab_cv_compatibility')}</span>
-            {compatibility && (
-              <span style={{
-                background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
-                color: '#ffffff',
-                padding: '1px 7px',
-                borderRadius: '10px',
-                fontSize: '0.725rem',
-                fontWeight: '700',
-                marginLeft: '4px'
-              }}>
-                {Math.round(compatibility.overall_score)}%
-              </span>
-            )}
+            {compatibility && compatibility.calculated_score != null && (() => {
+              const tabScore = compatibility.calculated_score;
+              return (
+                <span style={{
+                  background: tabScore >= 70 ? '#059669' : tabScore >= 45 ? '#d97706' : '#ef4444',
+                  color: '#ffffff',
+                  padding: '1px 7px',
+                  borderRadius: '10px',
+                  fontSize: '0.725rem',
+                  fontWeight: '700',
+                  marginLeft: '4px'
+                }}>
+                  {Math.round(tabScore)}%
+                </span>
+              );
+            })()}
           </button>
         </div>
 
@@ -859,15 +882,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 {modalColumns.map(colItem => {
                   const col = colItem.id;
                   const isSelected = status === col;
-                  const isRejectedCol = col === 'Отказ';
+                  const isRejectedCol = col === rejectedStatusId;
                   let borderColor = 'var(--border-subtle)';
                   let background = 'transparent';
                   let color = 'var(--text-muted)';
 
                   if (isSelected) {
                     if (isRejectedCol) {
-                      borderColor = '#ef4444';
-                      background = 'rgba(239, 68, 68, 0.15)';
+                      borderColor = colItem.color || '#ef4444';
+                      background = `${colItem.color || '#ef4444'}22`;
                       color = 'var(--text-primary)';
                     } else {
                       borderColor = colItem.color || 'var(--primary)';
@@ -898,7 +921,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      {t(`kanban.columns.${col}`)}
+                      {t(`kanban.columns.${col}`) || col}
                     </button>
                   );
                 })}
@@ -910,7 +933,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               >
                 {modalColumns.map(colItem => (
                   <option key={colItem.id} value={colItem.id}>
-                    {t(`kanban.columns.${colItem.id}`)}
+                    {t(`kanban.columns.${colItem.id}`) || colItem.id}
                   </option>
                 ))}
               </select>
@@ -972,86 +995,125 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
           {/* Salary Section */}
           <div className="form-group vacancy-salary">
             <div className="vacancy-salary-header">
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+              <div className="vacancy-salary-display" style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: 'var(--grid)' }}>
                 <Banknote size={15} color="var(--aspen-mint)" />
-                <span style={{ fontWeight: 600 }}>{t('vacancyModal.salary_title')}</span>
-              </label>
+                <span className="vacancy-salary-title" style={{ fontWeight: 600 }}>
+                  {t('vacancyModal.salary_title')}:
+                </span>
+                <span className="vacancy-salary-value" style={{ color: currentSalaryInfo.hasSalary ? 'var(--aspen-mint)' : 'var(--text-muted)', fontWeight: 600 }}>
+                  {currentSalaryInfo.hasSalary ? currentSalaryInfo.formatted : t('vacancyModal.salary_not_specified')}
+                </span>
+              </div>
+
+              {!isEditingSalary ? (
                 <button
                   type="button"
-                  className="btn btn-secondary vacancy-salary-save"
-                  onClick={handleSaveSalary}
-                  disabled={savingSalary}
-                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                  className="btn btn-secondary vacancy-salary-edit-btn"
+                  onClick={handleStartEditSalary}
+                  title={t('common.edit')}
+                  style={{ fontSize: '0.75rem', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   {savedSalarySuccess ? (
                     <>
-                      <Check size={14} color="#10b981" />
+                      <Check size={13} color="#10b981" />
                       <span style={{ color: '#10b981' }}>{t('vacancyModal.saved_salary')}</span>
                     </>
                   ) : (
-                    <span>{t('vacancyModal.save_salary')}</span>
+                    <>
+                      <Edit3 size={13} />
+                      <span>{t('common.edit')}</span>
+                    </>
                   )}
                 </button>
+              ) : (
+                <div className="vacancy-salary-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary vacancy-salary-action-btn"
+                    onClick={handleSaveSalary}
+                    disabled={savingSalary}
+                    title={t('common.save')}
+                    style={{ padding: '4px 8px', background: '#059669', borderColor: '#059669', color: '#fff' }}
+                  >
+                    {savingSalary ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary vacancy-salary-action-btn"
+                    onClick={handleCancelEditSalary}
+                    disabled={savingSalary}
+                    title={t('common.cancel')}
+                    style={{ padding: '4px 8px' }}
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
             </div>
-            {currentSalaryInfo.hasSalary && (
-              <div className="vacancy-salary-total">
-                {t('vacancyModal.monthly_total', { amount: currentSalaryInfo.formatted })}
-              </div>
-            )}
-            <div className="salary-fields-grid">
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.min')}</span>
-                <input
-                  type="number"
-                  className="form-input salary-field-input"
-                  placeholder={t('vacancyModal.min_placeholder')}
-                  value={salaryMin}
-                  onChange={e => setSalaryMin(e.target.value)}
-                />
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.max')}</span>
-                <input
-                  type="number"
-                  className="form-input salary-field-input"
-                  placeholder={t('vacancyModal.max_placeholder')}
-                  value={salaryMax}
-                  onChange={e => setSalaryMax(e.target.value)}
-                />
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.currency')}</span>
-                <select
-                  className="form-input salary-field-input"
-                  value={salaryCurrency}
-                  onChange={e => setSalaryCurrency(e.target.value)}
-                >
-                  <option value="$">$ (USD)</option>
-                  <option value="€">€ (EUR)</option>
-                  <option value="₽">₽ (RUB)</option>
-                  <option value="£">£ (GBP)</option>
-                  <option value="CHF">CHF</option>
-                  <option value="CAD">CAD</option>
-                </select>
-              </div>
-              <div className="salary-field-item">
-                <span className="salary-field-label">{t('vacancyModal.period')}</span>
-                <select
-                  className="form-input salary-field-input"
-                  value={salaryPeriod}
-                  onChange={e => setSalaryPeriod(e.target.value)}
-                >
-                  <option value="year">{t('salary.in_year_opt')}</option>
-                  <option value="month">{t('salary.in_month_opt')}</option>
-                  <option value="hour">{t('salary.in_hour_opt')}</option>
-                  <option value="week">{t('salary.in_week_opt')}</option>
-                  <option value="day">{t('salary.in_day_opt')}</option>
-                </select>
-              </div>
-            </div>
-            {currentSalaryInfo.original && (
-              <div className="salary-original">
-                {currentSalaryInfo.original}
+
+            {isEditingSalary && (
+              <div
+                className="salary-fields-grid is-editing"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveSalary();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelEditSalary();
+                  }
+                }}
+              >
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.min')}</span>
+                  <input
+                    type="number"
+                    autoFocus
+                    className="form-input salary-field-input"
+                    placeholder={t('vacancyModal.min_placeholder')}
+                    value={salaryMin}
+                    onChange={e => setSalaryMin(e.target.value)}
+                  />
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.max')}</span>
+                  <input
+                    type="number"
+                    className="form-input salary-field-input"
+                    placeholder={t('vacancyModal.max_placeholder')}
+                    value={salaryMax}
+                    onChange={e => setSalaryMax(e.target.value)}
+                  />
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.currency')}</span>
+                  <select
+                    className="form-input salary-field-input"
+                    value={salaryCurrency}
+                    onChange={e => setSalaryCurrency(e.target.value)}
+                  >
+                    <option value="$">$ (USD)</option>
+                    <option value="€">€ (EUR)</option>
+                    <option value="₽">₽ (RUB)</option>
+                    <option value="£">£ (GBP)</option>
+                    <option value="CHF">CHF</option>
+                    <option value="CAD">CAD</option>
+                  </select>
+                </div>
+                <div className="salary-field-item">
+                  <span className="salary-field-label">{t('vacancyModal.period')}</span>
+                  <select
+                    className="form-input salary-field-input"
+                    value={salaryPeriod}
+                    onChange={e => setSalaryPeriod(e.target.value)}
+                  >
+                    <option value="year">{t('salary.in_year_opt')}</option>
+                    <option value="month">{t('salary.in_month_opt')}</option>
+                    <option value="hour">{t('salary.in_hour_opt')}</option>
+                    <option value="week">{t('salary.in_week_opt')}</option>
+                    <option value="day">{t('salary.in_day_opt')}</option>
+                  </select>
+                </div>
               </div>
             )}
           </div>
@@ -1084,9 +1146,17 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </button>
             </div>
             
-            <p className="vacancy-ai-summary-text">
-              {vacancy.ai_summary || t('vacancyModal.no_summary')}
-            </p>
+            {resummarizing || (!vacancy.ai_summary && description?.trim()) ? (
+              <div className="card-skeleton-block" aria-hidden="true" style={{ padding: '8px 0' }}>
+                <div className="skeleton-line" style={{ width: '100%' }} />
+                <div className="skeleton-line" style={{ width: '92%' }} />
+                <div className="skeleton-line" style={{ width: '75%' }} />
+              </div>
+            ) : (
+              <p className="vacancy-ai-summary-text">
+                {vacancy.ai_summary || t('vacancyModal.no_summary')}
+              </p>
+            )}
 
             {vacancy.company_info && (
               <div className="vacancy-ai-company">
@@ -1098,47 +1168,77 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
           {/* Tech Stack */}
           <div className="form-group vacancy-tokens-section">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>{t('vacancyModal.tech_stack_title')}</span>
-            </label>
-            <div className="editable-token-list">
-              {techStack.map(tech => (
-                <span key={tech} className="editable-token">{tech}
-                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTech(tech)} aria-label={`${t('common.delete')} ${tech}`}><X size={12} /></button>
-                </span>
-              ))}
-              {editingTech ? (
-                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tech_placeholder')}
-                  placeholder={t('vacancyModal.add_tech_placeholder')} value={newTechInput}
-                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTechInput(parts.pop()); addListItems('tech_stack', parts.join(',')); } else setNewTechInput(value); }}
-                  onBlur={() => { addListItems('tech_stack', newTechInput); setNewTechInput(''); setEditingTech(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tech_stack', newTechInput); setNewTechInput(''); } if (e.key === 'Escape') { setNewTechInput(''); setEditingTech(false); } }} />
-              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTech(true)} aria-label={t('vacancyModal.add_tech_placeholder')} title={t('vacancyModal.add_tech_placeholder')}><Plus size={15} /></button>}
+            <div className="tokens-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)' }}>
+              <label className="form-label" style={{ margin: 0 }}>
+                {t('vacancyModal.tech_stack_title')}
+              </label>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon tokens-add-btn"
+                onClick={() => setEditingTech(true)}
+                title={t('vacancyModal.add_tech_placeholder')}
+                aria-label={t('vacancyModal.add_tech_placeholder')}
+                style={{ width: 'var(--grid)', height: 'var(--grid)', padding: 0 }}
+              >
+                <Plus size={14} />
+              </button>
             </div>
+            {(techStack.length > 0 || editingTech) && (
+              <div className="editable-token-list">
+                {techStack.map(tech => (
+                  <span key={tech} className="editable-token">{tech}
+                    <button type="button" className="editable-token-remove" onClick={() => handleRemoveTech(tech)} aria-label={`${t('common.delete')} ${tech}`}><X size={12} /></button>
+                  </span>
+                ))}
+                {editingTech && (
+                  <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tech_placeholder')}
+                    placeholder={t('vacancyModal.add_tech_placeholder')} value={newTechInput}
+                    onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTechInput(parts.pop()); addListItems('tech_stack', parts.join(',')); } else setNewTechInput(value); }}
+                    onBlur={() => { addListItems('tech_stack', newTechInput); setNewTechInput(''); setEditingTech(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tech_stack', newTechInput); setNewTechInput(''); } if (e.key === 'Escape') { setNewTechInput(''); setEditingTech(false); } }} />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Custom Tags */}
           <div className="form-group vacancy-tokens-section">
-            <label className="form-label">{t('vacancyModal.tags_title')}</label>
-            <div className="editable-token-list">
-              {tags.map(tagItem => (
-                <span key={tagItem} className="editable-token"><Tag size={11} />{tagItem}
-                  <button type="button" className="editable-token-remove" onClick={() => handleRemoveTag(tagItem)} aria-label={`${t('common.delete')} ${tagItem}`}><X size={12} /></button>
-                </span>
-              ))}
-              {editingTags ? (
-                <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tag_placeholder')}
-                  placeholder={t('vacancyModal.add_tag_placeholder')} value={newTagInput}
-                  onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTagInput(parts.pop()); addListItems('tags', parts.join(',')); } else setNewTagInput(value); }}
-                  onBlur={() => { addListItems('tags', newTagInput); setNewTagInput(''); setEditingTags(false); }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tags', newTagInput); setNewTagInput(''); } if (e.key === 'Escape') { setNewTagInput(''); setEditingTags(false); } }} />
-              ) : <button type="button" className="editable-token-add" onClick={() => setEditingTags(true)} aria-label={t('vacancyModal.add_tag_placeholder')} title={t('vacancyModal.add_tag_placeholder')}><Plus size={15} /></button>}
+            <div className="tokens-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)' }}>
+              <label className="form-label" style={{ margin: 0 }}>
+                {t('vacancyModal.tags_title')}
+              </label>
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon tokens-add-btn"
+                onClick={() => setEditingTags(true)}
+                title={t('vacancyModal.add_tag_placeholder')}
+                aria-label={t('vacancyModal.add_tag_placeholder')}
+                style={{ width: 'var(--grid)', height: 'var(--grid)', padding: 0 }}
+              >
+                <Plus size={14} />
+              </button>
             </div>
+            {(tags.length > 0 || editingTags) && (
+              <div className="editable-token-list">
+                {tags.map(tagItem => (
+                  <span key={tagItem} className="editable-token"><Tag size={11} />{tagItem}
+                    <button type="button" className="editable-token-remove" onClick={() => handleRemoveTag(tagItem)} aria-label={`${t('common.delete')} ${tagItem}`}><X size={12} /></button>
+                  </span>
+                ))}
+                {editingTags && (
+                  <input autoFocus className="form-input editable-token-input" aria-label={t('vacancyModal.add_tag_placeholder')}
+                    placeholder={t('vacancyModal.add_tag_placeholder')} value={newTagInput}
+                    onChange={e => { const value = e.target.value; if (value.includes(',')) { const parts = value.split(','); setNewTagInput(parts.pop()); addListItems('tags', parts.join(',')); } else setNewTagInput(value); }}
+                    onBlur={() => { addListItems('tags', newTagInput); setNewTagInput(''); setEditingTags(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addListItems('tags', newTagInput); setNewTagInput(''); } if (e.key === 'Escape') { setNewTagInput(''); setEditingTags(false); } }} />
+                )}
+              </div>
+            )}
           </div>
 
           {/* Stage Movement History */}
           <div className="form-group stage-history-section">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div className="stage-history-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 'var(--grid)', marginBottom: '8px' }}>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: 0 }}>
                 <History size={15} color="#60a5fa" />
                 <span>{t('vacancyModal.history_title')}</span>
@@ -1157,12 +1257,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               </div>
             ) : (
               <div className="stage-timeline">
-                {vacancy.history.map((item, idx) => {
-                  const isCurrent = idx === vacancy.history.length - 1;
+                {[...vacancy.history].reverse().map((item, idx, arr) => {
+                  const isCurrent = idx === 0;
                   const stageColor = stageColorMap[item.to_status] || '#2563eb';
                   const isEditingThis = editingHistoryId === item.id;
                   const isSavingThis = savingHistoryId === item.id;
-                  const isLastItem = idx === vacancy.history.length - 1;
+                  const isLastItem = idx === arr.length - 1;
 
                   return (
                     <div key={item.id || idx} className={`stage-timeline-item ${isCurrent ? 'is-current' : ''}`}>
@@ -1170,53 +1270,25 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                       <div
                         className="stage-timeline-dot"
                         style={{
-                          borderColor: stageColor,
-                          backgroundColor: isCurrent ? stageColor : 'var(--bg-card)',
-                          boxShadow: isCurrent ? `0 0 8px ${stageColor}88` : 'none'
+                          borderColor: isCurrent ? stageColor : 'var(--border-subtle)',
+                          backgroundColor: isCurrent ? stageColor : 'transparent',
+                          boxShadow: isCurrent ? `0 0 6px ${stageColor}88` : 'none'
                         }}
                       />
 
                       <div className="stage-timeline-content">
                         <div className="stage-timeline-header">
                           <div className="stage-badges-row">
-                            {item.from_status && (
-                              item.from_status !== item.to_status ||
-                              (item.from_lane != null && item.to_lane != null && item.from_lane !== item.to_lane)
-                            ) ? (
-                              <div className="stage-transition-group">
-                                <span className="stage-badge stage-badge-from">
-                                  {getStageLabel(item.from_status, item.from_lane)}
-                                </span>
-                                <ArrowRight size={11} className="stage-arrow-icon" />
-                                <span
-                                  className="stage-badge stage-badge-to"
-                                  style={{
-                                    borderColor: `${stageColor}50`,
-                                    color: stageColor,
-                                    backgroundColor: `${stageColor}18`
-                                  }}
-                                >
-                                  {getStageLabel(item.to_status, item.to_lane)}
-                                </span>
-                              </div>
-                            ) : (
-                              <span
-                                className="stage-badge stage-badge-to"
-                                style={{
-                                  borderColor: `${stageColor}50`,
-                                  color: stageColor,
-                                  backgroundColor: `${stageColor}18`
-                                }}
-                              >
-                                {getStageLabel(item.to_status, item.to_lane)}
-                              </span>
-                            )}
-
-                            {isCurrent && (
-                              <span className="stage-current-pill">
-                                {t('vacancyModal.history_current')}
-                              </span>
-                            )}
+                            <span
+                              className="stage-badge stage-badge-to"
+                              style={{
+                                borderColor: `${stageColor}50`,
+                                color: stageColor,
+                                backgroundColor: `${stageColor}18`
+                              }}
+                            >
+                              {getStageLabel(item.to_status, item.to_lane)}
+                            </span>
                           </div>
 
                           <span className="stage-time">
@@ -1438,32 +1510,24 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
               <div className="compatibility-header-title">
                 <Shield size={18} color="var(--aspen-mint)" />
                 <span>{t('vacancyModal.compat_title')}</span>
-                {compatibility && (
-                  <div className="compatibility-scores">
-                    <span style={{
-                      background: compatibility.overall_score >= 70 ? '#059669' : compatibility.overall_score >= 45 ? '#d97706' : '#ef4444',
-                      color: '#ffffff',
-                      padding: '2px 8px',
-                      borderRadius: '0',
-                      fontSize: '0.8rem',
-                      fontWeight: '700',
-                      marginLeft: '4px'
-                    }}>
-                      AI Match: {Math.round(compatibility.overall_score)}%
-                    </span>
-                    {compatibility.calculated_score != null && (
+                {compatibility && compatibility.calculated_score != null && (() => {
+                  const displayScore = compatibility.calculated_score;
+                  return (
+                    <div className="compatibility-scores">
                       <span style={{
-                        background: 'var(--bg-subtle)',
-                        color: 'var(--text-secondary)',
-                        padding: '2px 6px',
+                        background: displayScore >= 70 ? '#059669' : displayScore >= 45 ? '#d97706' : '#ef4444',
+                        color: '#ffffff',
+                        padding: '2px 8px',
                         borderRadius: '0',
-                        fontSize: '0.7rem',
-                      }} title={t('vacancyModal.compat_formula_hint')}>
-                        {t('vacancyModal.compat_formula')}: {Math.round(compatibility.calculated_score)}%
+                        fontSize: '0.8rem',
+                        fontWeight: '700',
+                        marginLeft: '4px'
+                      }}>
+                        {Math.round(displayScore)}%
                       </span>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
               </div>
               <button
                 className="btn btn-secondary compatibility-analyze"
@@ -1506,12 +1570,23 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                 </p>
 
                 {/* Seniority assessment */}
-                {compatibility.seniority_assessment && (
-                  <div className="compatibility-assessment">
-                    <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
-                    <strong style={{ color: 'var(--primary)' }}>{compatibility.seniority_assessment.status}</strong> — {compatibility.seniority_assessment.comment}
-                  </div>
-                )}
+                {compatibility.seniority_assessment && (() => {
+                  const status = compatibility.seniority_assessment.status;
+                  const statusColors = {
+                    matched: 'var(--aspen-mint)',
+                    partially_matched: '#f59e0b',
+                    mismatched: '#ef4444',
+                    unclear: 'var(--text-muted)'
+                  };
+                  const statusColor = statusColors[status] || 'var(--primary)';
+                  const statusLabel = t(`vacancyModal.compat_seniority_status.${status}`) || status;
+                  return (
+                    <div className="compatibility-assessment">
+                      <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
+                      <strong style={{ color: statusColor }}>{statusLabel}</strong> — {compatibility.seniority_assessment.comment}
+                    </div>
+                  );
+                })()}
 
                 {/* Matched Requirements with Evidence toggles */}
                 {compatibility.matched_requirements?.length > 0 && (
@@ -1522,9 +1597,11 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                     <div className="compatibility-list">
                       {compatibility.matched_requirements.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
-                            <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {m.requirement}</span>
-                            <span style={{ color: 'var(--aspen-mint)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
+                            <div className="compatibility-row-title" style={{ color: 'var(--aspen-mint)' }}>
+                              &bull; {m.requirement}
+                            </div>
+                            <span className="compatibility-toggle-btn" style={{ color: 'var(--aspen-mint)' }}>
                               {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             </span>
                           </div>
@@ -1539,34 +1616,74 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   </div>
                 )}
 
-                {/* Missing Requirements */}
+                {/* Missing Requirements with Details toggles */}
                 {compatibility.missing_requirements?.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-missing">
                       {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.missing_requirements.map((m, idx) => (
-                        <div key={idx} className="compatibility-row">
-                          &bull; <strong>{m.requirement}</strong> ({m.severity}): {m.reason}
-                        </div>
-                      ))}
+                      {compatibility.missing_requirements.map((m, idx) => {
+                        const sev = (m.severity || 'medium').toLowerCase();
+                        const sevTitle = t(`vacancyModal.compat_severity.${sev}`) || sev;
+                        const isExpanded = !!showEvidenceMap[`missing_${idx}`];
+                        return (
+                          <div key={idx} className="compatibility-row">
+                            <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`missing_${idx}`]: !prev[`missing_${idx}`] }))}>
+                              <div className="compatibility-row-title">
+                                <span>&bull; {m.requirement}</span>
+                                <span className={`compatibility-severity-badge severity-${sev}`} title={sevTitle}>
+                                  {sev}
+                                </span>
+                              </div>
+                              <span className="compatibility-toggle-btn">
+                                {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              </span>
+                            </div>
+                            {isExpanded && m.reason && (
+                              <div className="compatibility-detail-reason">
+                                {m.reason}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Critical Gaps */}
+                {/* Critical Gaps with Details toggles */}
                 {compatibility.critical_gaps?.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-critical">
                       {t('vacancyModal.compat_gaps')}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.critical_gaps.map((g, idx) => (
-                        <div key={idx} className="compatibility-row">
-                          &bull; <strong>{g.requirement}</strong>: {g.reason}
-                        </div>
-                      ))}
+                      {compatibility.critical_gaps.map((g, idx) => {
+                        const isExpanded = showEvidenceMap[`gap_${idx}`] !== false; // expanded by default for critical gaps or collapsible
+                        return (
+                          <div key={idx} className="compatibility-row">
+                            <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`gap_${idx}`]: !isExpanded }))}>
+                              <div className="compatibility-row-title" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                                <span>&bull; {g.requirement}</span>
+                                <span className="compatibility-severity-badge severity-critical" title={t('vacancyModal.compat_severity.critical') || 'CRITICAL'}>
+                                  critical
+                                </span>
+                              </div>
+                              {g.reason && (
+                                <span className="compatibility-toggle-btn" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                                  {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                </span>
+                              )}
+                            </div>
+                            {isExpanded && g.reason && (
+                              <div className="compatibility-detail-reason" style={{ color: 'var(--text-secondary)' }}>
+                                {g.reason}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1585,6 +1702,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
                   </div>
                 )}
               </div>
+            ) : (analyzingCompatibility || loadingCompatibility) ? (
+              <div className="card-skeleton-block" aria-hidden="true" style={{ padding: '16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left)' }}>
+                <div className="skeleton-line" style={{ width: '100%' }} />
+                <div className="skeleton-line" style={{ width: '88%' }} />
+                <div className="skeleton-line" style={{ width: '65%' }} />
+              </div>
             ) : (
               <p className="compatibility-empty">
                 {!description?.trim() ? t('vacancyModal.compat_no_description') : t('vacancyModal.compat_empty')}
@@ -1598,10 +1721,23 @@ export default function VacancyModal({ vacancy, isOpen, onClose, onUpdate, onDel
 
         {/* Footer */}
         <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-danger" onClick={handleDelete}>
-            <Trash2 size={14} />
-            <span>{t('vacancyModal.delete_vacancy')}</span>
-          </button>
+          {status === rejectedStatusId ? (
+            <button className="btn btn-danger" onClick={handleDelete}>
+              <Trash2 size={14} />
+              <span>{t('vacancyModal.delete_permanent')}</span>
+            </button>
+          ) : (
+            <button
+              className="btn btn-secondary"
+              style={{ color: rejectedColumn?.color || '#ef4444' }}
+              onClick={() => handleStatusChange(rejectedStatusId)}
+            >
+              <XCircle size={14} />
+              <span>
+                {rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? `В ${rejectedColumn.id}` : t('vacancyModal.move_to_rejected')}
+              </span>
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>
             {t('vacancyModal.close_btn')}
           </button>

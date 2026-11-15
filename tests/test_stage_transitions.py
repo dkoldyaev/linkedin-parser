@@ -10,12 +10,12 @@ class TestStageTransitions(unittest.TestCase):
 
     def setUp(self):
         self.client = TestClient(app)
-        login_res = self.client.post("/api/auth/dev-login", json={"email": "stage_test@example.com", "name": "Stage Tester"})
+        login_res = self.client.post("/api/v2/auth/dev-login", json={"email": "stage_test@example.com", "name": "Stage Tester"})
         self.assertEqual(login_res.status_code, 200)
 
     def test_reorder_lane_isolation_and_history(self):
         # 1. Create two vacancies in 'Собеседование' (a column with has_lanes=True)
-        res1 = self.client.post("/api/vacancies", json={
+        res1 = self.client.post("/api/v2/vacancies", json={
             "title": "Engineer Alpha",
             "company": "Alpha Corp",
             "url": "https://example.com/job/alpha",
@@ -25,7 +25,7 @@ class TestStageTransitions(unittest.TestCase):
         vac1 = res1.json()
         self.assertEqual(vac1["lane"], 0)
 
-        res2 = self.client.post("/api/vacancies", json={
+        res2 = self.client.post("/api/v2/vacancies", json={
             "title": "Engineer Beta",
             "company": "Beta Corp",
             "url": "https://example.com/job/beta",
@@ -36,7 +36,7 @@ class TestStageTransitions(unittest.TestCase):
         self.assertEqual(vac2["lane"], 0)
 
         # 2. Reorder moving vac1 to Stage 2 (lane=1), while vac2 remains in Stage 1 (lane=0)
-        reorder_res = self.client.post("/api/vacancies/reorder", json={
+        reorder_res = self.client.post("/api/v2/vacancies/reorder", json={
             "status": "Собеседование",
             "ids": [vac2["id"], vac1["id"]],
             "lane": 1,
@@ -51,7 +51,7 @@ class TestStageTransitions(unittest.TestCase):
         self.assertEqual(by_id[vac2["id"]]["lane"], 0)
 
         # 3. Verify history for vac1 records the stage transition
-        vac1_fresh = self.client.get(f"/api/vacancies/{vac1['id']}").json()
+        vac1_fresh = self.client.get(f"/api/v2/vacancies/{vac1['id']}").json()
         self.assertEqual(len(vac1_fresh["history"]), 2)
         stage_move = vac1_fresh["history"][-1]
         self.assertEqual(stage_move["from_status"], "Собеседование")
@@ -60,11 +60,11 @@ class TestStageTransitions(unittest.TestCase):
         self.assertEqual(stage_move["to_lane"], 1)
 
         # Verify vac2 has no stage move history
-        vac2_fresh = self.client.get(f"/api/vacancies/{vac2['id']}").json()
+        vac2_fresh = self.client.get(f"/api/v2/vacancies/{vac2['id']}").json()
         self.assertEqual(len(vac2_fresh["history"]), 1)
 
         # 4. Move vac1 via PATCH to column without lanes ('Оффер')
-        patch_res = self.client.patch(f"/api/vacancies/{vac1['id']}", json={"status": "Оффер"})
+        patch_res = self.client.patch(f"/api/v2/vacancies/{vac1['id']}", json={"status": "Оффер"})
         self.assertEqual(patch_res.status_code, 200)
         vac1_offer = patch_res.json()
         self.assertEqual(vac1_offer["status"], "Оффер")
@@ -77,7 +77,7 @@ class TestStageTransitions(unittest.TestCase):
         self.assertEqual(offer_history["to_lane"], 0)
 
         # 5. Move vac2 via PATCH to lane 2 in 'Собеседование'
-        patch_res2 = self.client.patch(f"/api/vacancies/{vac2['id']}", json={"lane": 2})
+        patch_res2 = self.client.patch(f"/api/v2/vacancies/{vac2['id']}", json={"lane": 2})
         self.assertEqual(patch_res2.status_code, 200)
         vac2_lane2 = patch_res2.json()
         self.assertEqual(vac2_lane2["lane"], 2)
@@ -86,8 +86,8 @@ class TestStageTransitions(unittest.TestCase):
         self.assertEqual(vac2_history["to_lane"], 2)
 
         # Cleanup
-        self.client.delete(f"/api/vacancies/{vac1['id']}")
-        self.client.delete(f"/api/vacancies/{vac2['id']}")
+        self.client.delete(f"/api/v2/vacancies/{vac1['id']}")
+        self.client.delete(f"/api/v2/vacancies/{vac2['id']}")
 
 if __name__ == "__main__":
     unittest.main()

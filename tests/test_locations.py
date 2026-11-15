@@ -51,30 +51,30 @@ def test_db_backfill_and_api():
 
     print("\n--- Testing API endpoints ---")
     client = TestClient(app)
-    login_res = client.post("/api/auth/dev-login", json={"email": "location_test@local.user"})
+    login_res = client.post("/api/v2/auth/dev-login", json={"email": "location_test@local.user"})
     token = login_res.json()["token"]
     client = TestClient(app, cookies={"access_token": token})
 
-    # Test /api/countries
-    countries_res = client.get("/api/countries")
+    # Test /api/v2/countries
+    countries_res = client.get("/api/v2/countries")
     assert countries_res.status_code == 200
     countries = countries_res.json()
     print("Distinct countries:", countries)
 
-    # Test /api/cities
-    cities_res = client.get("/api/cities")
+    # Test /api/v2/cities
+    cities_res = client.get("/api/v2/cities")
     assert cities_res.status_code == 200
     cities = cities_res.json()
     print("Distinct cities:", cities)
 
-    # Test /api/vacancies?country=Spain
-    vac_res = client.get("/api/vacancies?country=Spain")
+    # Test /api/v2/vacancies?country=Spain
+    vac_res = client.get("/api/v2/vacancies?country=Spain")
     assert vac_res.status_code == 200
     spain_vacs = vac_res.json()
     print(f"Vacancies in Spain: {len(spain_vacs)}")
 
-    # Test /api/vacancies?city=Barcelona
-    barca_res = client.get("/api/vacancies?city=Barcelona")
+    # Test /api/v2/vacancies?city=Barcelona
+    barca_res = client.get("/api/v2/vacancies?city=Barcelona")
     assert barca_res.status_code == 200
     barca_vacs = barca_res.json()
     print(f"Vacancies in Barcelona: {len(barca_vacs)}")

@@ -37,6 +37,7 @@ Options:
   --app-name <name>        Compose application name in Dokploy (default: app)
   --reset-db               Reset database volumes on deploy (freshVolumes)
   --mock-data              Enable fake mock vacancies generation on startup (CREATE_MOCK_DATA=true)
+  --mock-llm               Use mock LLM service with random delay (LLM_PROVIDER=mock)
   --admin <email>          Assign admin role in PostgreSQL database (default: ADMIN_EMAILS from .env or dev@local.user)
   --skip-deploy            Create and configure environment without triggering deploy
   --check                  Perform HTTP check of deployed services
@@ -55,6 +56,7 @@ Examples:
 
 const resetDb = args.includes('--reset-db') || args.includes('--recreate-db') || args.includes('--fresh-volumes');
 const enableMockData = args.includes('--mock-data') || args.includes('--mocks') || args.includes('--create-mock-data');
+const enableMockLlm = args.includes('--mock-llm');
 const skipDeploy = args.includes('--skip-deploy') || args.includes('--no-deploy');
 const runCheck = args.includes('--check');
 const customBranch = getArgValue('--branch');
@@ -190,22 +192,24 @@ function dokployRequest(endpoint, method = 'GET', body = null) {
 }
 
 // 4. Generate Compose environment variables
-function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
+function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
   const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
   const createMockData = enableMockData ? 'true' : (envVars['CREATE_MOCK_DATA'] || 'false');
+  const llmProvider = enableMockLlm ? 'mock' : (envVars['LLM_PROVIDER'] || 'mistral');
+  const mercureInternalHost = composeAppName ? `${composeAppName}-mercure-1` : 'mercure';
 
   return [
     `APP_URL=${fullDomain}`,
     `DATABASE_URL=${postgresUrl}`,
     `BROKER_URL=${redisUrl}`,
-    `LLM_PROVIDER=${envVars['LLM_PROVIDER'] || 'mistral'}`,
+    `LLM_PROVIDER=${llmProvider}`,
     `MISTRAL_API_KEY=${envVars['MISTRAL_API_KEY'] || ''}`,
     `MISTRAL_MODEL=${envVars['MISTRAL_MODEL'] || 'mistral-small-latest'}`,
     `GEMINI_API_KEY=${envVars['GEMINI_API_KEY'] || ''}`,
     `GEMINI_MODEL=${envVars['GEMINI_MODEL'] || 'gemini-2.5-flash'}`,
-    `MERCURE_URL=http://mercure/.well-known/mercure`,
+    `MERCURE_URL=http://${mercureInternalHost}/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
     `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
@@ -225,6 +229,9 @@ async function main() {
   console.log(`📌 Environment name: \x1b[32m${envName}\x1b[0m`);
   if (enableMockData) {
     console.log(`📌 Mock data generation: \x1b[33mENABLED (CREATE_MOCK_DATA=true)\x1b[0m`);
+  }
+  if (enableMockLlm) {
+    console.log(`📌 Mock LLM service: \x1b[33mENABLED (LLM_PROVIDER=mock)\x1b[0m`);
   }
 
   // 1. Fetch Project and GitHub provider
@@ -406,6 +413,7 @@ async function main() {
 
   const composeEnv = generateComposeEnv({
     domainHost,
+    composeAppName: composeApp.appName,
     pgAppName: pgService.appName,
     pgUser: pgService.databaseUser,
     pgPassword: pgService.databasePassword,

@@ -429,14 +429,44 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Migrate legacy status 'Еще не написан' -> '{STATUS_NOT_CONTACTED}': {e}")
 
+    try:
+        from .models import Vacancy, VacancyCVAnalysis
+        from .llm import calculate_compatibility_score
+        from sqlalchemy.orm import Session
+        from sqlalchemy.orm.attributes import flag_modified
+        with Session(engine) as session:
+            analyses = session.query(VacancyCVAnalysis).all()
+            dirty = False
+            for a in analyses:
+                res = dict(a.result or {})
+                if "llmScore" in res or res.get("calculatedScore") != a.overall_score:
+                    dim_scores = res.get("dimensionScores") or {}
+                    crit_gaps = res.get("criticalGaps") or []
+                    calc = calculate_compatibility_score(dim_scores, len(crit_gaps))
+                    res.pop("llmScore", None)
+                    res["overallScore"] = calc
+                    res["calculatedScore"] = calc
+                    a.result = res
+                    flag_modified(a, "result")
+                    a.overall_score = calc
+                    v = session.query(Vacancy).filter(Vacancy.id == a.vacancy_id).first()
+                    if v and v.match_score != calc:
+                        v.match_score = calc
+                    dirty = True
+            if dirty:
+                session.commit()
+    except Exception as e:
+        logger.warning(f"Deterministic calculated_score migration check: {e}")
+
 
 
 
 def ensure_query_indexes():
     """create_all does not add indexes to tables that already exist."""
-    from .models import Vacancy, VacancyStatusHistory
-    for table in (Vacancy.__table__, VacancyStatusHistory.__table__):
+    from .models import Vacancy, VacancyStatusHistory, ProcessingQueueItem
+    for table in (Vacancy.__table__, VacancyStatusHistory.__table__, ProcessingQueueItem.__table__):
         for index in table.indexes:
             if index.name in {"ix_vacancies_user_updated", "ix_vacancies_user_created",
-                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created"}:
+                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created",
+                              "ix_pqi_user_status", "ix_pqi_user_norm_url"}:
                 index.create(bind=engine, checkfirst=True)

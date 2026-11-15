@@ -8,6 +8,7 @@ _TEST_DATA = tempfile.TemporaryDirectory(prefix="linkedin-tests-")
 os.environ["DATABASE_URL"] = ""
 os.environ["DATA_DIR"] = _TEST_DATA.name
 os.environ["DEV_AUTH"] = "true"
+os.environ["APP_URL"] = "http://localhost:8000"
 os.environ["JWT_SECRET"] = secrets.token_urlsafe(48)
 os.environ["MERCURE_JWT_SECRET"] = secrets.token_urlsafe(48)
 os.environ["CREATE_MOCK_DATA"] = "false"

@@ -48,7 +48,7 @@ export function I18nProvider({ children }) {
 
   // Fetch exchange rates once and cache in localStorage
   useEffect(() => {
-    fetch('/api/exchange-rates')
+    fetch('/api/v2/exchange-rates')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data && data.rates) {
@@ -63,9 +63,9 @@ export function I18nProvider({ children }) {
       .catch(err => console.debug('Could not fetch exchange rates', err));
   }, []);
 
-  // Sync with /api/settings on initial mount if authenticated
+  // Sync with /api/v2/settings on initial mount if authenticated
   useEffect(() => {
-    fetch('/api/settings')
+    fetch('/api/v2/settings')
       .then(res => {
         if (!res.ok) return null;
         return res.json();

@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
 from .models import STATUS_NOT_CONTACTED
 
 class UserApiKeyAdminItem(BaseModel):
@@ -148,6 +148,11 @@ class VacancyResponse(VacancyBase):
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
 
+    @computed_field
+    @property
+    def calculated_score(self) -> Optional[float]:
+        return self.match_score
+
     model_config = ConfigDict(from_attributes=True)
 
 class BatchImportRequest(BaseModel):
@@ -170,21 +175,6 @@ class CheckDuplicatesResponse(BaseModel):
     has_duplicates: bool
     duplicates: List[DuplicateVacancyInfo]
     requires_extension: bool = False
-
-class ImportItemResult(BaseModel):
-    url: str
-    job_id: Optional[str] = None
-    success: bool
-    title: Optional[str] = None
-    company: Optional[str] = None
-    vacancy_id: Optional[int] = None
-    error: Optional[str] = None
-
-class BatchImportResponse(BaseModel):
-    total: int
-    imported: int
-    failed: int
-    results: List[ImportItemResult]
 
 class TaskInfo(BaseModel):
     task_id: str
@@ -216,6 +206,32 @@ class AsyncBatchImportResponse(BaseModel):
     batch_id: str
     message: str
     tasks: List[TaskInfo] = Field(default_factory=list)
+    already_in_queue: List[str] = Field(default_factory=list)
+
+
+class ProcessingLinkInfo(BaseModel):
+    task_id: str
+    url: str
+    normalized_url: str
+    status: str
+    stage: str
+    attempts: int
+    max_attempts: int
+    error: Optional[str] = None
+    vacancy_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QueueLinksResponse(BaseModel):
+    links: List[ProcessingLinkInfo]
+    total: int
+    pending_count: int
+    processing_count: int
+    failed_count: int
+
 
 class ColumnItem(BaseModel):
     id: str
@@ -377,6 +393,10 @@ class ApiKeyCreatedResponse(ApiKeyResponse):
 class ExchangeRatesResponse(BaseModel):
     rates: Dict[str, float]
     updated_at: Optional[str] = None
+
+
+class ReparseAllRequest(BaseModel):
+    ids: Optional[List[int]] = None
 
 
 

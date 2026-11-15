@@ -486,6 +486,9 @@ def create_anonymous_user(db: Session) -> User:
     db.commit()
     db.refresh(user)
     user.feature_flags = []
+    from .mock_data import is_mock_data_enabled, generate_mock_vacancies
+    if is_mock_data_enabled():
+        generate_mock_vacancies(db, count=30, user_id=user.id)
     return user
 
 

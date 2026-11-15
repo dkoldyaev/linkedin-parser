@@ -7,7 +7,7 @@ import datetime
 import httpx
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional, Union, Tuple
-from fastapi import FastAPI, Depends, HTTPException, Query, status, Request, Response
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query, status, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
@@ -28,6 +28,7 @@ from .models import (
     AdaptedCVVersion,
     ApiKey,
     UserLLMTokenUsage,
+    ProcessingQueueItem,
     ExchangeRate,
     VALID_STATUSES,
     DEFAULT_COLUMNS,
@@ -47,14 +48,14 @@ from .schemas import (
     VacancyHistoryUpdate,
     VacancyHistoryCreate,
     BatchImportRequest,
-    BatchImportResponse,
     AsyncBatchImportResponse,
+    ProcessingLinkInfo,
+    QueueLinksResponse,
     CheckDuplicatesRequest,
     CheckDuplicatesResponse,
     DuplicateVacancyInfo,
     QueueStatusResponse,
     TaskInfo,
-    ImportItemResult,
     SettingsResponse,
     SettingsUpdateRequest,
     ColumnItem,
@@ -83,6 +84,7 @@ from .schemas import (
     ApiKeyCreatedResponse,
     ExchangeRatesResponse,
     UserStatsSummary,
+    ReparseAllRequest,
 )
 from .auth import (
     get_current_user,
@@ -369,21 +371,50 @@ def get_public_redoc_html(current_user: User = Depends(get_current_user_with_api
         title=f"{public_app.title} - ReDoc",
     )
 
-# Mount public API at /api/v1
+# Mount public API at /api/v1 (legacy public API)
 app.mount("/api/v1", public_app)
 
-# Convenience redirects for root docs/openapi pointing directly to the Public API documentation
+# API v2 (Unified Public & Private API) and Legacy API (legacy extension support) routers
+api_v2 = APIRouter(prefix="/api/v2")
+legacy_api = APIRouter(prefix="/api")
+
+@api_v2.get("/openapi.json", include_in_schema=False)
+def get_v2_openapi_json(current_user: User = Depends(get_current_user_with_api_access)):
+    """OpenAPI schema for Unified API v2."""
+    schema = get_openapi(
+        title="Job Vacancies Unified API v2",
+        version="2.0.0",
+        description="Unified Public and Private API v2 for Job Vacancies Tracker. Authenticate via Session Cookie, JWT Bearer token, or Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
+        routes=api_v2.routes,
+    )
+    return JSONResponse(schema)
+
+@api_v2.get("/docs", include_in_schema=False)
+def get_v2_docs_html(current_user: User = Depends(get_current_user_with_api_access)):
+    return get_swagger_ui_html(
+        openapi_url="/api/v2/openapi.json",
+        title="Job Vacancies Unified API v2 - Swagger UI",
+    )
+
+@api_v2.get("/redoc", include_in_schema=False)
+def get_v2_redoc_html(current_user: User = Depends(get_current_user_with_api_access)):
+    return get_redoc_html(
+        openapi_url="/api/v2/openapi.json",
+        title="Job Vacancies Unified API v2 - ReDoc",
+    )
+
+# Convenience redirects for root docs/openapi pointing directly to the Unified API v2 documentation
 @app.get("/docs", include_in_schema=False)
 def redirect_docs(current_user: User = Depends(get_current_user_with_api_access)):
-    return RedirectResponse(url="/api/v1/docs")
+    return RedirectResponse(url="/api/v2/docs")
 
 @app.get("/redoc", include_in_schema=False)
 def redirect_redoc(current_user: User = Depends(get_current_user_with_api_access)):
-    return RedirectResponse(url="/api/v1/redoc")
+    return RedirectResponse(url="/api/v2/redoc")
 
 @app.get("/openapi.json", include_in_schema=False)
 def redirect_openapi(current_user: User = Depends(get_current_user_with_api_access)):
-    return RedirectResponse(url="/api/v1/openapi.json")
+    return RedirectResponse(url="/api/v2/openapi.json")
 
 # CORS middleware for local dev
 app.add_middleware(
@@ -397,7 +428,8 @@ app.add_middleware(
 )
 
 
-@app.get("/api/health")
+@api_v2.get("/health")
+@legacy_api.get("/health")
 def health_check():
     static_dir = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))
     index_path = os.path.join(static_dir, "index.html")
@@ -409,9 +441,10 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.get("/api/auth/config", response_model=AuthConfigResponse)
+@api_v2.get("/auth/config", response_model=AuthConfigResponse)
+@legacy_api.get("/auth/config", response_model=AuthConfigResponse)
 def get_auth_config():
-    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "").strip().lower() in ("true", "1", "yes")
     return AuthConfigResponse(
         google_configured=is_google_configured(),
         google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
@@ -419,7 +452,8 @@ def get_auth_config():
     )
 
 
-@app.get("/api/auth/me", response_model=UserResponse)
+@api_v2.get("/auth/me", response_model=UserResponse)
+@legacy_api.get("/auth/me", response_model=UserResponse)
 def get_me(request: Request, response: Response, db: Session = Depends(get_db)):
     # If explicit API key or Authorization header was provided but invalid/unrecognized, reject with 401
     api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
@@ -444,7 +478,7 @@ def get_me(request: Request, response: Response, db: Session = Depends(get_db)):
     return current_user
 
 
-@app.get("/api/feature-flags", response_model=AvailableFeatureFlagsResponse)
+@api_v2.get("/feature-flags", response_model=AvailableFeatureFlagsResponse)
 def get_available_feature_flags(current_user: User = Depends(get_current_user)):
     """Return list of predefined valid feature flag constants."""
     return AvailableFeatureFlagsResponse(available_flags=KNOWN_FEATURE_FLAGS)
@@ -467,7 +501,8 @@ def _sync_user_flags_table(db: Session, user_id: int, requested_flags: List[str]
     return valid_flags
 
 
-@app.put("/api/auth/me/feature-flags", response_model=UserResponse)
+@api_v2.put("/auth/me/feature-flags", response_model=UserResponse)
+@legacy_api.put("/auth/me/feature-flags", response_model=UserResponse)
 def update_my_feature_flags(
     payload: UserUpdateFeatureFlagsRequest,
     current_user: User = Depends(get_current_user),
@@ -632,7 +667,7 @@ def _populate_user_stats(db: Session, users: List[User]):
         )
 
 
-@app.get("/api/users", response_model=List[UserResponse])
+@api_v2.get("/users", response_model=List[UserResponse])
 def list_users(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -649,7 +684,7 @@ def list_users(
     return users
 
 
-@app.put("/api/users/{user_id}/feature-flags", response_model=UserResponse)
+@api_v2.put("/users/{user_id}/feature-flags", response_model=UserResponse)
 def update_user_feature_flags(
     user_id: int,
     payload: UserUpdateFeatureFlagsRequest,
@@ -675,7 +710,8 @@ def update_user_feature_flags(
     return user
 
 
-@app.get("/api/auth/google/login")
+@api_v2.get("/auth/google/login")
+@legacy_api.get("/auth/google/login")
 def google_login(request: Request):
     if not is_google_configured():
         raise HTTPException(
@@ -685,7 +721,7 @@ def google_login(request: Request):
     
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
-        redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/google/callback"
+        redirect_uri = str(request.base_url).rstrip("/") + "/api/v2/auth/google/callback"
     
     state = uuid.uuid4().hex
     auth_url = get_google_auth_url(redirect_uri=redirect_uri, state=state)
@@ -694,7 +730,8 @@ def google_login(request: Request):
     return response
 
 
-@app.get("/api/auth/google/callback")
+@api_v2.get("/auth/google/callback")
+@legacy_api.get("/auth/google/callback")
 async def google_callback(
     request: Request,
     code: str = Query(...),
@@ -708,7 +745,7 @@ async def google_callback(
 
     redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
     if not redirect_uri:
-        redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/google/callback"
+        redirect_uri = str(request.base_url).rstrip("/") + "/api/v2/auth/google/callback"
     
     tokens = await exchange_google_code(code, redirect_uri=redirect_uri)
     access_token = tokens.get("access_token")
@@ -748,9 +785,9 @@ async def google_callback(
     return response
 
 
-@app.post("/api/auth/dev-login")
+@api_v2.post("/auth/dev-login")
 def dev_login(payload: DevLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
-    dev_enabled = os.getenv("DEV_AUTH", "false").lower() in ("true", "1", "yes")
+    dev_enabled = os.getenv("DEV_AUTH", "").strip().lower() in ("true", "1", "yes")
     if not dev_enabled:
         raise HTTPException(status_code=403, detail="Dev login is disabled in production")
     
@@ -778,7 +815,7 @@ def dev_login(payload: DevLoginRequest, request: Request, response: Response, db
     }
 
 
-@app.post("/api/auth/logout")
+@api_v2.post("/auth/logout")
 def logout(response: Response):
     response.delete_cookie(key=COOKIE_NAME, path="/")
     response.delete_cookie(key=MERCURE_COOKIE, path="/.well-known/mercure")
@@ -789,7 +826,7 @@ def logout(response: Response):
 # Admin API: User & Feature Flag Management
 # ---------------------------------------------------------------------------
 
-@app.get("/api/admin/users", response_model=List[UserResponse])
+@api_v2.get("/admin/users", response_model=List[UserResponse])
 def admin_get_users(
     admin: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
@@ -799,7 +836,7 @@ def admin_get_users(
     return users
 
 
-@app.patch("/api/admin/users/{user_id}", response_model=UserResponse)
+@api_v2.patch("/admin/users/{user_id}", response_model=UserResponse)
 def admin_update_user(
     user_id: int,
     payload: AdminUserUpdate,
@@ -820,7 +857,7 @@ def admin_update_user(
     return target_user
 
 
-@app.get("/api/config")
+@api_v2.get("/config")
 def get_config(response: Response, current_user: User = Depends(get_current_user)):
     set_subscriber_cookie(response, current_user.id)
     response.headers["Cache-Control"] = "no-store"
@@ -832,17 +869,55 @@ def get_config(response: Response, current_user: User = Depends(get_current_user
     }
 
 
-@app.get("/api/queue/status", response_model=QueueStatusResponse)
+@legacy_api.get("/queue/status", response_model=QueueStatusResponse)
 async def get_queue_status(current_user: User = Depends(get_current_user)):
     """Get active parsing queue status and recent tasks scoped to user."""
     return await queue_manager.get_status(user_id=current_user.id)
 
-@app.get("/api/queue/tasks", response_model=List[TaskInfo])
+@legacy_api.get("/queue/tasks", response_model=List[TaskInfo])
 async def get_queue_tasks(current_user: User = Depends(get_current_user)):
     """Get active tasks in the queue."""
     return await queue_manager.get_active_tasks(user_id=current_user.id)
 
-@app.delete("/api/queue/tasks/{task_id}")
+@legacy_api.get("/queue/links", response_model=QueueLinksResponse)
+async def get_queue_links(current_user: User = Depends(get_current_user)):
+    """Get active links and their processing stages for the current user."""
+    return await queue_manager.get_active_links(user_id=current_user.id)
+
+@api_v2.post("/queue/sync", status_code=202)
+async def sync_queue_state(current_user: User = Depends(get_current_user)):
+    """Ask the backend to republish the current queue snapshot; the data is delivered only via Mercure `queue_state`."""
+    await queue_manager.publish_queue_state(user_id=current_user.id)
+    return Response(status_code=202)
+
+@api_v2.delete("/queue/links")
+@api_v2.delete("/queue/clear")
+@legacy_api.delete("/queue/links")
+@legacy_api.delete("/queue/clear")
+async def clear_queue_links(current_user: User = Depends(get_current_user)):
+    """Clear/cancel all active and failed links in the processing queue for the current user."""
+    cleared_count = await queue_manager.clear_user_queue(user_id=current_user.id)
+    return {"message": "All queue links cleared", "cleared": cleared_count}
+
+@legacy_api.get("/queue/links/{task_id}", response_model=ProcessingLinkInfo)
+async def get_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
+    """Retrieve current stage and state of a single link task."""
+    info = await queue_manager.get_link_info(task_id=task_id, user_id=current_user.id)
+    if not info:
+        raise HTTPException(status_code=404, detail="Queue link task not found or access denied")
+    return info
+
+@api_v2.delete("/queue/links/{task_id}")
+@legacy_api.delete("/queue/links/{task_id}")
+async def cancel_queue_link(task_id: str, current_user: User = Depends(get_current_user)):
+    """Cancel/remove a link from the processing queue."""
+    success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
+    return {"message": "Link processing cancelled"}
+
+@api_v2.delete("/queue/tasks/{task_id}")
+@legacy_api.delete("/queue/tasks/{task_id}")
 async def cancel_queue_task(task_id: str, current_user: User = Depends(get_current_user)):
     """Cancel a task in the queue."""
     success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)
@@ -891,7 +966,7 @@ def convert_vacancy_salary(
     return res
 
 
-@app.get("/api/vacancies", response_model=List[VacancyResponse])
+@api_v2.get("/vacancies", response_model=List[VacancyResponse])
 def list_vacancies(
     status_filter: Optional[str] = Query(None, alias="status"),
     tag: Optional[str] = None,
@@ -952,7 +1027,7 @@ def list_vacancies(
     return [convert_vacancy_salary(v, target_currency, rates) for v in vacancies]
 
 
-@app.get("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
+@api_v2.get("/vacancies/{vacancy_id}", response_model=VacancyResponse)
 def get_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -971,7 +1046,7 @@ def get_vacancy(
     return convert_vacancy_salary(v, target_currency, rates)
 
 
-@app.post("/api/vacancies", response_model=VacancyResponse)
+@api_v2.post("/vacancies", response_model=VacancyResponse)
 async def create_vacancy(
     payload: VacancyCreate,
     current_user: User = Depends(get_current_user),
@@ -1030,7 +1105,7 @@ async def create_vacancy(
     return v
 
 
-@app.post("/api/vacancies/reorder")
+@api_v2.post("/vacancies/reorder")
 async def reorder_vacancies(
     payload: VacancyReorderRequest,
     current_user: User = Depends(get_current_user),
@@ -1115,7 +1190,7 @@ async def reorder_vacancies(
     return [VacancyResponse.model_validate(v) for v in changed]
 
 
-@app.patch("/api/vacancies/{vacancy_id}", response_model=VacancyResponse)
+@api_v2.patch("/vacancies/{vacancy_id}", response_model=VacancyResponse)
 async def update_vacancy(
     vacancy_id: int,
     payload: VacancyUpdate,
@@ -1216,7 +1291,7 @@ async def update_vacancy(
     return v
 
 
-@app.patch("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+@api_v2.patch("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
 async def update_vacancy_history_comment(
     vacancy_id: int,
     history_id: int,
@@ -1254,7 +1329,25 @@ async def update_vacancy_history_comment(
     return v
 
 
-@app.post("/api/vacancies/{vacancy_id}/history", response_model=VacancyResponse)
+@api_v2.get("/vacancies/{vacancy_id}/history", response_model=List[VacancyHistoryItem])
+def get_vacancy_history_list(
+    vacancy_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    v = db.query(Vacancy).filter(Vacancy.id == vacancy_id, Vacancy.user_id == current_user.id).first()
+    if not v:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    history_records = (
+        db.query(VacancyStatusHistory)
+        .filter(VacancyStatusHistory.vacancy_id == v.id)
+        .order_by(VacancyStatusHistory.changed_at.desc(), VacancyStatusHistory.id.desc())
+        .all()
+    )
+    return [VacancyHistoryItem.model_validate(h) for h in history_records]
+
+
+@api_v2.post("/vacancies/{vacancy_id}/history", response_model=VacancyResponse)
 async def add_vacancy_history_entry(
     vacancy_id: int,
     payload: VacancyHistoryCreate,
@@ -1307,7 +1400,7 @@ async def add_vacancy_history_entry(
     return v
 
 
-@app.delete("/api/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+@api_v2.delete("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
 async def delete_vacancy_history_entry(
     vacancy_id: int,
     history_id: int,
@@ -1343,7 +1436,7 @@ async def delete_vacancy_history_entry(
     return v
 
 
-@app.delete("/api/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT)
+@api_v2.delete("/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1371,7 +1464,7 @@ async def delete_vacancy(
     return None
 
 
-@app.post("/api/vacancies/check-duplicates", response_model=CheckDuplicatesResponse)
+@api_v2.post("/vacancies/check-duplicates", response_model=CheckDuplicatesResponse)
 async def check_duplicates(
     payload: CheckDuplicatesRequest,
     current_user: User = Depends(get_current_user),
@@ -1384,15 +1477,14 @@ async def check_duplicates(
     return duplicate_response(db, current_user.id, payload.urls)
 
 
-@app.post("/api/vacancies/batch", response_model=Union[AsyncBatchImportResponse, BatchImportResponse])
+@api_v2.post("/vacancies/batch", response_model=AsyncBatchImportResponse)
 async def batch_import_vacancies(
     payload: BatchImportRequest,
-    wait: bool = Query(False, description="If True, wait synchronously for all URLs to finish"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Enqueue a list of LinkedIn URLs to background queue, or optionally process synchronously.
+    Enqueue a list of LinkedIn URLs to background queue.
     """
     # Filter out blank lines, normalize URLs, and deduplicate
     unique_urls = []
@@ -1406,13 +1498,34 @@ async def batch_import_vacancies(
                 unique_urls.append(canonical_u)
 
     job_ids = {extract_job_id(url) for url in unique_urls} - {None}
+
+    # Deduplicate against URLs currently active in the queue for this user
+    active_in_queue = db.query(ProcessingQueueItem.normalized_url).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url.in_(unique_urls),
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).all() if unique_urls else []
+    already_queued_urls = {row[0] for row in active_in_queue}
+
+    urls_to_process = [u for u in unique_urls if u not in already_queued_urls]
+
+    if not urls_to_process and already_queued_urls:
+        return AsyncBatchImportResponse(
+            status="already_queued",
+            queued=0,
+            batch_id="",
+            message="Все переданные ссылки уже находятся в очереди обработки",
+            tasks=[],
+            already_in_queue=list(already_queued_urls),
+        )
+
     matches = db.query(Vacancy.id, Vacancy.job_id, Vacancy.url).filter(
         Vacancy.user_id == current_user.id,
-        or_(Vacancy.url.in_(unique_urls), Vacancy.job_id.in_(job_ids))).all() if unique_urls else []
+        or_(Vacancy.url.in_(urls_to_process), Vacancy.job_id.in_(job_ids))).all() if urls_to_process else []
     ids_by_job = {row.job_id: row.id for row in matches if row.job_id}
     ids_by_url = {row.url: row.id for row in matches}
     vacancy_ids = []
-    for url in unique_urls:
+    for url in urls_to_process:
         job_id = extract_job_id(url)
         existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
         if not existing_id:
@@ -1456,183 +1569,27 @@ async def batch_import_vacancies(
         else:
             vacancy_ids.append(existing_id)
 
-    if not wait:
-        # Default: Asynchronous queue processing
-        batch_id, tasks = await queue_manager.enqueue(
-            unique_urls, payload.default_tags, vacancy_ids=vacancy_ids, user_id=current_user.id
-        )
-        return AsyncBatchImportResponse(
-            status="queued",
-            queued=len(tasks),
-            batch_id=batch_id,
-            message=f"{len(tasks)} вакансий успешно добавлено в очередь на обработку",
-            tasks=[t.to_info() for t in tasks],
-        )
-
-    # Synchronous processing mode (if wait=True, e.g. for testing)
-    results: List[ImportItemResult] = []
-    imported_count = 0
-    failed_count = 0
-
-    for url in unique_urls:
-        try:
-            job_id = extract_job_id(url)
-            
-            existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
-            existing = db.get(Vacancy, existing_id) if existing_id else None
-
-            # Scrape vacancy via parser registry
-            scraped = await scrape_job(url)
-            
-            llm_provider = os.getenv("LLM_PROVIDER")
-            language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=current_user.id).lower()
-
-            # Run LLM summarization only if description is present
-            has_desc = bool(scraped.get("description") and scraped["description"].strip())
-            llm_res = {}
-            if has_desc:
-                llm_res = await analyze_vacancy_with_llm(
-                    title=scraped.get("title") or "Untitled",
-                    company=scraped.get("company") or "Unknown",
-                    location=scraped.get("location"),
-                    description=scraped.get("description"),
-                    provider=llm_provider,
-                    language=language,
-                    db=db,
-                    user_id=current_user.id,
-                )
-
-            # Combine tags
-            initial_tags = list(payload.default_tags)
-
-            if existing:
-                # Update existing vacancy
-                existing.title = scraped.get("title") or existing.title
-                existing.company = scraped.get("company") or existing.company
-                existing.company_url = scraped.get("company_url") or existing.company_url
-                existing.company_info = llm_res.get("company_info") or scraped.get("company_info")
-                existing.location = scraped.get("location") or existing.location
-                existing.city = scraped.get("city")
-                existing.country = scraped.get("country") or existing.country
-                existing.description = scraped.get("description") or existing.description
-                existing.ai_summary = llm_res.get("summary")
-                existing.tech_stack = llm_res.get("tech_stack", [])
-                
-                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
-                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
-                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
-                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
-                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
-                if s_min is not None: existing.salary_min = s_min
-                if s_max is not None: existing.salary_max = s_max
-                if s_curr is not None: existing.salary_currency = s_curr
-                if s_per is not None: existing.salary_period = s_per
-                if w_type: existing.workplace_type = w_type
-                if "is_closed" in scraped: existing.is_closed = scraped["is_closed"]
-                if scraped.get("source"): existing.source = scraped["source"]
-
-                # Merge tags without duplicating
-                current_tags = set(existing.tags or [])
-                for t in initial_tags:
-                    current_tags.add(t)
-                existing.tags = list(current_tags)
-                
-                db.commit()
-                db.refresh(existing)
-                
-                results.append(ImportItemResult(
-                    url=url,
-                    job_id=job_id,
-                    success=True,
-                    title=existing.title,
-                    company=existing.company,
-                    vacancy_id=existing.id,
-                ))
-                imported_count += 1
-            else:
-                # Create new vacancy
-                s_min = llm_res.get("salary_min") if llm_res.get("salary_min") is not None else scraped.get("salary_min")
-                s_max = llm_res.get("salary_max") if llm_res.get("salary_max") is not None else scraped.get("salary_max")
-                s_curr = llm_res.get("salary_currency") if llm_res.get("salary_currency") is not None else scraped.get("salary_currency")
-                s_per = llm_res.get("salary_period") if llm_res.get("salary_period") is not None else scraped.get("salary_period")
-                w_type = llm_res.get("workplace_type") or scraped.get("workplace_type")
-
-                new_v = Vacancy(
-                    user_id=current_user.id,
-                    job_id=scraped.get("job_id"),
-                    source=scraped.get("source"),
-                    url=url,
-                    title=scraped.get("title") or "Untitled",
-                    company=scraped.get("company") or "Unknown",
-                    company_url=scraped.get("company_url"),
-                    company_info=llm_res.get("company_info") or scraped.get("company_info"),
-                    location=llm_res.get("location") if (not scraped.get("location") or scraped.get("location") == "Not specified") else scraped.get("location"),
-                    city=scraped.get("city"),
-                    country=scraped.get("country"),
-                    description=scraped.get("description"),
-                    workplace_type=w_type,
-                    is_closed=scraped.get("is_closed", False),
-                    salary_min=s_min,
-                    salary_max=s_max,
-                    salary_currency=s_curr,
-                    salary_period=s_per,
-                    ai_summary=llm_res.get("summary"),
-                    tech_stack=llm_res.get("tech_stack", []),
-                    tags=initial_tags,
-                    status=STATUS_NOT_CONTACTED,
-                )
-                db.add(new_v)
-                db.flush()
-                db.add(VacancyStatusHistory(
-                    vacancy_id=new_v.id,
-                    from_status=None,
-                    to_status=new_v.status,
-                    created_at=new_v.created_at,
-                ))
-                db.commit()
-                db.refresh(new_v)
-
-                mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-                vacancy_data = VacancyResponse.model_validate(new_v).model_dump(mode="json")
-                await publish_mercure_event(
-                        event_type=EVENT_VACANCY_CREATED,
-                        data={
-                            "message_code": MSG_VACANCY_CREATED,
-                            "vacancy": vacancy_data,
-                            "url": url,
-                        },
-                        topic=mercure_topic,
-                    )
-
-                results.append(ImportItemResult(
-                    url=url,
-                    job_id=job_id,
-                    success=True,
-                    title=new_v.title,
-                    company=new_v.company,
-                    vacancy_id=new_v.id,
-                ))
-                imported_count += 1
-
-        except Exception as e:
-            logger.error(f"Failed to process vacancy {url}: {e}", exc_info=True)
-            results.append(ImportItemResult(
-                url=url,
-                job_id=extract_job_id(url),
-                success=False,
-                error=str(e),
-            ))
-            failed_count += 1
-
-    return BatchImportResponse(
-        total=len(unique_urls),
-        imported=imported_count,
-        failed=failed_count,
-        results=results,
+    batch_id, tasks = await queue_manager.enqueue(
+        urls_to_process,
+        payload.default_tags,
+        vacancy_ids=vacancy_ids,
+        user_id=current_user.id,
+        force_cv_scoring=False,
+    )
+    msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
+    if already_queued_urls:
+        msg += f" ({len(already_queued_urls)} уже в очереди)"
+    return AsyncBatchImportResponse(
+        status="queued",
+        queued=len(tasks),
+        batch_id=batch_id,
+        message=msg,
+        tasks=[t.to_info() for t in tasks],
+        already_in_queue=list(already_queued_urls),
     )
 
 
-@app.post("/api/vacancies/{vacancy_id}/resummarize", response_model=VacancyResponse)
+@api_v2.post("/vacancies/{vacancy_id}/resummarize", response_model=VacancyResponse)
 async def resummarize_vacancy(
     vacancy_id: int,
     language: Optional[str] = Query(None),
@@ -1705,7 +1662,7 @@ async def resummarize_vacancy(
     return v
 
 
-@app.post("/api/vacancies/{vacancy_id}/reparse")
+@api_v2.post("/vacancies/{vacancy_id}/reparse")
 async def reparse_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1719,8 +1676,26 @@ async def reparse_vacancy(
     if not v.url:
         raise HTTPException(status_code=400, detail="У вакансии отсутствует ссылка (URL)")
 
+    clean_url = normalize_url(v.url.strip())
+    active_in_queue = db.query(ProcessingQueueItem).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url == clean_url,
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).first()
+    if active_in_queue:
+        return {
+            "status": "already_queued",
+            "batch_id": "",
+            "task_id": active_in_queue.task_id,
+            "message": "Вакансия уже находится в очереди обработки",
+        }
+
     batch_id, tasks = await queue_manager.enqueue(
-        [v.url], default_tags=[], vacancy_ids=[v.id], user_id=current_user.id
+        [v.url],
+        default_tags=[],
+        vacancy_ids=[v.id],
+        user_id=current_user.id,
+        force_cv_scoring=True,
     )
     return {
         "status": "queued",
@@ -1730,27 +1705,56 @@ async def reparse_vacancy(
     }
 
 
-@app.post("/api/vacancies/reparse_all")
+@api_v2.post("/vacancies/reparse_all")
 async def reparse_all_vacancies(
+    payload: Optional[ReparseAllRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add all vacancies with valid URLs to background processing queue to re-scrape and update DB."""
-    vacancies = db.query(Vacancy).filter(
-        Vacancy.user_id == current_user.id,
-        Vacancy.url != None,
-        Vacancy.url != "",
-        Vacancy.status != "Отказ",
-    ).all()
+    """Add vacancies with valid URLs to background processing queue to re-scrape and update DB."""
+    has_selected_ids = bool(payload and payload.ids)
+    if has_selected_ids:
+        vacancies = db.query(Vacancy).filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.id.in_(payload.ids),
+            Vacancy.url != None,
+            Vacancy.url != "",
+        ).all()
+        force_scoring = True
+    else:
+        vacancies = db.query(Vacancy).filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.url != None,
+            Vacancy.url != "",
+            Vacancy.status != "Отказ",
+        ).all()
+        force_scoring = False
 
     if not vacancies:
         return {"message": "Нет вакансий для обновления", "enqueued": 0}
 
     urls = [v.url for v in vacancies]
-    vacancy_ids = [v.id for v in vacancies]
+    norm_urls = [normalize_url(u.strip()) for u in urls if u and normalize_url(u.strip())]
+    active_in_queue = db.query(ProcessingQueueItem.normalized_url).filter(
+        ProcessingQueueItem.user_id == current_user.id,
+        ProcessingQueueItem.normalized_url.in_(norm_urls),
+        ProcessingQueueItem.status.in_(["pending", "processing"]),
+    ).all() if norm_urls else []
+    already_queued = {r[0] for r in active_in_queue}
+
+    vacs_to_reparse = [v for v in vacancies if normalize_url(v.url.strip()) not in already_queued]
+    if not vacs_to_reparse:
+        return {"message": "Все вакансии уже находятся в очереди обновления", "enqueued": 0}
+
+    urls_to_enqueue = [v.url for v in vacs_to_reparse]
+    vacancy_ids = [v.id for v in vacs_to_reparse]
 
     batch_id, tasks = await queue_manager.enqueue(
-        urls=urls, default_tags=[], vacancy_ids=vacancy_ids, user_id=current_user.id
+        urls=urls_to_enqueue,
+        default_tags=[],
+        vacancy_ids=vacancy_ids,
+        user_id=current_user.id,
+        force_cv_scoring=force_scoring,
     )
     
     return {
@@ -1761,7 +1765,7 @@ async def reparse_all_vacancies(
     }
 
 
-@app.get("/api/tags", response_model=List[str])
+@api_v2.get("/tags", response_model=List[str])
 def list_unique_tags(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1775,7 +1779,7 @@ def list_unique_tags(
     return sorted(list(all_tags))
 
 
-@app.get("/api/countries", response_model=List[str])
+@api_v2.get("/countries", response_model=List[str])
 def list_countries(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1791,7 +1795,7 @@ def list_countries(
     return sorted(list(countries))
 
 
-@app.get("/api/cities", response_model=List[str])
+@api_v2.get("/cities", response_model=List[str])
 def list_cities(
     country: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -1806,7 +1810,7 @@ def list_cities(
     return sorted(list(cities))
 
 
-@app.get("/api/sources", response_model=List[str])
+@api_v2.get("/sources", response_model=List[str])
 def list_sources(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1822,7 +1826,7 @@ def list_sources(
     return sorted(list(sources))
 
 
-@app.get("/api/settings", response_model=SettingsResponse)
+@api_v2.get("/settings", response_model=SettingsResponse)
 def get_settings(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1841,7 +1845,7 @@ def get_settings(
     )
 
 
-@app.post("/api/settings", response_model=SettingsResponse)
+@api_v2.post("/settings", response_model=SettingsResponse)
 def update_settings(
     payload: SettingsUpdateRequest,
     current_user: User = Depends(get_current_user),
@@ -1895,7 +1899,7 @@ def update_settings(
     return get_settings(current_user=current_user, db=db)
 
 
-@app.get("/api/exchange-rates", response_model=ExchangeRatesResponse)
+@api_v2.get("/exchange-rates", response_model=ExchangeRatesResponse)
 def get_exchange_rates(
     db: Session = Depends(get_db),
 ):
@@ -1916,8 +1920,7 @@ def get_exchange_rates(
     )
 
 
-
-@app.get("/api/api-keys", response_model=List[ApiKeyResponse])
+@api_v2.get("/api-keys", response_model=List[ApiKeyResponse])
 def list_api_keys(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -1938,7 +1941,7 @@ def list_api_keys(
     return keys
 
 
-@app.post("/api/api-keys", response_model=ApiKeyCreatedResponse)
+@api_v2.post("/api-keys", response_model=ApiKeyCreatedResponse)
 def create_api_key(
     payload: ApiKeyCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -1980,7 +1983,7 @@ def create_api_key(
     )
 
 
-@app.delete("/api/api-keys/{key_id}")
+@api_v2.delete("/api-keys/{key_id}")
 def revoke_api_key(
     key_id: int,
     current_user: User = Depends(get_current_user),
@@ -2000,7 +2003,7 @@ def revoke_api_key(
     return {"status": "ok", "message": "API key revoked"}
 
 
-@app.get("/api/columns", response_model=List[ColumnItem])
+@api_v2.get("/columns", response_model=List[ColumnItem])
 def list_columns(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -2010,7 +2013,7 @@ def list_columns(
     return [ColumnItem(**c) for c in cols]
 
 
-@app.post("/api/columns", response_model=List[ColumnItem])
+@api_v2.post("/columns", response_model=List[ColumnItem])
 def create_column(
     payload: ColumnCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -2043,8 +2046,8 @@ def create_column(
     return [ColumnItem(**c) for c in cols]
 
 
-@app.patch("/api/columns/{column_id}", response_model=List[ColumnItem])
-def update_column(
+@api_v2.patch("/columns/{column_id}", response_model=List[ColumnItem])
+async def update_column(
     column_id: str,
     payload: ColumnUpdateRequest,
     current_user: User = Depends(get_current_user),
@@ -2057,6 +2060,7 @@ def update_column(
         raise HTTPException(status_code=404, detail="Column not found")
 
     target = cols[target_idx]
+    vacancies_to_rename = []
 
     if payload.new_name is not None:
         new_name = payload.new_name.strip()
@@ -2068,6 +2072,11 @@ def update_column(
             raise HTTPException(status_code=400, detail=f"Column with name '{new_name}' already exists")
 
         if new_name != column_id:
+            vacancies_to_rename = db.query(Vacancy).filter(
+                Vacancy.user_id == current_user.id,
+                Vacancy.status == column_id
+            ).all()
+
             # Update all vacancies belonging to current user that have this status
             db.query(Vacancy).filter(
                 Vacancy.user_id == current_user.id,
@@ -2100,11 +2109,26 @@ def update_column(
     save_user_columns(db, current_user.id, cols)
     touch_user_board_interaction(db, current_user.id)
     db.commit()
+
+    if vacancies_to_rename:
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        for v in vacancies_to_rename:
+            db.refresh(v)
+            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                },
+                topic=mercure_topic,
+            )
+
     return [ColumnItem(**c) for c in cols]
 
 
-@app.delete("/api/columns/{column_id}", response_model=List[ColumnItem])
-def delete_column(
+@api_v2.delete("/columns/{column_id}", response_model=List[ColumnItem])
+async def delete_column(
     column_id: str,
     migrate_to: Optional[str] = Query(STATUS_NOT_CONTACTED, alias="migrate_to"),
     current_user: User = Depends(get_current_user),
@@ -2146,10 +2170,25 @@ def delete_column(
     save_user_columns(db, current_user.id, remaining_cols)
     touch_user_board_interaction(db, current_user.id)
     db.commit()
+
+    if vacancies_to_migrate:
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        for v in vacancies_to_migrate:
+            db.refresh(v)
+            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                },
+                topic=mercure_topic,
+            )
+
     return [ColumnItem(**c) for c in remaining_cols]
 
 
-@app.put("/api/columns/order", response_model=List[ColumnItem])
+@api_v2.put("/columns/order", response_model=List[ColumnItem])
 def reorder_columns(
     payload: ColumnsOrderRequest,
     current_user: User = Depends(get_current_user),
@@ -2167,7 +2206,8 @@ def reorder_columns(
     return [ColumnItem(**c) for c in cols_data]
 
 
-@app.get("/api/extension/tasks", response_model=List[ExtensionTaskResponse])
+@api_v2.get("/extension/tasks", response_model=List[ExtensionTaskResponse])
+@legacy_api.get("/extension/tasks", response_model=List[ExtensionTaskResponse])
 async def get_extension_tasks(current_user: User = Depends(get_current_user)):
     redis = queue_manager.redis
     if not redis: return []
@@ -2181,7 +2221,8 @@ async def get_extension_tasks(current_user: User = Depends(get_current_user)):
                 tasks.append(ExtensionTaskResponse(task_id=t.task_id, url=t.url))
     return tasks
 
-@app.get("/api/extension/mercure_config")
+@api_v2.get("/extension/mercure_config")
+@legacy_api.get("/extension/mercure_config")
 async def get_extension_mercure_config(response: Response, current_user: User = Depends(get_current_user)):
     set_subscriber_cookie(response, current_user.id)
     response.headers["Cache-Control"] = "no-store"
@@ -2190,7 +2231,8 @@ async def get_extension_mercure_config(response: Response, current_user: User = 
         "topic": f"vacancies:{current_user.id}"
     }
 
-@app.post("/api/extension/ping")
+@api_v2.post("/extension/ping")
+@legacy_api.post("/extension/ping")
 async def extension_ping(payload: Optional[Dict[str, Any]] = None, current_user: User = Depends(get_current_user)):
     redis = queue_manager.redis
     if redis:
@@ -2199,7 +2241,8 @@ async def extension_ping(payload: Optional[Dict[str, Any]] = None, current_user:
             await redis.set(f"extension:version:{current_user.id}", str(payload["version"]), ex=604800)
     return {"status": "ok"}
 
-@app.get("/api/extension/changelog")
+@api_v2.get("/extension/changelog")
+@legacy_api.get("/extension/changelog")
 async def get_extension_changelog():
     changelog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "extension", "changelog.json")
     if not os.path.exists(changelog_path):
@@ -2213,7 +2256,8 @@ async def get_extension_changelog():
             logger.warning(f"Failed to read extension changelog: {e}")
     return {"latest_version": "1.0.7", "releases": {}}
 
-@app.get("/api/extension/status")
+@api_v2.get("/extension/status")
+@legacy_api.get("/extension/status")
 async def extension_status(current_user: User = Depends(get_current_user)):
     # extension_id lets the web app ping the extension via externally_connectable
     extension_id = os.getenv("EXTENSION_ID") or None
@@ -2228,7 +2272,8 @@ async def extension_status(current_user: User = Depends(get_current_user)):
         "last_known_version": last_version if last_version else None
     }
 
-@app.post("/api/extension/tasks/{task_id}/result")
+@api_v2.post("/extension/tasks/{task_id}/result")
+@legacy_api.post("/extension/tasks/{task_id}/result")
 async def submit_extension_task_result(
     task_id: str, 
     payload: Dict[str, Any],
@@ -2245,7 +2290,8 @@ async def submit_extension_task_result(
                 
     return await queue_manager.process_extension_result(task_id, payload)
 
-@app.post("/api/extension/tasks/{task_id}/error")
+@api_v2.post("/extension/tasks/{task_id}/error")
+@legacy_api.post("/extension/tasks/{task_id}/error")
 async def submit_extension_task_error(
     task_id: str,
     payload: Dict[str, Any],
@@ -2262,7 +2308,8 @@ async def submit_extension_task_error(
 
     return await queue_manager.report_extension_failure(task_id, str(payload.get("error") or "")[:500])
 
-@app.post("/api/extension/log")
+@api_v2.post("/extension/log")
+@legacy_api.post("/extension/log")
 async def extension_remote_log(payload: Dict[str, Any]):
     level = (payload.get("level") or "info").lower()
     msg = payload.get("message") or ""
@@ -2277,7 +2324,8 @@ async def extension_remote_log(payload: Dict[str, Any]):
     return {"status": "ok"}
 
 
-@app.post("/api/extension/parse_and_add")
+@api_v2.post("/extension/parse_and_add")
+@legacy_api.post("/extension/parse_and_add")
 async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     raw_url = payload.get("url", "")
     html = payload.get("html")
@@ -2365,8 +2413,24 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     # enqueue into scrape pipeline so extension will open tab and extract DOM.
     parser = parser_registry.find(url)
     if not payload.get("html") and parser and parser.needs_extension:
+        if not is_new:
+            mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+            vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+            await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={
+                    "message_code": MSG_VACANCY_UPDATED,
+                    "vacancy": vacancy_data,
+                    "url": url,
+                },
+                topic=mercure_topic,
+            )
         batch_id, tasks = await queue_manager.enqueue(
-            [url], default_tags=[], vacancy_ids=[vacancy.id], user_id=current_user.id
+            [url],
+            default_tags=[],
+            vacancy_ids=[vacancy.id],
+            user_id=current_user.id,
+            force_cv_scoring=False,
         )
         return {"status": "queued", "vacancy_id": vacancy.id, "batch_id": batch_id}
 
@@ -2430,7 +2494,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     return {"status": "queued_for_ai", "vacancy_id": vacancy.id, "task_id": task_id}
 
 
-@app.get("/api/stats")
+@api_v2.get("/stats")
 def get_stats(
     tz_offset: int = Query(0, description="Client offset in minutes, as JS Date.getTimezoneOffset()"),
     days: int = Query(365, ge=7, le=730),
@@ -2487,7 +2551,7 @@ def get_stats(
 # =====================================================================
 
 
-@app.post("/api/cv/anonymize-companies", response_model=AnonymizeCompaniesResponse)
+@api_v2.post("/cv/anonymize-companies", response_model=AnonymizeCompaniesResponse)
 async def anonymize_companies(
     payload: AnonymizeCompaniesRequest,
     current_user: User = Depends(get_current_user),
@@ -2520,7 +2584,8 @@ async def anonymize_companies(
         )
 
 
-@app.get("/api/cv/approved", response_model=Optional[ApprovedCVResponse])
+@api_v2.get("/cv", response_model=Optional[ApprovedCVResponse])
+@api_v2.get("/cv/approved", response_model=Optional[ApprovedCVResponse])
 def get_approved_cv(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -2532,15 +2597,16 @@ def get_approved_cv(
     return ApprovedCVResponse.model_validate(approved_cv)
 
 
-@app.post("/api/cv/approved", response_model=ApprovedCVResponse)
-def save_approved_cv(
+@api_v2.post("/cv/approved", response_model=ApprovedCVResponse)
+async def save_approved_cv(
     payload: ApprovedCVCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Stores or replaces the user's approved anonymized CV.
-    Marks any existing compatibility analyses as outdated since the CV revision changed.
+    Marks any existing compatibility analyses as outdated since the CV revision changed,
+    and enqueues a CV compatibility scoring task for every user vacancy.
     """
     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first()
     now = datetime.datetime.utcnow()
@@ -2568,10 +2634,23 @@ def save_approved_cv(
 
     db.commit()
     db.refresh(approved_cv)
+
+    user_vacancies = (
+        db.query(Vacancy)
+        .filter(
+            Vacancy.user_id == current_user.id,
+            Vacancy.status == STATUS_NOT_CONTACTED,
+        )
+        .order_by(Vacancy.id.asc())
+        .all()
+    )
+    if user_vacancies:
+        await queue_manager.enqueue_cv_scoring(user_vacancies, current_user.id)
+
     return ApprovedCVResponse.model_validate(approved_cv)
 
 
-@app.delete("/api/cv/approved", status_code=status.HTTP_204_NO_CONTENT)
+@api_v2.delete("/cv/approved", status_code=status.HTTP_204_NO_CONTENT)
 def delete_approved_cv(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -2586,7 +2665,7 @@ def delete_approved_cv(
     return None
 
 
-@app.get("/api/vacancies/{vacancy_id}/compatibility", response_model=Optional[VacancyCVAnalysisResponse])
+@api_v2.get("/vacancies/{vacancy_id}/compatibility", response_model=Optional[VacancyCVAnalysisResponse])
 def get_vacancy_compatibility(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -2622,8 +2701,7 @@ def get_vacancy_compatibility(
         scoring_policy_version=analysis.scoring_policy_version,
         model_id=analysis.model_id,
         overall_score=analysis.overall_score,
-        llm_score=res_data.get("llmScore"),
-        calculated_score=res_data.get("calculatedScore"),
+        calculated_score=res_data.get("calculatedScore", analysis.overall_score),
         is_outdated=is_outdated,
         summary=res_data.get("summary", ""),
         matched_requirements=res_data.get("matchedRequirements", []),
@@ -2639,7 +2717,7 @@ def get_vacancy_compatibility(
     )
 
 
-@app.post("/api/vacancies/{vacancy_id}/compatibility", response_model=VacancyCVAnalysisResponse)
+@api_v2.post("/vacancies/{vacancy_id}/compatibility", response_model=VacancyCVAnalysisResponse)
 async def analyze_vacancy_compatibility(
     vacancy_id: int,
     force: bool = Query(False, description="Force re-analysis even if a cached result exists"),
@@ -2786,8 +2864,7 @@ async def analyze_vacancy_compatibility(
                 "vacancy_id": vacancy.id,
                 "match_score": overall_score,
                 "overall_score": overall_score,
-                "llm_score": eval_data.get("llmScore"),
-                "calculated_score": eval_data.get("calculatedScore"),
+                "calculated_score": eval_data.get("calculatedScore", overall_score),
                 "summary": eval_data.get("summary"),
                 "matched_requirements": eval_data.get("matchedRequirements", []),
                 "missing_requirements": eval_data.get("missingRequirements", []),
@@ -2806,8 +2883,7 @@ async def analyze_vacancy_compatibility(
         scoring_policy_version=analysis_record.scoring_policy_version,
         model_id=analysis_record.model_id,
         overall_score=analysis_record.overall_score,
-        llm_score=eval_data.get("llmScore"),
-        calculated_score=eval_data.get("calculatedScore"),
+        calculated_score=eval_data.get("calculatedScore", analysis_record.overall_score),
         is_outdated=False,
         summary=eval_data.get("summary", ""),
         matched_requirements=eval_data.get("matchedRequirements", []),
@@ -2823,7 +2899,7 @@ async def analyze_vacancy_compatibility(
     )
 
 
-@app.post("/api/vacancies/{vacancy_id}/adapt-cv", response_model=VacancyCVAnalysisResponse)
+@api_v2.post("/vacancies/{vacancy_id}/adapt-cv", response_model=VacancyCVAnalysisResponse)
 async def adapt_cv_for_vacancy(
     vacancy_id: int,
     payload: Optional[AdaptCVRequest] = None,
@@ -2965,8 +3041,7 @@ async def adapt_cv_for_vacancy(
         scoring_policy_version=analysis_record.scoring_policy_version,
         model_id=analysis_record.model_id,
         overall_score=analysis_record.overall_score,
-        llm_score=res_data.get("llmScore"),
-        calculated_score=res_data.get("calculatedScore"),
+        calculated_score=res_data.get("calculatedScore", analysis_record.overall_score),
         is_outdated=analysis_record.is_outdated,
         summary=res_data.get("summary", ""),
         matched_requirements=res_data.get("matchedRequirements", []),
@@ -2982,6 +3057,11 @@ async def adapt_cv_for_vacancy(
     )
 
 
+
+
+# Include Unified API v2 and Legacy API routers
+app.include_router(api_v2)
+app.include_router(legacy_api)
 
 # Static files mount for built React frontend
 STATIC_DIR = os.getenv("STATIC_DIR", os.path.join(os.path.dirname(__file__), "../frontend/dist"))
