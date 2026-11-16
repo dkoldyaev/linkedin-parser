@@ -152,7 +152,73 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
-def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+def get_current_user_frontend_only(request: Request, db: Session = Depends(get_db)) -> User:
+    """
+    Authenticate user via session cookie or Bearer JWT token ONLY.
+    API keys (X-API-Key or Bearer ak_...) are explicitly rejected with 403 Forbidden.
+    """
+    api_key_header = request.headers.get("X-API-Key") or request.headers.get("x-api-key")
+    auth_header = request.headers.get("Authorization")
+    if api_key_header:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key access is not allowed on this endpoint. Use browser session."
+        )
+    if auth_header and auth_header.strip().startswith("Bearer ak_"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="API key access is not allowed on this endpoint. Use browser session."
+        )
+
+    token = None
+    if COOKIE_NAME in request.cookies:
+        token = request.cookies[COOKIE_NAME]
+    if not token and auth_header and auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_access_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        user_id_int = int(payload.get("sub"))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    user = db.query(User).filter(User.id == user_id_int).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    db_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+    if not db_flags and user.feature_flags and isinstance(user.feature_flags, list):
+        for flag_name in user.feature_flags:
+            if flag_name in KNOWN_FEATURE_FLAGS:
+                db.add(UserFeatureFlag(user_id=user.id, flag=flag_name))
+        db.commit()
+        db_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == user.id).all()]
+    user.feature_flags = db_flags
+
+    return user
+
+
+def get_current_admin_user(current_user: User = Depends(get_current_user_frontend_only)) -> User:
     user_flags = current_user.feature_flags or []
     if "admin" not in user_flags:
         raise HTTPException(

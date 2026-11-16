@@ -147,6 +147,7 @@ class VacancyResponse(VacancyBase):
     sort_order: Optional[float] = None
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
+    compatibility: Optional[Any] = None
 
     @computed_field
     @property

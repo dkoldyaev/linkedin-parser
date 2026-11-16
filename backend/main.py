@@ -89,6 +89,7 @@ from .schemas import (
 from .auth import (
     get_current_user,
     get_current_admin_user,
+    get_current_user_frontend_only,
     get_current_user_from_api_key,
     get_optional_user,
     is_google_configured,
