@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import { Badge, type BadgeSize, type BadgeTone, type BadgeVariant } from '../../atoms';
+import { Input } from '../../atoms/Input';
+import { TokenList } from '../../molecules/TokenList';
+import { cn } from '../../utils';
+import styles from './TagsList.module.css';
+
+export interface TagsListProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
+  /** Array of tag strings */
+  readonly value: readonly string[];
+  /** Callback fired when tags are added or removed */
+  readonly onChange?: (nextTags: string[]) => void;
+  /** Whether tags can be removed (shows delete 'X' button on each badge) */
+  readonly deletable?: boolean;
+  /** Whether the inline text input for adding new tags is visible */
+  readonly addable?: boolean;
+  /** Maximum number of tags visible before truncating into a "+N" counter badge */
+  readonly maxVisible?: number;
+  /**
+   * Character delimiter that immediately splits and creates tags on typing.
+   * e.g. "," -> typing "react, typescript" commits items.
+   * @default ","
+   */
+  readonly separator?: string;
+  /** Badge visual variant */
+  readonly variant?: BadgeVariant;
+  /** Badge size preset */
+  readonly size?: BadgeSize;
+  /** Semantic tone for badges */
+  readonly tone?: BadgeTone;
+  /** Leading icon for each badge */
+  readonly icon?: React.ReactNode;
+  /** Input placeholder */
+  readonly placeholder?: string;
+  /** Callback when input loses focus or cancels */
+  readonly onFinishAdd?: () => void;
+  readonly className?: string;
+}
+
+/**
+ * TagsList organism.
+ * Manages an editable list of tags/chips rendered inside a TokenList container.
+ * Supports removal (`deletable`), inline text addition (`addable`), and typing delimiters (`separator`).
+ */
+export function TagsList({
+  value = [],
+  onChange,
+  deletable = false,
+  addable = false,
+  maxVisible,
+  separator = ',',
+  variant = 'chip',
+  size = 'sm',
+  tone = 'neutral',
+  icon,
+  placeholder = 'Добавить...',
+  onFinishAdd,
+  className,
+  ...rest
+}: TagsListProps): React.ReactElement {
+  const [inputValue, setInputValue] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const commitTags = (raw: string) => {
+    if (!raw.trim()) {
+      return;
+    }
+    const parts = separator
+      ? raw
+          .split(separator)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [raw.trim()];
+
+    if (parts.length === 0) {
+      return;
+    }
+
+    const next = [...value];
+    for (const part of parts) {
+      if (!next.includes(part)) {
+        next.push(part);
+      }
+    }
+    onChange?.(next);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (separator && val.includes(separator)) {
+      const parts = val.split(separator);
+      const remaining = parts.pop() ?? '';
+      commitTags(parts.join(separator));
+      setInputValue(remaining);
+    } else {
+      setInputValue(val);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitTags(inputValue);
+      setInputValue('');
+    } else if (e.key === 'Escape') {
+      setInputValue('');
+      onFinishAdd?.();
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputValue.trim()) {
+      commitTags(inputValue);
+      setInputValue('');
+    }
+    onFinishAdd?.();
+  };
+
+  const handleRemove = (tagToRemove: string) => {
+    const next = value.filter((t) => t !== tagToRemove);
+    onChange?.(next);
+  };
+
+  const visibleTags =
+    maxVisible !== undefined && maxVisible > 0 && !isExpanded
+      ? value.slice(0, maxVisible)
+      : value;
+
+  const hiddenCount =
+    maxVisible !== undefined && maxVisible > 0 && !isExpanded
+      ? Math.max(0, value.length - maxVisible)
+      : 0;
+
+  return (
+    <TokenList className={cn(styles.tagsList, className)} {...rest}>
+      {visibleTags.map((tag) => (
+        <Badge
+          key={tag}
+          variant={variant}
+          size={size}
+          tone={tone}
+          icon={icon}
+          onRemove={deletable ? () => handleRemove(tag) : undefined}
+        >
+          {tag}
+        </Badge>
+      ))}
+
+      {hiddenCount > 0 && (
+        <Badge
+          variant="counter"
+          size={size}
+          interactive
+          onClick={() => setIsExpanded(true)}
+          aria-label={`Show ${hiddenCount} more tags`}
+        >
+          +{hiddenCount}
+        </Badge>
+      )}
+
+      {addable && (
+        <Input
+          autoFocus
+          className={styles.addInput}
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          aria-label={placeholder}
+        />
+      )}
+    </TokenList>
+  );
+}

@@ -1,4 +1,8 @@
 export {
+  TagsList,
+  type TagsListProps,
+} from './TagsList';
+export {
   Modal,
   ModalHeader,
   ModalHeaderMeta,

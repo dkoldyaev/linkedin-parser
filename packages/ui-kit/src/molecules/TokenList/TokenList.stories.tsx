@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Tag } from 'lucide-react';
 import { TokenList } from './TokenList';
+import { Badge, Icon } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof TokenList> = {
@@ -12,73 +13,59 @@ const meta: Meta<typeof TokenList> = {
 export default meta;
 type Story = StoryObj<typeof TokenList>;
 
-export const ReadonlyChips: Story = {
-  args: {
-    mode: 'readonly',
-    tokens: ['TypeScript', 'React 19', 'Symfony 7', 'PostgreSQL', 'Docker', 'Mercure SSE'],
-    maxVisible: 4,
-  },
-};
-
-export const ReadonlyTagsWithPrefix: Story = {
-  args: {
-    mode: 'readonly',
-    variant: 'tag',
-    prefix: '#',
-    tokens: ['fintech', 'visa-sponsorship', 'product-company', 'b2b'],
-  },
-};
-
-function SelectableDemo(): React.ReactElement {
-  const [selected, setSelected] = useState<string[]>(['TypeScript', 'React']);
-  return (
-    <div className={layoutStyles.stack}>
-      <TokenList
-        mode="selectable"
-        label="Filter by Technology"
-        items={[
-          { label: 'TypeScript', count: 18 },
-          { label: 'React', count: 14 },
-          { label: 'Node.js', count: 9 },
-          { label: 'GraphQL', count: 5 },
-          { label: 'Docker', count: 11 },
-        ]}
-        selectedTokens={selected}
-        onToggleToken={(token) =>
-          setSelected((prev) =>
-            prev.includes(token) ? prev.filter((t) => t !== token) : [...prev, token]
-          )
-        }
-      />
+export const Default: Story = {
+  render: () => (
+    <div className={layoutStyles.container}>
+      <TokenList>
+        <Badge variant="chip" size="sm" tone="info">
+          TypeScript
+        </Badge>
+        <Badge variant="chip" size="sm" tone="accent">
+          React
+        </Badge>
+        <Badge variant="chip" size="sm" tone="success">
+          Node.js
+        </Badge>
+        <Badge variant="chip" size="sm" tone="neutral">
+          Docker
+        </Badge>
+      </TokenList>
     </div>
-  );
-}
-
-export const Selectable: Story = {
-  render: () => <SelectableDemo />,
+  ),
 };
 
-function EditableDemo(): React.ReactElement {
-  const [tokens, setTokens] = useState<string[]>([
-    'TypeScript',
-    'React',
-    'Next.js',
-    'GraphQL',
-  ]);
-  return (
-    <div className={layoutStyles.stack}>
-      <TokenList
-        mode="editable"
-        label="Tech Stack"
-        tokens={tokens}
-        onChange={setTokens}
-        placeholder="Add technology..."
-        addLabel="Add technology"
-      />
+export const TagsWithRemove: Story = {
+  render: () => (
+    <div className={layoutStyles.container}>
+      <TokenList>
+        <Badge
+          variant="outline"
+          size="xs"
+          tone="neutral"
+          icon={<Icon icon={Tag} size="2xs" />}
+          onRemove={() => alert('Remove fintech')}
+        >
+          fintech
+        </Badge>
+        <Badge
+          variant="outline"
+          size="xs"
+          tone="neutral"
+          icon={<Icon icon={Tag} size="2xs" />}
+          onRemove={() => alert('Remove remote')}
+        >
+          remote
+        </Badge>
+        <Badge
+          variant="outline"
+          size="xs"
+          tone="neutral"
+          icon={<Icon icon={Tag} size="2xs" />}
+          onRemove={() => alert('Remove b2b')}
+        >
+          b2b
+        </Badge>
+      </TokenList>
     </div>
-  );
-}
-
-export const Editable: Story = {
-  render: () => <EditableDemo />,
+  ),
 };

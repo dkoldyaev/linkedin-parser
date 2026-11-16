@@ -179,22 +179,23 @@ function ComposedVacancyCard({
         ) : null}
 
         {techStack.length > 0 && (
-          <TokenList
-            mode="readonly"
-            size="xs"
-            tokens={techStack}
-            maxVisible={4}
-          />
+          <TokenList>
+            {techStack.slice(0, 4).map((tech) => (
+              <Badge key={tech} size="xs" variant="chip">
+                {tech}
+              </Badge>
+            ))}
+          </TokenList>
         )}
 
         {tags.length > 0 && (
-          <TokenList
-            mode="readonly"
-            variant="tag"
-            prefix="#"
-            size="xs"
-            tokens={tags}
-          />
+          <TokenList>
+            {tags.map((tag) => (
+              <Badge key={tag} size="xs" variant="chip" tone="neutral">
+                #{tag}
+              </Badge>
+            ))}
+          </TokenList>
         )}
       </CardBody>
 

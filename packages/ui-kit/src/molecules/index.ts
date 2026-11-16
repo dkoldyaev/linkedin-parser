@@ -16,16 +16,12 @@ export {
   DEFAULT_PALETTE_OPTIONS,
 } from './ColorPicker';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
-export {
-  TokenList,
-  type TokenListProps,
-  type TokenListItem,
-  type TokenListMode,
-} from './TokenList';
+export { TokenList, type TokenListProps } from './TokenList';
 export {
   FilterBar,
   type FilterBarProps,
   type FilterBarSelectConfig,
+  type FilterBarTagItem,
 } from './FilterBar';
 export {
   Stepper,

@@ -1,0 +1,17 @@
+@layer ui-organisms {
+  .tagsList {
+    width: 100%;
+  }
+
+  .addInput {
+    height: var(--ui-control-height-sm);
+    min-height: var(--ui-control-height-sm);
+    padding: 0 var(--ui-space-2);
+    font-size: var(--ui-font-size-xs);
+    font-family: var(--ui-font-mono);
+    min-width: calc(4 * var(--ui-grid-cell));
+    width: auto;
+    flex: 1 1 auto;
+    max-width: calc(8 * var(--ui-grid-cell));
+  }
+}

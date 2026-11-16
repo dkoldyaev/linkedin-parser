@@ -135,7 +135,13 @@ function KanbanShowcaseBoard(): React.ReactElement {
                   <Paragraph size="sm" tone="secondary">
                     Разработка компонентов платформы мониторинга на React и TypeScript.
                   </Paragraph>
-                  <TokenList mode="readonly" size="xs" tokens={['React', 'TypeScript', 'WebGL']} />
+                  <TokenList>
+                    {['React', 'TypeScript', 'WebGL'].map((t) => (
+                      <Badge key={t} size="xs" variant="chip">
+                        {t}
+                      </Badge>
+                    ))}
+                  </TokenList>
                 </CardBody>
                 <CardFooter
                   metaSlot={
@@ -211,7 +217,13 @@ function KanbanShowcaseBoard(): React.ReactElement {
                       $195k – $230k
                     </Text>
                   </div>
-                  <TokenList mode="readonly" size="xs" tokens={['React 19', 'Design Systems', 'Storybook 10']} />
+                  <TokenList>
+                    {['React 19', 'Design Systems', 'Storybook 10'].map((t) => (
+                      <Badge key={t} size="xs" variant="chip">
+                        {t}
+                      </Badge>
+                    ))}
+                  </TokenList>
                 </CardBody>
                 <CardFooter
                   metaSlot={

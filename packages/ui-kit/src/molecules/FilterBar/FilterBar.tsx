@@ -1,10 +1,15 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { Button, Icon, Text } from '../../atoms';
+import { Badge, Button, Icon, Text } from '../../atoms';
 import { Select, type SelectOption } from '../Select';
-import { TokenList, type TokenListItem } from '../TokenList';
+import { TokenList } from '../TokenList';
 import { cn } from '../../utils';
 import styles from './FilterBar.module.css';
+
+export interface FilterBarTagItem {
+  readonly label: string;
+  readonly count?: number;
+}
 
 export interface FilterBarSelectConfig {
   readonly id: string;
@@ -17,7 +22,7 @@ export interface FilterBarSelectConfig {
 
 export interface FilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly selects?: readonly FilterBarSelectConfig[];
-  readonly tags?: readonly TokenListItem[];
+  readonly tags?: readonly FilterBarTagItem[];
   readonly selectedTags?: readonly string[];
   readonly onToggleTag?: (tag: string) => void;
   readonly tagPrefix?: string;
@@ -96,16 +101,25 @@ export function FilterBar({
         )}
 
         {tags.length > 0 && (
-          <TokenList
-            mode="selectable"
-            size="xs"
-            items={tags}
-            selectedTokens={selectedTags}
-            onToggleToken={onToggleTag}
-            prefix={tagPrefix}
-            maxVisible={maxVisibleTags}
-            className={styles.tagList}
-          />
+          <TokenList className={styles.tagList}>
+            {(maxVisibleTags !== undefined ? tags.slice(0, maxVisibleTags) : tags).map((tag) => {
+              const isSelected = selectedTags.includes(tag.label);
+              const labelText = tagPrefix !== undefined ? `${tagPrefix}${tag.label}` : tag.label;
+              return (
+                <Badge
+                  key={tag.label}
+                  variant="chip"
+                  size="xs"
+                  tone={isSelected ? 'accent' : 'neutral'}
+                  interactive
+                  active={isSelected}
+                  onClick={() => onToggleTag?.(tag.label)}
+                >
+                  {tag.count !== undefined ? `${labelText} (${tag.count})` : labelText}
+                </Badge>
+              );
+            })}
+          </TokenList>
         )}
       </div>
 

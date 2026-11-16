@@ -39,9 +39,9 @@ import {
   Select,
   Stepper,
   Tabs,
+  TagsList,
   Text,
   Textarea,
-  TokenList,
 } from '../../index';
 import showcaseStyles from './Showcase.module.css';
 
@@ -113,6 +113,8 @@ function VacancyDetailsModalDemo(): React.ReactElement {
     'ping',
   ]);
   const [tags, setTags] = useState<string[]>(['priority', 'spain', 'relocation']);
+  const [isAddingTech, setIsAddingTech] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
 
   // History timeline & comments
   const [historyItems, setHistoryItems] = useState([
@@ -492,14 +494,23 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                 <Section.Header
                   title="СТЕК ТЕХНОЛОГИЙ"
                   accessory={
-                    <Button aria-label="Add technology" size="icon-sm" variant="secondary"><Icon icon={Plus} size="sm"/></Button>
+                    <Button
+                      aria-label="Add technology"
+                      size="icon-sm"
+                      variant="secondary"
+                      onClick={() => setIsAddingTech((prev) => !prev)}
+                    >
+                      <Icon icon={Plus} size="sm" />
+                    </Button>
                   }
                 />
-                <Section.Body padding="sm">
-                  <TokenList
-                    mode="editable"
-                    tokens={techStack}
+                <Section.Body padding="none">
+                  <TagsList
+                    value={techStack}
                     onChange={setTechStack}
+                    deletable
+                    addable={isAddingTech}
+                    onFinishAdd={() => setIsAddingTech(false)}
                     placeholder="Добавить технологию..."
                   />
                 </Section.Body>
@@ -507,13 +518,28 @@ function VacancyDetailsModalDemo(): React.ReactElement {
 
               {/* Tags */}
               <Section>
-                <Section.Header title="ТЕГИ" />
+                <Section.Header
+                  title="ТЕГИ"
+                  accessory={
+                    <Button
+                      aria-label="Add tag"
+                      size="icon-sm"
+                      variant="secondary"
+                      onClick={() => setIsAddingTag((prev) => !prev)}
+                    >
+                      <Icon icon={Plus} size="sm" />
+                    </Button>
+                  }
+                />
                 <Section.Body padding="sm">
-                  <TokenList
-                    mode="editable"
-                    variant="tag"
-                    tokens={tags}
+                  <TagsList
+                    value={tags}
                     onChange={setTags}
+                    variant="outline"
+                    size="xs"
+                    deletable
+                    addable={isAddingTag}
+                    onFinishAdd={() => setIsAddingTag(false)}
                     placeholder="Добавить тег..."
                   />
                 </Section.Body>

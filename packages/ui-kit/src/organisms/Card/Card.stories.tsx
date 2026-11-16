@@ -125,12 +125,13 @@ export const ComposableCard: Story = {
           <Paragraph size="sm" tone="secondary">
             Architecture and evolution of the Blueprint component system with strict token governance and automated verification.
           </Paragraph>
-          <TokenList
-            mode="readonly"
-            size="xs"
-            tokens={['TypeScript', 'React 19', 'Storybook 10', 'Radix UI', 'CSS Modules']}
-            maxVisible={4}
-          />
+          <TokenList>
+            {['TypeScript', 'React 19', 'Storybook 10', 'Radix UI', 'CSS Modules'].slice(0, 4).map((tech) => (
+              <Badge key={tech} size="xs" variant="chip">
+                {tech}
+              </Badge>
+            ))}
+          </TokenList>
       </Card>
     </div>
   ),
