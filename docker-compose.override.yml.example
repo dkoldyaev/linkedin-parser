@@ -1,5 +1,6 @@
 services:
   traefik:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-traefik
     image: traefik:v3.0
     command:
       - "--api.insecure=true"
@@ -16,8 +17,8 @@ services:
   app:
     environment:
       APP_URL: http://localhost:${PORT:-8000}
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/linkedin_tracker
-      BROKER_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://postgres:postgres@${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-postgres:5432/linkedin_tracker
+      BROKER_URL: redis://${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-redis:6379/0
       # Use the external traefik port for public URL
       MERCURE_PUBLIC_URL: http://localhost:${PORT:-8000}/.well-known/mercure
     depends_on:
@@ -46,6 +47,7 @@ services:
       - "127.0.0.1:4000:4000"
 
   postgres:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-postgres
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -61,6 +63,7 @@ services:
       retries: 5
 
   redis:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-redis
     image: redis:7-alpine
     restart: unless-stopped
     volumes:

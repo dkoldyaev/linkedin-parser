@@ -1,5 +1,6 @@
 services:
   app:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -22,7 +23,7 @@ services:
       - MISTRAL_MODEL=${MISTRAL_MODEL:-mistral-small-latest}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - MERCURE_URL=${MERCURE_URL:-http://mercure/.well-known/mercure}
+      - MERCURE_URL=${MERCURE_URL}
       - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-/.well-known/mercure}
       - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
@@ -32,7 +33,7 @@ services:
       - DEV_AUTH=${DEV_AUTH:-false}
       - CREATE_MOCK_DATA=${CREATE_MOCK_DATA:-false}
       - EXTENSION_ID=${EXTENSION_ID:-}
-      - PARSER_API_URL=${PARSER_API_URL:-http://parser-api:4000}
+      - PARSER_API_URL=${PARSER_API_URL}
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
       - ALLRATESTODAY_API_KEY=${ALLRATESTODAY_API_KEY:-}
     depends_on:
@@ -45,6 +46,7 @@ services:
       start_period: 15s
 
   mercure:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-mercure
     image: dunglas/mercure:v0.16
     restart: unless-stopped
     environment:
@@ -55,6 +57,7 @@ services:
         cors_origins ${APP_URL:-http://localhost:8000}
 
   parser-api:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-parser-api
     build:
       context: .
       dockerfile: services/parser-api/Dockerfile
