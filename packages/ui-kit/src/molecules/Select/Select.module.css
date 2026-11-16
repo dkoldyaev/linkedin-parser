@@ -13,25 +13,26 @@
     font-size: var(--ui-font-size-sm);
     color: var(--ui-text-primary);
     background-color: var(--ui-bg-surface);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     border-radius: var(--ui-radius-none);
     cursor: pointer;
     box-sizing: border-box;
     transition:
-      border-color var(--ui-transition-fast),
       box-shadow var(--ui-transition-fast),
       background-color var(--ui-transition-fast);
   }
 
   .trigger:hover:not(:disabled) {
-    border-color: var(--ui-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--ui-text-secondary);
   }
 
   .trigger:focus,
   .trigger:focus-visible {
     outline: none;
-    border-color: var(--ui-border-focus);
-    box-shadow: var(--ui-shadow-glow-primary);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-border-focus),
+      var(--ui-shadow-glow-primary);
   }
 
   .trigger[data-disabled] {
@@ -44,7 +45,7 @@
   }
 
   .invalid {
-    border-color: var(--ui-danger);
+    box-shadow: inset 0 0 0 1px var(--ui-danger);
     background-color: var(--ui-danger-subtle);
   }
 
@@ -66,7 +67,6 @@
   }
 
   .triggerFilter:hover:not(:disabled) {
-    border-color: transparent;
     color: var(--ui-primary);
   }
 
@@ -74,7 +74,6 @@
   .triggerFilter:focus-visible {
     outline: var(--ui-space-0-5) solid var(--ui-primary);
     outline-offset: 1px;
-    border-color: transparent;
     box-shadow: var(--ui-shadow-none);
   }
 
@@ -99,9 +98,11 @@
   .content {
     overflow: hidden;
     background-color: var(--ui-bg-subtle);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
     border-radius: var(--ui-radius-none);
-    box-shadow: var(--ui-shadow-md);
+    box-shadow:
+      var(--ui-shadow-md),
+      inset 0 0 0 1px var(--ui-border-strong);
     z-index: var(--ui-z-dropdown);
     min-width: var(--radix-select-trigger-width);
     max-height: var(--radix-select-content-available-height);

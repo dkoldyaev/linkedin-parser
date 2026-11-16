@@ -3,6 +3,7 @@ export { SearchBar, type SearchBarProps } from './SearchBar';
 export { Select, type SelectOption, type SelectProps } from './Select';
 export { Tabs, type TabItem, type TabsProps } from './Tabs';
 export { Tooltip, type TooltipProps } from './Tooltip';
+export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
 export {
   AlertBanner,
   type AlertBannerProps,
@@ -37,6 +38,13 @@ export {
   CollapsibleSection,
   type CollapsibleSectionProps,
 } from './CollapsibleSection';
+export {
+  Section,
+  SectionBody,
+  type SectionProps,
+  type SectionBodyProps,
+  type SectionPadding,
+} from './Section';
 export {
   SectionHeader,
   type SectionHeaderProps,

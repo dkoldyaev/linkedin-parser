@@ -9,7 +9,8 @@
     width: round(down, 100%, var(--ui-grid-cell));
     min-height: var(--ui-grid-cell);
     padding: var(--ui-space-2) var(--ui-space-4);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     border-radius: var(--ui-radius-none);
     box-sizing: border-box;
   }
@@ -46,25 +47,25 @@
 
   .tone-info {
     background-color: var(--ui-info-subtle);
-    border-color: var(--ui-info-border);
+    box-shadow: inset 0 0 0 1px var(--ui-info-border);
     color: var(--ui-info);
   }
 
   .tone-success {
     background-color: var(--ui-success-subtle);
-    border-color: var(--ui-success-border);
+    box-shadow: inset 0 0 0 1px var(--ui-success-border);
     color: var(--ui-success);
   }
 
   .tone-warning {
     background-color: var(--ui-warning-subtle);
-    border-color: var(--ui-warning-border);
+    box-shadow: inset 0 0 0 1px var(--ui-warning-border);
     color: var(--ui-warning);
   }
 
   .tone-danger {
     background-color: var(--ui-danger-subtle);
-    border-color: var(--ui-danger-border);
+    box-shadow: inset 0 0 0 1px var(--ui-danger-border);
     color: var(--ui-danger);
   }
 }

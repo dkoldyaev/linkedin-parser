@@ -1,10 +1,7 @@
 import React, { forwardRef, useLayoutEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react';
 import {
-  Button,
   Checkbox,
   Heading,
-  Icon,
   Link,
   Text,
 } from '../../atoms';
@@ -179,17 +176,11 @@ export const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(
 );
 
 export interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Slot for metadata, timestamps, indicators or counts displayed on the left */
   readonly metaSlot?: React.ReactNode;
+  /** Slot for action buttons or ButtonGroup displayed on the right */
   readonly actionsSlot?: React.ReactNode;
-  readonly date?: React.ReactNode;
-  readonly isArchived?: boolean;
-  readonly canMoveLeft?: boolean;
-  readonly canMoveRight?: boolean;
-  readonly onMoveLeft?: () => void;
-  readonly onMoveRight?: () => void;
-  readonly onReject?: () => void;
-  readonly onRestore?: () => void;
-  readonly restoreLabel?: React.ReactNode;
+  readonly children?: React.ReactNode;
 }
 
 /**
@@ -200,86 +191,25 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
     {
       metaSlot,
       actionsSlot,
-      date,
-      isArchived = false,
-      canMoveLeft = true,
-      canMoveRight = true,
-      onMoveLeft,
-      onMoveRight,
-      onReject,
-      onRestore,
-      restoreLabel = 'Restore',
       className,
       children,
       ...rest
     },
     ref
   ) {
-    const hasQuickNav =
-      onMoveLeft !== undefined ||
-      onMoveRight !== undefined ||
-      onReject !== undefined ||
-      isArchived;
-
     return (
       <div ref={ref} className={cn(styles.cardFooter, className)} {...rest}>
         <div className={styles.cardFooterMeta}>
-          {date !== undefined && (
-            <Text as="span" variant="caption" tone="muted" className={styles.cardDate}>
-              {date}
-            </Text>
-          )}
           {metaSlot}
           {children}
         </div>
 
-        {(actionsSlot !== undefined || hasQuickNav) && (
+        {actionsSlot !== undefined && (
           <div
             className={styles.cardQuickActions}
             onClick={(e) => e.stopPropagation()}
           >
-            {actionsSlot !== undefined ? (
-              actionsSlot
-            ) : isArchived ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onRestore}
-                startIcon={<Icon icon={RotateCcw} size="xs" />}
-              >
-                {restoreLabel}
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={!canMoveLeft}
-                  onClick={onMoveLeft}
-                  aria-label="Move previous"
-                >
-                  <Icon icon={ChevronLeft} size="sm" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  tone="danger"
-                  onClick={onReject}
-                  aria-label="Dismiss card"
-                >
-                  <Icon icon={X} size="sm" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={!canMoveRight}
-                  onClick={onMoveRight}
-                  aria-label="Move next"
-                >
-                  <Icon icon={ChevronRight} size="sm" />
-                </Button>
-              </>
-            )}
+            {actionsSlot}
           </div>
         )}
       </div>

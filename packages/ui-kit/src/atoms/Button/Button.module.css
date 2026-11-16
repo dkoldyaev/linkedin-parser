@@ -14,13 +14,13 @@
     user-select: none;
     cursor: pointer;
     border-radius: var(--ui-radius-none);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     background-color: var(--ui-bg-subtle);
     color: var(--ui-text-primary);
     box-sizing: border-box;
     transition:
       background-color var(--ui-transition-fast),
-      border-color var(--ui-transition-fast),
       color var(--ui-transition-fast),
       box-shadow var(--ui-transition-fast);
   }
@@ -80,7 +80,7 @@
     min-width: var(--ui-space-4);
     min-height: var(--ui-space-4);
     padding: 0;
-    border-color: transparent;
+    box-shadow: none;
     background-color: transparent;
   }
 
@@ -90,7 +90,7 @@
 
   .tone-danger:hover:not(:disabled) {
     color: var(--ui-danger);
-    border-color: var(--ui-danger-border);
+    box-shadow: inset 0 0 0 1px var(--ui-danger-border);
     background-color: var(--ui-danger-subtle);
   }
 
@@ -109,76 +109,99 @@
   /* Variants */
   .variant-primary {
     background-color: var(--ui-primary-subtle);
-    border-color: var(--ui-primary-solid);
+    box-shadow: 
+      inset 1px 1px 0px 0px var(--ui-primary-solid),
+      1px 1px 0px 0px var(--ui-primary-solid);
     color: var(--ui-primary);
   }
 
   .variant-primary:hover:not(:disabled) {
     background-color: var(--ui-primary-solid);
-    border-color: var(--ui-primary);
     color: var(--ui-text-inverse);
-    box-shadow: var(--ui-shadow-glow-primary);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-primary),
+      1px 1px 0px 0px var(--ui-primary),
+      var(--ui-shadow-glow-primary);
   }
 
   .variant-secondary {
     background-color: var(--ui-bg-subtle);
-    border-color: var(--ui-border-strong);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-border-strong),
+      1px 1px 0px 0px var(--ui-border-strong);
     color: var(--ui-text-primary);
   }
 
   .variant-secondary:hover:not(:disabled) {
     background-color: var(--ui-bg-card-hover);
-    border-color: var(--ui-primary-solid);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-primary-solid),
+      1px 1px 0px 0px var(--ui-primary-solid);
     color: var(--ui-text-primary);
   }
 
   .variant-danger {
     background-color: var(--ui-danger-subtle);
-    border-color: var(--ui-danger-border);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-danger-border),
+      1px 1px 0px 0px var(--ui-danger-border);
     color: var(--ui-danger);
   }
 
   .variant-danger:hover:not(:disabled) {
     background-color: var(--ui-danger);
-    border-color: var(--ui-danger);
     color: var(--ui-text-primary);
-    box-shadow: var(--ui-shadow-glow-danger);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-danger),
+      1px 1px 0px 0px var(--ui-danger),
+      var(--ui-shadow-glow-danger);
   }
 
   .variant-warning {
     background-color: var(--ui-warning-subtle);
-    border-color: var(--ui-warning-border);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-warning-border),
+      1px 1px 0px 0px var(--ui-warning-border);
     color: var(--ui-warning);
   }
 
   .variant-warning:hover:not(:disabled) {
     background-color: var(--ui-warning);
-    border-color: var(--ui-warning);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-warning),
+      1px 1px 0px 0px var(--ui-warning),
+      var(--ui-shadow-glow-warning);
     color: var(--ui-text-inverse);
   }
 
   .variant-mint {
     background-color: var(--ui-success-subtle);
-    border-color: var(--ui-success-border);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-success-border),
+      1px 1px 0px 0px var(--ui-success-border);
     color: var(--ui-success);
   }
 
   .variant-mint:hover:not(:disabled) {
     background-color: var(--ui-success-bright);
-    border-color: var(--ui-success-bright);
     color: var(--ui-text-on-success);
-    box-shadow: var(--ui-shadow-glow-success);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-success-bright),
+      1px 1px 0px 0px var(--ui-success-bright),
+      var(--ui-shadow-glow-success);
   }
 
   .variant-ghost {
     background-color: transparent;
-    border-color: transparent;
+    box-shadow: none;
     color: var(--ui-text-secondary);
   }
 
   .variant-ghost:hover:not(:disabled) {
     background-color: var(--ui-bg-card-hover);
-    border-color: var(--ui-border-subtle);
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-border-subtle),
+      1px 1px 0px 0px var(--ui-border-subtle);
     color: var(--ui-text-primary);
   }
 
@@ -201,7 +224,7 @@
 
   .sortActive {
     color: var(--ui-primary);
-    border-color: var(--ui-primary-border);
+    box-shadow: inset 0 0 0 1px var(--ui-primary-border);
     background-color: var(--ui-bg-glass-subtle);
   }
 }

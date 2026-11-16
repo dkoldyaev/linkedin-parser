@@ -13,6 +13,11 @@
     gap: var(--ui-space-2);
   }
 
+  .headerInsideSection {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .headerDivider {
     box-shadow: inset 0 -1px var(--ui-border-subtle);
   }
@@ -29,26 +34,6 @@
     color: var(--ui-text-secondary);
     display: inline-flex;
     align-items: center;
-  }
-
-  .iconMint {
-    color: var(--ui-success);
-  }
-
-  .iconWarning {
-    color: var(--ui-warning);
-  }
-
-  .iconDanger {
-    color: var(--ui-danger);
-  }
-
-  .iconAccent {
-    color: var(--ui-primary);
-  }
-
-  .iconMuted {
-    color: var(--ui-text-muted);
   }
 
   .title {

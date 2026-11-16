@@ -174,9 +174,10 @@
     --ui-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
     --ui-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
     --ui-shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.45);
-    --ui-shadow-glow-primary: 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
-    --ui-shadow-glow-success: 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
-    --ui-shadow-glow-danger: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
+    --ui-shadow-glow-primary: inset 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
+    --ui-shadow-glow-success: inset 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+    --ui-shadow-glow-danger: inset 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
+    --ui-shadow-glow-warning: inset 0 0 0 1px rgba(245, 158, 11, 0.45), 0 0 14px rgba(245, 158, 11, 0.25);
     --ui-shadow-dot-glow: 0 0 6px currentColor;
     --ui-shadow-card-hover: 0 5px 14px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--ui-border-subtle);
     --ui-shadow-grid-row: inset 0 -1px var(--ui-border-subtle);

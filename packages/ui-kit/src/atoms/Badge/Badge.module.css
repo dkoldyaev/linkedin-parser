@@ -13,12 +13,13 @@
     text-transform: uppercase;
     white-space: nowrap;
     border-radius: var(--ui-radius-none);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     box-sizing: border-box;
     transition:
       color var(--ui-transition-fast),
       background-color var(--ui-transition-fast),
-      border-color var(--ui-transition-fast);
+      box-shadow var(--ui-transition-fast);
   }
 
   .label {
@@ -84,7 +85,7 @@
     font-size: var(--ui-font-size-sm);
     text-transform: none;
     letter-spacing: var(--ui-letter-spacing-normal);
-    border: var(--ui-border-width) solid var(--ui-border-subtle);
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
   }
 
   .variant-counter {
@@ -100,7 +101,7 @@
     padding: 0;
     height: auto;
     background-color: transparent;
-    border-color: transparent;
+    box-shadow: none;
     text-transform: none;
     letter-spacing: var(--ui-letter-spacing-normal);
   }
@@ -108,37 +109,37 @@
   /* Semantic Tones */
   .tone-neutral {
     background-color: var(--ui-bg-subtle);
-    border-color: var(--ui-border-strong);
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     color: var(--ui-text-secondary);
   }
 
   .tone-primary {
     background-color: var(--ui-primary-subtle);
-    border-color: var(--ui-primary-border);
+    box-shadow: inset 0 0 0 1px var(--ui-primary-border);
     color: var(--ui-primary);
   }
 
   .tone-success {
     background-color: var(--ui-success-subtle);
-    border-color: var(--ui-success-border);
+    box-shadow: inset 0 0 0 1px var(--ui-success-border);
     color: var(--ui-success);
   }
 
   .tone-warning {
     background-color: var(--ui-warning-subtle);
-    border-color: var(--ui-warning-border);
+    box-shadow: inset 0 0 0 1px var(--ui-warning-border);
     color: var(--ui-warning);
   }
 
   .tone-danger {
     background-color: var(--ui-danger-subtle);
-    border-color: var(--ui-danger-border);
+    box-shadow: inset 0 0 0 1px var(--ui-danger-border);
     color: var(--ui-danger);
   }
 
   .tone-info {
     background-color: var(--ui-info-subtle);
-    border-color: var(--ui-info-border);
+    box-shadow: inset 0 0 0 1px var(--ui-info-border);
     color: var(--ui-info);
   }
 
@@ -149,56 +150,56 @@
   .variant-ghost.tone-danger,
   .variant-ghost.tone-info {
     background-color: transparent;
-    border-color: transparent;
+    box-shadow: none;
   }
 
   /* Universal Palette Tones */
   .palette-slate {
     color: var(--ui-palette-slate);
     background-color: var(--ui-palette-slate-subtle);
-    border-color: var(--ui-palette-slate-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-slate-border);
   }
 
   .palette-blue {
     color: var(--ui-palette-blue);
     background-color: var(--ui-palette-blue-subtle);
-    border-color: var(--ui-palette-blue-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-blue-border);
   }
 
   .palette-cyan {
     color: var(--ui-palette-cyan);
     background-color: var(--ui-palette-cyan-subtle);
-    border-color: var(--ui-palette-cyan-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-cyan-border);
   }
 
   .palette-indigo {
     color: var(--ui-palette-indigo);
     background-color: var(--ui-palette-indigo-subtle);
-    border-color: var(--ui-palette-indigo-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-indigo-border);
   }
 
   .palette-purple {
     color: var(--ui-palette-purple);
     background-color: var(--ui-palette-purple-subtle);
-    border-color: var(--ui-palette-purple-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-purple-border);
   }
 
   .palette-emerald {
     color: var(--ui-palette-emerald);
     background-color: var(--ui-palette-emerald-subtle);
-    border-color: var(--ui-palette-emerald-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-emerald-border);
   }
 
   .palette-amber {
     color: var(--ui-palette-amber);
     background-color: var(--ui-palette-amber-subtle);
-    border-color: var(--ui-palette-amber-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-amber-border);
   }
 
   .palette-rose {
     color: var(--ui-palette-rose);
     background-color: var(--ui-palette-rose-subtle);
-    border-color: var(--ui-palette-rose-border);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-rose-border);
   }
 
   /* Remove button composed via Button atom */
@@ -212,6 +213,6 @@
     opacity: 1;
     color: var(--ui-danger);
     background-color: transparent;
-    border-color: transparent;
+    box-shadow: none;
   }
 }

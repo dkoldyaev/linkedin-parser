@@ -8,9 +8,11 @@
     line-height: var(--ui-line-height-snug);
     color: var(--ui-text-primary);
     background-color: var(--ui-bg-subtle);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
     border-radius: var(--ui-radius-none);
-    box-shadow: var(--ui-shadow-md);
+    box-shadow:
+      var(--ui-shadow-md),
+      inset 0 0 0 1px var(--ui-border-strong);
     user-select: none;
   }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Sparkles } from 'lucide-react';
+import { Icon } from '../../../atoms/Icon';
 import { SectionHeader } from '../SectionHeader';
 
 describe('SectionHeader molecule', () => {
@@ -9,9 +10,12 @@ describe('SectionHeader molecule', () => {
     expect(screen.getByText('СОВПАДЕНИЯ [3]')).toBeTruthy();
   });
 
-  it('renders leading icon with custom tone', () => {
+  it('renders leading icon slot with custom element', () => {
     const { container } = render(
-      <SectionHeader title="AI Саммари" icon={Sparkles} iconTone="mint" />
+      <SectionHeader
+        title="AI Саммари"
+        icon={<Icon icon={Sparkles} size="sm" tone="success" />}
+      />
     );
     expect(screen.getByText('AI Саммари')).toBeTruthy();
     expect(container.querySelector('svg')).toBeTruthy();
@@ -47,5 +51,17 @@ describe('SectionHeader molecule', () => {
     const { container } = render(<SectionHeader title="Секция с разделителем" divider />);
     const headerEl = container.firstElementChild;
     expect(headerEl?.className).toMatch(/headerDivider/);
+  });
+
+  it('applies zero horizontal padding when rendered inside Section', async () => {
+    const { Section } = await import('../../Section');
+    const { container } = render(
+      <Section>
+        <SectionHeader title="Внутри секции" />
+      </Section>
+    );
+
+    const header = container.querySelector('h4')?.parentElement?.parentElement;
+    expect(header?.className).toContain('headerInsideSection');
   });
 });

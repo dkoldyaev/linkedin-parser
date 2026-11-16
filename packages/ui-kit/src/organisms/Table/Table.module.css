@@ -31,7 +31,8 @@
   }
 
   .tableBordered {
-    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-pixel-line);
   }
 
   /* Table Column (Vertical Flex Lane) */
@@ -46,7 +47,8 @@
       linear-gradient(var(--ui-grid-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--ui-grid-line) 1px, transparent 1px);
     background-size: var(--ui-grid-cell) var(--ui-grid-cell);
-    border-right: var(--ui-border-width) solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow: inset -1px 0 0 0 var(--ui-pixel-line);
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
@@ -112,7 +114,8 @@
     align-items: center;
     justify-content: space-between;
     background-color: var(--ui-bg-card-fill);
-    border-bottom: var(--ui-border-width) solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-pixel-line);
     box-sizing: border-box;
     flex-shrink: 0;
     padding: 0 var(--ui-space-3);
@@ -221,7 +224,8 @@
   }
 
   .cellBordered {
-    border-bottom: var(--ui-border-width) solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .cellInteractive {
@@ -242,7 +246,8 @@
   }
 
   .rowBordered {
-    border-bottom: var(--ui-border-width) solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .rowInteractive {
@@ -262,7 +267,8 @@
   .footer {
     display: flex;
     align-items: center;
-    border-top: var(--ui-border-width) solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow: inset 0 1px 0 0 var(--ui-pixel-line);
     background-color: var(--ui-bg-surface);
     box-sizing: border-box;
     padding: var(--ui-space-2) var(--ui-space-3);

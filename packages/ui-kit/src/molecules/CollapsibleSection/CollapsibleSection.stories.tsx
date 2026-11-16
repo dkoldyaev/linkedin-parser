@@ -18,7 +18,7 @@ export const Default: Story = {
     <div className={layoutStyles.stack}>
       <CollapsibleSection
         title="System Diagnostics"
-        icon={Info}
+        icon={<Icon icon={Info} size="sm" />}
       >
         <Paragraph size="sm">
           Background processing worker is active. Performance metrics are streamed in real time.
@@ -33,7 +33,7 @@ export const WithBadgeAccessory: Story = {
     <div className={layoutStyles.stack}>
       <CollapsibleSection
         title="Analytical Report"
-        icon={FileText}
+        icon={<Icon icon={FileText} size="sm" />}
         accessory={<Badge size="sm" tone="success">Ready</Badge>}
       >
         <Paragraph size="sm">
@@ -49,7 +49,7 @@ export const WithButtonAccessory: Story = {
     <div className={layoutStyles.stack}>
       <CollapsibleSection
         title="Integration Settings"
-        icon={SlidersHorizontal}
+        icon={<Icon icon={SlidersHorizontal} size="sm" />}
         accessory={
           <Button
             size="icon-sm"

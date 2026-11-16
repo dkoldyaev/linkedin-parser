@@ -3,14 +3,16 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    border: 1px solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     background-color: var(--ui-bg-surface);
     box-sizing: border-box;
   }
 
   .summaryBox {
     padding: var(--ui-space-4);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
     background-color: var(--ui-bg-subtle);
   }
 
@@ -26,10 +28,11 @@
   .sectionBlock {
     display: flex;
     flex-direction: column;
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .sectionBlock:last-child {
-    border-bottom: none;
+    box-shadow: none;
   }
 }

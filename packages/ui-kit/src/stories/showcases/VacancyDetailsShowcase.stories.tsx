@@ -34,6 +34,7 @@ import {
   Modal,
   Paragraph,
   ReportAccordion,
+  Section,
   SectionHeader,
   Select,
   Stepper,
@@ -313,7 +314,7 @@ function VacancyDetailsModalDemo(): React.ReactElement {
           }
         />
 
-        <Modal.Body padding="none">
+        <Modal.Body padding="none" gap='none'>
           {activeTab === 'details' ? (
             <>
               {/* Status and Workplace controls bar */}
@@ -346,12 +347,13 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                       onValueChange={setWorkplace}
                       options={WORKPLACE_OPTIONS}
                       ariaLabel="Формат работы"
+                      variant="filter"
                     />
                   </div>
 
                   <Button
                     variant={isClosed ? 'danger' : 'secondary'}
-                    size="sm"
+                    size="m"
                     startIcon={<Icon icon={isClosed ? Ban : Check} size="xs" />}
                     onClick={() => setIsClosed(!isClosed)}
                   >
@@ -361,102 +363,107 @@ function VacancyDetailsModalDemo(): React.ReactElement {
               </div>
 
               {/* Salary Section */}
-              <div className={showcaseStyles.salaryContainer}>
-                <div className={showcaseStyles.salaryHeader}>
-                  <div className={showcaseStyles.salaryDisplay}>
-                    <Icon icon={Banknote} size="sm" tone="success" />
-                    <Text variant="mono-label" tone="secondary">
-                      ЗАРПЛАТА:
-                    </Text>
-                    <Text variant="mono" tone="success" weight="bold">
-                      {formattedSalary}
-                    </Text>
-                  </div>
-                  {!isEditingSalary ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      startIcon={<Icon icon={Edit3} size="xs" />}
-                      onClick={() => setIsEditingSalary(true)}
-                    >
-                      РЕДАКТИРОВАТЬ
-                    </Button>
-                  ) : (
-                    <div className={showcaseStyles.salaryActions}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        startIcon={<Icon icon={Check} size="xs" />}
-                        onClick={() => setIsEditingSalary(false)}
-                      >
-                        Сохранить
-                      </Button>
+              <Section padding='lg'>
+                <Section.Header
+                  icon={<Icon icon={Banknote} size="sm" />}
+                  title={
+                    <>
+                      <Text variant="mono-label" tone="secondary">
+                        ЗАРПЛАТА:
+                      </Text>
+                      <Text variant="mono" tone="success" weight="bold">
+                        {formattedSalary}
+                      </Text>
+                    </>
+                  }
+                  accessory={
+                    !isEditingSalary ? (
                       <Button
                         variant="secondary"
                         size="sm"
-                        startIcon={<Icon icon={X} size="xs" />}
-                        onClick={() => setIsEditingSalary(false)}
+                        startIcon={<Icon icon={Edit3} size="xs" />}
+                        onClick={() => setIsEditingSalary(true)}
                       >
-                        Отмена
+                        РЕДАКТИРОВАТЬ
                       </Button>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div className={showcaseStyles.salaryActions}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          startIcon={<Icon icon={Check} size="xs" />}
+                          onClick={() => setIsEditingSalary(false)}
+                        >
+                          Сохранить
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          startIcon={<Icon icon={X} size="xs" />}
+                          onClick={() => setIsEditingSalary(false)}
+                        >
+                          Отмена
+                        </Button>
+                      </div>
+                    )
+                  }
+                />
 
                 {isEditingSalary && (
-                  <div className={showcaseStyles.salaryFormGrid}>
-                    <div className={showcaseStyles.salaryFieldItem}>
-                      <Label>Минимум</Label>
-                      <Input
-                        type="number"
-                        value={salaryMin}
-                        onChange={(e) => setSalaryMin(e.target.value)}
-                      />
+                  <Section.Body padding="sm">
+                    <div className={showcaseStyles.salaryFormGrid}>
+                      <div className={showcaseStyles.salaryFieldItem}>
+                        <Label>Минимум</Label>
+                        <Input
+                          type="number"
+                          value={salaryMin}
+                          onChange={(e) => setSalaryMin(e.target.value)}
+                        />
+                      </div>
+                      <div className={showcaseStyles.salaryFieldItem}>
+                        <Label>Максимум</Label>
+                        <Input
+                          type="number"
+                          value={salaryMax}
+                          onChange={(e) => setSalaryMax(e.target.value)}
+                        />
+                      </div>
+                      <div className={showcaseStyles.salaryFieldItem}>
+                        <Label>Валюта</Label>
+                        <Select
+                          value={salaryCurrency}
+                          onValueChange={setSalaryCurrency}
+                          options={[
+                            { value: '$', label: '$ (USD)' },
+                            { value: '€', label: '€ (EUR)' },
+                            { value: '₽', label: '₽ (RUB)' },
+                            { value: '£', label: '£ (GBP)' },
+                          ]}
+                        />
+                      </div>
+                      <div className={showcaseStyles.salaryFieldItem}>
+                        <Label>Период</Label>
+                        <Select
+                          value={salaryPeriod}
+                          onValueChange={setSalaryPeriod}
+                          options={[
+                            { value: 'month', label: 'в месяц' },
+                            { value: 'year', label: 'в год' },
+                            { value: 'day', label: 'в день' },
+                            { value: 'hour', label: 'в час' },
+                          ]}
+                        />
+                      </div>
                     </div>
-                    <div className={showcaseStyles.salaryFieldItem}>
-                      <Label>Максимум</Label>
-                      <Input
-                        type="number"
-                        value={salaryMax}
-                        onChange={(e) => setSalaryMax(e.target.value)}
-                      />
-                    </div>
-                    <div className={showcaseStyles.salaryFieldItem}>
-                      <Label>Валюта</Label>
-                      <Select
-                        value={salaryCurrency}
-                        onValueChange={setSalaryCurrency}
-                        options={[
-                          { value: '$', label: '$ (USD)' },
-                          { value: '€', label: '€ (EUR)' },
-                          { value: '₽', label: '₽ (RUB)' },
-                          { value: '£', label: '£ (GBP)' },
-                        ]}
-                      />
-                    </div>
-                    <div className={showcaseStyles.salaryFieldItem}>
-                      <Label>Период</Label>
-                      <Select
-                        value={salaryPeriod}
-                        onValueChange={setSalaryPeriod}
-                        options={[
-                          { value: 'month', label: 'в месяц' },
-                          { value: 'year', label: 'в год' },
-                          { value: 'day', label: 'в день' },
-                          { value: 'hour', label: 'в час' },
-                        ]}
-                      />
-                    </div>
-                  </div>
+                  </Section.Body>
                 )}
-              </div>
+              </Section>
 
               {/* AI Summary Section */}
-              <div className={showcaseStyles.aiSummarySection}>
-                <SectionHeader
+              <Section padding='lg'>
+                <Section.Header
                   title="AI-САММАРИ ВАКАНСИИ"
-                  icon={Sparkles}
-                  iconTone="mint"
+                  icon={<Icon icon={Sparkles} size="sm" />}
                   accessory={
                     <Button
                       variant="secondary"
@@ -469,32 +476,39 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                     </Button>
                   }
                 />
-                <Paragraph size="sm">{aiSummary}</Paragraph>
-                <div className={showcaseStyles.companyInfoBox}>
-                  <Paragraph size="sm" tone="secondary">
-                    <strong>О компании: </strong>
-                    {companyInfo}
-                  </Paragraph>
-                </div>
-              </div>
+                <Section.Body padding="none" gap="sm">
+                  <Paragraph size="sm">{aiSummary}</Paragraph>
+                  <div className={showcaseStyles.companyInfoBox}>
+                    <Paragraph size="sm" tone="secondary">
+                      <strong>О компании: </strong>
+                      {companyInfo}
+                    </Paragraph>
+                  </div>
+                </Section.Body>
+              </Section>
 
               {/* Tech Stack */}
-              <div className={showcaseStyles.paddedSection}>
-                <SectionHeader title="СТЕК ТЕХНОЛОГИЙ" />
-                <div className={showcaseStyles.ptSm}>
+              <Section padding="lg">
+                <Section.Header
+                  title="СТЕК ТЕХНОЛОГИЙ"
+                  accessory={
+                    <Button aria-label="Add technology" size="icon-sm" variant="secondary"><Icon icon={Plus} size="sm"/></Button>
+                  }
+                />
+                <Section.Body padding="sm">
                   <TokenList
                     mode="editable"
                     tokens={techStack}
                     onChange={setTechStack}
                     placeholder="Добавить технологию..."
                   />
-                </div>
-              </div>
+                </Section.Body>
+              </Section>
 
               {/* Tags */}
-              <div className={showcaseStyles.paddedSection}>
-                <SectionHeader title="ТЕГИ" />
-                <div className={showcaseStyles.ptSm}>
+              <Section>
+                <Section.Header title="ТЕГИ" />
+                <Section.Body padding="sm">
                   <TokenList
                     mode="editable"
                     variant="tag"
@@ -502,22 +516,21 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                     onChange={setTags}
                     placeholder="Добавить тег..."
                   />
-                </div>
-              </div>
+                </Section.Body>
+              </Section>
 
               {/* Stage History */}
-              <div className={showcaseStyles.paddedSection}>
-                <SectionHeader
+              <Section>
+                <Section.Header
                   title="ИСТОРИЯ ЭТАПОВ И ПЕРЕМЕЩЕНИЙ"
-                  icon={History}
-                  iconTone="accent"
+                  icon={<Icon icon={History} size="sm" tone="accent" />}
                   accessory={
                     <Badge variant="counter" size="xs" tone="neutral">
                       {historyItems.length} этапов
                     </Badge>
                   }
                 />
-                <div className={showcaseStyles.ptMd}>
+                <Section.Body padding="sm">
                   <ol className={showcaseStyles.historyList}>
                     {historyItems.map((item, idx) => {
                       const isEditing = editingCommentId === item.id;
@@ -609,14 +622,14 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                       );
                     })}
                   </ol>
-                </div>
-              </div>
+                </Section.Body>
+              </Section>
 
               {/* Personal Notes */}
-              <div className={showcaseStyles.paddedSection}>
-                <SectionHeader
+              <Section>
+                <Section.Header
                   title="ЗАМЕТКИ"
-                  icon={StickyNote}
+                  icon={<Icon icon={StickyNote} size="sm" />}
                   accessory={
                     <Button
                       variant="secondary"
@@ -628,21 +641,21 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                     </Button>
                   }
                 />
-                <div className={showcaseStyles.ptSm}>
+                <Section.Body padding="sm">
                   <Textarea
                     rows={3}
                     placeholder="Ваши комментарии, контакты рекрутера, этапы, вопросы к интервью..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                   />
-                </div>
-              </div>
+                </Section.Body>
+              </Section>
 
               {/* Original Vacancy Description */}
-              <div className={showcaseStyles.paddedSectionLast}>
+              <Section divider={false}>
                 <CollapsibleSection
                   title="ОРИГИНАЛЬНОЕ ОПИСАНИЕ ВАКАНСИИ"
-                  icon={FileText}
+                  icon={<Icon icon={FileText} size="sm" />}
                   defaultOpen={false}
                   expandLabel="ПОКАЗАТЬ ПОЛНОСТЬЮ"
                   collapseLabel="СВЕРНУТЬ"
@@ -673,7 +686,7 @@ function VacancyDetailsModalDemo(): React.ReactElement {
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </CollapsibleSection>
-              </div>
+              </Section>
             </>
           ) : (
             /* Tab: Compatibility with CV */

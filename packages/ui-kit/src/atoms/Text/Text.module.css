@@ -221,7 +221,8 @@
     margin: 0;
     padding: var(--ui-space-3) var(--ui-space-4);
     background-color: var(--ui-bg-card-fill);
-    border-left: 3px solid var(--ui-primary);
+    border: 0;
+    box-shadow: inset 3px 0 0 0 var(--ui-primary);
     box-sizing: border-box;
     font-family: var(--ui-font-sans);
     font-size: var(--ui-font-size-base);
@@ -233,23 +234,23 @@
   }
 
   .blockquoteTonePrimary {
-    border-left-color: var(--ui-primary);
+    box-shadow: inset 3px 0 0 0 var(--ui-primary);
   }
 
   .blockquoteToneAccent {
-    border-left-color: var(--ui-primary-solid);
+    box-shadow: inset 3px 0 0 0 var(--ui-primary-solid);
   }
 
   .blockquoteToneSuccess {
-    border-left-color: var(--ui-success);
+    box-shadow: inset 3px 0 0 0 var(--ui-success);
   }
 
   .blockquoteToneWarning {
-    border-left-color: var(--ui-warning);
+    box-shadow: inset 3px 0 0 0 var(--ui-warning);
   }
 
   .blockquoteToneDanger {
-    border-left-color: var(--ui-danger);
+    box-shadow: inset 3px 0 0 0 var(--ui-danger);
   }
 
   .blockquoteCite {
@@ -320,7 +321,8 @@
     font-family: var(--ui-font-mono);
     font-size: var(--ui-font-size-xs);
     background-color: var(--ui-bg-subtle);
-    border: var(--ui-border-width) solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
     color: var(--ui-primary);
     padding: var(--ui-space-0-5) var(--ui-space-1);
     box-sizing: border-box;
@@ -330,10 +332,12 @@
     font-family: var(--ui-font-mono);
     font-size: var(--ui-font-size-2xs);
     background-color: var(--ui-bg-surface);
-    border: var(--ui-border-width) solid var(--ui-pixel-line);
+    border: 0;
+    box-shadow:
+      inset 0 0 0 1px var(--ui-pixel-line),
+      var(--ui-shadow-grid-row);
     color: var(--ui-text-primary);
     padding: var(--ui-space-0-5) var(--ui-space-1-5);
-    box-shadow: var(--ui-shadow-grid-row);
     display: inline-block;
     line-height: var(--ui-line-height-tight);
     box-sizing: border-box;

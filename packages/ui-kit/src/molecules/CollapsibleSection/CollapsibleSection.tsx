@@ -7,7 +7,7 @@ import styles from './CollapsibleSection.module.css';
 export interface CollapsibleSectionProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title: React.ReactNode;
-  readonly icon?: React.ComponentType<{ size?: number | string; className?: string }>;
+  readonly icon?: React.ReactNode;
   readonly badge?: React.ReactNode;
   readonly accessory?: React.ReactNode;
   readonly accessoryAction?: React.ReactNode;

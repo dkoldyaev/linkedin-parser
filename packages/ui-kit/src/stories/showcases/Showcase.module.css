@@ -16,7 +16,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-2);
-    border: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
     background-color: var(--ui-bg-surface);
   }
 
@@ -34,9 +35,10 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: var(--ui-space-3);
-    padding: var(--ui-space-2) var(--ui-space-4);
+    padding: var(--ui-space-2) var(--ui-space-3);
     background-color: var(--ui-bg-surface);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .statusButtonGroup {
@@ -71,9 +73,10 @@
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-3);
-    padding: var(--ui-space-3) var(--ui-space-4);
+    padding: var(--ui-space-2) 0;
     background-color: var(--ui-bg-surface);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .salaryHeader {
@@ -107,14 +110,20 @@
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-3);
-    padding: var(--ui-space-4);
+    padding: var(--ui-space-3) 0;
     background-color: var(--ui-bg-surface);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
+  }
+
+  .aiSummaryFormGrid {
+    
   }
 
   .companyInfoBox {
     padding-top: var(--ui-space-2);
-    border-top: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 1px 0 0 var(--ui-border-subtle);
   }
 
   /* History item comments */
@@ -132,7 +141,8 @@
     gap: var(--ui-space-2);
     padding: var(--ui-space-1-5) var(--ui-space-3);
     background-color: var(--ui-bg-subtle);
-    border: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
   }
 
   .historyCommentForm {
@@ -141,7 +151,8 @@
     gap: var(--ui-space-2);
     padding: var(--ui-space-2);
     background-color: var(--ui-bg-subtle);
-    border: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
   }
 
   .historyCommentActions {
@@ -154,7 +165,8 @@
   .assessmentBox {
     padding: var(--ui-space-3) var(--ui-space-4);
     background-color: var(--ui-bg-subtle);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .recommendationsBox {
@@ -184,7 +196,8 @@
 
   .paddedSection {
     padding: var(--ui-space-4);
-    border-bottom: 1px solid var(--ui-border-subtle);
+    border: 0;
+    box-shadow: inset 0 -1px 0 0 var(--ui-border-subtle);
   }
 
   .paddedSectionLast {

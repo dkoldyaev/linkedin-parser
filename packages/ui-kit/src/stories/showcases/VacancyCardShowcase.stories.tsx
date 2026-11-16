@@ -5,14 +5,19 @@ import {
   Ban,
   Banknote,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Globe,
   History,
   Home,
   MapPin,
   Sparkles,
+  X,
 } from 'lucide-react';
 import {
   Badge,
+  Button,
+  ButtonGroup,
   Card,
   CardBody,
   CardFooter,
@@ -194,26 +199,58 @@ function ComposedVacancyCard({
       </CardBody>
 
       <CardFooter
-        date={date}
         metaSlot={
-          historyCount !== undefined && historyCount > 0 ? (
-            <Text
-              variant="caption"
-              tone="muted"
-              startIcon={<Icon icon={History} size="2xs" />}
-              endIcon={
-                hasHistoryComment ? (
-                  <StatusDot tone="info" size="xs" />
-                ) : undefined
-              }
-            >
-              {historyCount}
-            </Text>
-          ) : undefined
+          <div className={layoutStyles.row}>
+            {date !== undefined && (
+              <Text variant="caption" tone="muted">
+                {date}
+              </Text>
+            )}
+            {historyCount !== undefined && historyCount > 0 && (
+              <Text
+                variant="caption"
+                tone="muted"
+                startIcon={<Icon icon={History} size="2xs" />}
+                endIcon={
+                  hasHistoryComment ? (
+                    <StatusDot tone="info" size="xs" />
+                  ) : undefined
+                }
+              >
+                {historyCount}
+              </Text>
+            )}
+          </div>
         }
-        onMoveLeft={() => undefined}
-        onMoveRight={() => undefined}
-        onReject={() => undefined}
+        actionsSlot={
+          <ButtonGroup>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => undefined}
+              aria-label="Move previous"
+            >
+              <Icon icon={ChevronLeft} size="sm" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              tone="danger"
+              onClick={() => undefined}
+              aria-label="Dismiss card"
+            >
+              <Icon icon={X} size="sm" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => undefined}
+              aria-label="Move next"
+            >
+              <Icon icon={ChevronRight} size="sm" />
+            </Button>
+          </ButtonGroup>
+        }
       />
     </Card>
   );

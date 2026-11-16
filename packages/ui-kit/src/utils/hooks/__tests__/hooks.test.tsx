@@ -14,6 +14,7 @@ import {
   useId,
   useKeyboardNavigation,
   useMediaQuery,
+  useContainerQuery,
 } from '../index';
 
 describe('ui-kit hooks', () => {
@@ -97,29 +98,53 @@ describe('ui-kit hooks', () => {
   });
 
   describe('useMediaQuery', () => {
-    it('reads matchMedia state and updates on change event', () => {
-      let changeListener: ((ev: MediaQueryListEvent) => void) | null = null;
+    it('reads breakpoint state and updates when media query matches change', () => {
+      let mobileListener: ((ev: MediaQueryListEvent) => void) | null = null;
       window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-        matches: query.includes('768px'),
+        matches: query.includes('767px'),
         media: query,
         addEventListener: (
           _type: string,
           cb: (ev: MediaQueryListEvent) => void
         ) => {
-          changeListener = cb;
+          if (query.includes('767px')) {
+            mobileListener = cb;
+          }
         },
         removeEventListener: vi.fn(),
       }));
 
-      const { result } = renderHook(() => useMediaQuery('(max-width: 768px)'));
-      expect(result.current).toBe(true);
+      const { result } = renderHook(() =>
+        useMediaQuery({ mobile: '1-col', desktop: '4-col' })
+      );
+      expect(result.current).toBe('1-col');
 
       act(() => {
-        if (changeListener) {
-          changeListener({ matches: false } as MediaQueryListEvent);
+        window.matchMedia = vi.fn().mockImplementation(() => ({
+          matches: false,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }));
+        if (mobileListener) {
+          mobileListener({ matches: false } as MediaQueryListEvent);
         }
       });
-      expect(result.current).toBe(false);
+      expect(result.current).toBe('4-col');
+    });
+  });
+
+  describe('useContainerQuery', () => {
+    it('initializes with default value and updates when matching width ranges', () => {
+      const { result } = renderHook(() =>
+        useContainerQuery('default', [
+          { max: 500, value: 'compact' },
+          { min: 501, value: 'wide' },
+        ])
+      );
+
+      const [refCallback, currentValue] = result.current;
+      expect(currentValue).toBe('default');
+      expect(typeof refCallback).toBe('function');
     });
   });
 

@@ -40,8 +40,7 @@ export const TechStackAddAccessory: Story = {
 export const AiSummaryWithReanalyze: Story = {
   args: {
     title: 'AI Summary',
-    icon: Sparkles,
-    iconTone: 'mint',
+    icon: <Icon icon={Sparkles} size="sm" tone="success" />,
     accessory: (
       <Button
         size="sm"
@@ -57,8 +56,7 @@ export const AiSummaryWithReanalyze: Story = {
 export const HistoryWithCounter: Story = {
   args: {
     title: 'Stage History',
-    icon: History,
-    iconTone: 'accent',
+    icon: <Icon icon={History} size="sm" tone="accent" />,
     badge: (
       <Badge size="sm" tone="info">
         3 stages
@@ -70,8 +68,7 @@ export const HistoryWithCounter: Story = {
 export const SalaryWithEditAction: Story = {
   args: {
     title: 'Compensation Range',
-    icon: Banknote,
-    iconTone: 'mint',
+    icon: <Icon icon={Banknote} size="sm" tone="success" />,
     badge: (
       <Badge size="sm" tone="success">
         €95 000 – €110 000 / yr
@@ -92,8 +89,7 @@ export const SalaryWithEditAction: Story = {
 export const NotesWithSaveAction: Story = {
   args: {
     title: 'Personal Notes',
-    icon: StickyNote,
-    iconTone: 'muted',
+    icon: <Icon icon={StickyNote} size="sm" tone="muted" />,
     accessory: (
       <Button
         size="sm"

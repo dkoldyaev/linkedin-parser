@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Award, Banknote, Globe, MapPin, MoreVertical } from 'lucide-react';
+import { Award, Banknote, ChevronLeft, ChevronRight, Globe, MapPin, MoreVertical, X } from 'lucide-react';
 import {
   Badge,
   Button,
+  ButtonGroup,
   Card,
   CardBody,
   CardFooter,
@@ -136,7 +137,42 @@ function KanbanShowcaseBoard(): React.ReactElement {
                   </Paragraph>
                   <TokenList mode="readonly" size="xs" tokens={['React', 'TypeScript', 'WebGL']} />
                 </CardBody>
-                <CardFooter date="10 нояб." onMoveLeft={() => undefined} onMoveRight={() => undefined} onReject={() => undefined} />
+                <CardFooter
+                  metaSlot={
+                    <Text variant="caption" tone="muted">
+                      10 нояб.
+                    </Text>
+                  }
+                  actionsSlot={
+                    <ButtonGroup>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => undefined}
+                        aria-label="Переместить влево"
+                      >
+                        <Icon icon={ChevronLeft} size="sm" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        tone="danger"
+                        onClick={() => undefined}
+                        aria-label="Отклонить"
+                      >
+                        <Icon icon={X} size="sm" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => undefined}
+                        aria-label="Переместить вправо"
+                      >
+                        <Icon icon={ChevronRight} size="sm" />
+                      </Button>
+                    </ButtonGroup>
+                  }
+                />
               </Card>
             </TableCell>
           </TableBody>
@@ -177,7 +213,42 @@ function KanbanShowcaseBoard(): React.ReactElement {
                   </div>
                   <TokenList mode="readonly" size="xs" tokens={['React 19', 'Design Systems', 'Storybook 10']} />
                 </CardBody>
-                <CardFooter date="11 нояб." onMoveLeft={() => undefined} onMoveRight={() => undefined} onReject={() => undefined} />
+                <CardFooter
+                  metaSlot={
+                    <Text variant="caption" tone="muted">
+                      11 нояб.
+                    </Text>
+                  }
+                  actionsSlot={
+                    <ButtonGroup>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => undefined}
+                        aria-label="Переместить влево"
+                      >
+                        <Icon icon={ChevronLeft} size="sm" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        tone="danger"
+                        onClick={() => undefined}
+                        aria-label="Отклонить"
+                      >
+                        <Icon icon={X} size="sm" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => undefined}
+                        aria-label="Переместить вправо"
+                      >
+                        <Icon icon={ChevronRight} size="sm" />
+                      </Button>
+                    </ButtonGroup>
+                  }
+                />
               </Card>
             </TableCell>
           </TableBody>

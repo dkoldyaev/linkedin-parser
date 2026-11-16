@@ -1,6 +1,6 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
-import { BREAKPOINT_TOKENS } from '../tokens';
-import { GRID_CELL_PX } from '../utils';
+import { BREAKPOINT_TOKENS } from '../../tokens';
+import { GRID_CELL_PX } from '../grid';
 
 export interface UseBlueprintGridOptions {
   readonly deps?: readonly unknown[];

@@ -5,7 +5,8 @@
     height: var(--ui-dot-size-md);
     flex-shrink: 0;
     border-radius: var(--ui-radius-none);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     box-sizing: border-box;
   }
 
@@ -34,76 +35,79 @@
 
   .tone-neutral {
     background-color: var(--ui-text-muted);
-    border-color: var(--ui-text-muted);
+    box-shadow: inset 0 0 0 1px var(--ui-text-muted);
   }
 
   .tone-primary {
     background-color: var(--ui-primary-solid);
-    border-color: var(--ui-primary);
-    box-shadow: var(--ui-shadow-glow-primary);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-primary),
+      var(--ui-shadow-glow-primary);
   }
 
   .tone-success {
     background-color: var(--ui-success);
-    border-color: var(--ui-success);
-    box-shadow: var(--ui-shadow-glow-success);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-success),
+      var(--ui-shadow-glow-success);
   }
 
   .tone-warning {
     background-color: var(--ui-warning);
-    border-color: var(--ui-warning);
+    box-shadow: inset 0 0 0 1px var(--ui-warning);
   }
 
   .tone-danger {
     background-color: var(--ui-danger);
-    border-color: var(--ui-danger);
-    box-shadow: var(--ui-shadow-glow-danger);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-danger),
+      var(--ui-shadow-glow-danger);
   }
 
   .tone-info {
     background-color: var(--ui-info);
-    border-color: var(--ui-info);
+    box-shadow: inset 0 0 0 1px var(--ui-info);
   }
 
   /* Universal Palette Tones */
   .palette-slate {
     background-color: var(--ui-palette-slate);
-    border-color: var(--ui-palette-slate);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-slate);
   }
 
   .palette-blue {
     background-color: var(--ui-palette-blue);
-    border-color: var(--ui-palette-blue);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-blue);
   }
 
   .palette-purple {
     background-color: var(--ui-palette-purple);
-    border-color: var(--ui-palette-purple);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-purple);
   }
 
   .palette-emerald {
     background-color: var(--ui-palette-emerald);
-    border-color: var(--ui-palette-emerald);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-emerald);
   }
 
   .palette-amber {
     background-color: var(--ui-palette-amber);
-    border-color: var(--ui-palette-amber);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-amber);
   }
 
   .palette-rose {
     background-color: var(--ui-palette-rose);
-    border-color: var(--ui-palette-rose);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-rose);
   }
 
   .palette-cyan {
     background-color: var(--ui-palette-cyan);
-    border-color: var(--ui-palette-cyan);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-cyan);
   }
 
   .palette-indigo {
     background-color: var(--ui-palette-indigo);
-    border-color: var(--ui-palette-indigo);
+    box-shadow: inset 0 0 0 1px var(--ui-palette-indigo);
   }
 
   @keyframes uiDotPulse {

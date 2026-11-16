@@ -4,6 +4,7 @@ import styles from './Modal.module.css';
 
 export interface ModalBodyProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly padding?: 'none' | 'sm' | 'md' | 'lg';
+  readonly gap?: 'none' | 'sm' | 'md' | 'lg';
   readonly scrollable?: boolean;
   readonly children: React.ReactNode;
   readonly className?: string;
@@ -17,6 +18,7 @@ export interface ModalBodyProps extends React.HTMLAttributes<HTMLDivElement> {
 export const ModalBody = React.forwardRef<HTMLDivElement, ModalBodyProps>(function ModalBody(
   {
     padding = 'md',
+    gap = 'sm',
     scrollable = true,
     children,
     className,
@@ -32,6 +34,7 @@ export const ModalBody = React.forwardRef<HTMLDivElement, ModalBodyProps>(functi
       className={cn(
         styles.body,
         styles[`body-padding-${padding}`],
+        gap && styles[`body-gap-${gap}`],
         !scrollable && styles.bodyNoScroll,
         className
       )}

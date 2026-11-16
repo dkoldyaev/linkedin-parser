@@ -59,8 +59,7 @@ export function ReportAccordion({
     <div className={cn(styles.report, className)} {...rest}>
       <SectionHeader
         title={title}
-        icon={Sparkles}
-        iconTone="mint"
+        icon={<Icon icon={Sparkles} size="sm" tone="success" />}
         divider
         badge={
           scoreLabel !== undefined ? (

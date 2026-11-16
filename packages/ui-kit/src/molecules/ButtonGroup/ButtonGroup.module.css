@@ -1,0 +1,36 @@
+@layer ui-molecules {
+  .buttonGroup {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    vertical-align: middle;
+    box-sizing: border-box;
+  }
+
+  .attached {
+    gap: 0;
+  }
+
+  .attached > *:not(:first-child) {
+    /* margin-left: 1px; */
+  }
+
+  .attached > *:hover,
+  .attached > *:focus-visible {
+    z-index: 1;
+  }
+
+  .detached {
+    gap: var(--ui-space-1);
+  }
+
+  .fullWidth {
+    display: flex;
+    width: 100%;
+  }
+
+  .fullWidth > * {
+    flex: 1 1 0%;
+  }
+}
+

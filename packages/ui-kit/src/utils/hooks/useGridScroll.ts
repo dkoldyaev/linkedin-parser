@@ -1,5 +1,5 @@
 import { type UIEvent, useCallback, useEffect, useRef } from 'react';
-import { GRID_CELL_PX, SCROLL_SETTLE_DELAY_MS } from '../utils';
+import { GRID_CELL_PX, SCROLL_SETTLE_DELAY_MS } from '../grid';
 
 export type GridScrollAxis = 'x' | 'y';
 

@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Icon, Text } from '../../atoms';
 import { cn } from '../../utils';
+import { useSectionContext } from '../Section/SectionContext';
 import styles from './SectionHeader.module.css';
 
 export type SectionHeaderTone =
@@ -17,8 +18,8 @@ export type SectionHeaderVariant = 'mono' | 'sans';
 export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title: React.ReactNode;
   readonly tone?: SectionHeaderTone;
-  readonly icon?: React.ComponentType<{ size?: number | string; className?: string }>;
-  readonly iconTone?: SectionHeaderTone;
+  /** Primary icon slot displayed before the title */
+  readonly icon?: React.ReactNode;
   readonly badge?: React.ReactNode;
   readonly accessory?: React.ReactNode;
   readonly variant?: SectionHeaderVariant;
@@ -33,7 +34,7 @@ export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivEle
 
 /**
  * SectionHeader molecule.
- * Standardized Blueprint-grid header (height: 32px) composing Icon, Text,
+ * Standardized Blueprint-grid header (height: 32px) composing Icon slot, Text,
  * optional meta badge/counter, action accessory slot, semantic tone coloring,
  * bottom divider line, and optional collapsible toggle.
  */
@@ -42,8 +43,7 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
     {
       title,
       tone = 'default',
-      icon: IconComponent,
-      iconTone,
+      icon,
       badge,
       accessory,
       variant = 'mono',
@@ -60,7 +60,8 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
     ref
   ) {
     const Component = as;
-    const effectiveIconTone = iconTone ?? tone;
+    const sectionContext = useSectionContext();
+    const isInsideSection = sectionContext?.isInsideSection ?? false;
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (collapsible && (event.key === 'Enter' || event.key === ' ')) {
@@ -74,6 +75,7 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
         ref={ref}
         className={cn(
           styles.header,
+          isInsideSection && styles.headerInsideSection,
           tone === 'mint' && styles.toneMint,
           tone === 'warning' && styles.toneWarning,
           tone === 'danger' && styles.toneDanger,
@@ -92,19 +94,9 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(
         {...rest}
       >
         <div className={styles.titleGroup}>
-          {IconComponent && (
-            <span
-              className={cn(
-                styles.icon,
-                effectiveIconTone === 'mint' && styles.iconMint,
-                effectiveIconTone === 'warning' && styles.iconWarning,
-                effectiveIconTone === 'danger' && styles.iconDanger,
-                effectiveIconTone === 'accent' && styles.iconAccent,
-                effectiveIconTone === 'muted' && styles.iconMuted
-              )}
-              aria-hidden
-            >
-              <Icon icon={IconComponent} size="sm" />
+          {icon !== undefined && (
+            <span className={styles.icon} aria-hidden="true">
+              {icon}
             </span>
           )}
           <Text

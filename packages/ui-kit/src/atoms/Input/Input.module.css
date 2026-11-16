@@ -19,11 +19,11 @@
     line-height: var(--ui-line-height-normal);
     color: var(--ui-text-primary);
     background-color: var(--ui-bg-surface);
-    border: var(--ui-border-width) solid var(--ui-border-strong);
+    border: 0;
+    box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     border-radius: var(--ui-radius-none);
     box-sizing: border-box;
     transition:
-      border-color var(--ui-transition-fast),
       box-shadow var(--ui-transition-fast),
       background-color var(--ui-transition-fast);
   }
@@ -33,14 +33,15 @@
   }
 
   .input:hover:not(:disabled):not(:focus) {
-    border-color: var(--ui-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--ui-text-secondary);
   }
 
   .input:focus,
   .input:focus-visible {
     outline: none;
-    border-color: var(--ui-border-focus);
-    box-shadow: var(--ui-shadow-glow-primary);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-border-focus),
+      var(--ui-shadow-glow-primary);
   }
 
   .input:disabled {
@@ -74,14 +75,15 @@
   }
 
   .invalid {
-    border-color: var(--ui-danger);
+    box-shadow: inset 0 0 0 1px var(--ui-danger);
     background-color: var(--ui-danger-subtle);
   }
 
   .invalid:focus,
   .invalid:focus-visible {
-    border-color: var(--ui-danger);
-    box-shadow: var(--ui-shadow-glow-danger);
+    box-shadow:
+      inset 0 0 0 1px var(--ui-danger),
+      var(--ui-shadow-glow-danger);
   }
 
   .hasStartAdornment {

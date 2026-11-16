@@ -124,7 +124,7 @@ function HooksInteractivePlayground(): React.ReactElement {
   const disclosure = useDisclosure({ defaultIsOpen: true });
   const [rawQuery, setRawQuery] = useState('React 19 Design System');
   const debouncedQuery = useDebounce(rawQuery, 350);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const isDesktop = useMediaQuery({ mobile: false, desktop: true });
   const { isCopied, copy } = useCopyToClipboard(1500);
 
   const stageItems = [
