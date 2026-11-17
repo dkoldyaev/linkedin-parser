@@ -196,4 +196,69 @@
     margin-right: -1px;
     flex-shrink: 0;
   }
+
+  .compact {
+    min-height: calc(2 * var(--ui-grid-cell));
+  }
+
+  .compact .cardGridBodyContent {
+    padding: var(--ui-space-2) var(--ui-space-3);
+    gap: var(--ui-space-1);
+  }
+
+  .compact .cardTitle {
+    font-size: var(--ui-font-size-sm);
+    -webkit-line-clamp: 1;
+  }
+
+  .compact .cardSubtitle {
+    font-size: var(--ui-font-size-xs);
+    margin: 0;
+  }
+
+  .skeletonLines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-1-5);
+    padding: var(--ui-space-1) 0;
+  }
+
+  .skeletonChips {
+    display: flex;
+    align-items: center;
+    gap: var(--ui-space-2);
+    padding-top: var(--ui-space-1);
+  }
+
+  .skeletonHeaderOverline {
+    width: calc(2 * var(--ui-grid-cell));
+    height: var(--ui-space-2-5);
+  }
+
+  .skeletonHeaderChip {
+    width: calc(1.5 * var(--ui-grid-cell));
+    height: var(--ui-control-height-2xs);
+  }
+
+  .skeletonTechChipSm {
+    width: calc(1.25 * var(--ui-grid-cell));
+  }
+
+  .skeletonTechChipMd {
+    width: calc(1.75 * var(--ui-grid-cell));
+  }
+
+  .skeletonTechChipLg {
+    width: calc(2 * var(--ui-grid-cell));
+  }
+
+  .skeletonFooterMeta {
+    width: calc(2 * var(--ui-grid-cell));
+    height: var(--ui-space-3);
+  }
+
+  .skeletonFooterActions {
+    width: calc(2.5 * var(--ui-grid-cell));
+    height: var(--ui-control-height-xs);
+  }
 }

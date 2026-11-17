@@ -137,39 +137,74 @@ export const ComposableCard: Story = {
   ),
 };
 
-export const AccentTonesComparison: Story = {
+export const CompactFormat: Story = {
   render: () => (
-    <div className={layoutStyles.grid3}>
-      <Card
-        title="High Priority Entity"
-        overline="Success Edge"
-        accentTone="success"
-        footer={<Text variant="caption" tone="muted">Updated today</Text>}
-      >
-        <Paragraph size="sm" tone="secondary">
-          Uses semantic success accent bar on the left edge.
-        </Paragraph>
-      </Card>
-      <Card
-        title="Medium Priority Entity"
-        overline="Warning Edge"
-        accentTone="warning"
-        footer={<Text variant="caption" tone="muted">Updated 2d ago</Text>}
-      >
-        <Paragraph size="sm" tone="secondary">
-          Uses semantic warning accent bar on the left edge.
-        </Paragraph>
-      </Card>
-      <Card
-        title="Critical / Blocked Entity"
-        overline="Danger Edge"
-        accentTone="danger"
-        footer={<Text variant="caption" tone="muted">Action required</Text>}
-      >
-        <Paragraph size="sm" tone="secondary">
-          Uses semantic danger accent bar on the left edge.
-        </Paragraph>
-      </Card>
+    <div className={layoutStyles.stackSm}>
+      <div className={layoutStyles.narrowBox}>
+        <Card
+          compact
+          interactive
+          accentTone="success"
+          overline="Stripe"
+          title="Staff Frontend Architect"
+          statusIndicators={
+            <Badge variant="outline" tone="info" size="xs">
+              Interview
+            </Badge>
+          }
+        />
+      </div>
+      <div className={layoutStyles.narrowBox}>
+        <Card
+          compact
+          interactive
+          accentTone="warning"
+          overline="Revolut"
+          title="Senior Fullstack Developer (Node.js + React)"
+          statusIndicators={
+            <Badge variant="solid" tone="warning" size="xs">
+              68%
+            </Badge>
+          }
+        />
+      </div>
+      <div className={layoutStyles.narrowBox}>
+        <Card
+          compact
+          interactive
+          accentTone="danger"
+          overline="Figma"
+          title="Lead UI Engineer"
+          statusIndicators={
+            <Badge variant="outline" tone="danger" size="xs">
+              Closed
+            </Badge>
+          }
+        />
+      </div>
+    </div>
+  ),
+};
+
+export const LoadingSkeletons: Story = {
+  render: () => (
+    <div className={layoutStyles.grid2}>
+      <div>
+        <Text variant="caption" tone="muted">
+          Standard Card (isLoading)
+        </Text>
+        <Card isLoading accentTone="accent" />
+      </div>
+      <div>
+        <Text variant="caption" tone="muted">
+          Compact Card (isLoading + compact)
+        </Text>
+        <div className={layoutStyles.stackSm}>
+          <Card isLoading compact accentTone="success" />
+          <Card isLoading compact accentTone="warning" />
+          <Card isLoading compact accentTone="danger" />
+        </div>
+      </div>
     </div>
   ),
 };

@@ -3,6 +3,7 @@ import {
   Checkbox,
   Heading,
   Link,
+  Skeleton,
   Text,
 } from '../../atoms';
 import { GRID_CELL_PX, cn } from '../../utils';
@@ -233,6 +234,16 @@ export interface CardProps
   readonly interactive?: boolean;
   readonly snapToGrid?: boolean;
   readonly bodyClassName?: string;
+  /**
+   * When true, renders in a compact format displaying only header (title/overline)
+   * and right-aligned status indicators.
+   */
+  readonly compact?: boolean;
+  /**
+   * When true, renders an animated skeleton placeholder.
+   * Works for both standard and compact cards.
+   */
+  readonly isLoading?: boolean;
 }
 
 /**
@@ -255,6 +266,8 @@ const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
     horizontal = false,
     interactive = false,
     snapToGrid = true,
+    compact = false,
+    isLoading = false,
     className,
     bodyClassName,
     children,
@@ -293,6 +306,110 @@ const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
     headerActions !== undefined ||
     statusIndicators !== undefined ||
     footer !== undefined;
+
+  // Render skeleton state when isLoading is true
+  if (isLoading) {
+    if (compact) {
+      return (
+        <div
+          ref={ref}
+          aria-busy="true"
+          className={cn(styles.card, styles.compact, toneClass, className)}
+          {...rest}
+        >
+          <CardBody snapToGrid={false} contentClassName={bodyClassName}>
+            <div className={styles.cardHeader}>
+              <div className={styles.cardHeading}>
+                <div className={styles.cardTitleContainer}>
+                  <div className={styles.cardHeaderMeta}>
+                    <Skeleton variant="text" className={styles.skeletonHeaderOverline} />
+                  </div>
+                  <Skeleton variant="text" width="75" height="sm" />
+                </div>
+              </div>
+              <Skeleton variant="chip" className={styles.skeletonHeaderChip} />
+            </div>
+          </CardBody>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        ref={ref}
+        aria-busy="true"
+        className={cn(
+          styles.card,
+          toneClass,
+          horizontal && styles.horizontal,
+          className
+        )}
+        {...rest}
+      >
+        <CardBody snapToGrid={snapToGrid} contentClassName={bodyClassName}>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardHeading}>
+              <div className={styles.cardTitleContainer}>
+                <div className={styles.cardHeaderMeta}>
+                  <Skeleton variant="text" className={styles.skeletonHeaderOverline} />
+                </div>
+                <Skeleton variant="text" width="85" height="md" />
+              </div>
+            </div>
+            <Skeleton variant="chip" className={styles.skeletonHeaderChip} />
+          </div>
+
+          <div className={styles.skeletonChips}>
+            <Skeleton variant="chip" className={styles.skeletonTechChipSm} />
+            <Skeleton variant="chip" className={styles.skeletonTechChipMd} />
+            <Skeleton variant="chip" className={styles.skeletonTechChipLg} />
+          </div>
+
+          <div className={styles.skeletonLines}>
+            <Skeleton variant="text" width="100" height="xs" />
+            <Skeleton variant="text" width="85" height="xs" />
+            <Skeleton variant="text" width="60" height="xs" />
+          </div>
+        </CardBody>
+        <CardFooter
+          metaSlot={<Skeleton variant="text" className={styles.skeletonFooterMeta} />}
+          actionsSlot={<Skeleton variant="rect" className={styles.skeletonFooterActions} />}
+        />
+      </div>
+    );
+  }
+
+  // Render compact card
+  if (compact) {
+    return (
+      <div
+        ref={ref}
+        tabIndex={interactive ? 0 : undefined}
+        className={cn(
+          styles.card,
+          styles.compact,
+          toneClass,
+          selected && styles.selected,
+          interactive && styles.interactive,
+          className
+        )}
+        {...rest}
+      >
+        <CardBody snapToGrid={false} contentClassName={bodyClassName}>
+          <CardHeader
+            title={title}
+            subtitle={subtitle}
+            overline={overline}
+            overlineHref={overlineHref}
+            headerActions={headerActions}
+            statusIndicators={statusIndicators}
+          >
+            {children}
+          </CardHeader>
+        </CardBody>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Tag } from 'lucide-react';
 import { TagsList } from './TagsList';
-import { Icon } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof TagsList> = {

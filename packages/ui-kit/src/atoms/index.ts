@@ -61,5 +61,12 @@ export {
   type StatusDotSize,
 } from './StatusDot';
 export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner';
+export {
+  Skeleton,
+  type SkeletonProps,
+  type SkeletonVariant,
+  type SkeletonWidth,
+  type SkeletonHeight,
+} from './Skeleton';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Icon, type IconProps, type IconSize, type IconTone } from './Icon';
