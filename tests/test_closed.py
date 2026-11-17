@@ -35,6 +35,7 @@ class TestClosedVacancy(unittest.TestCase):
             '<span class="topcard__flavor">Прием заявок завершен</span>',
             '<span class="topcard__flavor">Приём откликов приостановлен</span>',
             '<div class="banner">Вакансия закрыта</div>',
+            '<div><h2>Unable to load the page</h2><p>Job id provided may not be valid or the job posting has been removed.</p></div>',
         ]
         for html in cases:
             soup = BeautifulSoup(html, "html.parser")
@@ -108,6 +109,115 @@ class TestClosedVacancy(unittest.TestCase):
 
         # Cleanup
         client.delete(f"/api/v2/vacancies/{vid}")
+
+    def test_linkedin_closed_on_removed_page(self):
+        import asyncio
+        from backend.parsers.linkedin import LinkedInParser
+
+        parser = LinkedInParser()
+        html = """
+        <html>
+          <body>
+            <h2>Unable to load the page</h2>
+            <p>Job id provided may not be valid or the job posting has been removed.</p>
+          </body>
+        </html>
+        """
+        data = asyncio.run(parser.parse("https://www.linkedin.com/jobs/view/1234567890/", html))
+        self.assertTrue(data["is_closed"])
+        self.assertIsNone(data["title"])
+        self.assertIsNone(data["description"])
+
+    def test_upwork_closed_on_category_redirect(self):
+        import asyncio
+        from backend.parsers.upwork import UpworkParser
+
+        parser = UpworkParser()
+        # 1. URL redirected to a category without ~cipher ID
+        html_category = """
+        <html>
+          <head><link rel="canonical" href="https://www.upwork.com/freelance-jobs/full-stack-development/" /></head>
+          <body><h1>Freelance Full Stack Development Jobs</h1></body>
+        </html>
+        """
+        data = asyncio.run(parser.parse("https://www.upwork.com/freelance-jobs/full-stack-development/", html_category))
+        self.assertTrue(data["is_closed"])
+
+        # 2. Normal Upwork vacancy with cipher ID and 302 apply redirect
+        html_normal = """
+        <html>
+          <head><link rel="canonical" href="https://www.upwork.com/freelance-jobs/apply/Full-Stack-Developer_~022109565404398276670" /></head>
+          <body><h4>Full Stack Developer</h4><div class="job-description">Looking for Python dev</div></body>
+        </html>
+        """
+        data_normal = asyncio.run(parser.parse("https://www.upwork.com/jobs/Full-Stack-Developer_~022109565404398276670/?referrer_url_path=find_work_home", html_normal))
+        self.assertFalse(data_normal["is_closed"])
+        self.assertEqual(data_normal["title"], "Full Stack Developer")
+
+    def test_queue_preserves_data_when_marked_closed(self):
+        import asyncio
+        from backend.models import Vacancy
+        from backend.database import SessionLocal
+        from backend.queue_manager import queue_manager, JobTask, TASK_KEY_PREFIX
+        import fakeredis.aioredis
+
+        # Setup fakeredis if not set
+        fake_r = fakeredis.aioredis.FakeRedis(decode_responses=True)
+        old_redis = queue_manager.redis
+        queue_manager.redis = fake_r
+
+        with SessionLocal() as db:
+            v = Vacancy(
+                user_id=1,
+                url="https://www.upwork.com/jobs/~022109565404398276670/",
+                job_id="~022109565404398276670",
+                title="Original Important Title",
+                description="Original Description Content",
+                company="Original Client",
+                is_closed=False,
+            )
+            db.add(v)
+            db.commit()
+            db.refresh(v)
+            vid = v.id
+
+        try:
+            # Simulate extension result reporting job is closed
+            task = JobTask(
+                task_id="test_task_closed",
+                url="https://www.upwork.com/jobs/~022109565404398276670/",
+                default_tags=[],
+                batch_id="test_batch",
+                user_id=1,
+                vacancy_id=vid,
+                status="pending_extension",
+            )
+            # Store in redis mock/queue
+            async def run():
+                import json
+                await queue_manager.redis.set(f"{TASK_KEY_PREFIX}test_task_closed", json.dumps(task.to_dict()))
+                await queue_manager.process_extension_result(
+                    "test_task_closed",
+                    {
+                        "is_closed": True,
+                        "title": None,
+                        "description": None,
+                        "source": "Upwork",
+                    }
+                )
+            asyncio.run(run())
+
+            with SessionLocal() as db:
+                updated = db.query(Vacancy).filter(Vacancy.id == vid).first()
+                self.assertTrue(updated.is_closed)
+                self.assertEqual(updated.title, "Original Important Title")
+                self.assertEqual(updated.description, "Original Description Content")
+                self.assertEqual(updated.company, "Original Client")
+        finally:
+            queue_manager.redis = old_redis
+            with SessionLocal() as db:
+                db.query(Vacancy).filter(Vacancy.id == vid).delete()
+                db.commit()
 
     def test_rejection_status_transition(self):
         client = TestClient(app)

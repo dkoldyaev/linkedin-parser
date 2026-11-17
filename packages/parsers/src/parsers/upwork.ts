@@ -34,13 +34,49 @@ export class UpworkParser extends BaseParser {
   async parse(url: string, html?: string): Promise<VacancyData> {
     url = this.normalizeUrl(url, html);
     const job_id = this.extractJobId(url) || undefined;
-    if (!html) return { url, source: this.source, job_id, is_closed: false };
+    if (!html) return { url, source: this.source, job_id, is_closed: !job_id };
 
     const doc = createDocument(html);
+
+    // 0. Check canonical url or job link input in DOM
+    let canonicalUrl: string | undefined;
+    const jobLinkInput = doc.querySelector('input[aria-label="Job link"]') as HTMLInputElement | null;
+    if (jobLinkInput && jobLinkInput.value && jobLinkInput.value.startsWith('http')) {
+      canonicalUrl = jobLinkInput.value.trim();
+    } else {
+      canonicalUrl = extractCanonicalUrl(html) || undefined;
+    }
+
+    const effectiveUrl = canonicalUrl || url;
+    const effectiveJid = this.extractJobId(effectiveUrl);
+
+    const isCategoryPage = /\/freelance-jobs\/[^~?#]+\/?(?:[?#]|$)/i.test(effectiveUrl) && !effectiveJid;
+    const isSearchPage = /\/(?:nx\/)?search\/jobs\/?/i.test(effectiveUrl) && !effectiveJid;
+
+    const text = doc.body.textContent?.toLowerCase() || "";
+    let is_closed = (
+      !effectiveJid ||
+      isCategoryPage ||
+      isSearchPage ||
+      text.includes("this job is closed") ||
+      text.includes("no longer available") ||
+      text.includes("this job has expired") ||
+      text.includes("this posting is closed") ||
+      text.includes("job posting is closed")
+    );
+
+    if (is_closed && !effectiveJid) {
+      return {
+        url,
+        source: this.source,
+        job_id,
+        is_closed: true,
+        workplace_type: "remote",
+      };
+    }
     
     let title: string | undefined;
     let description: string | undefined;
-    let is_closed = false;
     let salary_min: number | undefined;
     let salary_max: number | undefined;
     let salary_currency: string | undefined = "USD";
@@ -71,8 +107,7 @@ export class UpworkParser extends BaseParser {
       }
     }
 
-    const text = doc.body.textContent?.toLowerCase() || "";
-    if (text.includes("this job is closed") || text.includes("no longer available")) {
+    if (!is_closed && (text.includes("this job is closed") || text.includes("no longer available"))) {
       is_closed = true;
     }
 

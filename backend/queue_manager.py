@@ -1166,38 +1166,42 @@ class RedisQueueManager:
 
                 initial_tags = list(task.default_tags)
                 if existing:
-                    existing.url = task.url
-                    if scraped.get("job_id"):
-                        existing.job_id = scraped["job_id"]
-                    existing.title = (scraped.get("title") or existing.title or "")[:1000]
-                    existing.company = scraped.get("company") or existing.company
-                    existing.company_url = scraped.get("company_url") or existing.company_url
-                    existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city") or existing.city
-                    existing.country = scraped.get("country") or existing.country
-                    existing.description = scraped.get("description") or existing.description
-                    if scraped.get("company_info"):
-                        existing.company_info = scraped["company_info"]
+                    if scraped.get("is_closed"):
+                        # If vacancy is closed/gone, only mark is_closed = True without overwriting fields
+                        existing.is_closed = True
+                    else:
+                        existing.url = task.url
+                        if scraped.get("job_id"):
+                            existing.job_id = scraped["job_id"]
+                        existing.title = (scraped.get("title") or existing.title or "")[:1000]
+                        existing.company = scraped.get("company") or existing.company
+                        existing.company_url = scraped.get("company_url") or existing.company_url
+                        existing.location = scraped.get("location") or existing.location
+                        existing.city = scraped.get("city") or existing.city
+                        existing.country = scraped.get("country") or existing.country
+                        existing.description = scraped.get("description") or existing.description
+                        if scraped.get("company_info"):
+                            existing.company_info = scraped["company_info"]
 
-                    current_tags = set(existing.tags or [])
-                    for t in initial_tags:
-                        current_tags.add(t)
-                    existing.tags = list(current_tags)
+                        current_tags = set(existing.tags or [])
+                        for t in initial_tags:
+                            current_tags.add(t)
+                        existing.tags = list(current_tags)
 
-                    if scraped.get("salary_min") is not None:
-                        existing.salary_min = scraped["salary_min"]
-                    if scraped.get("salary_max") is not None:
-                        existing.salary_max = scraped["salary_max"]
-                    if scraped.get("salary_currency") is not None:
-                        existing.salary_currency = scraped["salary_currency"]
-                    if scraped.get("salary_period") is not None:
-                        existing.salary_period = scraped["salary_period"]
-                    if scraped.get("workplace_type"):
-                        existing.workplace_type = scraped["workplace_type"]
-                    if "is_closed" in scraped:
-                        existing.is_closed = scraped["is_closed"]
-                    if scraped.get("source"):
-                        existing.source = scraped["source"]
+                        if scraped.get("salary_min") is not None:
+                            existing.salary_min = scraped["salary_min"]
+                        if scraped.get("salary_max") is not None:
+                            existing.salary_max = scraped["salary_max"]
+                        if scraped.get("salary_currency") is not None:
+                            existing.salary_currency = scraped["salary_currency"]
+                        if scraped.get("salary_period") is not None:
+                            existing.salary_period = scraped["salary_period"]
+                        if scraped.get("workplace_type"):
+                            existing.workplace_type = scraped["workplace_type"]
+                        if "is_closed" in scraped:
+                            existing.is_closed = scraped["is_closed"]
+                        if scraped.get("source"):
+                            existing.source = scraped["source"]
 
                     if not existing.user_id and task.user_id:
                         existing.user_id = task.user_id
@@ -1278,6 +1282,21 @@ class RedisQueueManager:
                     return
 
             # 4. Enqueue into Stage 2 (AI Queue)
+            if saved_vacancy.is_closed or scraped.get("is_closed"):
+                # Closed vacancy does not need AI analysis or CV scoring
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(SCRAPE_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, saved_vacancy.id)
+                return
+
             has_desc = bool(saved_vacancy.description and saved_vacancy.description.strip())
             is_upwork = "upwork.com" in task.url.lower()
             upwork_needs_cv_scoring = False
@@ -1958,37 +1977,41 @@ class RedisQueueManager:
 
                 initial_tags = list(task.default_tags)
                 if existing:
-                    if scraped.get("job_id"):
-                        existing.job_id = scraped["job_id"]
-                    existing.title = scraped.get("title") or existing.title
-                    existing.company = scraped.get("company") or existing.company
-                    existing.company_url = scraped.get("company_url") or existing.company_url
-                    existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city") or existing.city
-                    existing.country = scraped.get("country") or existing.country
-                    existing.description = scraped.get("description") or existing.description
-                    if scraped.get("company_info"):
-                        existing.company_info = scraped["company_info"]
+                    if scraped.get("is_closed"):
+                        # If vacancy is closed/gone, only mark is_closed = True without overwriting fields
+                        existing.is_closed = True
+                    else:
+                        if scraped.get("job_id"):
+                            existing.job_id = scraped["job_id"]
+                        existing.title = scraped.get("title") or existing.title
+                        existing.company = scraped.get("company") or existing.company
+                        existing.company_url = scraped.get("company_url") or existing.company_url
+                        existing.location = scraped.get("location") or existing.location
+                        existing.city = scraped.get("city") or existing.city
+                        existing.country = scraped.get("country") or existing.country
+                        existing.description = scraped.get("description") or existing.description
+                        if scraped.get("company_info"):
+                            existing.company_info = scraped["company_info"]
 
-                    current_tags = set(existing.tags or [])
-                    for t in initial_tags:
-                        current_tags.add(t)
-                    existing.tags = list(current_tags)
+                        current_tags = set(existing.tags or [])
+                        for t in initial_tags:
+                            current_tags.add(t)
+                        existing.tags = list(current_tags)
 
-                    if scraped.get("salary_min") is not None:
-                        existing.salary_min = scraped["salary_min"]
-                    if scraped.get("salary_max") is not None:
-                        existing.salary_max = scraped["salary_max"]
-                    if scraped.get("salary_currency") is not None:
-                        existing.salary_currency = scraped["salary_currency"]
-                    if scraped.get("salary_period") is not None:
-                        existing.salary_period = scraped["salary_period"]
-                    if scraped.get("workplace_type"):
-                        existing.workplace_type = scraped["workplace_type"]
-                    if scraped.get("is_closed") is not None:
-                        existing.is_closed = scraped["is_closed"]
-                    if scraped.get("source"):
-                        existing.source = scraped["source"]
+                        if scraped.get("salary_min") is not None:
+                            existing.salary_min = scraped["salary_min"]
+                        if scraped.get("salary_max") is not None:
+                            existing.salary_max = scraped["salary_max"]
+                        if scraped.get("salary_currency") is not None:
+                            existing.salary_currency = scraped["salary_currency"]
+                        if scraped.get("salary_period") is not None:
+                            existing.salary_period = scraped["salary_period"]
+                        if scraped.get("workplace_type"):
+                            existing.workplace_type = scraped["workplace_type"]
+                        if scraped.get("is_closed") is not None:
+                            existing.is_closed = scraped["is_closed"]
+                        if scraped.get("source"):
+                            existing.source = scraped["source"]
 
                     db.commit()
                     db.refresh(existing)
@@ -2048,6 +2071,20 @@ class RedisQueueManager:
                 topic=mercure_topic,
             )
             
+            if scraped.get("is_closed"):
+                # Closed vacancy does not need AI analysis or CV scoring
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task.task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(SCRAPE_PROCESSING_SET, task.task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task.task_id, "completed", "completed", task.attempts, None, task.vacancy_id)
+                return {"status": "success", "vacancy_id": task.vacancy_id}
+
             task.stage = "ai_analysis"
             task.status = "pending"
             task.updated_at = time.time()

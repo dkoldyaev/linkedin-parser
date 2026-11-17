@@ -95,8 +95,16 @@ export class LinkedInParser extends BaseParser {
     const text = doc.body.textContent?.toLowerCase() || "";
     if (text.includes("no longer accepting applications") || 
         text.includes("job is closed") || 
-        text.includes("вакансия закрыта")) {
+        text.includes("вакансия закрыта") ||
+        text.includes("job id provided may not be valid") ||
+        text.includes("the job posting has been removed") ||
+        text.includes("unable to load the page")) {
       is_closed = true;
+    }
+
+    if (text.includes("job id provided may not be valid") || text.includes("the job posting has been removed")) {
+      title = undefined;
+      description = undefined;
     }
 
     return {

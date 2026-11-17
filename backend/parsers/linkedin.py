@@ -173,6 +173,9 @@ def _extract_is_closed(soup: BeautifulSoup, html: Optional[str] = None) -> bool:
         r"es werden keine bewerbungen mehr angenommen",
         r"les candidatures ne sont plus acceptées",
         r"ya no se aceptan solicitudes",
+        r"unable to load the page",
+        r"job id provided may not be valid",
+        r"the job posting has been removed",
     ]
     combined = re.compile("|".join(closed_patterns), re.IGNORECASE)
     for fig in soup.find_all("figcaption"):
@@ -188,7 +191,7 @@ def _extract_is_closed(soup: BeautifulSoup, html: Optional[str] = None) -> bool:
         text = el.get_text(strip=True)
         if len(text) < 150 and combined.search(text):
             return True
-    if html and ("closed-job" in html or "closed-job__flavor" in html or "topcard__flavor--closed" in html):
+    if html and ("closed-job" in html or "closed-job__flavor" in html or "topcard__flavor--closed" in html or "job id provided may not be valid" in html.lower() or "the job posting has been removed" in html.lower()):
         return True
     return False
 
@@ -228,7 +231,14 @@ class LinkedInParser(BaseParser):
                         if resp.status_code == 200 and len(resp.text) > 1000:
                             html = resp.text
                         elif resp.status_code == 404:
-                            return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                            return VacancyData(
+                                url=url,
+                                source=self.source,
+                                job_id=job_id,
+                                title=None,
+                                description=None,
+                                is_closed=True,
+                            )
                     except Exception as exc:
                         logger.warning("Failed to fetch LinkedIn guest API for job %s: %s", job_id, exc)
                 if not html:
@@ -237,7 +247,14 @@ class LinkedInParser(BaseParser):
                         if resp.status_code == 200:
                             html = resp.text
                         elif resp.status_code == 404:
-                            return {"is_closed": True, "title": "Vacancy Closed (404 Not Found)", "description": ""}
+                            return VacancyData(
+                                url=url,
+                                source=self.source,
+                                job_id=job_id,
+                                title=None,
+                                description=None,
+                                is_closed=True,
+                            )
                         else:
                             raise ValueError(f"HTTP {resp.status_code}")
                     except Exception as exc:
@@ -312,6 +329,14 @@ class LinkedInParser(BaseParser):
 
         workplace_type = _extract_workplace(soup, location, criteria)
         is_closed = _extract_is_closed(soup, html)
+
+        # If page indicates job posting was removed/invalid (e.g. "Unable to load the page..."),
+        # do not extract broken title/description.
+        page_lower = soup.get_text(" ", strip=True).lower()
+        if "job id provided may not be valid" in page_lower or "the job posting has been removed" in page_lower:
+            is_closed = True
+            title = None
+            description = None
 
         return VacancyData(
             job_id=job_id,

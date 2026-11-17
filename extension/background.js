@@ -146,6 +146,8 @@ async function checkTabForCaptcha(tabId) {
 
 async function extractAndSubmit(tabId, entry) {
   try {
+    const tab = await chrome.tabs.get(tabId);
+    const finalUrl = tab?.url || entry.url;
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: () => document.documentElement.outerHTML,
@@ -153,7 +155,7 @@ async function extractAndSubmit(tabId, entry) {
 
     const html = results?.[0]?.result;
     if (html) {
-      await submitTaskResult(entry.task_id, entry.url, html);
+      await submitTaskResult(entry.task_id, entry.url, html, finalUrl);
     }
   } catch (e) {
     console.error("Failed to extract HTML after captcha solve:", e);
@@ -413,13 +415,14 @@ async function remoteLog(level, message, data = null) {
   } catch {}
 }
 
-async function submitTaskResult(taskId, url, html) {
+async function submitTaskResult(taskId, url, html, finalUrl = null) {
   try {
-    await remoteLog("info", `Submitting task ${taskId} (HTML len=${html?.length || 0}) for url=${url}`);
+    const parseUrl = finalUrl || url;
+    await remoteLog("info", `Submitting task ${taskId} (HTML len=${html?.length || 0}) for url=${url} (finalUrl=${finalUrl || 'same'})`);
     await getOffscreenDocument();
     const result = await chrome.runtime.sendMessage({
       type: 'PARSE_HTML',
-      url,
+      url: parseUrl,
       html
     });
 
@@ -429,9 +432,13 @@ async function submitTaskResult(taskId, url, html) {
     }
 
     const vacancyData = result.data;
-    if (!vacancyData?.url || !vacancyData?.source) {
-      await remoteLog("error", `Parser returned no url/source for task ${taskId}`, vacancyData);
-      throw new Error('Parser returned no url/source');
+    if (!vacancyData?.source) {
+      await remoteLog("error", `Parser returned no source for task ${taskId}`, vacancyData);
+      throw new Error('Parser returned no source');
+    }
+    // Always guarantee url points back to original task url if vacancyData has empty url
+    if (!vacancyData.url) {
+      vacancyData.url = url;
     }
 
     await remoteLog("info", `Parsed vacancyData for task ${taskId}`, {
@@ -606,13 +613,19 @@ async function processTabExecution(tabId, task) {
   }
 
   // 2. No captcha — extract and submit
+  let finalUrl = task.url;
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab?.url) finalUrl = tab.url;
+  } catch {}
+
   const results = await chrome.scripting.executeScript({
     target: { tabId },
     func: () => document.documentElement.outerHTML,
   });
 
   if (results?.[0]?.result) {
-    await submitTaskResult(task.task_id, task.url, results[0].result);
+    await submitTaskResult(task.task_id, task.url, results[0].result, finalUrl);
   } else {
     await reportTaskError(task.task_id, "Empty page HTML");
   }

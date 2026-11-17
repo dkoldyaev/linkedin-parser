@@ -1,6 +1,34 @@
 {
-  "latest_version": "2.0.0",
+  "latest_version": "2.0.2",
   "releases": {
+    "2.0.2": {
+      "date": "2026-11-17",
+      "changes": {
+        "ru": [
+          "Детекция недоступных/закрытых вакансий на Upwork по 301 редиректу на категорию без job id",
+          "Детекция удалённых вакансий на LinkedIn по сообщениям об ошибке («Unable to load the page» / «Job id provided may not be valid»)",
+          "Защита существующих данных вакансии от перезаписи при обнаружении закрытой вакансии"
+        ],
+        "en": [
+          "Detect closed/unavailable jobs on Upwork via 301 category redirects without job ID",
+          "Detect removed jobs on LinkedIn via error messages ('Unable to load the page' / 'Job id provided may not be valid')",
+          "Protect existing vacancy details from being overwritten when marked as closed"
+        ]
+      }
+    },
+    "2.0.1": {
+      "date": "2026-11-13",
+      "changes": {
+        "ru": [
+          "Оптимизация доставки состояния очереди через Mercure события `queue_state` и фоновую синхронизацию",
+          "Добавление ссылки из контекстного меню через эндпоинт очереди /api/v2/extension/add_link"
+        ],
+        "en": [
+          "Optimized queue state delivery via Mercure `queue_state` events and background synchronization",
+          "Added context menu link submission via /api/v2/extension/add_link queue endpoint"
+        ]
+      }
+    },
     "2.0.0": {
       "date": "2026-11-12",
       "changes": {

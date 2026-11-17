@@ -75,15 +75,61 @@ class UpworkParser(BaseParser):
 
         soup = BeautifulSoup(html, "html.parser")
 
-        # 1. Canonical job URL and ID from page if available
+        # 0. Check if redirect or page URL indicates job is closed/gone
+        # If the page redirected to a category (e.g. /freelance-jobs/full-stack-development/)
+        # or no ~cipher remains in url/canonical, mark closed.
+        canonical_url = None
         job_link_input = soup.select_one('input[aria-label="Job link"]')
         if job_link_input and job_link_input.get("value"):
-            page_url = job_link_input["value"].strip()
-            if page_url.startswith("http"):
-                url = page_url
-                page_job_id = self._extract_job_id(url)
-                if page_job_id:
-                    job_id = page_job_id
+            page_val = job_link_input["value"].strip()
+            if page_val.startswith("http"):
+                canonical_url = page_val
+        if not canonical_url:
+            from .helpers import extract_canonical_url
+            canonical_url = extract_canonical_url(html)
+
+        effective_url = canonical_url or url
+        effective_jid = self._extract_job_id(effective_url)
+
+        # Detect category redirects like /freelance-jobs/<category>/ without ~id
+        is_category_page = bool(re.search(r"/freelance-jobs/[^~?#]+/?(?:[?#]|$)", effective_url)) and not effective_jid
+        is_search_page = bool(re.search(r"/(?:nx/)?search/jobs/?", effective_url)) and not effective_jid
+
+        # 7. Closed status
+        is_closed = (
+            not effective_jid
+            or is_category_page
+            or is_search_page
+            or bool(
+                soup.find(string=re.compile(r"job is no longer available|this job has expired|this posting is closed|job posting is closed", re.I))
+            )
+        )
+
+        if is_closed and not effective_jid:
+            return VacancyData(
+                url=url,
+                source=self.source,
+                title=None,
+                company=self.source,
+                description=None,
+                is_closed=True,
+                job_id=job_id,
+                company_url=None,
+                company_info=None,
+                location=None,
+                city=None,
+                country=None,
+                workplace_type="remote",
+                salary_min=None,
+                salary_max=None,
+                salary_currency=None,
+                salary_period=None,
+            )
+
+        # 1. Canonical job URL and ID from page if available
+        if canonical_url and effective_jid:
+            url = canonical_url
+            job_id = effective_jid
         elif job_id and job_id.startswith("~"):
             url = f"https://www.upwork.com/jobs/{job_id}"
 
@@ -157,9 +203,10 @@ class UpworkParser(BaseParser):
             workplace_type = "on-site"
 
         # 7. Closed status
-        is_closed = bool(
-            soup.find(string=re.compile(r"job is no longer available|this job has expired|this posting is closed", re.I))
-        )
+        if not is_closed:
+            is_closed = bool(
+                soup.find(string=re.compile(r"job is no longer available|this job has expired|this posting is closed|job posting is closed", re.I))
+            )
 
         return VacancyData(
             url=url,
