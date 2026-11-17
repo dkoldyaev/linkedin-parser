@@ -158,7 +158,7 @@ class TestAuthAndIsolation(unittest.TestCase):
         token_a = res_a.json()["token"]
         client_a = TestClient(app, cookies={COOKIE_NAME: token_a})
 
-        cfg_a = client_a.get("/api/v2/config").json()
+        cfg_a = client_a.get("/api/v2/mercure-config").json()
         self.assertEqual(cfg_a["mercure_topic"], f"vacancies:{user_a_id}")
 
     def test_google_auth_url_query_format(self):

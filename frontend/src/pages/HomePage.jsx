@@ -349,7 +349,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     const initMercure = async () => {
       try {
         setMercureStatus('connecting');
-        const configRes = await fetch('/api/v2/config', { credentials: 'include' });
+        const configRes = await fetch('/api/v2/mercure-config', { credentials: 'include' });
         if (!configRes.ok) throw new Error(`Mercure config HTTP ${configRes.status}`);
         const cfg = await configRes.json();
         if (!isSubscribed) return;
@@ -403,19 +403,21 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               setVacancies(prev => {
                 const exists = prev.some(v => v.id === vacancy.id);
                 if (exists) {
-                  return prev.map(v => v.id === vacancy.id ? vacancy : v);
+                  return prev.map(v => (v.id === vacancy.id ? { ...v, ...vacancy } : v));
                 }
                 return [vacancy, ...prev];
               });
-              setSelectedVacancy(prev => (prev && prev.id === vacancy.id ? vacancy : prev));
+              setSelectedVacancy(prev => {
+                if (!prev || prev.id !== vacancy.id) return prev;
+                return {
+                  ...prev,
+                  ...vacancy,
+                  compatibility: vacancy.compatibility !== undefined && vacancy.compatibility !== null
+                    ? vacancy.compatibility
+                    : prev.compatibility,
+                };
+              });
               currentShowToast(currentT('mercure.vacancy_updated', { title: vacancy.title }));
-            } else if (type === 'compatibility_analyzed') {
-              const matchedId = vacancy_id || data.vacancy_id;
-              const newScore = data.calculated_score;
-              if (matchedId && newScore !== undefined) {
-                setVacancies(prev => prev.map(v => (v.id === matchedId ? { ...v, calculated_score: newScore } : v)));
-                setSelectedVacancy(prev => (prev && prev.id === matchedId ? { ...prev, calculated_score: newScore } : prev));
-              }
             } else if (type === 'vacancy_deleted') {
               const delId = vacancy_id || (vacancy && vacancy.id);
               if (delId) {
@@ -430,9 +432,25 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             } else if (type === 'task_failed') {
               const errText = error_code ? currentT(`mercure.errors.${error_code}`) : (data.error || currentT('mercure.errors.ERR_UNKNOWN'));
               currentShowToast(currentT('mercure.task_failed', { error: errText, url: url || '' }), 'error');
+              const failedVacancyId = data.vacancy_id;
+              if (failedVacancyId) {
+                setSelectedVacancy(prev => {
+                  if (prev && prev.id === failedVacancyId) {
+                    return {
+                      ...prev,
+                      _lastError: errText,
+                      _lastErrorTime: Date.now(),
+                    };
+                  }
+                  return prev;
+                });
+              }
             } else if (type === 'queue_updated') {
               if (total_remaining !== undefined) {
                 setQueueRemaining(total_remaining);
+                if (total_remaining === 0) {
+                  currentShowToast(currentT('mercure.queue_idle'));
+                }
               }
             } else if (type === 'queue_state') {
               setQueueState({
@@ -443,9 +461,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 failed_count: data.failed_count,
               });
               setQueueRemaining(data.pending_count + data.processing_count);
-            } else if (type === 'queue_idle') {
-              setQueueRemaining(0);
-              currentShowToast(currentT('mercure.queue_idle'));
             }
           } catch (err) {
             console.error('Failed to parse Mercure message', err);
@@ -1002,7 +1017,20 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           onColumnsChange={(newCols) => {
             setColumns(newCols);
           }}
-          onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
+          onCardClick={async (vacancy) => {
+            setSelectedVacancy(vacancy);
+            if (vacancy?.id) {
+              try {
+                const res = await fetch(`/api/v2/vacancies/${vacancy.id}`);
+                if (res.ok) {
+                  const fullVacancy = await res.json();
+                  setSelectedVacancy(fullVacancy);
+                }
+              } catch (err) {
+                console.warn('Failed to load full vacancy details:', err);
+              }
+            }
+          }}
           onStatusChange={handleStatusChange}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}

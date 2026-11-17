@@ -25,6 +25,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         res_a = self.client.post("/api/v2/auth/dev-login", json={"email": "alice@local.test", "name": "Alice"})
         self.assertEqual(res_a.status_code, 200)
         self.cookies_alice = res_a.cookies
+        self.user_alice_id = res_a.json()["user"]["id"]
         # Enable cv_edit feature flag for Alice
         self.client.put("/api/v2/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies_alice)
 
@@ -36,47 +37,31 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         self.client.put("/api/v2/auth/me/feature-flags", json={"feature_flags": ["cv_edit"]}, cookies=self.cookies_bob)
 
     def test_company_anonymization_privacy_boundary(self):
-        """Scenario 4: Only company names are sent to the backend endpoint."""
-        from unittest.mock import patch, AsyncMock
-        mock_replacements = [
-            {"original": "Acme Bank", "replacement": "Digital bank"},
-            {"original": "Beta Insurance", "replacement": "Insurance company"},
-        ]
-
-        with patch("backend.main.anonymize_companies_with_llm", new_callable=AsyncMock) as mock_anon:
-            mock_anon.return_value = mock_replacements
-            resp = self.client.post(
-                "/api/v2/cv/anonymize-companies",
-                json={"companies": ["Acme Bank", "Beta Insurance"]},
-                cookies=self.cookies_alice,
-            )
-            self.assertEqual(resp.status_code, 200)
-            data = resp.json()
-            self.assertEqual(len(data["replacements"]), 2)
-            self.assertEqual(data["replacements"][0]["replacement"], "Digital bank")
-
-            # Verify the forwarded payload contains ONLY companies
-            called_args, called_kwargs = mock_anon.call_args
-            sent_companies = called_kwargs.get("companies")
-            self.assertEqual(sent_companies, ["Acme Bank", "Beta Insurance"])
+        """Scenario 4: Anonymization endpoint /api/v2/cv/anonymize-companies removed (client-side/obsolete)."""
+        resp = self.client.post(
+            "/api/v2/cv/anonymize-companies",
+            json={"companies": ["Acme Bank", "Beta Insurance"]},
+            cookies=self.cookies_alice,
+        )
+        self.assertEqual(resp.status_code, 404)
 
     def test_approved_cv_lifecycle_and_user_isolation(self):
         """Scenario 5 & User Isolation: Alice's approved CV cannot be accessed by Bob."""
         # Alice saves approved CV
         payload = {"content": "Senior React Engineer at [COMPANY].", "revision": 1}
-        resp = self.client.post("/api/v2/cv/approved", json=payload, cookies=self.cookies_alice)
+        resp = self.client.post("/api/v2/cv", json=payload, cookies=self.cookies_alice)
         self.assertEqual(resp.status_code, 200)
         alice_cv = resp.json()
         self.assertEqual(alice_cv["content"], payload["content"])
         self.assertEqual(alice_cv["revision"], 1)
 
         # Alice gets her approved CV
-        get_res = self.client.get("/api/v2/cv/approved", cookies=self.cookies_alice)
+        get_res = self.client.get("/api/v2/cv", cookies=self.cookies_alice)
         self.assertEqual(get_res.status_code, 200)
         self.assertEqual(get_res.json()["content"], payload["content"])
 
         # Bob gets his approved CV -> should be null
-        bob_res = self.client.get("/api/v2/cv/approved", cookies=self.cookies_bob)
+        bob_res = self.client.get("/api/v2/cv", cookies=self.cookies_bob)
         self.assertEqual(bob_res.status_code, 200)
         self.assertIsNone(bob_res.json())
 
@@ -99,7 +84,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
 
         # 2. Save approved CV (Rev 1)
         self.client.post(
-            "/api/v2/cv/approved",
+            "/api/v2/cv",
             json={"content": "React and TypeScript specialist.", "revision": 1},
             cookies=self.cookies_alice,
         )
@@ -132,20 +117,40 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             "model": "mistral-small-latest",
         }
 
-        with patch("backend.main.evaluate_vacancy_compatibility_with_llm", new_callable=AsyncMock) as mock_eval_fn:
-            mock_eval_fn.return_value = mock_eval
-            eval_res = self.client.post(f"/api/v2/vacancies/{vac_id}/compatibility", cookies=self.cookies_alice)
-            self.assertEqual(eval_res.status_code, 200)
-            data = eval_res.json()
-            self.assertEqual(data["overall_score"], 78)
-            self.assertEqual(data["cv_revision"], 1)
-            self.assertFalse(data["is_outdated"])
-            self.assertEqual(len(data["matched_requirements"]), 2)
-            self.assertEqual(data["missing_requirements"][0]["requirement"], "Kubernetes")
+        # 3. Requesting compatibility enqueues async scoring task
+        eval_res = self.client.post(f"/api/v2/vacancies/{vac_id}/compatibility", cookies=self.cookies_alice)
+        self.assertEqual(eval_res.status_code, 200)
+        data = eval_res.json()
+        self.assertEqual(data["status"], "queued")
+        self.assertEqual(data["vacancy_id"], vac_id)
+        self.assertIn("batch_id", data)
+
+        # 3b. Simulate completed analysis in DB
+        with SessionLocal() as db:
+            from backend.models import VacancyCVAnalysis
+            analysis = VacancyCVAnalysis(
+                user_id=self.user_alice_id,
+                vacancy_id=vac_id,
+                cv_revision=1,
+                scoring_policy_version="v1.0",
+                model_id="mistral-small-latest",
+                overall_score=78.0,
+                result=mock_eval,
+                is_outdated=False,
+            )
+            db.add(analysis)
+            db.commit()
+
+        cached_res = self.client.get(f"/api/v2/vacancies/{vac_id}/compatibility", cookies=self.cookies_alice)
+        self.assertEqual(cached_res.status_code, 200)
+        cached_data = cached_res.json()
+        self.assertEqual(cached_data["overall_score"], 78)
+        self.assertEqual(cached_data["cv_revision"], 1)
+        self.assertFalse(cached_data["is_outdated"])
 
         # 4. Scenario 12: Invalidation when approved CV revision changes
         self.client.post(
-            "/api/v2/cv/approved",
+            "/api/v2/cv",
             json={"content": "React, TypeScript and AWS developer.", "revision": 2},
             cookies=self.cookies_alice,
         )
@@ -172,7 +177,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         vac_id = vac_resp.json()["id"]
 
         self.client.post(
-            "/api/v2/cv/approved",
+            "/api/v2/cv",
             json={"content": "Python and FastAPI specialist.", "revision": 1},
             cookies=self.cookies_alice,
         )
@@ -186,7 +191,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
         """When vacancy with description is created or updated, auto-enqueue for AI scoring if approved CV exists."""
         # 1. User Alice has approved CV
         self.client.post(
-            "/api/v2/cv/approved",
+            "/api/v2/cv",
             json={"content": "Senior Python developer with FastAPI.", "revision": 1},
             cookies=self.cookies_alice,
         )
@@ -282,7 +287,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
 
         with patch("backend.main.queue_manager.enqueue_cv_scoring", new_callable=AsyncMock) as mock_enqueue:
             save_res = self.client.post(
-                "/api/v2/cv/approved",
+                "/api/v2/cv",
                 json={"content": "Senior Python Engineer", "revision": 3},
                 cookies=self.cookies_alice,
             )

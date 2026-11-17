@@ -53,10 +53,9 @@ def test_openapi_endpoints(test_user):
     assert res_docs.status_code == 200
     assert "swagger" in res_docs.text.lower() or "html" in res_docs.text.lower()
 
-    # /redoc
+    # /redoc removed, returns 404
     res_redoc = client.get("/redoc", headers=headers)
-    assert res_redoc.status_code == 200
-    assert "redoc" in res_redoc.text.lower() or "html" in res_redoc.text.lower()
+    assert res_redoc.status_code == 404
 
 def test_api_key_crud_and_auth(test_user):
     client = TestClient(app)

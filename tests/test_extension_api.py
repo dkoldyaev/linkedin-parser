@@ -125,9 +125,10 @@ def test_legacy_extension_endpoints_full_lifecycle():
         })
         assert log_res.status_code == 200
 
-        # 7. Parse and add (context menu or popup single add)
+        # 7. Parse and add (context menu or popup single add) - enqueues async Stage 1 task
         add_res = client.post("/api/extension/parse_and_add", json={
             "url": "https://career.habr.com/vacancies/1000999999",
+            "html": "<html><body><h1>Python Developer</h1><p>Legacy Corp</p></body></html>",
             "data": {
                 "title": "Python Developer",
                 "company": "Legacy Corp",
@@ -136,8 +137,8 @@ def test_legacy_extension_endpoints_full_lifecycle():
             }
         })
         assert add_res.status_code == 200
-        assert add_res.json()["status"] in ("ok", "queued_for_ai")
-        assert "vacancy_id" in add_res.json()
+        assert add_res.json()["status"] == "queued"
+        assert "task_id" in add_res.json()
 
         # 8. Queue status
         q_status_res = client.get("/api/queue/status")

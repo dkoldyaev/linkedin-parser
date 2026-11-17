@@ -8,8 +8,8 @@ from backend import queue_manager as queue_manager_module
 
 def test_queue_endpoints():
     with TestClient(app) as client:
-        # 1. Test /api/v2/config unauthenticated
-        config_resp = client.get("/api/v2/config")
+        # 1. Test /api/v2/mercure-config unauthenticated
+        config_resp = client.get("/api/v2/mercure-config")
         assert config_resp.status_code == 401, f"Config failed: {config_resp.text}"
         # Dev login to get authenticated client
         login_res = client.post("/api/v2/auth/dev-login", json={"email": "queue_test@local.user"})
@@ -17,10 +17,10 @@ def test_queue_endpoints():
         user_id = login_res.json()["user"]["id"]
         client.cookies.set("access_token", token)
 
-        # Test /api/v2/config authenticated
-        config_auth_resp = client.get("/api/v2/config")
+        # Test /api/v2/mercure-config authenticated
+        config_auth_resp = client.get("/api/v2/mercure-config")
         assert config_auth_resp.json()["mercure_topic"] == f"vacancies:{user_id}"
-        print("✓ /api/v2/config test passed:", config_auth_resp.json())
+        print("✓ /api/v2/mercure-config test passed:", config_auth_resp.json())
 
         # 2. Test Mercure JWT Generation
         token = generate_publisher_jwt()

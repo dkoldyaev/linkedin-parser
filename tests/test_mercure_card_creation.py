@@ -11,6 +11,8 @@ from backend.mercure import (
     MSG_VACANCY_UPDATED,
     EVENT_VACANCY_DELETED,
     MSG_VACANCY_DELETED,
+    EVENT_QUEUE_UPDATED,
+    MSG_QUEUE_UPDATED,
 )
 
 
@@ -94,7 +96,7 @@ def test_card_crud_mercure_events():
             assert batch_created_events[0]["topic"] == f"vacancies:{user_id}"
             print("✓ POST /api/v2/vacancies/batch publishes Mercure EVENT_VACANCY_CREATED passed")
 
-            # 5. Test POST /api/extension/parse_and_add publishes EVENT_VACANCY_CREATED for new vacancy
+            # 5. Test POST /api/extension/parse_and_add enqueues task and publishes EVENT_QUEUE_UPDATED
             published_events.clear()
             ext_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}/"
             res = client.post("/api/extension/parse_and_add", json={
@@ -105,10 +107,10 @@ def test_card_crud_mercure_events():
                 "description": "Some description",
             })
             assert res.status_code == 200
-            ext_created_events = [e for e in published_events if e["event_type"] == EVENT_VACANCY_CREATED]
-            assert len(ext_created_events) >= 1, f"Expected EVENT_VACANCY_CREATED in extension parse_and_add, got: {published_events}"
-            assert ext_created_events[0]["data"]["vacancy"]["url"] == ext_url
-            print("✓ POST /api/extension/parse_and_add publishes Mercure EVENT_VACANCY_CREATED passed")
+            assert res.json()["status"] == "queued"
+            queue_events = [e for e in published_events if e["event_type"] == EVENT_QUEUE_UPDATED]
+            assert len(queue_events) >= 1, f"Expected EVENT_QUEUE_UPDATED in extension parse_and_add, got: {published_events}"
+            print("✓ POST /api/extension/parse_and_add publishes Mercure EVENT_QUEUE_UPDATED passed")
 
             # 6. Test PATCH /api/v2/columns/{column_id} and DELETE /api/v2/columns/{column_id} publish EVENT_VACANCY_UPDATED
             custom_col_name = f"Stage_{uuid.uuid4().hex[:6]}"

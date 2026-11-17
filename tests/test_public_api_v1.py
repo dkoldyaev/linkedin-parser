@@ -82,8 +82,7 @@ def test_system_vs_public_api_docs(api_user_fixture):
     assert r_docs.headers["location"] == "/api/v2/docs"
 
     r_redoc = client.get("/redoc", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
-    assert r_redoc.status_code == 307
-    assert r_redoc.headers["location"] == "/api/v2/redoc"
+    assert r_redoc.status_code == 404
 
     r_schema = client.get("/openapi.json", headers={"Authorization": f"Bearer {jwt_token}"}, follow_redirects=False)
     assert r_schema.status_code == 307

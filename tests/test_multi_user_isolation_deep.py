@@ -125,14 +125,14 @@ def test_cv_and_analysis_isolation(users_fixture):
     headers_b = {"Authorization": f"Bearer {create_access_token({'sub': str(user_b.id)})}"}
 
     # User A saves approved CV
-    cv_res = client.post("/api/v2/cv/approved", json={
+    cv_res = client.post("/api/v2/cv", json={
         "content": "Alice Secret Resume Content",
         "revision": 1
     }, headers=headers_a)
     assert cv_res.status_code == 200
 
     # User B cannot see User A's approved CV
-    b_cv = client.get("/api/v2/cv/approved", headers=headers_b)
+    b_cv = client.get("/api/v2/cv", headers=headers_b)
     assert b_cv.status_code == 200
     assert b_cv.json() is None
 

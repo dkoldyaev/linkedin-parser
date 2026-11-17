@@ -57,7 +57,7 @@ class TestUserFeatureFlags(unittest.TestCase):
 
         # Attempt to save approved CV -> 200 OK
         post_cv = self.client.post(
-            "/api/v2/cv/approved",
+            "/api/v2/cv",
             json={"content": "CV test content", "revision": 1},
             cookies=self.cookies
         )
@@ -65,7 +65,7 @@ class TestUserFeatureFlags(unittest.TestCase):
         self.assertEqual(post_cv.json()["content"], "CV test content")
 
         # Attempt to delete approved CV -> 204 No Content
-        del_cv = self.client.delete("/api/v2/cv/approved", cookies=self.cookies)
+        del_cv = self.client.delete("/api/v2/cv", cookies=self.cookies)
         self.assertEqual(del_cv.status_code, 204)
 
     def test_admin_user_management_permission_check(self):

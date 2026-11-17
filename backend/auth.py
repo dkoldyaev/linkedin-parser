@@ -191,8 +191,9 @@ def get_current_user_frontend_only(request: Request, db: Session = Depends(get_d
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    user_id = payload.get("sub")
     try:
-        user_id_int = int(payload.get("sub"))
+        user_id_int = int(user_id)
     except (ValueError, TypeError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -552,9 +553,6 @@ def create_anonymous_user(db: Session) -> User:
     db.commit()
     db.refresh(user)
     user.feature_flags = []
-    from .mock_data import is_mock_data_enabled, generate_mock_vacancies
-    if is_mock_data_enabled():
-        generate_mock_vacancies(db, count=30, user_id=user.id)
     return user
 
 
@@ -582,9 +580,9 @@ def migrate_anonymous_user_data(db: Session, anon_user_id: int, target_user: Use
         anon_dt = anon_user.last_board_interaction_at
         target_dt = target_user.last_board_interaction_at
         if anon_dt.tzinfo is not None:
-            anon_dt = anon_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            anon_dt = anon_dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
         if target_dt is not None and target_dt.tzinfo is not None:
-            target_dt = target_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            target_dt = target_dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
 
         if not target_dt or anon_dt > target_dt:
             target_user.last_board_interaction_at = anon_user.last_board_interaction_at

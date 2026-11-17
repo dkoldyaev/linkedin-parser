@@ -208,6 +208,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       setWorkplaceType(vacancy.workplace_type || '');
       setIsClosed(Boolean(vacancy.is_closed));
       setReparsing(false);
+      setResummarizing(false);
+      setAnalyzingCompatibility(false);
       setEditingHistoryId(null);
       setHistoryCommentText("");
       setSavingHistoryId(null);
@@ -215,39 +217,35 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       setCopiedDesc(false);
       setDescription(vacancy.description || "");
       setTitle(vacancy.title || "");
-      setCompatibility(null);
-      setCompatError(null);
+      if (vacancy.compatibility !== undefined) {
+        setCompatibility(vacancy.compatibility || null);
+      }
+      if (vacancy._lastError) {
+        setCompatError(true);
+        setAnalyzingCompatibility(false);
+        setResummarizing(false);
+      } else {
+        setCompatError(false);
+      }
       setAdaptingCV(false);
       setAdaptError(null);
-
-      // Fetch cached compatibility analysis
-      if (vacancy.id) {
-        setLoadingCompatibility(true);
-        fetch(`/api/v2/vacancies/${vacancy.id}/compatibility`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => setCompatibility(data))
-          .catch((err) => console.warn('Failed to load compatibility:', err))
-          .finally(() => setLoadingCompatibility(false));
-      }
+      setLoadingCompatibility(false);
     }
   }, [vacancy]);
 
   const handleRunCompatibilityAnalysis = async (force = false) => {
     if (!vacancy?.id) return;
     setAnalyzingCompatibility(true);
-    setCompatError(null);
+    setCompatError(false);
     try {
       const url = `/api/v2/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
       const res = await fetch(url, { method: 'POST' });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Analysis failed');
+        setAnalyzingCompatibility(false);
+        setCompatError(true);
       }
-      const data = await res.json();
-      setCompatibility(data);
     } catch (err) {
-      setCompatError(err.message);
-    } finally {
+      setCompatError(true);
       setAnalyzingCompatibility(false);
     }
   };
@@ -596,17 +594,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       language: locale
     });
     try {
-      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/resummarize`, {
         method: 'POST'
       });
-      if (res.ok) {
+      if (!res.ok) {
+        setResummarizing(false);
+      } else {
         trackEvent(EVENTS.AI_RESUMMARIZE_SUCCESS, {
           vacancy_id: vacancy.id
         });
       }
     } catch (err) {
       console.error('Failed to resummarize', err);
-    } finally {
       setResummarizing(false);
     }
   };
@@ -1552,7 +1551,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
 
             {compatError && (
               <div className="compatibility-notice is-error">
-                {compatError}
+                <AlertCircle size={14} />
+                <span>{t('vacancyModal.compat_failed')}</span>
               </div>
             )}
 

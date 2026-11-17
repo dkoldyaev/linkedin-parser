@@ -124,10 +124,6 @@ export default function ApiKeysPage({ user }) {
                 <ExternalLink size={13} />
                 <span>Swagger UI</span>
               </a>
-              <a href="/api/v2/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
-                <ExternalLink size={13} />
-                <span>ReDoc</span>
-              </a>
               <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
                 <Code2 size={13} />
                 <span>openapi.json</span>
@@ -215,10 +211,6 @@ export default function ApiKeysPage({ user }) {
                   <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
                     <ExternalLink size={14} />
                     <span>{t('settingsModal.openapi_swagger_btn')}</span>
-                  </a>
-                  <a href="/api/v2/redoc" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                    <ExternalLink size={14} />
-                    <span>{t('settingsModal.openapi_redoc_btn')}</span>
                   </a>
                   <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
                     <ExternalLink size={14} />

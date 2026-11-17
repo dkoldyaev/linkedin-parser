@@ -30,7 +30,7 @@ def test_valid_oauth_registration_and_logout():
         response = client.get('/api/v2/auth/google/callback?code=test&state=expected', follow_redirects=False)
     assert response.status_code == 302
     user = client.get('/api/v2/auth/me').json()
-    config = client.get('/api/v2/config')
+    config = client.get('/api/v2/mercure-config')
     assert config.headers['cache-control'] == 'no-store'
     token = client.cookies.get('mercureAuthorization')
     claims = jwt.decode(token, get_mercure_secret(), algorithms=['HS256'])

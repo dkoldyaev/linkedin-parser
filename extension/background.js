@@ -189,25 +189,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const url = info.linkUrl;
     if (!url) return;
     try {
-      await getOffscreenDocument();
-      const result = await chrome.runtime.sendMessage({
-        type: 'PARSE_HTML',
-        url,
-        html: null
-      });
-
-      if (!result?.success) {
-        throw new Error(result?.error || 'Failed to parse');
-      }
-
-      const res = await fetch(`${API_BASE}/api/v2/extension/parse_and_add`, {
+      const res = await fetch(`${API_BASE}/api/v2/extension/add_link`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
+        body: JSON.stringify({ url }),
       });
       if (res.ok) {
-        notify("Job Tracker", `Added: ${url.slice(0, 70)}`);
+        notify("Job Tracker", `Added to queue: ${url.slice(0, 70)}`);
       } else if (res.status === 401) {
         notify("Job Tracker — Error", "Пожалуйста, авторизуйтесь в Job Tracker (Please log in)");
       } else {
