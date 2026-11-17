@@ -47,6 +47,33 @@ def anonymization_schema(language):
     }), d("One replacement per input company, in input order.", "По одной замене для каждой компании в исходном порядке."))})
 
 
+def vacancy_requirements_schema(language: str):
+    en = language.lower().startswith("en")
+    def d(a, b): return a if en else b
+    nullable_num = ["number", "null"]
+    return obj({
+        "required_technical_skills": array(field("string", d("Required technical skill or tool.", "Обязательный технический навык или инструмент.")), d("Mandatory hard skills.", "Обязательные технические навыки.")),
+        "optional_technical_skills": array(field("string", d("Nice-to-have technical skill or tool.", "Желательный дополнительный навык.")), d("Optional or preferred technical skills.", "Дополнительные или желательные технические навыки.")),
+        "required_experience_years": field(nullable_num, d("Minimum required years of experience, or null if unspecified.", "Минимальный требуемый опыт в годах или null.")),
+        "seniority_level": field("string", d("Expected seniority level.", "Ожидаемый уровень позиции."), enum=["junior", "middle", "senior", "lead", "unspecified"]),
+        "domain_keywords": array(field("string", d("Industry or domain topic.", "Отрасль или доменная область.")), d("Key business or domain keywords (e.g. Fintech, E-commerce, AI).", "Ключевые слова предметной области.")),
+        "key_responsibilities": array(field("string", d("Core duty or responsibility.", "Основная обязанность.")), d("Core job responsibilities extracted from the vacancy.", "Основные обязанности из вакансии.")),
+    })
+
+
+def cv_qualifications_schema(language: str):
+    en = language.lower().startswith("en")
+    def d(a, b): return a if en else b
+    nullable_num = ["number", "null"]
+    return obj({
+        "technical_skills": array(field("string", d("Confirmed technical skill, framework, or tool.", "Подтвержденный навык, фреймворк или инструмент.")), d("Technical skills mentioned in CV.", "Технические навыки, упомянутые в резюме.")),
+        "total_experience_years": field(nullable_num, d("Estimated total professional experience in years, or null if unknown.", "Примерный общий опыт в годах или null.")),
+        "seniority_level": field("string", d("Demonstrated seniority level based on responsibilities.", "Подтвержденный уровень квалификации."), enum=["junior", "middle", "senior", "lead", "unspecified"]),
+        "domain_experience": array(field("string", d("Domain or industry candidate worked in.", "Отрасль или доменная область, в которой работал кандидат.")), d("Industries or domains represented in experience.", "Отрасли или домены из опыта работы.")),
+        "experience_summary": field("string", d("Concise 1-2 sentence summary of candidate profile.", "Краткая выжимка профиля кандидата в 1-2 предложениях.")),
+    })
+
+
 def compatibility_schema(language):
     en = language.lower().startswith("en")
     def d(a, b): return a if en else b
@@ -56,7 +83,6 @@ def compatibility_schema(language):
     reason = lambda: text("Explanation grounded in the documents.", "Обоснование на основе документов.")
     return obj({
         "summary": text("Concise compatibility assessment in English.", "Краткая оценка соответствия на русском языке."),
-        "overallScore": score("Overall compatibility score.", "Общая оценка соответствия."),
         "matchedRequirements": array(obj({"requirement": requirement(), "evidence": text("Exact supporting quote from the CV in its original language.", "Точная подтверждающая цитата из резюме на языке оригинала.")}), d("Requirements supported by CV evidence.", "Требования, подтверждённые резюме.")),
         "missingRequirements": array(obj({"requirement": requirement(), "severity": field("string", d("Severity of the unconfirmed requirement.", "Значимость неподтверждённого требования."), enum=["low", "medium", "high", "critical"]), "reason": reason()}), d("Requirements without CV evidence.", "Требования без подтверждения в резюме.")),
         "criticalGaps": array(obj({"requirement": requirement(), "reason": reason()}), d("Explicit hard blockers.", "Явные критические препятствия.")),

@@ -7,16 +7,23 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from .query_helpers import filter_tag, duplicate_response
+from .query_helpers import filter_tag, find_duplicate_vacancies
 from .database import get_db
-from .models import User, Vacancy, VacancyStatusHistory, ApprovedCV, VacancyCVAnalysis, AdaptedCVVersion, VALID_STATUSES
+from .models import (
+    User,
+    Vacancy,
+    VacancyStatusHistory,
+    ApprovedCV,
+    VacancyCVAnalysis,
+    AdaptedCVVersion,
+    VALID_STATUSES,
+    ProcessingQueueItem,
+)
 from .schemas import (
     VacancyResponse,
     VacancyCreate,
     VacancyUpdate,
     VacancyHistoryItem,
-    CheckDuplicatesRequest,
-    CheckDuplicatesResponse,
     DuplicateVacancyInfo,
     BatchImportRequest,
     AsyncBatchImportResponse,
@@ -25,6 +32,8 @@ from .schemas import (
     ApprovedCVResponse,
     VacancyCVAnalysisResponse,
     AdaptedCVVersionResponse,
+    ProcessingLinkInfo,
+    QueueLinksResponse,
 )
 from .auth import get_current_user_from_api_key
 from .scraper import extract_job_id, normalize_url
@@ -180,8 +189,7 @@ def get_vacancy_compatibility(
         scoring_policy_version=analysis.scoring_policy_version,
         model_id=analysis.model_id,
         overall_score=analysis.overall_score,
-        llm_score=res_data.get("llmScore"),
-        calculated_score=res_data.get("calculatedScore"),
+        calculated_score=res_data.get("calculatedScore", analysis.overall_score),
         is_outdated=is_outdated,
         summary=res_data.get("summary", ""),
         matched_requirements=res_data.get("matchedRequirements", []),
@@ -379,54 +387,156 @@ async def delete_vacancy(
     return None
 
 
-@router.post("/vacancies/check-duplicates", response_model=CheckDuplicatesResponse, summary="Check duplicate URLs")
-async def check_duplicates(
-    payload: CheckDuplicatesRequest,
-    current_user: User = Depends(get_current_user_from_api_key),
-    db: Session = Depends(get_db),
-):
-    """Check if links already exist in the user's database."""
-    return duplicate_response(db, current_user.id, payload.urls)
-
-
 @router.post("/vacancies/batch", response_model=AsyncBatchImportResponse, summary="Batch import vacancies")
 async def batch_import_vacancies(
     payload: BatchImportRequest,
     current_user: User = Depends(get_current_user_from_api_key),
     db: Session = Depends(get_db),
 ):
-    """Enqueue multiple vacancy URLs for parsing and AI analysis asynchronously."""
-    urls = [u.strip() for u in payload.urls if u.strip()]
-    if not urls:
+    """Enqueue multiple vacancy URLs for parsing and AI analysis asynchronously, deduplicating against active queue items."""
+    raw_urls = [u.strip() for u in payload.urls if u.strip()]
+    if not raw_urls:
         raise HTTPException(status_code=400, detail="No URLs provided")
+
+    # Filter out blank lines, normalize URLs, and deduplicate within batch
+    unique_urls = []
+    seen = set()
+    for raw_u in raw_urls:
+        canonical_u = normalize_url(raw_u)
+        if canonical_u not in seen:
+            seen.add(canonical_u)
+            unique_urls.append(canonical_u)
+
+    # Deduplicate against URLs currently active in the queue for this user
+    active_in_queue = (
+        db.query(ProcessingQueueItem.normalized_url)
+        .filter(
+            ProcessingQueueItem.user_id == current_user.id,
+            ProcessingQueueItem.normalized_url.in_(unique_urls),
+            ProcessingQueueItem.status.in_(["pending", "processing"]),
+        )
+        .all()
+        if unique_urls
+        else []
+    )
+    already_queued_urls = {row[0] for row in active_in_queue}
+
+    # Deduplicate against existing vacancies in user's database
+    duplicate_infos = find_duplicate_vacancies(db, current_user.id, unique_urls)
+    existing_urls = {d.url for d in duplicate_infos}
+    existing_input_urls = {d.input_url for d in duplicate_infos}
+
+    urls_to_process = [
+        u for u in unique_urls
+        if u not in already_queued_urls and u not in existing_urls and u not in existing_input_urls
+    ]
+
+    if not urls_to_process:
+        if duplicate_infos and not already_queued_urls:
+            return AsyncBatchImportResponse(
+                status="queued" if duplicate_infos else "already_queued",
+                queued=0,
+                batch_id="",
+                message=f"Found {len(duplicate_infos)} existing vacancies",
+                tasks=[],
+                already_in_queue=list(already_queued_urls),
+                existing_vacancies=duplicate_infos,
+            )
+        return AsyncBatchImportResponse(
+            status="already_queued",
+            queued=0,
+            batch_id="",
+            message="Все переданные ссылки уже находятся в очереди обработки" if already_queued_urls else "No new URLs to process",
+            tasks=[],
+            already_in_queue=list(already_queued_urls),
+            existing_vacancies=duplicate_infos,
+        )
 
     initial_tags = [t.strip() for t in payload.default_tags if t.strip()]
 
     batch_id, tasks = await queue_manager.enqueue(
-        urls=urls,
+        urls=urls_to_process,
         default_tags=initial_tags,
+        vacancy_ids=None,
         user_id=current_user.id,
+        force_cv_scoring=False,
     )
     task_infos = [t.to_info() for t in tasks]
+    msg = f"Queued {len(task_infos)} tasks for asynchronous processing"
+    if duplicate_infos:
+        msg += f" ({len(duplicate_infos)} existing vacancies found)"
     return AsyncBatchImportResponse(
         status="queued",
         queued=len(task_infos),
         batch_id=batch_id,
-        message=f"Queued {len(task_infos)} tasks for asynchronous processing",
+        message=msg,
         tasks=task_infos,
+        already_in_queue=list(already_queued_urls),
+        existing_vacancies=duplicate_infos,
     )
 
 
-@router.get("/queue/tasks/{task_id}", response_model=TaskInfo, tags=["Queue"], summary="Get queue task status")
-async def get_queue_task_status(
+@router.get(
+    "/queue/links",
+    response_model=QueueLinksResponse,
+    tags=["Queue"],
+    summary="List processing queue links",
+    description="Retrieve all vacancy URLs currently being processed or waiting in queue for the authenticated user, including their stages (queued, scraping, ai_analysis, cv_scoring, failed), retry attempts, errors, and aggregate counters.",
+)
+async def list_queue_links(
+    current_user: User = Depends(get_current_user_from_api_key),
+):
+    """Retrieve all active and failed vacancy links in the processing queue for the current user."""
+    return await queue_manager.get_active_links(user_id=current_user.id)
+
+
+@router.get(
+    "/queue/links/{task_id}",
+    response_model=ProcessingLinkInfo,
+    tags=["Queue"],
+    summary="Get single queue link processing state",
+    description="Retrieve detailed processing stage and status for a specific vacancy link by its unique task_id. Returns 404 if the task is not found or belongs to another user.",
+)
+async def get_queue_link(
     task_id: str,
     current_user: User = Depends(get_current_user_from_api_key),
 ):
-    """Check status and progress of an asynchronous queue task."""
-    task = await queue_manager.get_task(task_id=task_id, user_id=current_user.id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found or access denied")
-    return task.to_info()
+    """Retrieve current stage and state of a single link task."""
+    info = await queue_manager.get_link_info(task_id=task_id, user_id=current_user.id)
+    if not info:
+        raise HTTPException(status_code=404, detail="Queue link task not found or access denied")
+    return info
+
+
+@router.delete(
+    "/queue/links/{task_id}",
+    tags=["Queue"],
+    summary="Cancel queued link processing",
+    description="Cancel and remove an individual link from the processing queue by its task_id. Aborts downstream pipeline stages (such as CV compatibility scoring) while preserving existing parsed vacancy cards.",
+)
+async def cancel_queue_link(
+    task_id: str,
+    current_user: User = Depends(get_current_user_from_api_key),
+):
+    """Cancel processing of a single link task."""
+    success = await queue_manager.remove_task(task_id=task_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found or cannot be cancelled")
+    return {"message": "Link processing cancelled"}
+
+
+@router.delete(
+    "/queue/links",
+    tags=["Queue"],
+    summary="Clear all links from processing queue",
+    description="Batch cancel and remove all active (queued, processing) and failed links from the processing queue for the authenticated user.",
+)
+async def clear_queue_links(
+    current_user: User = Depends(get_current_user_from_api_key),
+):
+    """Clear all links in the queue for the authenticated user."""
+    cleared_count = await queue_manager.clear_user_queue(user_id=current_user.id)
+    return {"message": "All queue links cleared", "cleared": cleared_count}
 
 
 @router.get("/cv", response_model=Optional[ApprovedCVResponse], tags=["CV"], summary="Get approved CV")

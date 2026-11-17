@@ -25,8 +25,9 @@ const DEFAULT_COLUMNS = [
   STATUS_OFFER,
 ];
 
-export default function KanbanCard({
+const KanbanCard = React.memo(function KanbanCard({
   vacancy,
+  isHidden = false,
   onClick,
   onStatusChange,
   isSelected,
@@ -42,6 +43,7 @@ export default function KanbanCard({
     const content = contentRef.current;
     if (!content) return;
     const updateHeight = () => {
+      if (content.offsetHeight === 0) return;
       // Snap the content area to the grid, leaving the footer on the next grid line.
       const height = Math.ceil(content.offsetHeight / 32) * 32;
       setGridHeight((previous) => previous === height ? previous : height);
@@ -51,17 +53,27 @@ export default function KanbanCard({
     updateHeight();
     return () => observer.disconnect();
   }, []);
-  const isRejected = vacancy.status === STATUS_REJECTED;
-  // Filter out Отказ from linear column navigation
+  const rejectedColumn = Array.isArray(columns)
+    ? columns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || columns.find(c => c.id === STATUS_REJECTED)
+    : null;
+  const rejectedStatusId = rejectedColumn ? (typeof rejectedColumn === 'string' ? rejectedColumn : rejectedColumn.id) : STATUS_REJECTED;
+
+  const initialColumn = Array.isArray(columns)
+    ? columns.find(c => c.system_role === 'not_contacted' || (c.is_base && (c.id === STATUS_NOT_CONTACTED || c.role === 'not_contacted'))) || columns.find(c => c.id === STATUS_NOT_CONTACTED)
+    : null;
+  const initialStatusId = initialColumn ? (typeof initialColumn === 'string' ? initialColumn : initialColumn.id) : STATUS_NOT_CONTACTED;
+
+  const isRejected = vacancy.status === rejectedStatusId;
+  // Filter out rejected column from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
-    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== STATUS_REJECTED)
+    ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== rejectedStatusId)
     : DEFAULT_COLUMNS;
   const currentIndex = linearColumns.indexOf(vacancy.status);
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
   // Match score tier classification
-  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : null;
+  const matchScore = vacancy.calculated_score != null ? Math.round(vacancy.calculated_score) : null;
   let matchTier = '';
   let matchTierLabel = '';
   if (matchScore !== null) {
@@ -137,7 +149,8 @@ export default function KanbanCard({
 
   return (
     <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
+      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${isHidden ? 'is-hidden' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
+      style={isHidden ? { display: 'none' } : undefined}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -199,7 +212,7 @@ export default function KanbanCard({
           {matchScore !== null && (
             <div
               className={`card-match-badge ${matchTier}`}
-              title={`${t('kanban.match_badge', { score: matchScore })} (${matchTierLabel})`}
+              title={t('kanban.match_badge', { score: matchScore })}
             >
               <Award size={11} />
               <span>{matchScore}%</span>
@@ -233,14 +246,15 @@ export default function KanbanCard({
           {vacancy.ai_summary}
         </div>
       ) : (
-        <div className="card-summary card-summary-pending">
-          <Sparkles size={13} />
-          <span>{t('kanban.ai_generating')}</span>
+        <div className="card-skeleton-block" aria-hidden="true">
+          <div className="skeleton-line" style={{ width: '100%' }} />
+          <div className="skeleton-line" style={{ width: '85%' }} />
+          <div className="skeleton-line" style={{ width: '60%' }} />
         </div>
       )}
 
       {/* Tech stack pills */}
-      {vacancy.tech_stack && vacancy.tech_stack.length > 0 && (
+      {vacancy.tech_stack && vacancy.tech_stack.length > 0 ? (
         <div className="card-tech-stack">
           {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
             <span key={i} className="tech-chip">
@@ -253,7 +267,13 @@ export default function KanbanCard({
             </span>
           )}
         </div>
-      )}
+      ) : (!vacancy.ai_summary && (
+        <div className="card-tech-stack card-skeleton-chips" aria-hidden="true">
+          <span className="skeleton-chip" style={{ width: '52px' }} />
+          <span className="skeleton-chip" style={{ width: '42px' }} />
+          <span className="skeleton-chip" style={{ width: '64px' }} />
+        </div>
+      ))}
 
       {/* Custom labels / tags */}
       {vacancy.tags && vacancy.tags.length > 0 && (
@@ -301,10 +321,10 @@ export default function KanbanCard({
               trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
                 vacancy_id: vacancy.id,
                 company: vacancy.company,
-                to_status: STATUS_NOT_CONTACTED,
+                to_status: initialStatusId,
                 method: 'quick_restore_btn'
               });
-              onStatusChange(vacancy.id, STATUS_NOT_CONTACTED);
+              onStatusChange(vacancy.id, initialStatusId);
             }}
           >
             <RotateCcw size={12} />
@@ -333,7 +353,7 @@ export default function KanbanCard({
                   from_status: vacancy.status,
                   method: 'quick_reject_btn'
                 });
-                onStatusChange(vacancy.id, 'Отказ');
+                onStatusChange(vacancy.id, rejectedStatusId);
               }}
             >
               <span aria-hidden="true">×</span>
@@ -353,4 +373,6 @@ export default function KanbanCard({
       </div>
     </div>
   );
-}
+});
+
+export default KanbanCard;

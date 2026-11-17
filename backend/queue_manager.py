@@ -12,8 +12,8 @@ import redis.asyncio as aioredis
 from sqlalchemy import func
 
 from .database import SessionLocal
-from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, ExchangeRate, STATUS_NOT_CONTACTED
-from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse
+from .models import Vacancy, VacancyStatusHistory, AppSetting, ApprovedCV, VacancyCVAnalysis, ExchangeRate, STATUS_NOT_CONTACTED, ProcessingQueueItem
+from .schemas import VacancyResponse, TaskInfo, QueueStatusResponse, ProcessingLinkInfo, QueueLinksResponse
 from .scraper import extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
@@ -22,6 +22,9 @@ from .llm import (
     get_setting_or_env,
     evaluate_vacancy_compatibility_with_llm,
     adapt_cv_for_vacancy_with_llm,
+    extract_vacancy_requirements_with_llm,
+    parse_cv_qualifications_with_llm,
+    match_structured_profiles_with_llm,
 )
 from .mercure import (
     publish_mercure_event,
@@ -29,14 +32,11 @@ from .mercure import (
     EVENT_VACANCY_UPDATED,
     EVENT_TASK_FAILED,
     EVENT_QUEUE_UPDATED,
-    EVENT_QUEUE_IDLE,
-    EVENT_COMPATIBILITY_ANALYZED,
+    EVENT_QUEUE_STATE,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
     MSG_TASK_FAILED,
     MSG_QUEUE_UPDATED,
-    MSG_QUEUE_IDLE,
-    MSG_COMPATIBILITY_ANALYZED,
     ERR_SCRAPE_FAILED,
     ERR_AI_ANALYSIS_FAILED,
 )
@@ -53,10 +53,60 @@ RATE_TASK_KEY_PREFIX = "linkedin:rate_task:"
 RECENT_LIST = "linkedin:recent"
 STATS_KEY = "linkedin:stats"
 TASK_KEY_PREFIX = "linkedin:task:"
+SCRAPE_PAYLOAD_KEY_PREFIX = "linkedin:scrape_payload:"
 TASK_TTL = 86400 * 7  # 7 days
 RETRY_ZSET = "linkedin:retry_zset"  # task_id -> unix time when it may be retried
+AI_RETRY_ZSET = "linkedin:ai_retry_zset"  # task_id -> unix time when AI stage may be retried
 MAX_TASK_ATTEMPTS = int(os.getenv("TASK_MAX_ATTEMPTS", "4"))  # total tries incl. the first one
 RETRY_BASE_DELAY = int(os.getenv("TASK_RETRY_BASE_DELAY", "30"))  # seconds; doubles each attempt (30, 60, 120...)
+
+
+def sync_db_queue_item(
+    task_id: str,
+    status: str,
+    stage: str,
+    attempts: Optional[int],
+    error: Optional[str],
+    vacancy_id: Optional[int],
+) -> None:
+    try:
+        with SessionLocal() as db:
+            item = db.query(ProcessingQueueItem).filter(ProcessingQueueItem.task_id == task_id).first()
+            if item:
+                item.status = status
+                item.stage = stage
+                if attempts is not None:
+                    item.attempts = attempts
+                if error is not None:
+                    item.error = error
+                if vacancy_id is not None:
+                    item.vacancy_id = vacancy_id
+                item.updated_at = datetime.datetime.utcnow()
+                db.commit()
+                item_user_id = item.user_id
+            else:
+                item_user_id = None
+    except Exception as e:
+        logger.warning(f"Error syncing queue item {task_id} in DB: {e}")
+        return
+    if item_user_id is not None:
+        schedule_queue_state_publish(item_user_id)
+
+
+_queue_state_publish_tasks: set = set()
+
+
+def schedule_queue_state_publish(user_id: int) -> None:
+    """Publish the user's full queue snapshot to Mercure from sync code running inside the event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        logger.warning(f"No running event loop; queue_state for user {user_id} not published")
+        return
+    publish_task = loop.create_task(queue_manager.publish_queue_state(user_id))
+    _queue_state_publish_tasks.add(publish_task)
+    publish_task.add_done_callback(_queue_state_publish_tasks.discard)
+
 
 
 @dataclass
@@ -76,6 +126,7 @@ class JobTask:
     error: Optional[str] = None
     attempts: int = 0
     next_retry_at: Optional[float] = None
+    force_cv_scoring: bool = False
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -98,6 +149,7 @@ class JobTask:
             error=data.get("error"),
             attempts=data.get("attempts", 0),
             next_retry_at=data.get("next_retry_at"),
+            force_cv_scoring=bool(data.get("force_cv_scoring", False)),
         )
 
     def to_info(self) -> TaskInfo:
@@ -214,8 +266,9 @@ class RedisQueueManager:
         self,
         urls: List[str],
         default_tags: List[str],
-        vacancy_ids: Optional[List[int]] = None,
-        user_id: Optional[int] = None,
+        vacancy_ids: Optional[List[int]],
+        user_id: Optional[int],
+        force_cv_scoring: bool,
     ) -> Tuple[str, List[JobTask]]:
         """Add URLs to Stage 1 (Scraping) queue in Redis. Returns (batch_id, list_of_tasks)."""
         if not self.redis:
@@ -224,11 +277,24 @@ class RedisQueueManager:
         batch_id = uuid.uuid4().hex[:8]
         new_tasks = []
 
+        already_active_urls = set()
+        if user_id is not None:
+            try:
+                with SessionLocal() as db:
+                    active_db_items = db.query(ProcessingQueueItem.normalized_url).filter(
+                        ProcessingQueueItem.user_id == user_id,
+                        ProcessingQueueItem.status.in_(["pending", "processing"]),
+                    ).all()
+                    already_active_urls = {r[0] for r in active_db_items}
+            except Exception as e:
+                logger.warning(f"Error querying active queue items for user {user_id}: {e}")
+
         async with self.redis.pipeline(transaction=True) as pipe:
             for i, url in enumerate(urls):
                 clean_url = normalize_url(url.strip()) if url else ""
-                if not clean_url:
+                if not clean_url or clean_url in already_active_urls:
                     continue
+                already_active_urls.add(clean_url)
 
                 task_id = uuid.uuid4().hex[:8]
                 v_id = vacancy_ids[i] if vacancy_ids and i < len(vacancy_ids) else None
@@ -238,9 +304,10 @@ class RedisQueueManager:
                     default_tags=list(default_tags),
                     batch_id=batch_id,
                     status="pending",
-                    stage="scraping",
+                    stage="queued",
                     vacancy_id=v_id,
                     user_id=user_id,
+                    force_cv_scoring=force_cv_scoring,
                 )
                 new_tasks.append(task)
 
@@ -259,6 +326,31 @@ class RedisQueueManager:
 
             await pipe.execute()
 
+        if new_tasks and user_id is not None:
+            try:
+                with SessionLocal() as db:
+                    now = datetime.datetime.utcnow()
+                    for t in new_tasks:
+                        db_item = ProcessingQueueItem(
+                            task_id=t.task_id,
+                            user_id=user_id,
+                            url=t.url,
+                            normalized_url=t.url,
+                            status="pending",
+                            stage="queued",
+                            attempts=0,
+                            max_attempts=MAX_TASK_ATTEMPTS,
+                            error=None,
+                            vacancy_id=t.vacancy_id,
+                            created_at=now,
+                            updated_at=now,
+                        )
+                        db.add(db_item)
+                    db.commit()
+            except Exception as e:
+                logger.error(f"Error persisting ProcessingQueueItems to DB: {e}")
+
+
         total_remaining = await self._calculate_total_remaining(user_id=user_id)
 
         # Notify Mercure about newly enqueued items (user topic and global topic)
@@ -273,6 +365,8 @@ class RedisQueueManager:
                 },
                 topic=mercure_topic,
             )
+        if user_id:
+            await self.publish_queue_state(user_id)
 
         logger.info(
             f"Enqueued {len(new_tasks)} URLs in batch {batch_id} for user {user_id} into Scrape Queue. "
@@ -323,6 +417,29 @@ class RedisQueueManager:
             await pipe.execute()
 
         total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        if user_id:
+            try:
+                with SessionLocal() as db:
+                    now = datetime.datetime.utcnow()
+                    db_item = ProcessingQueueItem(
+                        task_id=task_id,
+                        user_id=user_id,
+                        url=url or f"vacancy://{vacancy_id}",
+                        normalized_url=url or f"vacancy://{vacancy_id}",
+                        status="pending",
+                        stage="ai_analysis",
+                        attempts=0,
+                        max_attempts=MAX_TASK_ATTEMPTS,
+                        error=None,
+                        vacancy_id=vacancy_id,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    db.add(db_item)
+                    db.commit()
+            except Exception as e:
+                logger.error(f"Error persisting AI task {task_id} ProcessingQueueItem: {e}")
+
         mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
         await publish_mercure_event(
             event_type=EVENT_QUEUE_UPDATED,
@@ -336,9 +453,273 @@ class RedisQueueManager:
             },
             topic=mercure_topic,
         )
+        if user_id:
+            await self.publish_queue_state(user_id)
 
         logger.info(f"Enqueued vacancy #{vacancy_id} (user {user_id}) directly into AI Queue (task {task_id})")
         return task
+
+    async def enqueue_extension_task(
+        self,
+        url: str,
+        user_id: int,
+        html: Optional[str] = None,
+        scraped_data: Optional[dict] = None,
+        default_tags: Optional[List[str]] = None,
+    ) -> JobTask:
+        """Enqueue an extension task asynchronously into Stage 1 (scrape queue).
+
+        Payload (html or pre-scraped fields) is cached in Redis so the background
+        worker processes parsing and card creation asynchronously.
+        """
+        if not self.redis:
+            raise RuntimeError("Redis connection is unavailable")
+
+        task_id = uuid.uuid4().hex[:8]
+        batch_id = uuid.uuid4().hex[:8]
+        task = JobTask(
+            task_id=task_id,
+            url=url,
+            default_tags=list(default_tags or []),
+            batch_id=batch_id,
+            status="pending",
+            stage="queued",
+            user_id=user_id,
+        )
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            if html or scraped_data:
+                payload = {}
+                if html:
+                    payload["html"] = html
+                if scraped_data:
+                    payload["scraped"] = scraped_data
+                pipe.set(f"{SCRAPE_PAYLOAD_KEY_PREFIX}{task_id}", json.dumps(payload), ex=TASK_TTL)
+
+            pipe.rpush(SCRAPE_QUEUE_KEY, task_id)
+            pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+            pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
+            pipe.lpush(RECENT_LIST, task_id)
+            pipe.ltrim(RECENT_LIST, 0, 99)
+            pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+            pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+            pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
+            await pipe.execute()
+
+        try:
+            with SessionLocal() as db:
+                now = datetime.datetime.utcnow()
+                db_item = ProcessingQueueItem(
+                    task_id=task_id,
+                    user_id=user_id,
+                    url=url,
+                    normalized_url=url,
+                    status="pending",
+                    stage="queued",
+                    attempts=0,
+                    max_attempts=MAX_TASK_ATTEMPTS,
+                    error=None,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(db_item)
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error persisting ProcessingQueueItem for extension task {task_id}: {e}")
+
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "batch_id": batch_id,
+                "task_id": task_id,
+                "queued_count": 1,
+                "total_remaining": total_remaining,
+            },
+            topic=mercure_topic,
+        )
+        await self.publish_queue_state(user_id)
+
+        logger.info(
+            f"Enqueued extension task {task_id} for {url} (user {user_id}). "
+            f"Total remaining tasks: {total_remaining}"
+        )
+        return task
+
+    async def enqueue_cv_parsing(self, user_id: int) -> Optional[JobTask]:
+        """Enqueue an isolated task to parse and structure user's approved CV."""
+        if not self.redis:
+            return None
+
+        task_id = uuid.uuid4().hex[:8]
+        batch_id = uuid.uuid4().hex[:8]
+        task = JobTask(
+            task_id=task_id,
+            url=f"cv://user/{user_id}",
+            default_tags=[],
+            batch_id=batch_id,
+            status="pending",
+            stage="cv_parsing",
+            user_id=user_id,
+            title="CV Structured Profile Extraction",
+        )
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            pipe.rpush(AI_QUEUE_KEY, task_id)
+            pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+            pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
+            pipe.lpush(RECENT_LIST, task_id)
+            pipe.ltrim(RECENT_LIST, 0, 99)
+            pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+            pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+            pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
+            await pipe.execute()
+
+        try:
+            with SessionLocal() as db:
+                now = datetime.datetime.utcnow()
+                db_item = ProcessingQueueItem(
+                    task_id=task_id,
+                    user_id=user_id,
+                    url=task.url,
+                    normalized_url=task.url,
+                    status="pending",
+                    stage="cv_parsing",
+                    attempts=0,
+                    max_attempts=MAX_TASK_ATTEMPTS,
+                    error=None,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(db_item)
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error persisting cv_parsing ProcessingQueueItem: {e}")
+
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "batch_id": batch_id,
+                "queued_count": 1,
+                "total_remaining": total_remaining,
+            },
+            topic=mercure_topic,
+        )
+        await self.publish_queue_state(user_id)
+        return task
+
+    async def enqueue_cv_scoring(
+        self,
+        vacancies: List[Vacancy],
+        user_id: int,
+        force: bool = False,
+    ) -> Tuple[str, List[JobTask]]:
+        """Enqueue CV compatibility scoring tasks into Stage 2 (AI) queue for each vacancy."""
+        batch_id = uuid.uuid4().hex[:8]
+        new_tasks: List[JobTask] = []
+
+        if not self.redis or not vacancies:
+            return batch_id, new_tasks
+
+        already_pending_vacancy_ids = set()
+        if not force:
+            try:
+                with SessionLocal() as db:
+                    pending_items = db.query(ProcessingQueueItem.vacancy_id).filter(
+                        ProcessingQueueItem.user_id == user_id,
+                        ProcessingQueueItem.stage == "cv_scoring",
+                        ProcessingQueueItem.status == "pending",
+                        ProcessingQueueItem.vacancy_id.isnot(None),
+                    ).all()
+                    already_pending_vacancy_ids = {r[0] for r in pending_items}
+            except Exception as e:
+                logger.warning(f"Error querying pending cv_scoring items for user {user_id}: {e}")
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            for v in vacancies:
+                if not force and v.id in already_pending_vacancy_ids:
+                    continue
+                already_pending_vacancy_ids.add(v.id)
+
+                clean_url = normalize_url(v.url.strip()) if (v.url and v.url.strip()) else f"vacancy://{v.id}"
+                task_id = uuid.uuid4().hex[:8]
+                task = JobTask(
+                    task_id=task_id,
+                    url=clean_url,
+                    default_tags=[],
+                    batch_id=batch_id,
+                    status="pending",
+                    stage="cv_scoring",
+                    vacancy_id=v.id,
+                    user_id=user_id,
+                    title=v.title,
+                    company=v.company,
+                    force_cv_scoring=force,
+                )
+                new_tasks.append(task)
+
+                pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                pipe.rpush(AI_QUEUE_KEY, task_id)
+                pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+                pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
+                pipe.lpush(RECENT_LIST, task_id)
+                pipe.ltrim(RECENT_LIST, 0, 99)
+                pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+                pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+                pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
+
+            await pipe.execute()
+
+        if new_tasks:
+            try:
+                with SessionLocal() as db:
+                    now = datetime.datetime.utcnow()
+                    for t in new_tasks:
+                        db_item = ProcessingQueueItem(
+                            task_id=t.task_id,
+                            user_id=user_id,
+                            url=t.url,
+                            normalized_url=t.url,
+                            status="pending",
+                            stage="cv_scoring",
+                            attempts=0,
+                            max_attempts=MAX_TASK_ATTEMPTS,
+                            error=None,
+                            vacancy_id=t.vacancy_id,
+                            created_at=now,
+                            updated_at=now,
+                        )
+                        db.add(db_item)
+                    db.commit()
+            except Exception as e:
+                logger.error(f"Error persisting CV scoring ProcessingQueueItems to DB: {e}")
+
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "batch_id": batch_id,
+                "queued_count": len(new_tasks),
+                "total_remaining": total_remaining,
+            },
+            topic=mercure_topic,
+        )
+        await self.publish_queue_state(user_id)
+
+        logger.info(
+            f"Enqueued {len(new_tasks)} CV scoring tasks in batch {batch_id} for user {user_id}. "
+            f"Total remaining tasks: {total_remaining}"
+        )
+        return batch_id, new_tasks
 
     async def _calculate_total_remaining(self, user_id: Optional[int] = None) -> int:
         if not self.redis:
@@ -355,10 +736,10 @@ class RedisQueueManager:
 
         active_tasks = await self.get_active_tasks(user_id=user_id)
         
-        p_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "pending")
-        p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis") and t.status == "pending")
+        p_scrape = sum(1 for t in active_tasks if t.stage in ("queued", "scraping") and t.status == "pending")
+        p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring", "cv_parsing", "vacancy_extract") and t.status == "pending")
         pr_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "processing")
-        pr_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis") and t.status == "processing")
+        pr_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring", "cv_parsing", "vacancy_extract") and t.status == "processing")
 
         total_pending = p_scrape + p_ai
         total_processing = pr_scrape + pr_ai
@@ -398,6 +779,53 @@ class RedisQueueManager:
             recent_tasks=recent_tasks,
         )
 
+    async def get_active_links(self, user_id: int) -> QueueLinksResponse:
+        with SessionLocal() as db:
+            items = (
+                db.query(ProcessingQueueItem)
+                .filter(
+                    ProcessingQueueItem.user_id == user_id,
+                    ProcessingQueueItem.status.in_(["pending", "processing", "failed"]),
+                )
+                .order_by(ProcessingQueueItem.created_at.desc())
+                .all()
+            )
+            total = len(items)
+            pending_count = sum(1 for item in items if item.status == "pending")
+            processing_count = sum(1 for item in items if item.status == "processing")
+            failed_count = sum(1 for item in items if item.status == "failed")
+            links = [ProcessingLinkInfo.model_validate(item) for item in items]
+            return QueueLinksResponse(
+                links=links,
+                total=total,
+                pending_count=pending_count,
+                processing_count=processing_count,
+                failed_count=failed_count,
+            )
+
+    async def publish_queue_state(self, user_id: int) -> None:
+        """Publish the full queue snapshot (links, stages, counters) to the user's Mercure topic."""
+        state = await self.get_active_links(user_id=user_id)
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_STATE,
+            data=state.model_dump(mode="json"),
+            topic=f"vacancies:{user_id}",
+        )
+
+    async def get_link_info(self, task_id: str, user_id: int) -> Optional[ProcessingLinkInfo]:
+        with SessionLocal() as db:
+            item = (
+                db.query(ProcessingQueueItem)
+                .filter(
+                    ProcessingQueueItem.task_id == task_id,
+                    ProcessingQueueItem.user_id == user_id,
+                )
+                .first()
+            )
+            if not item:
+                return None
+            return ProcessingLinkInfo.model_validate(item)
+
     async def get_active_tasks(self, user_id: Optional[int] = None) -> List[TaskInfo]:
         if not self.redis:
             return []
@@ -411,6 +839,7 @@ class RedisQueueManager:
             active_ids.extend(await self.redis.smembers(SCRAPE_PROCESSING_SET))
             active_ids.extend(await self.redis.smembers(AI_PROCESSING_SET))
             active_ids.extend(await self.redis.zrange(RETRY_ZSET, 0, -1))
+            active_ids.extend(await self.redis.zrange(AI_RETRY_ZSET, 0, -1))
             active_ids.extend(await self.redis.lrange("queue:extension", 0, -1))
         
         # Deduplicate
@@ -439,12 +868,13 @@ class RedisQueueManager:
         return tasks
 
     async def remove_task(self, task_id: str, user_id: Optional[int] = None) -> bool:
+        sync_db_queue_item(task_id, "cancelled", "cancelled", None, None, None)
         if not self.redis:
             return False
             
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
         if not raw:
-            return False
+            return True
             
         try:
             task_dict = json.loads(raw)
@@ -455,13 +885,18 @@ class RedisQueueManager:
             # Remove from queues (0 means remove all occurrences)
             await self.redis.lrem(SCRAPE_QUEUE_KEY, 0, task_id)
             await self.redis.lrem(AI_QUEUE_KEY, 0, task_id)
+            await self.redis.lrem("queue:extension", 0, task_id)
             await self.redis.zrem(RETRY_ZSET, task_id)
+            await self.redis.zrem(AI_RETRY_ZSET, task_id)
+            await self.redis.delete(f"{SCRAPE_PAYLOAD_KEY_PREFIX}{task_id}")
             
             # Remove from processing sets
             await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
             await self.redis.srem(AI_PROCESSING_SET, task_id)
+            if user_id is not None:
+                await self.redis.srem(f"linkedin:active:user:{user_id}", task_id)
             
-            # We'll just update its status in DB.
+            # We'll just update its status in DB and Redis.
             task.status = "cancelled"
             await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
             
@@ -474,6 +909,8 @@ class RedisQueueManager:
                     data={
                         "message_code": MSG_QUEUE_UPDATED,
                         "total_remaining": total_remaining,
+                        "task_id": task_id,
+                        "status": "cancelled",
                     },
                     topic=mercure_topic,
                 )
@@ -481,6 +918,86 @@ class RedisQueueManager:
         except Exception as e:
             logger.error(f"Error removing task {task_id}: {e}")
             return False
+
+    async def clear_user_queue(self, user_id: int) -> int:
+        """Cancel and remove all active and failed queue links for a specific user."""
+        all_task_ids = set()
+
+        # 1. Collect and update all active/failed items in DB
+        try:
+            with SessionLocal() as db:
+                items = db.query(ProcessingQueueItem).filter(
+                    ProcessingQueueItem.user_id == user_id,
+                    ProcessingQueueItem.status.in_(["pending", "processing", "failed"]),
+                ).all()
+                for item in items:
+                    all_task_ids.add(item.task_id)
+                    item.status = "cancelled"
+                    item.stage = "cancelled"
+                    item.updated_at = datetime.datetime.utcnow()
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error updating ProcessingQueueItems on clear_user_queue: {e}")
+
+        # 2. Collect from Redis active user set if connected
+        if self.redis:
+            try:
+                redis_task_ids = await self.redis.smembers(f"linkedin:active:user:{user_id}")
+                for tid in redis_task_ids:
+                    t_str = tid.decode("utf-8") if isinstance(tid, bytes) else tid
+                    all_task_ids.add(t_str)
+
+                if all_task_ids:
+                    task_id_list = list(all_task_ids)
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        for tid in task_id_list:
+                            pipe.lrem(SCRAPE_QUEUE_KEY, 0, tid)
+                            pipe.lrem(AI_QUEUE_KEY, 0, tid)
+                            pipe.lrem("queue:extension", 0, tid)
+                            pipe.zrem(RETRY_ZSET, tid)
+                            pipe.zrem(AI_RETRY_ZSET, tid)
+                            pipe.delete(f"{SCRAPE_PAYLOAD_KEY_PREFIX}{tid}")
+                            pipe.srem(SCRAPE_PROCESSING_SET, tid)
+                            pipe.srem(AI_PROCESSING_SET, tid)
+                            pipe.get(f"{TASK_KEY_PREFIX}{tid}")
+
+                        results = await pipe.execute()
+
+                        raw_tasks = results[-len(task_id_list):]
+                        async with self.redis.pipeline(transaction=True) as pipe2:
+                            for tid, raw in zip(task_id_list, raw_tasks):
+                                if raw:
+                                    try:
+                                        t_dict = json.loads(raw)
+                                        t_dict["status"] = "cancelled"
+                                        pipe2.set(f"{TASK_KEY_PREFIX}{tid}", json.dumps(t_dict), ex=TASK_TTL)
+                                    except Exception:
+                                        pass
+                            pipe2.delete(f"linkedin:active:user:{user_id}")
+                            await pipe2.execute()
+                else:
+                    await self.redis.delete(f"linkedin:active:user:{user_id}")
+
+            except Exception as e:
+                logger.error(f"Error clearing Redis tasks in clear_user_queue: {e}")
+
+        # 3. Publish Mercure event
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}"
+        from .mercure import publish_mercure_event, EVENT_QUEUE_UPDATED, MSG_QUEUE_UPDATED
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "total_remaining": total_remaining,
+                "cleared_count": len(all_task_ids),
+            },
+            topic=mercure_topic,
+        )
+        await self.publish_queue_state(user_id)
+        return len(all_task_ids)
+
+
 
     # -------------------------------------------------------------------------
     # Stage 1: Scraping Worker Loop
@@ -522,24 +1039,25 @@ class RedisQueueManager:
                     user_rem = await self._calculate_total_remaining(user_id=task_user_id)
                     if user_rem == 0:
                         await publish_mercure_event(
-                                event_type=EVENT_QUEUE_IDLE,
-                                data={
-                                    "message_code": MSG_QUEUE_IDLE,
-                                    "total_remaining": 0,
-                                },
-                                topic=f"vacancies:{task_user_id}",
-                            )
+                            event_type=EVENT_QUEUE_UPDATED,
+                            data={
+                                "message_code": MSG_QUEUE_UPDATED,
+                                "total_remaining": 0,
+                            },
+                            topic=f"vacancies:{task_user_id}",
+                        )
+                        await self.publish_queue_state(task_user_id)
 
                 total_rem = await self._calculate_total_remaining(user_id=None)
                 if total_rem == 0:
                     await publish_mercure_event(
-                            event_type=EVENT_QUEUE_IDLE,
-                            data={
-                                "message_code": MSG_QUEUE_IDLE,
-                                "total_remaining": 0,
-                            },
-                            topic="vacancies",
-                        )
+                        event_type=EVENT_QUEUE_UPDATED,
+                        data={
+                            "message_code": MSG_QUEUE_UPDATED,
+                            "total_remaining": 0,
+                        },
+                        topic="vacancies",
+                    )
 
     async def _process_scrape_task(self, task_id: str):
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
@@ -548,27 +1066,58 @@ class RedisQueueManager:
             return
 
         task = JobTask.from_dict(json.loads(raw))
+        if task.status == "cancelled":
+            logger.info(f"[Stage 1 - Scrape] Task {task_id} is cancelled, aborting.")
+            return
         if not task.user_id:
             raise ValueError("Queue task requires an owner")
         task.status = "processing"
         task.stage = "scraping"
         task.updated_at = time.time()
         await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+        sync_db_queue_item(task_id, "processing", "scraping", task.attempts, None, task.vacancy_id)
+
+        mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "task_id": task_id,
+                "stage": "scraping",
+                "status": "processing",
+            },
+            topic=mercure_topic,
+        )
 
         logger.info(f"[Stage 1 - Scrape] Processing task {task.task_id} for URL: {task.url}")
 
         try:
-            # 1. Scrape job publicly via parser registry
+            # Check if payload (html or pre-scraped fields) was cached for this task
+            cached_payload_raw = await self.redis.get(f"{SCRAPE_PAYLOAD_KEY_PREFIX}{task_id}")
+            cached_payload = json.loads(cached_payload_raw) if cached_payload_raw else {}
+
+            # 1. Scrape job publicly via parser registry or use cached payload
             needs_extension = False
             scraped = {}
-            parser = parser_registry.find(task.url)
-            if parser and parser.needs_extension:
-                needs_extension = True
+            if cached_payload.get("scraped"):
+                scraped = cached_payload["scraped"]
+            elif cached_payload.get("html"):
+                scraped = await scrape_job(task.url, html=cached_payload["html"])
+            elif task.url.startswith("https://example.com/mock/jobs/"):
+                import random
+                await asyncio.sleep(random.uniform(0.5, 1.5))
             else:
-                scraped = await scrape_job(task.url)
+                parser = parser_registry.find(task.url)
+                if parser and parser.needs_extension:
+                    needs_extension = True
+                else:
+                    scraped = await scrape_job(task.url)
 
-            if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
-                needs_extension = True
+                if not needs_extension and scraped.get("title") == "Не удалось загрузить страницу":
+                    needs_extension = True
+
+            if cached_payload_raw:
+                await self.redis.delete(f"{SCRAPE_PAYLOAD_KEY_PREFIX}{task_id}")
 
             if needs_extension:
                 task.status = "pending_extension"
@@ -576,6 +1125,7 @@ class RedisQueueManager:
                 await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 await self.redis.rpush("queue:extension", task_id)
                 await self.redis.srem(SCRAPE_PROCESSING_SET, task_id)
+                sync_db_queue_item(task_id, "pending", "scraping", task.attempts, None, task.vacancy_id)
                 
                 total_rem = await self._calculate_total_remaining(user_id=task.user_id)
                 mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
@@ -623,7 +1173,7 @@ class RedisQueueManager:
                     existing.company = scraped.get("company") or existing.company
                     existing.company_url = scraped.get("company_url") or existing.company_url
                     existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
+                    existing.city = scraped.get("city") or existing.city
                     existing.country = scraped.get("country") or existing.country
                     existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):
@@ -719,9 +1269,24 @@ class RedisQueueManager:
                 topic=mercure_topic,
             )
 
+            # Check if task was cancelled while scraping was running
+            raw_check = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
+            if raw_check:
+                current_state = JobTask.from_dict(json.loads(raw_check))
+                if current_state.status == "cancelled":
+                    logger.info(f"[Stage 1 - Scrape] Task {task_id} was cancelled during scrape; aborting before AI.")
+                    return
+
             # 4. Enqueue into Stage 2 (AI Queue)
             has_desc = bool(saved_vacancy.description and saved_vacancy.description.strip())
-            if "upwork.com" in task.url.lower() or not has_desc:
+            is_upwork = "upwork.com" in task.url.lower()
+            upwork_needs_cv_scoring = False
+            if is_upwork and has_desc and (task.force_cv_scoring or saved_vacancy.status == STATUS_NOT_CONTACTED):
+                with SessionLocal() as db:
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == task.user_id).first()
+                    upwork_needs_cv_scoring = bool(approved_cv and approved_cv.content and approved_cv.content.strip())
+
+            if (is_upwork and not upwork_needs_cv_scoring) or not has_desc:
                 task.status = "completed"
                 task.stage = "completed"
                 task.updated_at = time.time()
@@ -730,7 +1295,9 @@ class RedisQueueManager:
                     pipe.hincrby(STATS_KEY, "completed", 1)
                     pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                     pipe.srem(SCRAPE_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
                     await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, saved_vacancy.id)
                 
                 total_rem = await self._calculate_total_remaining(user_id=task.user_id)
                 if total_rem == 0:
@@ -739,12 +1306,15 @@ class RedisQueueManager:
                         topics.append(f"vacancies:{task.user_id}")
                     for top in topics:
                         await publish_mercure_event(
-                                event_type=EVENT_QUEUE_IDLE,
-                                data={"message_code": MSG_QUEUE_IDLE, "total_remaining": 0},
-                                topic=top,
-                            )
+                            event_type=EVENT_QUEUE_UPDATED,
+                            data={"message_code": MSG_QUEUE_UPDATED, "total_remaining": 0},
+                            topic=top,
+                        )
+                    if task.user_id:
+                        await self.publish_queue_state(task.user_id)
             else:
-                task.stage = "ai_analysis"
+                next_stage = "cv_scoring" if is_upwork else "ai_analysis"
+                task.stage = next_stage
                 task.status = "pending"
                 task.updated_at = time.time()
 
@@ -753,6 +1323,7 @@ class RedisQueueManager:
                     pipe.rpush(AI_QUEUE_KEY, task_id)
                     pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                     await pipe.execute()
+                sync_db_queue_item(task_id, "pending", next_stage, task.attempts, None, saved_vacancy.id)
 
         except Exception as e:
             await self._fail_or_retry(task, e)
@@ -787,6 +1358,7 @@ class RedisQueueManager:
                 pipe.lrem("queue:extension", 0, task_id)
                 pipe.srem(SCRAPE_PROCESSING_SET, task_id)
                 await pipe.execute()
+            sync_db_queue_item(task_id, "pending", "scraping", task.attempts, str(error), task.vacancy_id)
             logger.warning(
                 f"[Stage 1 - Scrape] Task {task_id} failed for {task.url} "
                 f"(attempt {task.attempts}/{MAX_TASK_ATTEMPTS}): {error}. Retrying in {delay}s"
@@ -794,6 +1366,7 @@ class RedisQueueManager:
             return False
 
         task.status = "failed"
+        task.stage = "failed"
         task.next_retry_at = None
         async with self.redis.pipeline(transaction=True) as pipe:
             pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
@@ -803,6 +1376,8 @@ class RedisQueueManager:
             pipe.lrem("queue:extension", 0, task_id)
             pipe.srem(SCRAPE_PROCESSING_SET, task_id)
             await pipe.execute()
+
+        sync_db_queue_item(task_id, "failed", "failed", task.attempts, str(error), task.vacancy_id)
 
         total_rem = await self._calculate_total_remaining(user_id=task.user_id)
         logger.error(
@@ -847,15 +1422,23 @@ class RedisQueueManager:
         return True
 
     async def _retry_promoter_loop(self):
-        """Moves tasks whose backoff delay has elapsed back to the scrape queue."""
+        """Moves tasks whose backoff delay has elapsed back to their respective queues."""
         while self._running:
             try:
-                due = await self.redis.zrangebyscore(RETRY_ZSET, "-inf", time.time())
-                for task_id in due:
-                    # zrem returns 1 only for the caller that actually removed it
+                # Stage 1: scrape retries
+                due_scrape = await self.redis.zrangebyscore(RETRY_ZSET, "-inf", time.time())
+                for task_id in due_scrape:
                     if await self.redis.zrem(RETRY_ZSET, task_id):
                         await self.redis.rpush(SCRAPE_QUEUE_KEY, task_id)
                         logger.info(f"[Retry] Task {task_id} re-queued for scraping")
+
+                # Stage 2: AI / CV scoring retries
+                due_ai = await self.redis.zrangebyscore(AI_RETRY_ZSET, "-inf", time.time())
+                for task_id in due_ai:
+                    if await self.redis.zrem(AI_RETRY_ZSET, task_id):
+                        await self.redis.rpush(AI_QUEUE_KEY, task_id)
+                        logger.info(f"[Retry] Task {task_id} re-queued for AI processing")
+
                 await asyncio.sleep(1)
             except asyncio.CancelledError:
                 break
@@ -921,25 +1504,26 @@ class RedisQueueManager:
                     user_rem = await self._calculate_total_remaining(user_id=task_user_id)
                     if user_rem == 0:
                         await publish_mercure_event(
-                                event_type=EVENT_QUEUE_IDLE,
-                                data={
-                                    "message_code": MSG_QUEUE_IDLE,
-                                    "total_remaining": 0,
-                                },
-                                topic=f"vacancies:{task_user_id}",
-                            )
+                            event_type=EVENT_QUEUE_UPDATED,
+                            data={
+                                "message_code": MSG_QUEUE_UPDATED,
+                                "total_remaining": 0,
+                            },
+                            topic=f"vacancies:{task_user_id}",
+                        )
+                        await self.publish_queue_state(task_user_id)
 
                 # Check if all queues and workers are idle globally
                 total_rem = await self._calculate_total_remaining(user_id=None)
                 if total_rem == 0:
                     await publish_mercure_event(
-                            event_type=EVENT_QUEUE_IDLE,
-                            data={
-                                "message_code": MSG_QUEUE_IDLE,
-                                "total_remaining": 0,
-                            },
-                            topic="vacancies",
-                        )
+                        event_type=EVENT_QUEUE_UPDATED,
+                        data={
+                            "message_code": MSG_QUEUE_UPDATED,
+                            "total_remaining": 0,
+                        },
+                        topic="vacancies",
+                    )
 
     async def _process_ai_task(self, task_id: str):
         raw = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
@@ -948,17 +1532,85 @@ class RedisQueueManager:
             return
 
         task = JobTask.from_dict(json.loads(raw))
+        if task.status == "cancelled":
+            logger.info(f"[Stage 2 - AI] Task {task_id} was cancelled, skipping AI analysis.")
+            return
         if not task.user_id:
             raise ValueError("Queue task requires an owner")
+        is_cv_parsing = task.stage == "cv_parsing"
+        is_cv_scoring_only = task.stage == "cv_scoring"
+        active_stage = "cv_parsing" if is_cv_parsing else ("cv_scoring" if is_cv_scoring_only else "ai_analysis")
         task.status = "processing"
-        task.stage = "ai_analysis"
+        task.stage = active_stage
         task.updated_at = time.time()
         await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+        sync_db_queue_item(task_id, "processing", active_stage, task.attempts, None, task.vacancy_id)
 
-        logger.info(f"[Stage 2 - AI] Processing task {task.task_id} for vacancy #{task.vacancy_id}")
+        mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "task_id": task_id,
+                "stage": active_stage,
+                "status": "processing",
+            },
+            topic=mercure_topic,
+        )
+
+        logger.info(f"[Stage 2 - AI] Processing task {task.task_id} ({active_stage}) for user {task.user_id}")
 
         try:
             with SessionLocal() as db:
+                user_id = task.user_id
+                provider = os.getenv("LLM_PROVIDER")
+                language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
+
+                # -------------------------------------------------------------
+                # Branch A: CV Parsing Task
+                # -------------------------------------------------------------
+                if is_cv_parsing:
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                    if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
+                        logger.warning(f"[Stage 2 - AI] No approved CV content to parse for user {user_id}")
+                    else:
+                        parsed = await parse_cv_qualifications_with_llm(
+                            cv_text=approved_cv.content,
+                            provider=provider,
+                            language=language,
+                            db=db,
+                            user_id=user_id,
+                        )
+                        approved_cv.parsed_profile = parsed
+                        db.commit()
+                        logger.info(f"[Stage 2 - AI] Successfully parsed and cached CV profile for user {user_id}")
+
+                        # Trigger scoring tasks for vacancies
+                        vacancies = (
+                            db.query(Vacancy)
+                            .filter(Vacancy.user_id == user_id, Vacancy.status == STATUS_NOT_CONTACTED)
+                            .all()
+                        )
+                        if vacancies:
+                            await self.enqueue_cv_scoring(vacancies, user_id=user_id, force=True)
+
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, None)
+                    await self.publish_queue_state(user_id)
+                    return
+
+                # -------------------------------------------------------------
+                # Branch B: Vacancy Analysis & Scoring Tasks
+                # -------------------------------------------------------------
                 vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
@@ -974,141 +1626,203 @@ class RedisQueueManager:
                         pipe.hincrby(STATS_KEY, "completed", 1)
                         pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                         pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
                         await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
                     return
 
-                user_id = task.user_id or (vacancy.user_id if vacancy else None)
-                provider = os.getenv("LLM_PROVIDER")
-                language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
+                if not is_cv_scoring_only:
+                    # 1. Summarization & metadata extraction
+                    llm_res = await analyze_vacancy_with_llm(
+                        title=vacancy.title,
+                        company=vacancy.company,
+                        location=vacancy.location or "",
+                        description=vacancy.description or "",
+                        provider=provider,
+                        language=language,
+                        db=db,
+                        user_id=user_id,
+                    )
 
-                # Call LLM summarization with required provider and language
-                llm_res = await analyze_vacancy_with_llm(
-                    title=vacancy.title,
-                    company=vacancy.company,
-                    location=vacancy.location or "",
-                    description=vacancy.description or "",
+                    # Update vacancy in DB
+                    if llm_res.get("title") and (not vacancy.title or vacancy.title.startswith("http") or vacancy.title == "Не удалось загрузить страницу"):
+                        vacancy.title = llm_res["title"]
+                    if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
+                        vacancy.location = llm_res["location"]
+                    if llm_res.get("city") and (not vacancy.city or str(vacancy.city).strip().isdigit()):
+                        vacancy.city = llm_res["city"]
+                    if llm_res.get("country") and (not vacancy.country or str(vacancy.country).strip().isdigit()):
+                        vacancy.country = llm_res["country"]
+                    if llm_res.get("summary"):
+                        vacancy.ai_summary = llm_res["summary"]
+                    if llm_res.get("tech_stack"):
+                        vacancy.tech_stack = llm_res["tech_stack"]
+                    if llm_res.get("company_info") and not vacancy.company_info:
+                        vacancy.company_info = llm_res["company_info"]
+                    if llm_res.get("salary_min") is not None:
+                        vacancy.salary_min = llm_res["salary_min"]
+                    if llm_res.get("salary_max") is not None:
+                        vacancy.salary_max = llm_res["salary_max"]
+                    if llm_res.get("salary_currency") is not None:
+                        vacancy.salary_currency = llm_res["salary_currency"]
+                    if llm_res.get("salary_period") is not None:
+                        vacancy.salary_period = llm_res["salary_period"]
+                    if llm_res.get("workplace_type") and not vacancy.workplace_type:
+                        vacancy.workplace_type = llm_res["workplace_type"]
+                    if llm_res.get("is_closed") is not None:
+                        vacancy.is_closed = llm_res["is_closed"]
+
+                    # 2. Extract structured requirements and cache in vacancy
+                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
+                    extracted_reqs = await extract_vacancy_requirements_with_llm(
+                        vacancy_text=vac_full_desc,
+                        provider=provider,
+                        language=language,
+                        db=db,
+                        user_id=user_id,
+                    )
+                    vacancy.extracted_requirements = extracted_reqs
+                    db.commit()
+
+                    # Check if user has an approved CV to trigger scoring
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                    if approved_cv and approved_cv.content and approved_cv.content.strip():
+                        if not approved_cv.parsed_profile:
+                            await self.enqueue_cv_parsing(user_id=user_id)
+                        else:
+                            await self.enqueue_cv_scoring([vacancy], user_id=user_id, force=True)
+
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+
+                    vacancy_resp = VacancyResponse.model_validate(vacancy)
+                    vacancy_data = vacancy_resp.model_dump(mode="json")
+                    total_rem = await self._calculate_total_remaining(user_id=task.user_id)
+                    await publish_mercure_event(
+                        event_type=EVENT_VACANCY_UPDATED,
+                        data={
+                            "message_code": MSG_VACANCY_UPDATED,
+                            "vacancy": vacancy_data,
+                            "task_id": task.task_id,
+                            "batch_id": task.batch_id,
+                            "url": task.url,
+                            "total_remaining": total_rem,
+                        },
+                        topic=mercure_topic,
+                    )
+                    return
+
+                # -------------------------------------------------------------
+                # Branch C: Dedicated CV Scoring Task (Two Prepared JSON Profiles)
+                # -------------------------------------------------------------
+                approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
+                    logger.info(f"[Stage 2 - AI] No CV available for scoring vacancy #{vacancy.id}")
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+                    return
+
+                # If CV or Vacancy is missing cached structured JSON, trigger preparation task and stop
+                if not approved_cv.parsed_profile:
+                    logger.info(f"[Stage 2 - AI] CV parsed_profile missing for user {user_id}. Enqueuing cv_parsing.")
+                    await self.enqueue_cv_parsing(user_id=user_id)
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+                    return
+
+                if not vacancy.extracted_requirements:
+                    logger.info(f"[Stage 2 - AI] Vacancy extracted_requirements missing for #{vacancy.id}. Extracting now.")
+                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
+                    vacancy.extracted_requirements = await extract_vacancy_requirements_with_llm(
+                        vacancy_text=vac_full_desc,
+                        provider=provider,
+                        language=language,
+                        db=db,
+                        user_id=user_id,
+                    )
+                    db.commit()
+
+                # Execute matching on prepared JSON profiles
+                logger.info(f"[Stage 2 - AI] Running structured CV matching for vacancy #{vacancy.id} (user {user_id})")
+                compat_res = await match_structured_profiles_with_llm(
+                    vacancy_profile=vacancy.extracted_requirements,
+                    cv_profile=approved_cv.parsed_profile,
                     provider=provider,
                     language=language,
                     db=db,
                     user_id=user_id,
                 )
 
-                # Update vacancy in DB
-                if llm_res.get("title") and (not vacancy.title or vacancy.title.startswith("http") or vacancy.title == "Не удалось загрузить страницу"):
-                    vacancy.title = llm_res["title"]
-                if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
-                    vacancy.location = llm_res["location"]
-                if llm_res.get("city") and (not vacancy.city or str(vacancy.city).strip().isdigit()):
-                    vacancy.city = llm_res["city"]
-                if llm_res.get("country") and (not vacancy.country or str(vacancy.country).strip().isdigit()):
-                    vacancy.country = llm_res["country"]
-                if llm_res.get("summary"):
-                    vacancy.ai_summary = llm_res["summary"]
-                if llm_res.get("tech_stack"):
-                    vacancy.tech_stack = llm_res["tech_stack"]
-                if llm_res.get("company_info") and not vacancy.company_info:
-                    vacancy.company_info = llm_res["company_info"]
-                if llm_res.get("salary_min") is not None:
-                    vacancy.salary_min = llm_res["salary_min"]
-                if llm_res.get("salary_max") is not None:
-                    vacancy.salary_max = llm_res["salary_max"]
-                if llm_res.get("salary_currency") is not None:
-                    vacancy.salary_currency = llm_res["salary_currency"]
-                if llm_res.get("salary_period") is not None:
-                    vacancy.salary_period = llm_res["salary_period"]
-                if llm_res.get("workplace_type") and not vacancy.workplace_type:
-                    vacancy.workplace_type = llm_res["workplace_type"]
-                if llm_res.get("is_closed") is not None:
-                    vacancy.is_closed = llm_res["is_closed"]
+                overall_score = float(compat_res.get("overallScore", 0.0))
+                policy_version = str(compat_res.get("scoringPolicyVersion", "v2.0"))
+                model_id = str(compat_res.get("model", provider or "llm"))
+                now = datetime.datetime.utcnow()
 
-                # Check if user has an approved CV to automatically evaluate compatibility
-                approved_cv = None
-                if user_id:
-                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                vacancy.match_score = overall_score
 
-                compat_res = None
-                has_description = bool(vacancy.description and vacancy.description.strip())
-                if approved_cv and approved_cv.content and approved_cv.content.strip() and has_description:
-                    try:
-                        logger.info(f"[Stage 2 - AI] Running automatic CV compatibility evaluation for vacancy #{vacancy.id} (user {user_id})")
-                        vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
-                        if vacancy.tech_stack:
-                            vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
-                        vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
+                existing_analysis = db.query(VacancyCVAnalysis).filter(
+                    VacancyCVAnalysis.vacancy_id == vacancy.id,
+                    VacancyCVAnalysis.user_id == user_id,
+                ).first()
 
-                        compat_res = await evaluate_vacancy_compatibility_with_llm(
-                            vacancy_text=vacancy_full_text,
-                            cv_text=approved_cv.content,
-                            provider=provider,
-                            language=language,
-                            db=db,
-                            user_id=user_id,
-                        )
-
-                        overall_score = float(compat_res.get("overallScore", 0.0))
-                        policy_version = str(compat_res.get("scoringPolicyVersion", "v1.0"))
-                        model_id = str(compat_res.get("model", provider or "llm"))
-                        now = datetime.datetime.utcnow()
-
-                        vacancy.match_score = overall_score
-
-                        # Adaptation is currently disabled
-                        adapted_cv_payload = None
-
-                        existing_analysis = db.query(VacancyCVAnalysis).filter(
-                            VacancyCVAnalysis.vacancy_id == vacancy.id,
-                            VacancyCVAnalysis.user_id == user_id,
-                        ).first()
-
-                        if existing_analysis:
-                            existing_analysis.cv_revision = approved_cv.revision
-                            existing_analysis.scoring_policy_version = policy_version
-                            existing_analysis.model_id = model_id
-                            existing_analysis.overall_score = overall_score
-                            existing_analysis.result = compat_res
-                            if adapted_cv_payload:
-                                existing_analysis.adapted_cv = adapted_cv_payload
-                            existing_analysis.is_outdated = False
-                            existing_analysis.updated_at = now
-                            analysis_target = existing_analysis
-                        else:
-                            new_analysis = VacancyCVAnalysis(
-                                user_id=user_id,
-                                vacancy_id=vacancy.id,
-                                cv_revision=approved_cv.revision,
-                                scoring_policy_version=policy_version,
-                                model_id=model_id,
-                                overall_score=overall_score,
-                                result=compat_res,
-                                adapted_cv=adapted_cv_payload,
-                                is_outdated=False,
-                                created_at=now,
-                                updated_at=now,
-                            )
-                            db.add(new_analysis)
-                            db.flush()
-                            analysis_target = new_analysis
-
-                        if adapted_cv_payload:
-                            from .models import AdaptedCVVersion
-                            max_ver = db.query(func.coalesce(func.max(AdaptedCVVersion.version_number), 0)).filter(
-                                AdaptedCVVersion.analysis_id == analysis_target.id
-                            ).scalar()
-                            v_record = AdaptedCVVersion(
-                                analysis_id=analysis_target.id,
-                                version_number=max_ver + 1,
-                                adapted_cv=adapted_cv_payload,
-                                user_comment="Initial automatic adaptation",
-                                parent_version_id=None,
-                                created_at=now,
-                            )
-                            db.add(v_record)
-                    except Exception as e_comp:
-                        logger.warning(f"Automatic CV compatibility evaluation failed for vacancy #{vacancy.id}: {e_comp}")
+                if existing_analysis:
+                    existing_analysis.cv_revision = approved_cv.revision
+                    existing_analysis.scoring_policy_version = policy_version
+                    existing_analysis.model_id = model_id
+                    existing_analysis.overall_score = overall_score
+                    existing_analysis.result = compat_res
+                    existing_analysis.is_outdated = False
+                    existing_analysis.updated_at = now
+                else:
+                    new_analysis = VacancyCVAnalysis(
+                        user_id=user_id,
+                        vacancy_id=vacancy.id,
+                        cv_revision=approved_cv.revision,
+                        scoring_policy_version=policy_version,
+                        model_id=model_id,
+                        overall_score=overall_score,
+                        result=compat_res,
+                        is_outdated=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    db.add(new_analysis)
 
                 db.commit()
                 db.refresh(vacancy)
-                vacancy_data = VacancyResponse.model_validate(vacancy).model_dump(mode="json")
+                vacancy_resp = VacancyResponse.model_validate(vacancy)
+                if compat_res:
+                    try:
+                        from .main import _build_vacancy_compatibility_response
+                        vacancy_resp.compatibility = _build_vacancy_compatibility_response(vacancy.id, user_id, db)
+                    except Exception as e_bld:
+                        logger.warning(f"Could not attach compatibility to vacancy {vacancy.id}: {e_bld}")
+                vacancy_data = vacancy_resp.model_dump(mode="json")
 
             task.status = "completed"
             task.stage = "completed"
@@ -1119,15 +1833,16 @@ class RedisQueueManager:
                 pipe.hincrby(STATS_KEY, "completed", 1)
                 pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
                 pipe.srem(AI_PROCESSING_SET, task_id)
+                pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
                 await pipe.execute()
 
+            sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
             total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.info(
                 f"[Stage 2 - AI] Task {task.task_id} AI completed for '{vacancy.title}'. "
                 f"Remaining tasks in pipeline: {total_rem}"
             )
 
-            # Publish updated vacancy to Mercure Hub: frontend updates card with AI summary, tech stack, and match_score!
             mercure_topic = f"vacancies:{task.user_id}" if task.user_id else "vacancies"
             await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
@@ -1142,52 +1857,60 @@ class RedisQueueManager:
                 topic=mercure_topic,
             )
 
-            # If compatibility analysis was computed, also publish dedicated compatibility event
-            if compat_res:
-                await publish_mercure_event(
-                    event_type=EVENT_COMPATIBILITY_ANALYZED,
-                    data={
-                        "message_code": MSG_COMPATIBILITY_ANALYZED,
-                        "vacancy_id": vacancy_data.get("id"),
-                        "match_score": vacancy_data.get("match_score"),
-                        "overall_score": compat_res.get("overallScore"),
-                        "llm_score": compat_res.get("llmScore"),
-                        "calculated_score": compat_res.get("calculatedScore"),
-                        "summary": compat_res.get("summary"),
-                        "matched_requirements": compat_res.get("matchedRequirements", []),
-                        "missing_requirements": compat_res.get("missingRequirements", []),
-                        "critical_gaps": compat_res.get("criticalGaps", []),
-                        "recommendations": compat_res.get("recommendations", []),
-                        "adapted_cv": adapted_cv_payload,
-                    },
-                    topic=mercure_topic,
-                )
-
         except Exception as e:
-            task.status = "failed"
-            task.stage = "ai_analysis"
+            now = time.time()
+            task.attempts += 1
             task.error = str(e)
-            task.updated_at = time.time()
+            task.updated_at = now
+
+            if task.attempts < MAX_TASK_ATTEMPTS:
+                delay = self._retry_delay(task.attempts)
+                task.status = "pending"
+                task.next_retry_at = now + delay
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.zadd(AI_RETRY_ZSET, {task_id: task.next_retry_at})
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "pending", active_stage, task.attempts, str(e), task.vacancy_id)
+                logger.warning(
+                    f"[Stage 2 - AI] Task {task_id} failed for {task.url} "
+                    f"(attempt {task.attempts}/{MAX_TASK_ATTEMPTS}): {e}. Retrying in {delay}s"
+                )
+                return
+
+            task.status = "failed"
+            task.stage = "failed"
+            task.next_retry_at = None
+            task.updated_at = now
 
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
                 pipe.hincrby(STATS_KEY, "failed", 1)
                 pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "failed", 1)
+                pipe.zrem(AI_RETRY_ZSET, task_id)
                 pipe.srem(AI_PROCESSING_SET, task_id)
                 await pipe.execute()
 
+            sync_db_queue_item(task_id, "failed", "failed", task.attempts, str(e), task.vacancy_id)
+
             total_rem = await self._calculate_total_remaining(user_id=task.user_id)
-            logger.error(f"[Stage 2 - AI] Task {task.task_id} failed for {task.url}: {e}", exc_info=True)
+            logger.error(
+                f"[Stage 2 - AI] Task {task.task_id} failed permanently for {task.url} "
+                f"after {task.attempts} attempts: {e}",
+                exc_info=True
+            )
 
             try:
                 import sentry_sdk
                 with sentry_sdk.isolation_scope() as scope:
-                    scope.set_tag("task_stage", "ai_analysis")
+                    scope.set_tag("task_stage", active_stage)
                     scope.set_tag("permanent_failure", True)
                     scope.set_extra("task_id", task.task_id)
                     scope.set_extra("url", task.url)
                     scope.set_extra("user_id", task.user_id)
                     scope.set_extra("batch_id", task.batch_id)
+                    scope.set_extra("vacancy_id", task.vacancy_id)
                     sentry_sdk.capture_exception(e)
             except Exception as sentry_err:
                 logger.debug(f"Failed to report AI analysis failure to Sentry: {sentry_err}")
@@ -1201,6 +1924,7 @@ class RedisQueueManager:
                     "task_id": task.task_id,
                     "batch_id": task.batch_id,
                     "url": task.url,
+                    "vacancy_id": task.vacancy_id,
                     "total_remaining": total_rem,
                 },
                 topic=mercure_topic,
@@ -1240,7 +1964,7 @@ class RedisQueueManager:
                     existing.company = scraped.get("company") or existing.company
                     existing.company_url = scraped.get("company_url") or existing.company_url
                     existing.location = scraped.get("location") or existing.location
-                    existing.city = scraped.get("city")
+                    existing.city = scraped.get("city") or existing.city
                     existing.country = scraped.get("country") or existing.country
                     existing.description = scraped.get("description") or existing.description
                     if scraped.get("company_info"):
@@ -1327,6 +2051,7 @@ class RedisQueueManager:
             task.stage = "ai_analysis"
             task.status = "pending"
             task.updated_at = time.time()
+            sync_db_queue_item(task.task_id, "pending", "ai_analysis", task.attempts, None, task.vacancy_id)
             
             async with self.redis.pipeline(transaction=True) as pipe:
                 pipe.set(f"{TASK_KEY_PREFIX}{task.task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)

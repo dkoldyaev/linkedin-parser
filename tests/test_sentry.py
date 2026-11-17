@@ -82,3 +82,35 @@ def test_retry_scrape_failure_not_sent_to_sentry_until_max_attempts():
 
     asyncio.run(_test())
 
+
+def test_mercure_publish_failure_sent_to_sentry():
+    async def _test():
+        from backend.mercure import publish_mercure_event, EVENT_VACANCY_UPDATED
+
+        # Mock httpx AsyncClient post to return non-200
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.text = "Internal Mercure Server Error"
+
+        with patch("httpx.AsyncClient.post", AsyncMock(return_value=mock_resp)), \
+             patch("backend.mercure.generate_publisher_jwt", return_value="fake_token"), \
+             patch("sentry_sdk.capture_message") as mock_capture_msg, \
+             patch("sentry_sdk.isolation_scope") as mock_scope:
+
+            mock_scope_instance = MagicMock()
+            mock_scope.return_value.__enter__.return_value = mock_scope_instance
+
+            res = await publish_mercure_event(
+                event_type=EVENT_VACANCY_UPDATED,
+                data={"test": "data"},
+                topic="vacancies:1"
+            )
+
+            assert res is False
+            mock_capture_msg.assert_called_once()
+            mock_scope_instance.set_tag.assert_any_call("mercure_event", EVENT_VACANCY_UPDATED)
+            mock_scope_instance.set_tag.assert_any_call("mercure_status_code", 500)
+
+    asyncio.run(_test())
+
+

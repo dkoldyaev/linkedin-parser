@@ -57,17 +57,17 @@ def test_api_filtering():
     backfill_missing_workplace_types()
 
     client = TestClient(app)
-    login_res = client.post("/api/auth/dev-login", json={"email": "workplace_test@local.user"})
+    login_res = client.post("/api/v2/auth/dev-login", json={"email": "workplace_test@local.user"})
     token = login_res.json()["token"]
     client = TestClient(app, cookies={"access_token": token})
 
-    res = client.get("/api/vacancies")
+    res = client.get("/api/v2/vacancies")
     assert res.status_code == 200
     all_vacs = res.json()
     print(f"Total vacancies: {len(all_vacs)}")
 
     for wt in ["remote", "hybrid", "on-site"]:
-        res = client.get(f"/api/vacancies?workplace_type={wt}")
+        res = client.get(f"/api/v2/vacancies?workplace_type={wt}")
         assert res.status_code == 200
         filtered = res.json()
         print(f"Vacancies for workplace_type={wt}: {len(filtered)}")
@@ -79,7 +79,7 @@ def test_api_filtering():
 def test_crud_workplace():
     print("\n--- Testing CRUD with workplace_type ---")
     client = TestClient(app)
-    login_res = client.post("/api/auth/dev-login", json={"email": "workplace_test@local.user"})
+    login_res = client.post("/api/v2/auth/dev-login", json={"email": "workplace_test@local.user"})
     token = login_res.json()["token"]
     client = TestClient(app, cookies={"access_token": token})
 
@@ -91,7 +91,7 @@ def test_crud_workplace():
         "workplace_type": "remote",
         "tags": ["test-workplace"]
     }
-    create_res = client.post("/api/vacancies", json=create_payload)
+    create_res = client.post("/api/v2/vacancies", json=create_payload)
     assert create_res.status_code == 200, f"Create failed: {create_res.text}"
     created = create_res.json()
     v_id = created["id"]
@@ -100,31 +100,31 @@ def test_crud_workplace():
 
     try:
         # Check filter remote
-        res_remote = client.get("/api/vacancies?workplace_type=remote")
+        res_remote = client.get("/api/v2/vacancies?workplace_type=remote")
         assert res_remote.status_code == 200
         found = [v for v in res_remote.json() if v["id"] == v_id]
         assert len(found) == 1, f"Expected 1 vacancy in remote filter, got {len(found)}"
 
         # Check filter hybrid (should not include this vacancy)
-        res_hybrid = client.get("/api/vacancies?workplace_type=hybrid")
+        res_hybrid = client.get("/api/v2/vacancies?workplace_type=hybrid")
         assert res_hybrid.status_code == 200
         found_h = [v for v in res_hybrid.json() if v["id"] == v_id]
         assert len(found_h) == 0, f"Expected 0 vacancy in hybrid filter, got {len(found_h)}"
 
         # Patch to hybrid
-        patch_res = client.patch(f"/api/vacancies/{v_id}", json={"workplace_type": "hybrid"})
+        patch_res = client.patch(f"/api/v2/vacancies/{v_id}", json={"workplace_type": "hybrid"})
         assert patch_res.status_code == 200
         assert patch_res.json().get("workplace_type") == "hybrid"
         print(f"Updated vacancy #{v_id} to workplace_type='hybrid' ✅")
 
         # Check filter hybrid again (should now include this vacancy)
-        res_hybrid2 = client.get("/api/vacancies?workplace_type=hybrid")
+        res_hybrid2 = client.get("/api/v2/vacancies?workplace_type=hybrid")
         assert res_hybrid2.status_code == 200
         found_h2 = [v for v in res_hybrid2.json() if v["id"] == v_id]
         assert len(found_h2) == 1, f"Expected 1 vacancy in hybrid filter after update, got {len(found_h2)}"
     finally:
         # Delete test vacancy
-        del_res = client.delete(f"/api/vacancies/{v_id}")
+        del_res = client.delete(f"/api/v2/vacancies/{v_id}")
         assert del_res.status_code in (200, 204)
         print(f"Deleted test vacancy #{v_id} ✅")
 

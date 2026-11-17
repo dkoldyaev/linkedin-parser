@@ -9,8 +9,8 @@ Comprehensive integration test for all parsers with the current application code
 4. LLM keyword extraction compatibility.
 5. End-to-End FastAPI Endpoint Verification for each parser source:
    - /api/extension/parse_and_add
-   - /api/vacancies
-   - /api/vacancies/{id}
+   - /api/v2/vacancies
+   - /api/v2/vacancies/{id}
 """
 
 import os
@@ -54,7 +54,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
         cls.client = TestClient(app)
         
         # Authenticate test client via dev-login
-        login_res = cls.client.post("/api/auth/dev-login", json={"email": "parser_integration_tester@example.com", "name": "Parser Tester"})
+        login_res = cls.client.post("/api/v2/auth/dev-login", json={"email": "parser_integration_tester@example.com", "name": "Parser Tester"})
         cls.token = login_res.json()["token"]
         cls.user_id = login_res.json()["user"]["id"]
         cls.headers = {"Authorization": f"Bearer {cls.token}"}
@@ -189,7 +189,7 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
                 db.commit()
 
     def test_06_e2e_api_extension_parse_and_add_for_all_parsers(self):
-        """Verify /api/extension/parse_and_add endpoint works for every parser HTML."""
+        """Verify /api/extension/parse_and_add endpoint enqueues tasks for every parser HTML."""
         for parser_name, (url, file_name, _) in SAMPLE_FILES_BY_PARSER.items():
             file_path = os.path.join(EXAMPLES_DIR, file_name)
             if not os.path.exists(file_path):
@@ -205,24 +205,9 @@ class TestParsersCodebaseIntegration(unittest.TestCase):
             )
             self.assertEqual(post_resp.status_code, 200, f"Failed for {parser_name}: {post_resp.text}")
             data = post_resp.json()
-            self.assertEqual(data.get("status"), "queued_for_ai")
-            vacancy_id = data.get("vacancy_id")
-            self.assertIsNotNone(vacancy_id)
-
-            # GET /api/vacancies/{id}
-            get_resp = self.client.get(f"/api/vacancies/{vacancy_id}", headers=self.headers)
-            self.assertEqual(get_resp.status_code, 200)
-            v_data = get_resp.json()
-
-            # Assert key fields are properly stored and returned
-            self.assertEqual(v_data["url"], url)
-            self.assertIsNotNone(v_data["source"])
-            self.assertTrue(len(v_data["source"]) > 0)
-            self.assertIsNotNone(v_data["status"])
-
-            # Clean up created vacancy
-            del_resp = self.client.delete(f"/api/vacancies/{vacancy_id}", headers=self.headers)
-            self.assertIn(del_resp.status_code, (200, 204))
+            self.assertEqual(data.get("status"), "queued")
+            task_id = data.get("task_id")
+            self.assertIsNotNone(task_id)
 
 
 if __name__ == "__main__":

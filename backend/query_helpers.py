@@ -14,16 +14,22 @@ def filter_tag(query, db, tag):
     return query.filter(matching.exists())
 
 
-def duplicate_response(db, user_id, urls):
+def find_duplicate_vacancies(db, user_id, urls):
     from sqlalchemy import or_
-    from sqlalchemy.orm import noload
     from .scraper import normalize_url, extract_job_id
-    from .schemas import CheckDuplicatesResponse, DuplicateVacancyInfo
+    from .schemas import DuplicateVacancyInfo
     inputs = [(u.strip(), normalize_url(u.strip()) or u.strip()) for u in urls if u.strip()]
     all_urls = {value for pair in inputs for value in pair}
     jobs = {extract_job_id(canonical) or extract_job_id(raw) for raw, canonical in inputs}
     jobs.discard(None)
-    rows = db.query(Vacancy).options(noload(Vacancy.history)).filter(
+    rows = db.query(
+        Vacancy.id,
+        Vacancy.url,
+        Vacancy.job_id,
+        Vacancy.title,
+        Vacancy.company,
+        Vacancy.status,
+    ).filter(
         Vacancy.user_id == user_id,
         or_(Vacancy.url.in_(all_urls), Vacancy.job_id.in_(jobs))).order_by(Vacancy.id).all() if inputs else []
     by_url = {row.url: row for row in reversed(rows)}
@@ -36,18 +42,7 @@ def duplicate_response(db, user_id, urls):
             seen.add(row.id)
             found.append(DuplicateVacancyInfo(id=row.id, url=row.url, input_url=raw, job_id=row.job_id,
                                              title=row.title, company=row.company, status=row.status))
-    from backend.parsers.registry import registry as parser_registry
-    requires_extension = False
-    for raw, canonical in inputs:
-        p = parser_registry.find(canonical) or parser_registry.find(raw)
-        if p and getattr(p, "needs_extension", False):
-            requires_extension = True
-            break
-    return CheckDuplicatesResponse(
-        has_duplicates=bool(found),
-        duplicates=found,
-        requires_extension=requires_extension,
-    )
+    return found
 
 
 def local_date(column, dialect, tz_offset):

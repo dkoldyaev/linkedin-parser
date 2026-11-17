@@ -17,9 +17,8 @@ EVENT_VACANCY_UPDATED = "vacancy_updated"
 EVENT_VACANCY_DELETED = "vacancy_deleted"
 EVENT_TASK_FAILED = "task_failed"
 EVENT_QUEUE_UPDATED = "queue_updated"
-EVENT_QUEUE_IDLE = "queue_idle"
+EVENT_QUEUE_STATE = "queue_state"
 EVENT_EXTENSION_TASK = "extension_task"
-EVENT_COMPATIBILITY_ANALYZED = "compatibility_analyzed"
 
 # Mercure Message Codes
 MSG_VACANCY_CREATED = "VACANCY_CREATED"
@@ -27,9 +26,7 @@ MSG_VACANCY_UPDATED = "VACANCY_UPDATED"
 MSG_VACANCY_DELETED = "VACANCY_DELETED"
 MSG_TASK_FAILED = "TASK_FAILED"
 MSG_QUEUE_UPDATED = "QUEUE_UPDATED"
-MSG_QUEUE_IDLE = "QUEUE_IDLE"
 MSG_EXTENSION_TASK = "EXTENSION_TASK"
-MSG_COMPATIBILITY_ANALYZED = "COMPATIBILITY_ANALYZED"
 
 # Mercure Error Codes (strictly constant codes, no human text)
 ERR_SCRAPE_FAILED = "ERR_SCRAPE_FAILED"
@@ -122,11 +119,46 @@ async def publish_mercure_event(
                 logger.warning(
                     f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}"
                 )
+                try:
+                    import sentry_sdk
+                    with sentry_sdk.isolation_scope() as scope:
+                        scope.set_tag("mercure_event", event_type)
+                        scope.set_tag("mercure_status_code", resp.status_code)
+                        scope.set_extra("topic", topic)
+                        scope.set_extra("status_code", resp.status_code)
+                        scope.set_extra("event_type", event_type)
+                        scope.set_extra("response_text", resp.text[:500])
+                        sentry_sdk.capture_message(
+                            f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}",
+                            level="error"
+                        )
+                except Exception as sentry_err:
+                    logger.debug(f"Failed to report Mercure failure to Sentry: {sentry_err}")
                 return False
 
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         logger.warning(f"Mercure Hub not reachable at {url}: {e}")
+        try:
+            import sentry_sdk
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("mercure_event", event_type)
+                scope.set_extra("topic", topic)
+                scope.set_extra("mercure_url", url)
+                scope.set_extra("event_type", event_type)
+                sentry_sdk.capture_exception(e)
+        except Exception as sentry_err:
+            logger.debug(f"Failed to report Mercure connection error to Sentry: {sentry_err}")
         return False
     except Exception as e:
         logger.error(f"Unexpected error publishing to Mercure Hub: {e}", exc_info=True)
+        try:
+            import sentry_sdk
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_tag("mercure_event", event_type)
+                scope.set_extra("topic", topic)
+                scope.set_extra("mercure_url", url)
+                scope.set_extra("event_type", event_type)
+                sentry_sdk.capture_exception(e)
+        except Exception as sentry_err:
+            logger.debug(f"Failed to report Mercure unexpected error to Sentry: {sentry_err}")
         return False

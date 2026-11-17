@@ -111,6 +111,8 @@ def ensure_db_schema():
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN lane INTEGER DEFAULT 0 NOT NULL"))
                     if "match_score" not in existing_cols:
                         conn.execute(text("ALTER TABLE vacancies ADD COLUMN match_score REAL"))
+                    if "extracted_requirements" not in existing_cols:
+                        conn.execute(text("ALTER TABLE vacancies ADD COLUMN extracted_requirements JSON"))
 
                 history_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(vacancy_status_history)")).fetchall()}
                 if history_cols:
@@ -168,6 +170,7 @@ def ensure_db_schema():
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS sort_order DOUBLE PRECISION"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS lane INTEGER DEFAULT 0 NOT NULL"))
                 conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS match_score DOUBLE PRECISION"))
+                conn.execute(text("ALTER TABLE vacancies ADD COLUMN IF NOT EXISTS extracted_requirements JSONB"))
                 conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS from_lane INTEGER"))
                 conn.execute(text("ALTER TABLE vacancy_status_history ADD COLUMN IF NOT EXISTS to_lane INTEGER"))
                 conn.execute(text("ALTER TABLE vacancies ALTER COLUMN title TYPE VARCHAR(1024)"))
@@ -237,6 +240,10 @@ def ensure_db_schema():
                         UNIQUE(user_id, vacancy_id)
                     );
                 """))
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(approved_cvs)")).fetchall()]
+                if "parsed_profile" not in cols:
+                    conn.execute(text("ALTER TABLE approved_cvs ADD COLUMN parsed_profile JSON"))
+
                 cols = [row[1] for row in conn.execute(text("PRAGMA table_info(vacancy_cv_analyses)")).fetchall()]
                 if "adapted_cv" not in cols:
                     conn.execute(text("ALTER TABLE vacancy_cv_analyses ADD COLUMN adapted_cv JSON"))
@@ -288,6 +295,7 @@ def ensure_db_schema():
                         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
                     );
                 """))
+                conn.execute(text("ALTER TABLE approved_cvs ADD COLUMN IF NOT EXISTS parsed_profile JSONB"))
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS vacancy_cv_analyses (
                         id SERIAL PRIMARY KEY,
@@ -429,14 +437,44 @@ def ensure_db_schema():
     except Exception as e:
         logger.warning(f"Migrate legacy status 'Еще не написан' -> '{STATUS_NOT_CONTACTED}': {e}")
 
+    try:
+        from .models import Vacancy, VacancyCVAnalysis
+        from .llm import calculate_compatibility_score
+        from sqlalchemy.orm import Session
+        from sqlalchemy.orm.attributes import flag_modified
+        with Session(engine) as session:
+            analyses = session.query(VacancyCVAnalysis).all()
+            dirty = False
+            for a in analyses:
+                res = dict(a.result or {})
+                if "llmScore" in res or res.get("calculatedScore") != a.overall_score:
+                    dim_scores = res.get("dimensionScores") or {}
+                    crit_gaps = res.get("criticalGaps") or []
+                    calc = calculate_compatibility_score(dim_scores, len(crit_gaps))
+                    res.pop("llmScore", None)
+                    res["overallScore"] = calc
+                    res["calculatedScore"] = calc
+                    a.result = res
+                    flag_modified(a, "result")
+                    a.overall_score = calc
+                    v = session.query(Vacancy).filter(Vacancy.id == a.vacancy_id).first()
+                    if v and v.match_score != calc:
+                        v.match_score = calc
+                    dirty = True
+            if dirty:
+                session.commit()
+    except Exception as e:
+        logger.warning(f"Deterministic calculated_score migration check: {e}")
+
 
 
 
 def ensure_query_indexes():
     """create_all does not add indexes to tables that already exist."""
-    from .models import Vacancy, VacancyStatusHistory
-    for table in (Vacancy.__table__, VacancyStatusHistory.__table__):
+    from .models import Vacancy, VacancyStatusHistory, ProcessingQueueItem
+    for table in (Vacancy.__table__, VacancyStatusHistory.__table__, ProcessingQueueItem.__table__):
         for index in table.indexes:
             if index.name in {"ix_vacancies_user_updated", "ix_vacancies_user_created",
-                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created"}:
+                              "ix_vacancies_user_job", "ix_vacancies_user_url", "ix_history_vacancy_created",
+                              "ix_pqi_user_status", "ix_pqi_user_norm_url"}:
                 index.create(bind=engine, checkfirst=True)

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { X, UploadCloud, CheckCircle, AlertCircle, Loader2, ExternalLink, Trash2 } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { checkExtensionPromptRequirement, anyUrlRequiresExtension } from '../utils/extension';
 import ExtensionPromptModal from './ExtensionPromptModal';
 
-export default function BatchImportModal({ isOpen, onClose, onImportComplete, queueRemaining = 0 }) {
+export default function BatchImportModal({ isOpen, onClose, onImportComplete, onOpenVacancy, queueRemaining = 0 }) {
   const { t } = useTranslation();
   const [urlsText, setUrlsText] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -31,7 +31,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     });
 
     try {
-      const res = await fetch('/api/vacancies/batch', {
+      const res = await fetch('/api/v2/vacancies/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,10 +53,17 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         total: data.total
       });
 
-      setResult(data);
+      if (data.existing_vacancies && data.existing_vacancies.length > 0) {
+        setDuplicateWarning({
+          duplicates: data.existing_vacancies,
+          batchResult: data,
+        });
+      } else {
+        setResult(data);
+        setDuplicateWarning(null);
+      }
       setUrlsText('');
       setTagsInput('');
-      setDuplicateWarning(null);
       if (onImportComplete) {
         onImportComplete();
       }
@@ -87,38 +94,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
       .map(t => t.trim())
       .filter(t => t.length > 0);
 
-    setLoading(true);
-    setError(null);
-    let requiresExt = anyUrlRequiresExtension(urls);
-    try {
-      const dupRes = await fetch('/api/vacancies/check-duplicates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls }),
-      });
-      if (dupRes.ok) {
-        const dupData = await dupRes.json();
-        if (typeof dupData.requires_extension === 'boolean') {
-          requiresExt = dupData.requires_extension;
-        }
-        if (dupData.has_duplicates && dupData.duplicates.length > 0) {
-          setLoading(false);
-          setDuplicateWarning({
-            duplicates: dupData.duplicates,
-            urls,
-            defaultTags,
-            requiresExtension: requiresExt,
-          });
-          return;
-        }
-      }
-    } catch (dupErr) {
-      console.warn("Duplicate check error:", dupErr);
-    } finally {
-      setLoading(false);
-    }
-
-    if (requiresExt) {
+    if (anyUrlRequiresExtension(urls)) {
       const promptReq = await checkExtensionPromptRequirement();
       if (promptReq.show) {
         setExtModalInfo(promptReq);
@@ -140,6 +116,54 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     setPendingSubmit(null);
     setShowExtModal(false);
     onClose();
+  };
+
+  const handleRemoveDuplicate = (dupId) => {
+    setDuplicateWarning(prev => {
+      if (!prev) return null;
+      const updated = prev.duplicates.filter(d => d.id !== dupId);
+      return {
+        ...prev,
+        duplicates: updated,
+      };
+    });
+  };
+
+  const handleOpenDuplicate = (dup) => {
+    if (onOpenVacancy) {
+      onOpenVacancy(dup);
+    }
+  };
+
+  const handleReparseDuplicates = async () => {
+    if (!duplicateWarning || !duplicateWarning.duplicates.length) return;
+    setLoading(true);
+    setError(null);
+
+    const dupIds = duplicateWarning.duplicates.map(d => d.id).filter(Boolean);
+    try {
+      const res = await fetch('/api/v2/vacancies/reparse_all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: dupIds }),
+      });
+      if (!res.ok) {
+        throw new Error(t('batchModal.error_server', { status: res.status }));
+      }
+      setResult({
+        status: 'queued',
+        queued: dupIds.length,
+        message: t('batchModal.reparse_success'),
+      });
+      setDuplicateWarning(null);
+      if (onImportComplete) {
+        onImportComplete();
+      }
+    } catch (err) {
+      setError(err.message || t('common.error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
@@ -171,40 +195,82 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               </div>
 
               <div style={{ marginTop: '16px', maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {duplicateWarning.duplicates.map((dup) => (
-                  <div key={dup.id} style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-xs)',
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                      {dup.title || dup.url}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      <span>{dup.company || 'Unknown'}</span>
-                      {dup.status && (
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: 'rgba(37, 99, 235, 0.15)',
-                          border: '1px solid var(--border-blueprint)',
-                          color: '#93c5fd',
-                          fontSize: '0.75rem',
-                          fontFamily: 'var(--font-mono)'
-                        }}>
-                          {dup.status}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {dup.url}
-                    </div>
+                {duplicateWarning.duplicates.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                    {t('batchModal.duplicate_none_selected')}
                   </div>
-                ))}
+                ) : (
+                  duplicateWarning.duplicates.map((dup) => (
+                    <div key={dup.id} style={{
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-xs)',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {dup.title || dup.url}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          <span>{dup.company || 'Unknown'}</span>
+                          {dup.status && (
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-xs)',
+                              background: 'rgba(37, 99, 235, 0.15)',
+                              border: '1px solid var(--border-blueprint)',
+                              color: '#93c5fd',
+                              fontSize: '0.75rem',
+                              fontFamily: 'var(--font-mono)'
+                            }}>
+                              {dup.status}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {dup.url}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          style={{
+                            padding: '6px',
+                            color: 'var(--text-secondary)',
+                            borderRadius: 'var(--radius-xs)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleOpenDuplicate(dup)}
+                          title={t('batchModal.duplicate_open_vacancy')}
+                          aria-label={t('batchModal.duplicate_open_vacancy')}
+                        >
+                          <ExternalLink size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          style={{
+                            padding: '6px',
+                            color: '#ef4444',
+                            borderRadius: 'var(--radius-xs)',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleRemoveDuplicate(dup.id)}
+                          title={t('batchModal.duplicate_remove_from_list')}
+                          aria-label={t('batchModal.duplicate_remove_from_list')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -212,7 +278,12 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => setDuplicateWarning(null)}
+                onClick={() => {
+                  if (duplicateWarning.batchResult) {
+                    setResult(duplicateWarning.batchResult);
+                  }
+                  setDuplicateWarning(null);
+                }}
                 disabled={loading}
               >
                 {t('batchModal.duplicate_warning_cancel')}
@@ -221,23 +292,8 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                 type="button"
                 className="btn btn-warning"
                 style={{ background: '#f59e0b', color: '#111827', fontWeight: 600, border: 'none' }}
-                onClick={async () => {
-                  const { urls, defaultTags, requiresExtension } = duplicateWarning;
-                  const needsExt = typeof requiresExtension === 'boolean'
-                    ? requiresExtension
-                    : anyUrlRequiresExtension(urls);
-                  if (needsExt) {
-                    const promptReq = await checkExtensionPromptRequirement();
-                    if (promptReq.show) {
-                      setExtModalInfo(promptReq);
-                      setPendingSubmit(() => () => performSubmit(urls, defaultTags));
-                      setShowExtModal(true);
-                      return;
-                    }
-                  }
-                  await performSubmit(urls, defaultTags);
-                }}
-                disabled={loading}
+                onClick={handleReparseDuplicates}
+                disabled={loading || duplicateWarning.duplicates.length === 0}
               >
                 {loading ? (
                   <>
@@ -245,7 +301,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
                     <span>{t('batchModal.submitting_btn')}</span>
                   </>
                 ) : (
-                  <span>{t('batchModal.duplicate_warning_proceed')}</span>
+                  <span>{t('batchModal.duplicate_warning_proceed', { count: duplicateWarning.duplicates.length })}</span>
                 )}
               </button>
             </div>

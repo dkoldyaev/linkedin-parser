@@ -65,7 +65,7 @@ export default function StatsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/stats?tz_offset=${new Date().getTimezoneOffset()}`)
+    fetch(`/api/v2/stats?tz_offset=${new Date().getTimezoneOffset()}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('stats failed'))))
       .then((json) => !cancelled && setData(json))
       .catch(() => !cancelled && setError(true));

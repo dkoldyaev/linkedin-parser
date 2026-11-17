@@ -8,13 +8,11 @@ from backend.mercure import (
     EVENT_VACANCY_DELETED,
     EVENT_TASK_FAILED,
     EVENT_QUEUE_UPDATED,
-    EVENT_QUEUE_IDLE,
     MSG_VACANCY_CREATED,
     MSG_VACANCY_UPDATED,
     MSG_VACANCY_DELETED,
     MSG_TASK_FAILED,
     MSG_QUEUE_UPDATED,
-    MSG_QUEUE_IDLE,
     ERR_SCRAPE_FAILED,
     ERR_AI_ANALYSIS_FAILED,
 )
@@ -102,14 +100,12 @@ def test_mercure_constants():
     assert EVENT_VACANCY_DELETED == "vacancy_deleted"
     assert EVENT_TASK_FAILED == "task_failed"
     assert EVENT_QUEUE_UPDATED == "queue_updated"
-    assert EVENT_QUEUE_IDLE == "queue_idle"
 
     assert MSG_VACANCY_CREATED == "VACANCY_CREATED"
     assert MSG_VACANCY_UPDATED == "VACANCY_UPDATED"
     assert MSG_VACANCY_DELETED == "VACANCY_DELETED"
     assert MSG_TASK_FAILED == "TASK_FAILED"
     assert MSG_QUEUE_UPDATED == "QUEUE_UPDATED"
-    assert MSG_QUEUE_IDLE == "QUEUE_IDLE"
 
     assert ERR_SCRAPE_FAILED == "ERR_SCRAPE_FAILED"
     assert ERR_AI_ANALYSIS_FAILED == "ERR_AI_ANALYSIS_FAILED"
