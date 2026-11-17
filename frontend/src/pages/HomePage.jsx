@@ -1045,6 +1045,20 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         onClose={() => setIsBatchOpen(false)}
         queueRemaining={queueRemaining}
         onImportComplete={handleImportComplete}
+        onOpenVacancy={async (v) => {
+          setSelectedVacancy(v);
+          if (v?.id) {
+            try {
+              const res = await fetch(`/api/v2/vacancies/${v.id}`);
+              if (res.ok) {
+                const fullVacancy = await res.json();
+                setSelectedVacancy(fullVacancy);
+              }
+            } catch (err) {
+              console.warn('Failed to load full vacancy details:', err);
+            }
+          }
+        }}
       />
 
       <VacancyModal

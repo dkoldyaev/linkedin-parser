@@ -101,6 +101,7 @@ def test_card_crud_mercure_events():
             ext_url = f"https://www.linkedin.com/jobs/view/{uuid.uuid4().int % 10000000000}/"
             res = client.post("/api/extension/parse_and_add", json={
                 "url": ext_url,
+                "html": "<html><body><h1>Extension Card Title</h1></body></html>",
                 "title": "Extension Card Title",
                 "company": "Extension Corp",
                 "source": "LinkedIn",

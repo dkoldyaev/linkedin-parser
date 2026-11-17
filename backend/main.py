@@ -51,8 +51,6 @@ from .schemas import (
     AsyncBatchImportResponse,
     ProcessingLinkInfo,
     QueueLinksResponse,
-    CheckDuplicatesRequest,
-    CheckDuplicatesResponse,
     DuplicateVacancyInfo,
     QueueStatusResponse,
     TaskInfo,
@@ -104,7 +102,7 @@ from .auth import (
 from .scraper import scrape_linkedin_job, scrape_upwork_job, scrape_universal_job, extract_job_id, normalize_url
 from .scraper import scrape_job
 from .parsers import registry as parser_registry
-from .query_helpers import filter_tag, duplicate_response, local_date
+from .query_helpers import filter_tag, find_duplicate_vacancies, local_date
 from .location_parser import parse_location
 from .llm import (
     analyze_vacancy_with_llm,
@@ -1478,19 +1476,6 @@ async def delete_vacancy(
     return None
 
 
-@api_v2.post("/vacancies/check-duplicates", response_model=CheckDuplicatesResponse)
-async def check_duplicates(
-    payload: CheckDuplicatesRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Check if any of the incoming URLs already exist as vacancies for current_user.
-    All URLs are normalized first.
-    """
-    return duplicate_response(db, current_user.id, payload.urls)
-
-
 @api_v2.post("/vacancies/batch", response_model=AsyncBatchImportResponse)
 async def batch_import_vacancies(
     payload: BatchImportRequest,
@@ -1521,67 +1506,75 @@ async def batch_import_vacancies(
     ).all() if unique_urls else []
     already_queued_urls = {row[0] for row in active_in_queue}
 
-    urls_to_process = [u for u in unique_urls if u not in already_queued_urls]
+    # Deduplicate against existing vacancies in user's database
+    duplicate_infos = find_duplicate_vacancies(db, current_user.id, unique_urls)
+    existing_vacancy_ids = {d.id for d in duplicate_infos}
+    existing_urls = {d.url for d in duplicate_infos}
+    existing_input_urls = {d.input_url for d in duplicate_infos}
 
-    if not urls_to_process and already_queued_urls:
+    urls_to_process = [
+        u for u in unique_urls
+        if u not in already_queued_urls and u not in existing_urls and u not in existing_input_urls
+    ]
+
+    if not urls_to_process:
+        if duplicate_infos and not already_queued_urls:
+            return AsyncBatchImportResponse(
+                status="queued" if duplicate_infos else "already_queued",
+                queued=0,
+                batch_id="",
+                message=f"Найдено {len(duplicate_infos)} уже существующих вакансий",
+                tasks=[],
+                already_in_queue=list(already_queued_urls),
+                existing_vacancies=duplicate_infos,
+            )
         return AsyncBatchImportResponse(
             status="already_queued",
             queued=0,
             batch_id="",
-            message="Все переданные ссылки уже находятся в очереди обработки",
+            message="Все переданные ссылки уже находятся в очереди обработки" if already_queued_urls else "Нет новых ссылок для добавления",
             tasks=[],
             already_in_queue=list(already_queued_urls),
+            existing_vacancies=duplicate_infos,
         )
 
-    matches = db.query(Vacancy.id, Vacancy.job_id, Vacancy.url).filter(
-        Vacancy.user_id == current_user.id,
-        or_(Vacancy.url.in_(urls_to_process), Vacancy.job_id.in_(job_ids))).all() if urls_to_process else []
-    ids_by_job = {row.job_id: row.id for row in matches if row.job_id}
-    ids_by_url = {row.url: row.id for row in matches}
     vacancy_ids = []
     for url in urls_to_process:
         job_id = extract_job_id(url)
-        existing_id = ids_by_job.get(job_id) or ids_by_url.get(url)
-        if not existing_id:
-            v = Vacancy(
-                user_id=current_user.id,
-                job_id=job_id,
-                url=url,
-                title=url[:255],
-                company="Upwork" if "upwork.com" in url else "Загрузка...",
-                status=STATUS_NOT_CONTACTED,
-                tags=payload.default_tags,
-            )
-            db.add(v)
-            db.flush()
-            history_entry = VacancyStatusHistory(
-                vacancy_id=v.id,
-                from_status=None,
-                to_status=v.status,
-                comment=None,
-                created_at=v.created_at,
-            )
-            db.add(history_entry)
-            db.commit()
-            db.refresh(v)
-            vacancy_ids.append(v.id)
-            ids_by_url[url] = v.id
-            if job_id:
-                ids_by_job[job_id] = v.id
+        v = Vacancy(
+            user_id=current_user.id,
+            job_id=job_id,
+            url=url,
+            title=url[:255],
+            company="Upwork" if "upwork.com" in url else "Загрузка...",
+            status=STATUS_NOT_CONTACTED,
+            tags=payload.default_tags,
+        )
+        db.add(v)
+        db.flush()
+        history_entry = VacancyStatusHistory(
+            vacancy_id=v.id,
+            from_status=None,
+            to_status=v.status,
+            comment=None,
+            created_at=v.created_at,
+        )
+        db.add(history_entry)
+        db.commit()
+        db.refresh(v)
+        vacancy_ids.append(v.id)
 
-            mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
-            await publish_mercure_event(
-                    event_type=EVENT_VACANCY_CREATED,
-                    data={
-                        "message_code": MSG_VACANCY_CREATED,
-                        "vacancy": vacancy_data,
-                        "url": url,
-                    },
-                    topic=mercure_topic,
-                )
-        else:
-            vacancy_ids.append(existing_id)
+        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+        vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+        await publish_mercure_event(
+            event_type=EVENT_VACANCY_CREATED,
+            data={
+                "message_code": MSG_VACANCY_CREATED,
+                "vacancy": vacancy_data,
+                "url": url,
+            },
+            topic=mercure_topic,
+        )
 
     batch_id, tasks = await queue_manager.enqueue(
         urls_to_process,
@@ -1593,6 +1586,8 @@ async def batch_import_vacancies(
     msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
     if already_queued_urls:
         msg += f" ({len(already_queued_urls)} уже в очереди)"
+    if duplicate_infos:
+        msg += f" ({len(duplicate_infos)} уже существуют на доске)"
     return AsyncBatchImportResponse(
         status="queued",
         queued=len(tasks),
@@ -1600,6 +1595,7 @@ async def batch_import_vacancies(
         message=msg,
         tasks=[t.to_info() for t in tasks],
         already_in_queue=list(already_queued_urls),
+        existing_vacancies=duplicate_infos,
     )
 
 
@@ -2432,20 +2428,14 @@ async def save_approved_cv(
         VacancyCVAnalysis.user_id == current_user.id
     ).update({"is_outdated": True})
 
+    # Clear old parsed profile so it is re-extracted
+    approved_cv.parsed_profile = None
+
     db.commit()
     db.refresh(approved_cv)
 
-    user_vacancies = (
-        db.query(Vacancy)
-        .filter(
-            Vacancy.user_id == current_user.id,
-            Vacancy.status == STATUS_NOT_CONTACTED,
-        )
-        .order_by(Vacancy.id.asc())
-        .all()
-    )
-    if user_vacancies:
-        await queue_manager.enqueue_cv_scoring(user_vacancies, current_user.id)
+    # Enqueue isolated background task to parse CV qualifications first
+    await queue_manager.enqueue_cv_parsing(current_user.id)
 
     return ApprovedCVResponse.model_validate(approved_cv)
 
@@ -2690,7 +2680,7 @@ if os.path.exists(STATIC_DIR):
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
         # Don't hijack API routes and OpenAPI docs routes
-        if full_path.startswith("api") or full_path in ("docs", "openapi.json"):
+        if full_path.startswith("api") or full_path in ("docs", "redoc", "openapi.json"):
             raise HTTPException(status_code=404, detail="Not found")
         file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):

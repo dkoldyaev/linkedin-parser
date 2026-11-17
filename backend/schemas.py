@@ -169,14 +169,6 @@ class DuplicateVacancyInfo(BaseModel):
     company: Optional[str] = None
     status: Optional[str] = None
 
-class CheckDuplicatesRequest(BaseModel):
-    urls: List[str] = Field(..., max_length=200)
-
-class CheckDuplicatesResponse(BaseModel):
-    has_duplicates: bool
-    duplicates: List[DuplicateVacancyInfo]
-    requires_extension: bool = False
-
 class TaskInfo(BaseModel):
     task_id: str
     url: str
@@ -208,6 +200,7 @@ class AsyncBatchImportResponse(BaseModel):
     message: str
     tasks: List[TaskInfo] = Field(default_factory=list)
     already_in_queue: List[str] = Field(default_factory=list)
+    existing_vacancies: List[DuplicateVacancyInfo] = Field(default_factory=list)
 
 
 class ProcessingLinkInfo(BaseModel):

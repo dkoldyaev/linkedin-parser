@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from .query_helpers import filter_tag, duplicate_response
+from .query_helpers import filter_tag, find_duplicate_vacancies
 from .database import get_db
 from .models import (
     User,
@@ -24,8 +24,6 @@ from .schemas import (
     VacancyCreate,
     VacancyUpdate,
     VacancyHistoryItem,
-    CheckDuplicatesRequest,
-    CheckDuplicatesResponse,
     DuplicateVacancyInfo,
     BatchImportRequest,
     AsyncBatchImportResponse,
@@ -389,16 +387,6 @@ async def delete_vacancy(
     return None
 
 
-@router.post("/vacancies/check-duplicates", response_model=CheckDuplicatesResponse, summary="Check duplicate URLs")
-async def check_duplicates(
-    payload: CheckDuplicatesRequest,
-    current_user: User = Depends(get_current_user_from_api_key),
-    db: Session = Depends(get_db),
-):
-    """Check if links already exist in the user's database."""
-    return duplicate_response(db, current_user.id, payload.urls)
-
-
 @router.post("/vacancies/batch", response_model=AsyncBatchImportResponse, summary="Batch import vacancies")
 async def batch_import_vacancies(
     payload: BatchImportRequest,
@@ -432,16 +420,36 @@ async def batch_import_vacancies(
         else []
     )
     already_queued_urls = {row[0] for row in active_in_queue}
-    urls_to_process = [u for u in unique_urls if u not in already_queued_urls]
 
-    if not urls_to_process and already_queued_urls:
+    # Deduplicate against existing vacancies in user's database
+    duplicate_infos = find_duplicate_vacancies(db, current_user.id, unique_urls)
+    existing_urls = {d.url for d in duplicate_infos}
+    existing_input_urls = {d.input_url for d in duplicate_infos}
+
+    urls_to_process = [
+        u for u in unique_urls
+        if u not in already_queued_urls and u not in existing_urls and u not in existing_input_urls
+    ]
+
+    if not urls_to_process:
+        if duplicate_infos and not already_queued_urls:
+            return AsyncBatchImportResponse(
+                status="queued" if duplicate_infos else "already_queued",
+                queued=0,
+                batch_id="",
+                message=f"Found {len(duplicate_infos)} existing vacancies",
+                tasks=[],
+                already_in_queue=list(already_queued_urls),
+                existing_vacancies=duplicate_infos,
+            )
         return AsyncBatchImportResponse(
             status="already_queued",
             queued=0,
             batch_id="",
-            message="Все переданные ссылки уже находятся в очереди обработки",
+            message="Все переданные ссылки уже находятся в очереди обработки" if already_queued_urls else "No new URLs to process",
             tasks=[],
             already_in_queue=list(already_queued_urls),
+            existing_vacancies=duplicate_infos,
         )
 
     initial_tags = [t.strip() for t in payload.default_tags if t.strip()]
@@ -454,13 +462,17 @@ async def batch_import_vacancies(
         force_cv_scoring=False,
     )
     task_infos = [t.to_info() for t in tasks]
+    msg = f"Queued {len(task_infos)} tasks for asynchronous processing"
+    if duplicate_infos:
+        msg += f" ({len(duplicate_infos)} existing vacancies found)"
     return AsyncBatchImportResponse(
         status="queued",
         queued=len(task_infos),
         batch_id=batch_id,
-        message=f"Queued {len(task_infos)} tasks for asynchronous processing",
+        message=msg,
         tasks=task_infos,
         already_in_queue=list(already_queued_urls),
+        existing_vacancies=duplicate_infos,
     )
 
 

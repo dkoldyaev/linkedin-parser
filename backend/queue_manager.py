@@ -22,6 +22,9 @@ from .llm import (
     get_setting_or_env,
     evaluate_vacancy_compatibility_with_llm,
     adapt_cv_for_vacancy_with_llm,
+    extract_vacancy_requirements_with_llm,
+    parse_cv_qualifications_with_llm,
+    match_structured_profiles_with_llm,
 )
 from .mercure import (
     publish_mercure_event,
@@ -546,6 +549,72 @@ class RedisQueueManager:
         )
         return task
 
+    async def enqueue_cv_parsing(self, user_id: int) -> Optional[JobTask]:
+        """Enqueue an isolated task to parse and structure user's approved CV."""
+        if not self.redis:
+            return None
+
+        task_id = uuid.uuid4().hex[:8]
+        batch_id = uuid.uuid4().hex[:8]
+        task = JobTask(
+            task_id=task_id,
+            url=f"cv://user/{user_id}",
+            default_tags=[],
+            batch_id=batch_id,
+            status="pending",
+            stage="cv_parsing",
+            user_id=user_id,
+            title="CV Structured Profile Extraction",
+        )
+
+        async with self.redis.pipeline(transaction=True) as pipe:
+            pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+            pipe.rpush(AI_QUEUE_KEY, task_id)
+            pipe.sadd(f"linkedin:active:user:{user_id}", task_id)
+            pipe.expire(f"linkedin:active:user:{user_id}", TASK_TTL)
+            pipe.lpush(RECENT_LIST, task_id)
+            pipe.ltrim(RECENT_LIST, 0, 99)
+            pipe.lpush(f"{RECENT_LIST}:{user_id}", task_id)
+            pipe.ltrim(f"{RECENT_LIST}:{user_id}", 0, 99)
+            pipe.expire(f"{RECENT_LIST}:{user_id}", TASK_TTL)
+            await pipe.execute()
+
+        try:
+            with SessionLocal() as db:
+                now = datetime.datetime.utcnow()
+                db_item = ProcessingQueueItem(
+                    task_id=task_id,
+                    user_id=user_id,
+                    url=task.url,
+                    normalized_url=task.url,
+                    status="pending",
+                    stage="cv_parsing",
+                    attempts=0,
+                    max_attempts=MAX_TASK_ATTEMPTS,
+                    error=None,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(db_item)
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error persisting cv_parsing ProcessingQueueItem: {e}")
+
+        total_remaining = await self._calculate_total_remaining(user_id=user_id)
+        mercure_topic = f"vacancies:{user_id}"
+        await publish_mercure_event(
+            event_type=EVENT_QUEUE_UPDATED,
+            data={
+                "message_code": MSG_QUEUE_UPDATED,
+                "batch_id": batch_id,
+                "queued_count": 1,
+                "total_remaining": total_remaining,
+            },
+            topic=mercure_topic,
+        )
+        await self.publish_queue_state(user_id)
+        return task
+
     async def enqueue_cv_scoring(
         self,
         vacancies: List[Vacancy],
@@ -668,9 +737,9 @@ class RedisQueueManager:
         active_tasks = await self.get_active_tasks(user_id=user_id)
         
         p_scrape = sum(1 for t in active_tasks if t.stage in ("queued", "scraping") and t.status == "pending")
-        p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring") and t.status == "pending")
+        p_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring", "cv_parsing", "vacancy_extract") and t.status == "pending")
         pr_scrape = sum(1 for t in active_tasks if t.stage == "scraping" and t.status == "processing")
-        pr_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring") and t.status == "processing")
+        pr_ai = sum(1 for t in active_tasks if t.stage in ("ai", "ai_analysis", "cv_scoring", "cv_parsing", "vacancy_extract") and t.status == "processing")
 
         total_pending = p_scrape + p_ai
         total_processing = pr_scrape + pr_ai
@@ -1468,8 +1537,9 @@ class RedisQueueManager:
             return
         if not task.user_id:
             raise ValueError("Queue task requires an owner")
+        is_cv_parsing = task.stage == "cv_parsing"
         is_cv_scoring_only = task.stage == "cv_scoring"
-        active_stage = "cv_scoring" if is_cv_scoring_only else "ai_analysis"
+        active_stage = "cv_parsing" if is_cv_parsing else ("cv_scoring" if is_cv_scoring_only else "ai_analysis")
         task.status = "processing"
         task.stage = active_stage
         task.updated_at = time.time()
@@ -1488,10 +1558,59 @@ class RedisQueueManager:
             topic=mercure_topic,
         )
 
-        logger.info(f"[Stage 2 - AI] Processing task {task.task_id} ({active_stage}) for vacancy #{task.vacancy_id}")
+        logger.info(f"[Stage 2 - AI] Processing task {task.task_id} ({active_stage}) for user {task.user_id}")
 
         try:
             with SessionLocal() as db:
+                user_id = task.user_id
+                provider = os.getenv("LLM_PROVIDER")
+                language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
+
+                # -------------------------------------------------------------
+                # Branch A: CV Parsing Task
+                # -------------------------------------------------------------
+                if is_cv_parsing:
+                    approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                    if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
+                        logger.warning(f"[Stage 2 - AI] No approved CV content to parse for user {user_id}")
+                    else:
+                        parsed = await parse_cv_qualifications_with_llm(
+                            cv_text=approved_cv.content,
+                            provider=provider,
+                            language=language,
+                            db=db,
+                            user_id=user_id,
+                        )
+                        approved_cv.parsed_profile = parsed
+                        db.commit()
+                        logger.info(f"[Stage 2 - AI] Successfully parsed and cached CV profile for user {user_id}")
+
+                        # Trigger scoring tasks for vacancies
+                        vacancies = (
+                            db.query(Vacancy)
+                            .filter(Vacancy.user_id == user_id, Vacancy.status == STATUS_NOT_CONTACTED)
+                            .all()
+                        )
+                        if vacancies:
+                            await self.enqueue_cv_scoring(vacancies, user_id=user_id, force=True)
+
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, None)
+                    await self.publish_queue_state(user_id)
+                    return
+
+                # -------------------------------------------------------------
+                # Branch B: Vacancy Analysis & Scoring Tasks
+                # -------------------------------------------------------------
                 vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
@@ -1512,12 +1631,8 @@ class RedisQueueManager:
                     sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
                     return
 
-                user_id = task.user_id or (vacancy.user_id if vacancy else None)
-                provider = os.getenv("LLM_PROVIDER")
-                language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
-
                 if not is_cv_scoring_only:
-                    # Call LLM summarization with required provider and language
+                    # 1. Summarization & metadata extraction
                     llm_res = await analyze_vacancy_with_llm(
                         title=vacancy.title,
                         company=vacancy.company,
@@ -1557,122 +1672,146 @@ class RedisQueueManager:
                     if llm_res.get("is_closed") is not None:
                         vacancy.is_closed = llm_res["is_closed"]
 
-                    # Check if task was cancelled while AI analysis was running
-                    raw_check = await self.redis.get(f"{TASK_KEY_PREFIX}{task_id}")
-                    if raw_check:
-                        cur_task = JobTask.from_dict(json.loads(raw_check))
-                        if cur_task.status == "cancelled":
-                            logger.info(f"[Stage 2 - AI] Task {task_id} was cancelled before CV scoring; committing parsed vacancy and aborting.")
-                            db.commit()
-                            return
+                    # 2. Extract structured requirements and cache in vacancy
+                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
+                    extracted_reqs = await extract_vacancy_requirements_with_llm(
+                        vacancy_text=vac_full_desc,
+                        provider=provider,
+                        language=language,
+                        db=db,
+                        user_id=user_id,
+                    )
+                    vacancy.extracted_requirements = extracted_reqs
+                    db.commit()
 
-                # Check if user has an approved CV to automatically evaluate compatibility
-                approved_cv = None
-                if user_id:
+                    # Check if user has an approved CV to trigger scoring
                     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
-
-                compat_res = None
-                has_description = bool(vacancy.description and vacancy.description.strip())
-                should_run_cv_scoring = (
-                    is_cv_scoring_only
-                    or task.force_cv_scoring
-                    or vacancy.status == STATUS_NOT_CONTACTED
-                )
-                if should_run_cv_scoring and approved_cv and approved_cv.content and approved_cv.content.strip() and has_description:
-                    if not is_cv_scoring_only:
-                        task.stage = "cv_scoring"
-                        task.updated_at = time.time()
-                        await self.redis.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        sync_db_queue_item(task_id, "processing", "cv_scoring", task.attempts, None, vacancy.id)
-                        await publish_mercure_event(
-                            event_type=EVENT_QUEUE_UPDATED,
-                            data={
-                                "message_code": MSG_QUEUE_UPDATED,
-                                "task_id": task_id,
-                                "stage": "cv_scoring",
-                                "status": "processing",
-                            },
-                            topic=mercure_topic,
-                        )
-
-                    try:
-                        logger.info(f"[Stage 2 - AI] Running automatic CV compatibility evaluation for vacancy #{vacancy.id} (user {user_id})")
-                        vacancy_full_text = f"Title: {vacancy.title}\nCompany: {vacancy.company}\nLocation: {vacancy.location or 'N/A'}\n"
-                        if vacancy.tech_stack:
-                            vacancy_full_text += f"Key Tech Stack: {', '.join(vacancy.tech_stack)}\n"
-                        vacancy_full_text += f"\nDescription:\n{vacancy.description}\n"
-
-                        compat_res = await evaluate_vacancy_compatibility_with_llm(
-                            vacancy_text=vacancy_full_text,
-                            cv_text=approved_cv.content,
-                            provider=provider,
-                            language=language,
-                            db=db,
-                            user_id=user_id,
-                        )
-
-                        overall_score = float(compat_res.get("overallScore", 0.0))
-                        policy_version = str(compat_res.get("scoringPolicyVersion", "v1.0"))
-                        model_id = str(compat_res.get("model", provider or "llm"))
-                        now = datetime.datetime.utcnow()
-
-                        vacancy.match_score = overall_score
-
-                        # Adaptation is currently disabled
-                        adapted_cv_payload = None
-
-                        existing_analysis = db.query(VacancyCVAnalysis).filter(
-                            VacancyCVAnalysis.vacancy_id == vacancy.id,
-                            VacancyCVAnalysis.user_id == user_id,
-                        ).first()
-
-                        if existing_analysis:
-                            existing_analysis.cv_revision = approved_cv.revision
-                            existing_analysis.scoring_policy_version = policy_version
-                            existing_analysis.model_id = model_id
-                            existing_analysis.overall_score = overall_score
-                            existing_analysis.result = compat_res
-                            if adapted_cv_payload:
-                                existing_analysis.adapted_cv = adapted_cv_payload
-                            existing_analysis.is_outdated = False
-                            existing_analysis.updated_at = now
-                            analysis_target = existing_analysis
+                    if approved_cv and approved_cv.content and approved_cv.content.strip():
+                        if not approved_cv.parsed_profile:
+                            await self.enqueue_cv_parsing(user_id=user_id)
                         else:
-                            new_analysis = VacancyCVAnalysis(
-                                user_id=user_id,
-                                vacancy_id=vacancy.id,
-                                cv_revision=approved_cv.revision,
-                                scoring_policy_version=policy_version,
-                                model_id=model_id,
-                                overall_score=overall_score,
-                                result=compat_res,
-                                adapted_cv=adapted_cv_payload,
-                                is_outdated=False,
-                                created_at=now,
-                                updated_at=now,
-                            )
-                            db.add(new_analysis)
-                            db.flush()
-                            analysis_target = new_analysis
+                            await self.enqueue_cv_scoring([vacancy], user_id=user_id, force=True)
 
-                        if adapted_cv_payload:
-                            from .models import AdaptedCVVersion
-                            max_ver = db.query(func.coalesce(func.max(AdaptedCVVersion.version_number), 0)).filter(
-                                AdaptedCVVersion.analysis_id == analysis_target.id
-                            ).scalar()
-                            v_record = AdaptedCVVersion(
-                                analysis_id=analysis_target.id,
-                                version_number=max_ver + 1,
-                                adapted_cv=adapted_cv_payload,
-                                user_comment="Initial automatic adaptation",
-                                parent_version_id=None,
-                                created_at=now,
-                            )
-                            db.add(v_record)
-                    except Exception as e_comp:
-                        logger.warning(f"Automatic CV compatibility evaluation failed for vacancy #{vacancy.id}: {e_comp}")
-                        if is_cv_scoring_only:
-                            raise
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+
+                    vacancy_resp = VacancyResponse.model_validate(vacancy)
+                    vacancy_data = vacancy_resp.model_dump(mode="json")
+                    total_rem = await self._calculate_total_remaining(user_id=task.user_id)
+                    await publish_mercure_event(
+                        event_type=EVENT_VACANCY_UPDATED,
+                        data={
+                            "message_code": MSG_VACANCY_UPDATED,
+                            "vacancy": vacancy_data,
+                            "task_id": task.task_id,
+                            "batch_id": task.batch_id,
+                            "url": task.url,
+                            "total_remaining": total_rem,
+                        },
+                        topic=mercure_topic,
+                    )
+                    return
+
+                # -------------------------------------------------------------
+                # Branch C: Dedicated CV Scoring Task (Two Prepared JSON Profiles)
+                # -------------------------------------------------------------
+                approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
+                    logger.info(f"[Stage 2 - AI] No CV available for scoring vacancy #{vacancy.id}")
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.hincrby(STATS_KEY, "completed", 1)
+                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+                    return
+
+                # If CV or Vacancy is missing cached structured JSON, trigger preparation task and stop
+                if not approved_cv.parsed_profile:
+                    logger.info(f"[Stage 2 - AI] CV parsed_profile missing for user {user_id}. Enqueuing cv_parsing.")
+                    await self.enqueue_cv_parsing(user_id=user_id)
+                    task.status = "completed"
+                    task.stage = "completed"
+                    task.updated_at = time.time()
+                    async with self.redis.pipeline(transaction=True) as pipe:
+                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                        pipe.srem(AI_PROCESSING_SET, task_id)
+                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                        await pipe.execute()
+                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+                    return
+
+                if not vacancy.extracted_requirements:
+                    logger.info(f"[Stage 2 - AI] Vacancy extracted_requirements missing for #{vacancy.id}. Extracting now.")
+                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
+                    vacancy.extracted_requirements = await extract_vacancy_requirements_with_llm(
+                        vacancy_text=vac_full_desc,
+                        provider=provider,
+                        language=language,
+                        db=db,
+                        user_id=user_id,
+                    )
+                    db.commit()
+
+                # Execute matching on prepared JSON profiles
+                logger.info(f"[Stage 2 - AI] Running structured CV matching for vacancy #{vacancy.id} (user {user_id})")
+                compat_res = await match_structured_profiles_with_llm(
+                    vacancy_profile=vacancy.extracted_requirements,
+                    cv_profile=approved_cv.parsed_profile,
+                    provider=provider,
+                    language=language,
+                    db=db,
+                    user_id=user_id,
+                )
+
+                overall_score = float(compat_res.get("overallScore", 0.0))
+                policy_version = str(compat_res.get("scoringPolicyVersion", "v2.0"))
+                model_id = str(compat_res.get("model", provider or "llm"))
+                now = datetime.datetime.utcnow()
+
+                vacancy.match_score = overall_score
+
+                existing_analysis = db.query(VacancyCVAnalysis).filter(
+                    VacancyCVAnalysis.vacancy_id == vacancy.id,
+                    VacancyCVAnalysis.user_id == user_id,
+                ).first()
+
+                if existing_analysis:
+                    existing_analysis.cv_revision = approved_cv.revision
+                    existing_analysis.scoring_policy_version = policy_version
+                    existing_analysis.model_id = model_id
+                    existing_analysis.overall_score = overall_score
+                    existing_analysis.result = compat_res
+                    existing_analysis.is_outdated = False
+                    existing_analysis.updated_at = now
+                else:
+                    new_analysis = VacancyCVAnalysis(
+                        user_id=user_id,
+                        vacancy_id=vacancy.id,
+                        cv_revision=approved_cv.revision,
+                        scoring_policy_version=policy_version,
+                        model_id=model_id,
+                        overall_score=overall_score,
+                        result=compat_res,
+                        is_outdated=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    db.add(new_analysis)
 
                 db.commit()
                 db.refresh(vacancy)

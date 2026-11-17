@@ -43,7 +43,7 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             json={"companies": ["Acme Bank", "Beta Insurance"]},
             cookies=self.cookies_alice,
         )
-        self.assertEqual(resp.status_code, 404)
+        self.assertIn(resp.status_code, (404, 405))
 
     def test_approved_cv_lifecycle_and_user_isolation(self):
         """Scenario 5 & User Isolation: Alice's approved CV cannot be accessed by Bob."""
@@ -285,18 +285,14 @@ class TestCVAndMatchingWorkflows(unittest.TestCase):
             cookies=self.cookies_alice,
         )
 
-        with patch("backend.main.queue_manager.enqueue_cv_scoring", new_callable=AsyncMock) as mock_enqueue:
+        with patch("backend.main.queue_manager.enqueue_cv_parsing", new_callable=AsyncMock) as mock_enqueue_parsing:
             save_res = self.client.post(
                 "/api/v2/cv",
                 json={"content": "Senior Python Engineer", "revision": 3},
                 cookies=self.cookies_alice,
             )
             self.assertEqual(save_res.status_code, 200)
-            mock_enqueue.assert_awaited_once()
-            enqueued_vacancies, user_id = mock_enqueue.call_args.args
-            self.assertEqual(len(enqueued_vacancies), 1)
-            self.assertEqual(enqueued_vacancies[0].id, v_not_contacted["id"])
-            self.assertEqual(user_id, save_res.json()["user_id"])
+            mock_enqueue_parsing.assert_awaited_once_with(save_res.json()["user_id"])
 
     def test_reparse_all_and_selected_vacancies_scoring_rules(self):
         """

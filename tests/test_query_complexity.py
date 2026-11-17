@@ -30,14 +30,10 @@ def test_tags_stats_and_duplicates_do_not_load_history_objects():
         assert client.get('/api/v2/tags').json() == ['Python']
     assert not any('vacancy_status_history' in query for query in tags_sql)
     assert not any('vacancies.description' in query for query in tags_sql)
-    with statements() as duplicate_sql:
-        response = client.post('/api/v2/vacancies/check-duplicates', json={'urls': urls}).json()
-    assert len(response['duplicates']) == 12
-    vacancy_lookups = [q for q in duplicate_sql if 'from vacancies' in q]
-    assert len(vacancy_lookups) == 1
     with statements() as batch_sql:
         batch = client.post('/api/v2/vacancies/batch', json={'urls': urls}).json()
-    assert batch['queued'] == 12
+    assert batch['queued'] == 0
+    assert len(batch['existing_vacancies']) == 12
     assert len([q for q in batch_sql if 'from vacancies' in q]) == 1
     with statements() as stats_sql:
         stats = client.get('/api/v2/stats').json()

@@ -97,8 +97,8 @@ async def main():
         checked('PostgreSQL tag filter before pagination', public.status_code == 200 and len(public.json()) == 1)
         checked('API key revocation', (await a.delete(f"/api/api-keys/{key_data['id']}")).status_code == 200)
         checked('revoked key rejected', (await a.get('/api/v1/vacancies', headers={'X-API-Key': key_data['token']})).status_code == 401)
-        duplicates = await a.post('/api/vacancies/check-duplicates', json={'urls': [payload['url']] * 30})
-        checked('batched duplicate lookup', duplicates.status_code == 200 and len(duplicates.json()['duplicates']) == 1)
+        batch_dup = await a.post('/api/vacancies/batch', json={'urls': [payload['url']] * 30})
+        checked('batched duplicate lookup', batch_dup.status_code == 200 and len(batch_dup.json().get('existing_vacancies', [])) == 1)
         for path in ['/api/vacancies', '/api/tags', '/api/countries', '/api/cities', '/api/sources', '/api/settings', '/api/stats', '/api/queue/status']:
             response = await a.get(path)
             checked(path, response.status_code == 200)

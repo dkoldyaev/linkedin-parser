@@ -119,6 +119,7 @@ class Vacancy(Base):
     # AI-generated fields
     ai_summary = Column(Text, nullable=True)
     tech_stack = Column(JSON, default=list)  # list of strings e.g. ["Python", "Docker"]
+    extracted_requirements = Column(JSON, nullable=True)  # Structured requirements from LLM
     match_score = Column(Float, nullable=True)  # Compatibility score (0-100) with approved CV
     
     # Kanban & User organization
@@ -172,6 +173,7 @@ class ApprovedCV(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     content = Column(Text, nullable=False)
+    parsed_profile = Column(JSON, nullable=True)  # Structured qualifications from LLM
     revision = Column(Integer, nullable=False, default=1)
     approved_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)

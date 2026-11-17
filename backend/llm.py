@@ -9,7 +9,14 @@ import httpx
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from .models import AppSetting, UserSetting, UserLLMTokenUsage
-from .llm_schemas import vacancy_schema, anonymization_schema, compatibility_schema, adapted_cv_schema
+from .llm_schemas import (
+    vacancy_schema,
+    anonymization_schema,
+    compatibility_schema,
+    adapted_cv_schema,
+    vacancy_requirements_schema,
+    cv_qualifications_schema,
+)
 
 try:
     from json_repair import repair_json
@@ -151,7 +158,8 @@ async def call_mistral(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.2,
+        "temperature": 0.0,
+        "random_seed": 42,
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -209,7 +217,9 @@ async def call_gemini(
     from google.genai import types
 
     config_kwargs = {
-        "temperature": 0.2,
+        "temperature": 0.0,
+        "seed": 42,
+        "top_k": 1,
         "response_mime_type": "application/json",
         "system_instruction": system_prompt,
         "response_json_schema": response_schema,
@@ -490,7 +500,7 @@ SCORING_WEIGHTS = {
     "domain_experience": 0.10,
 }
 
-SCORING_POLICY_VERSION = "v1.0"
+SCORING_POLICY_VERSION = "v2.0"
 
 
 def calculate_compatibility_score(dimension_scores: Dict[str, float], critical_gaps_count: int = 0) -> float:
@@ -515,6 +525,377 @@ def calculate_compatibility_score(dimension_scores: Dict[str, float], critical_g
     penalty = min(critical_gaps_count * 15.0, 45.0)
     final_score = max(0.0, min(100.0, round(raw - penalty, 1)))
     return final_score
+
+
+def calculate_deterministic_dimensions(
+    match_data: Dict[str, Any],
+    vacancy_profile: Dict[str, Any],
+    cv_profile: Dict[str, Any],
+) -> Dict[str, float]:
+    """
+    Calculates 100% deterministic dimensionScores (0-100) from structured matching facts,
+    eliminating stochastic score drifting from LLM numbers.
+    """
+    matched = match_data.get("matchedRequirements") or []
+    missing = match_data.get("missingRequirements") or []
+    req_skills = vacancy_profile.get("required_technical_skills") or []
+    opt_skills = vacancy_profile.get("optional_technical_skills") or []
+
+    # 1. Required Technical Skills: matched count vs required count
+    if req_skills:
+        matched_req_count = sum(1 for m in matched if any(r.lower() in str(m.get("requirement", "")).lower() for r in req_skills))
+        # Fallback to general matched count if specific match pattern is wide
+        matched_req_count = max(matched_req_count, len(matched))
+        req_tech_score = min(100.0, round((matched_req_count / max(len(req_skills), 1)) * 100.0, 1))
+    else:
+        req_tech_score = 80.0 if matched else 50.0
+
+    # 2. Optional Technical Skills
+    if opt_skills:
+        matched_opt_count = sum(1 for m in matched if any(r.lower() in str(m.get("requirement", "")).lower() for r in opt_skills))
+        opt_tech_score = min(100.0, round((matched_opt_count / max(len(opt_skills), 1)) * 100.0, 1))
+    else:
+        opt_tech_score = 70.0
+
+    # 3. Seniority Alignment
+    sen_assessment = match_data.get("seniorityAssessment") or {}
+    sen_status = str(sen_assessment.get("status", "unclear")).lower()
+    sen_map = {
+        "matched": 100.0,
+        "aligned": 100.0,
+        "partially_matched": 70.0,
+        "unclear": 60.0,
+        "mismatched": 30.0,
+    }
+    sen_score = sen_map.get(sen_status, 60.0)
+
+    # 4. Relevant Professional Experience (Years)
+    req_years = vacancy_profile.get("required_experience_years")
+    cand_years = cv_profile.get("total_experience_years")
+    if req_years is not None and req_years > 0:
+        if cand_years is not None:
+            ratio = float(cand_years) / float(req_years)
+            if ratio >= 1.0:
+                prof_score = 100.0
+            elif ratio >= 0.7:
+                prof_score = 75.0
+            elif ratio >= 0.5:
+                prof_score = 50.0
+            else:
+                prof_score = 30.0
+        else:
+            prof_score = 50.0
+    else:
+        prof_score = 85.0 if cand_years and cand_years > 2 else 70.0
+
+    # 5. Domain Experience
+    vac_domains = [d.lower() for d in (vacancy_profile.get("domain_keywords") or [])]
+    cand_domains = [d.lower() for d in (cv_profile.get("domain_experience") or [])]
+    if vac_domains and cand_domains:
+        overlap = sum(1 for vd in vac_domains if any(vd in cd or cd in vd for cd in cand_domains))
+        dom_score = min(100.0, round((overlap / max(len(vac_domains), 1)) * 100.0, 1))
+        dom_score = max(dom_score, 50.0 if overlap > 0 else 30.0)
+    else:
+        dom_score = 60.0
+
+    return {
+        "requiredTechnicalSkills": req_tech_score,
+        "relevantProfessionalExperience": prof_score,
+        "seniorityAlignment": sen_score,
+        "optionalTechnicalSkills": opt_tech_score,
+        "domainExperience": dom_score,
+    }
+
+
+async def extract_vacancy_requirements_with_llm(
+    vacancy_text: str,
+    provider: str,
+    language: str = "ru",
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Step 1A: Extract structured requirements from a vacancy text.
+    """
+    if not vacancy_text or not vacancy_text.strip():
+        return {
+            "required_technical_skills": [],
+            "optional_technical_skills": [],
+            "required_experience_years": None,
+            "seniority_level": "unspecified",
+            "domain_keywords": [],
+            "key_responsibilities": [],
+        }
+
+    provider = str(provider).strip().lower()
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    active_model = "mock-llm-v1" if provider == "mock" else (mistral_model if provider == "mistral" else gemini_model)
+
+    json_format = vacancy_requirements_schema(language)
+    schema = json.dumps(json_format, ensure_ascii=False, indent=2)
+
+    is_en = language.lower().startswith("en")
+    if is_en:
+        system_prompt = f"""You are a technical job analysis expert. Extract structured technical requirements from the vacancy description.
+Be precise and factual. Do not hallucinate skills not explicitly required.
+Schema: {schema}"""
+        prompt = f"""Vacancy text:\n{vacancy_text}\n\nExtract the structured requirements conforming strictly to the JSON schema."""
+    else:
+        system_prompt = f"""Вы эксперт по техническому рекрутингу. Выделите структурированные требования из описания вакансии.
+Будьте точны и опирайтесь только на факты из текста.
+Схема: {schema}"""
+        prompt = f"""Текст вакансии:\n{vacancy_text}\n\nИзвлеките структурированные требования строго в соответствии со схемой JSON."""
+
+    raw_response = ""
+    token_usage_info = None
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        call_res = await call_mistral(
+            prompt, mistral_key, mistral_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        call_res = await call_gemini(
+            prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+        mock_req = {
+            "required_technical_skills": ["Python", "FastAPI", "PostgreSQL", "Docker"],
+            "optional_technical_skills": ["Redis", "Kubernetes"],
+            "required_experience_years": 3.0,
+            "seniority_level": "middle",
+            "domain_keywords": ["Backend", "Web services"],
+            "key_responsibilities": ["Develop scalable microservices", "Optimize database queries"],
+        }
+        raw_response = json.dumps(mock_req, ensure_ascii=False)
+        token_usage_info = {"prompt_tokens": 200, "completion_tokens": 100, "total_tokens": 300, "model": "mock-llm-v1"}
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db, user_id=user_id, provider=provider, operation="extract_vacancy_requirements",
+            model=token_usage_info.get("model") or active_model,
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
+
+    try:
+        return parse_llm_json(raw_response)
+    except Exception as e:
+        logger.error(f"Failed to parse vacancy requirements JSON: {raw_response}. Error: {e}")
+        return {
+            "required_technical_skills": extract_fallback_tech_stack(vacancy_text),
+            "optional_technical_skills": [],
+            "required_experience_years": None,
+            "seniority_level": "unspecified",
+            "domain_keywords": [],
+            "key_responsibilities": [],
+        }
+
+
+async def parse_cv_qualifications_with_llm(
+    cv_text: str,
+    provider: str,
+    language: str = "ru",
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Step 1B: Extract structured qualifications and experience from CV text.
+    """
+    if not cv_text or not cv_text.strip():
+        return {
+            "technical_skills": [],
+            "total_experience_years": None,
+            "seniority_level": "unspecified",
+            "domain_experience": [],
+            "experience_summary": "",
+        }
+
+    provider = str(provider).strip().lower()
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    active_model = "mock-llm-v1" if provider == "mock" else (mistral_model if provider == "mistral" else gemini_model)
+
+    json_format = cv_qualifications_schema(language)
+    schema = json.dumps(json_format, ensure_ascii=False, indent=2)
+
+    is_en = language.lower().startswith("en")
+    if is_en:
+        system_prompt = f"""You are an expert technical resume auditor. Extract factual technical qualifications, years of experience, and domain history from the candidate CV.
+Do not invent facts or skills not present in the CV text.
+Schema: {schema}"""
+        prompt = f"""Candidate CV:\n{cv_text}\n\nExtract structured qualifications strictly following the JSON schema."""
+    else:
+        system_prompt = f"""Вы эксперт по техническому аудиту резюме. Выделите подтвержденные навыки, общий стаж работы в годах и отрасли из резюме кандидата.
+Не придумывайте навыки, отсутствующие в тексте резюме.
+Схема: {schema}"""
+        prompt = f"""Резюме кандидата:\n{cv_text}\n\nИзвлеките структурированные квалификации строго в соответствии со схемой JSON."""
+
+    raw_response = ""
+    token_usage_info = None
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        call_res = await call_mistral(
+            prompt, mistral_key, mistral_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        call_res = await call_gemini(
+            prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+        mock_cv = {
+            "technical_skills": ["Python", "FastAPI", "Django", "PostgreSQL", "Docker", "Redis"],
+            "total_experience_years": 4.5,
+            "seniority_level": "middle",
+            "domain_experience": ["E-commerce", "Fintech"],
+            "experience_summary": "4.5 years of backend engineering in Python web services.",
+        }
+        raw_response = json.dumps(mock_cv, ensure_ascii=False)
+        token_usage_info = {"prompt_tokens": 250, "completion_tokens": 90, "total_tokens": 340, "model": "mock-llm-v1"}
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db, user_id=user_id, provider=provider, operation="parse_cv_qualifications",
+            model=token_usage_info.get("model") or active_model,
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
+
+    try:
+        return parse_llm_json(raw_response)
+    except Exception as e:
+        logger.error(f"Failed to parse CV qualifications JSON: {raw_response}. Error: {e}")
+        return {
+            "technical_skills": extract_fallback_tech_stack(cv_text),
+            "total_experience_years": None,
+            "seniority_level": "unspecified",
+            "domain_experience": [],
+            "experience_summary": "",
+        }
+
+
+async def match_structured_profiles_with_llm(
+    vacancy_profile: Dict[str, Any],
+    cv_profile: Dict[str, Any],
+    provider: str,
+    language: str = "ru",
+    db: Optional[Session] = None,
+    user_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Step 2: Match structured vacancy requirements against candidate CV profile.
+    Deterministic scores are computed in Python from verified facts.
+    """
+    provider = str(provider).strip().lower()
+    mistral_key = os.getenv("MISTRAL_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    mistral_model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+    gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    active_model = "mock-llm-v1" if provider == "mock" else (mistral_model if provider == "mistral" else gemini_model)
+
+    json_format = compatibility_schema(language)
+    schema = json.dumps(json_format, ensure_ascii=False, indent=2)
+
+    is_en = language.lower().startswith("en")
+    if is_en:
+        system_prompt = f"""You are an objective technical recruiter. Compare the structured vacancy requirements with the candidate qualifications.
+Verify each requirement against the candidate profile. Do not speculate.
+Schema: {schema}"""
+        prompt = f"""Vacancy Requirements Profile:\n{json.dumps(vacancy_profile, ensure_ascii=False, indent=2)}\n\nCandidate Profile:\n{json.dumps(cv_profile, ensure_ascii=False, indent=2)}\n\nEvaluate compatibility and return the structured JSON."""
+    else:
+        system_prompt = f"""Вы объективный технический рекрутер. Сопоставьте структурированные требования вакансии с квалификациями кандидата.
+Проверьте каждое требование по фактам профиля. Не додумывайте факты.
+Схема: {schema}"""
+        prompt = f"""Профиль требований вакансии:\n{json.dumps(vacancy_profile, ensure_ascii=False, indent=2)}\n\nПрофиль квалификаций кандидата:\n{json.dumps(cv_profile, ensure_ascii=False, indent=2)}\n\nОцените соответствие и верните структурированный JSON."""
+
+    raw_response = ""
+    token_usage_info = None
+    if provider == "mistral":
+        if not mistral_key:
+            raise ValueError("Mistral API key is not configured")
+        call_res = await call_mistral(
+            prompt, mistral_key, mistral_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "gemini":
+        if not gemini_key:
+            raise ValueError("Gemini API key is not configured")
+        call_res = await call_gemini(
+            prompt, gemini_key, gemini_model, response_schema=json_format, system_prompt=system_prompt, return_usage=True
+        )
+        raw_response, token_usage_info = call_res if isinstance(call_res, tuple) else (call_res, None)
+    elif provider == "mock":
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+        mock_compat = {
+            "summary": "Strong match on backend technical skills and experience." if is_en else "Высокое соответствие по стеку бэкенда и релевантному опыту.",
+            "dimensionScores": {
+                "requiredTechnicalSkills": 85,
+                "relevantProfessionalExperience": 80,
+                "seniorityAlignment": 85,
+                "optionalTechnicalSkills": 75,
+                "domainExperience": 80,
+            },
+            "matchedRequirements": [
+                {"requirement": s, "evidence": f"Candidate profile includes {s}"}
+                for s in vacancy_profile.get("required_technical_skills", ["Python"])[:4]
+            ],
+            "missingRequirements": [],
+            "criticalGaps": [],
+            "seniorityAssessment": {
+                "status": "matched",
+                "comment": "Seniority matches expectations" if is_en else "Уровень опыта соответствует ожиданиям",
+            },
+            "recommendations": ["Highlight architecture experience" if is_en else "Подчеркните архитектурный опыт"],
+        }
+        raw_response = json.dumps(mock_compat, ensure_ascii=False)
+        token_usage_info = {"prompt_tokens": 300, "completion_tokens": 150, "total_tokens": 450, "model": "mock-llm-v1"}
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+    if token_usage_info and db and user_id:
+        record_token_usage(
+            db=db, user_id=user_id, provider=provider, operation="match_profiles",
+            model=token_usage_info.get("model") or active_model,
+            prompt_tokens=token_usage_info.get("prompt_tokens", 0),
+            completion_tokens=token_usage_info.get("completion_tokens", 0),
+            total_tokens=token_usage_info.get("total_tokens", 0),
+        )
+
+    data = parse_llm_json(raw_response)
+    deterministic_dims = calculate_deterministic_dimensions(data, vacancy_profile, cv_profile)
+    crit_gaps = data.get("criticalGaps") or []
+    calculated_score = calculate_compatibility_score(deterministic_dims, len(crit_gaps))
+
+    return {
+        **data,
+        "dimensionScores": deterministic_dims,
+        "overallScore": calculated_score,
+        "calculatedScore": calculated_score,
+        "scoringPolicyVersion": SCORING_POLICY_VERSION,
+        "model": active_model,
+    }
 
 
 async def anonymize_companies_with_llm(

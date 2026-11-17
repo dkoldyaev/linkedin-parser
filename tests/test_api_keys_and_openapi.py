@@ -46,7 +46,7 @@ def test_openapi_endpoints(test_user):
     # Public API paths are exposed without /api/v2/api-keys or internal auth
     assert "/api/v2/vacancies" in schema["paths"]
     assert "/api/v2/columns" in schema["paths"]
-    assert "/api/v2/api-keys" in schema["paths"]  # unified v2 API includes key management
+    assert "/api/v2/api-keys" not in schema["paths"]
 
     # /docs
     res_docs = client.get("/docs", headers=headers)
