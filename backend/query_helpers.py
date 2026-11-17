@@ -16,14 +16,20 @@ def filter_tag(query, db, tag):
 
 def find_duplicate_vacancies(db, user_id, urls):
     from sqlalchemy import or_
-    from sqlalchemy.orm import noload
     from .scraper import normalize_url, extract_job_id
     from .schemas import DuplicateVacancyInfo
     inputs = [(u.strip(), normalize_url(u.strip()) or u.strip()) for u in urls if u.strip()]
     all_urls = {value for pair in inputs for value in pair}
     jobs = {extract_job_id(canonical) or extract_job_id(raw) for raw, canonical in inputs}
     jobs.discard(None)
-    rows = db.query(Vacancy).options(noload(Vacancy.history)).filter(
+    rows = db.query(
+        Vacancy.id,
+        Vacancy.url,
+        Vacancy.job_id,
+        Vacancy.title,
+        Vacancy.company,
+        Vacancy.status,
+    ).filter(
         Vacancy.user_id == user_id,
         or_(Vacancy.url.in_(all_urls), Vacancy.job_id.in_(jobs))).order_by(Vacancy.id).all() if inputs else []
     by_url = {row.url: row for row in reversed(rows)}
