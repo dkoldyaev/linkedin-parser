@@ -68,3 +68,8 @@ export {
   type ReportAccordionProps,
   type ReportSectionGroup,
 } from './ReportAccordion';
+export {
+  VacancyCard,
+  type VacancyCardProps,
+} from './VacancyCard';
+
