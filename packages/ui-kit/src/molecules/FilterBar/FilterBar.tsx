@@ -1,10 +1,12 @@
 import React from 'react';
-import { RotateCcw } from 'lucide-react';
-import { Badge, Button, Icon, Text } from '../../atoms';
+import { Badge, Text } from '../../atoms';
 import { Select, type SelectOption } from '../Select';
 import { TokenList } from '../TokenList';
+import { FilterBarReset, type FilterBarResetProps } from './FilterBarReset';
 import { cn } from '../../utils';
 import styles from './FilterBar.module.css';
+
+export { FilterBarReset, type FilterBarResetProps };
 
 export interface FilterBarTagItem {
   readonly label: string;
@@ -35,10 +37,9 @@ export interface FilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * FilterBar molecule.
- * Composes Select (variant="filter"), TokenList (mode="selectable"), Text separators,
- * and a Reset Button on the 32px Blueprint grid.
+ * Composes Select, TokenList, Text separators, and Reset Button on the 32px Blueprint grid.
  */
-export function FilterBar({
+function FilterBarBase({
   selects = [],
   tags = [],
   selectedTags = [],
@@ -50,6 +51,7 @@ export function FilterBar({
   resetLabel = 'Reset',
   actionsSlot,
   className,
+  children,
   ...rest
 }: FilterBarProps): React.ReactElement {
   const computedHasActive =
@@ -121,22 +123,20 @@ export function FilterBar({
             })}
           </TokenList>
         )}
+
+        {children}
       </div>
 
       <div className={styles.rightActions}>
         {computedHasActive && onReset !== undefined && (
-          <Button
-            variant="ghost"
-            size="sm"
-            tone="danger"
-            onClick={onReset}
-            startIcon={<Icon icon={RotateCcw} size="xs" />}
-          >
-            {resetLabel}
-          </Button>
+          <FilterBarReset onReset={onReset} label={resetLabel} />
         )}
         {actionsSlot}
       </div>
     </div>
   );
 }
+
+export const FilterBar = Object.assign(FilterBarBase, {
+  Reset: FilterBarReset,
+});

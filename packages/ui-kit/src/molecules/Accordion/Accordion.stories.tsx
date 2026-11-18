@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Accordion } from './Accordion';
+import { Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Accordion> = {
@@ -83,6 +84,25 @@ export const WithoutBullets: Story = {
           },
         ]}
       />
+    </div>
+  ),
+};
+
+export const ComposedAccordion: Story = {
+  render: () => (
+    <div className={layoutStyles.stack}>
+      <Accordion defaultExpandedIds={['step-1']}>
+        <Accordion.Item
+          id="step-1"
+          title="Step 1: Configuration"
+          content={<Text variant="body-sm" tone="secondary">Configure workspace settings and tokens.</Text>}
+        />
+        <Accordion.Item
+          id="step-2"
+          title="Step 2: Verification"
+          content={<Text variant="body-sm" tone="secondary">Run automated verification suites.</Text>}
+        />
+      </Accordion>
     </div>
   ),
 };

@@ -1,25 +1,13 @@
 import React from 'react';
-import {
-  LogIn,
-  LogOut,
-  Menu,
-  Moon,
-  Plus,
-  RefreshCw,
-  Settings,
-  Sun,
-  X,
-} from 'lucide-react';
-import { Button, Icon, Spinner, Text } from '../../atoms';
+import { Menu, Plus, X } from 'lucide-react';
+import { Button, Icon, Spinner } from '../../atoms';
 import { cn } from '../../utils';
+import { HeaderBrand, type HeaderBrandProps } from './HeaderBrand';
+import { HeaderUserMenu, type HeaderUser, type HeaderUserProps } from './HeaderUserMenu';
+import { HeaderActions, type HeaderActionsProps } from './HeaderActions';
 import styles from './Header.module.css';
 
-export interface HeaderUser {
-  readonly name?: string;
-  readonly email?: string;
-  readonly picture?: string;
-  readonly isAnonymous?: boolean;
-}
+export type { HeaderUser, HeaderBrandProps, HeaderUserProps, HeaderActionsProps };
 
 export interface HeaderProps
   extends Omit<React.HTMLAttributes<HTMLElement>, 'title'> {
@@ -59,7 +47,7 @@ export interface HeaderProps
  * Displays brand mark, title & subtitle, optional navigation, centered search slot,
  * status/queue indicator, action controls, theme switcher, and user profile slot.
  */
-export function Header({
+function HeaderBase({
   title = 'BLUEPRINT.UI',
   subtitle = 'DESIGN SYSTEM',
   brandIcon,
@@ -103,40 +91,20 @@ export function Header({
         ? `${queueCount} IN QUEUE`
         : undefined;
 
-  const userInitial = user?.name
-    ? user.name.charAt(0).toUpperCase()
-    : user?.email
-      ? user.email.charAt(0).toUpperCase()
-      : 'U';
-
-  const defaultBrand = (
-    <div className={styles.brand}>
-      <div className={styles.brandIcon}>
-        {brandIcon !== undefined ? (
-          brandIcon
-        ) : (
-          <span className={styles.blueprintMark} aria-hidden="true" />
-        )}
-      </div>
-      <div className={styles.brandText}>
-        <Text as="h1" variant="mono-label" className={styles.brandTitle}>
-          {title}
-        </Text>
-        {subtitle !== undefined && (
-          <Text as="p" variant="caption" tone="muted" className={styles.brandSubtitle}>
-            {subtitle}
-          </Text>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <header
       className={cn(styles.header, isSearchFocused && styles.searchFocused, className)}
       {...rest}
     >
-      {brand !== undefined ? brand : defaultBrand}
+      {brand !== undefined ? (
+        brand
+      ) : (
+        <HeaderBrand
+          title={title}
+          subtitle={subtitle}
+          brandIcon={brandIcon}
+        />
+      )}
 
       {navigation !== undefined && (
         <nav className={styles.navigation} aria-label="Primary navigation">
@@ -187,86 +155,26 @@ export function Header({
           </Button>
         )}
 
-        {onRefresh !== undefined && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onRefresh}
-            title={refreshLabel}
-            aria-label={refreshLabel}
-          >
-            <Icon icon={RefreshCw} size="sm" />
-          </Button>
-        )}
-
-        {showThemeToggle && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onThemeToggle}
-            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          >
-            <Icon icon={theme === 'dark' ? Sun : Moon} size="sm" />
-          </Button>
-        )}
-
-        {onSettingsClick !== undefined && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onSettingsClick}
-            className={styles.settingsBtn}
-            title={settingsLabel}
-            aria-label={settingsLabel}
-          >
-            <Icon icon={Settings} size="sm" />
-          </Button>
-        )}
+        <HeaderActions
+          onRefresh={onRefresh}
+          refreshLabel={refreshLabel}
+          showThemeToggle={showThemeToggle}
+          theme={theme}
+          onThemeToggle={onThemeToggle}
+          onSettingsClick={onSettingsClick}
+          settingsLabel={settingsLabel}
+        />
 
         {userSlot !== undefined ? (
           userSlot
         ) : user !== undefined ? (
-          user.isAnonymous ? (
-            <Button
-              variant="secondary"
-              size="m"
-              onClick={onLogin}
-              title={loginLabel}
-              startIcon={<Icon icon={LogIn} size="sm" />}
-            >
-              <span className={styles.guestLoginText}>{loginLabel}</span>
-            </Button>
-          ) : (
-            <div className={styles.userProfileBadge}>
-              {user.picture ? (
-                <img
-                  src={user.picture}
-                  alt={user.name ?? 'User avatar'}
-                  className={styles.userAvatar}
-                />
-              ) : (
-                <div className={styles.userAvatarPlaceholder}>
-                  {userInitial}
-                </div>
-              )}
-              <Text as="span" variant="mono" className={styles.userName} title={user.email ?? user.name}>
-                {user.name ?? user.email}
-              </Text>
-              {onLogout !== undefined && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  tone="danger"
-                  onClick={onLogout}
-                  title={logoutLabel}
-                  aria-label={logoutLabel}
-                >
-                  <Icon icon={LogOut} size="xs" />
-                </Button>
-              )}
-            </div>
-          )
+          <HeaderUserMenu
+            user={user}
+            loginLabel={loginLabel}
+            logoutLabel={logoutLabel}
+            onLogin={onLogin}
+            onLogout={onLogout}
+          />
         ) : null}
 
         {onMenuToggle !== undefined && (
@@ -287,3 +195,11 @@ export function Header({
     </header>
   );
 }
+
+export const Header = Object.assign(HeaderBase, {
+  Brand: HeaderBrand,
+  UserMenu: HeaderUserMenu,
+  Actions: HeaderActions,
+});
+
+export { HeaderBrand, HeaderUserMenu, HeaderActions };

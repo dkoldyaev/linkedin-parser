@@ -1,29 +1,16 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react';
-import { SortButton, Spinner, Text } from '../../atoms';
+import React, { useMemo, useState } from 'react';
+import { SortButton } from '../../atoms';
 import { EmptyState } from '../../molecules';
 import { useBlueprintGrid } from '../../hooks';
-import { GRID_CELL_PX, cn } from '../../utils';
+import { cn } from '../../utils';
+import type { DataTableColumn, TableSortDirection } from './types';
+import { useDataTableColumns } from './useDataTableColumns';
+import { DataTableLoading } from './DataTableLoading';
 import styles from './DataTable.module.css';
 
-export type TableSortDirection = 'asc' | 'desc';
-
-export interface DataTableColumn<T> {
-  readonly id: string;
-  readonly header: React.ReactNode;
-  readonly accessor?: keyof T;
-  readonly cell?: (row: T, rowIndex: number) => React.ReactNode;
-  readonly sortable?: boolean;
-  readonly sortValue?: (row: T) => string | number;
-  readonly align?: 'left' | 'center' | 'right';
-  /**
-   * Column width in multiples of 32px Blueprint grid units (e.g. 5 = 160px).
-   */
-  readonly gridUnits?: number;
-  /**
-   * Explicit pixel width (will be quantized to multiples of 32px).
-   */
-  readonly width?: number;
-}
+export { useDataTableColumns } from './useDataTableColumns';
+export { DataTableLoading, type DataTableLoadingProps } from './DataTableLoading';
+export type { DataTableColumn, TableSortDirection };
 
 export interface DataTableProps<T> {
   readonly columns: readonly DataTableColumn<T>[];
@@ -40,10 +27,10 @@ export interface DataTableProps<T> {
 }
 
 /**
- * Typed DataTable organism replacing the 3 duplicated data tables (UsersTable, VacanciesTable, QueueModal).
- * Supports sortable columns, loading state, and EmptyState molecule fallback.
+ * Typed DataTable organism on the Blueprint grid.
+ * Supports sortable columns, loading state, and EmptyState fallback.
  */
-export function DataTable<T>({
+function DataTableBase<T>({
   columns,
   data,
   getRowId,
@@ -58,59 +45,8 @@ export function DataTable<T>({
 }: DataTableProps<T>): React.ReactElement {
   const [sortColumnId, setSortColumnId] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
-  const [colWidths, setColWidths] = useState<readonly number[]>([]);
   const wrapperRef = useBlueprintGrid<HTMLDivElement>([columns, data.length]);
-
-  useLayoutEffect(() => {
-    const root = wrapperRef.current;
-    if (!root || columns.length === 0) {
-      return undefined;
-    }
-
-    const computeWidths = () => {
-      const grid = GRID_CELL_PX;
-      const totalWidth = root.clientWidth;
-      const totalUnits = Math.max(columns.length * 3, Math.floor(totalWidth / grid));
-
-      let allocatedUnits = 0;
-      const unassignedIndices: number[] = [];
-      const unitsPerCol = new Array<number>(columns.length).fill(0);
-
-      columns.forEach((col, idx) => {
-        if (col.gridUnits !== undefined && col.gridUnits > 0) {
-          unitsPerCol[idx] = col.gridUnits;
-          allocatedUnits += col.gridUnits;
-        } else if (col.width !== undefined && col.width > 0) {
-          const snapped = Math.max(3, Math.round(col.width / grid));
-          unitsPerCol[idx] = snapped;
-          allocatedUnits += snapped;
-        } else {
-          unassignedIndices.push(idx);
-        }
-      });
-
-      if (unassignedIndices.length > 0) {
-        const remainingUnits = Math.max(
-          unassignedIndices.length * 3,
-          totalUnits - allocatedUnits
-        );
-        const baseUnits = Math.floor(remainingUnits / unassignedIndices.length);
-        const extraUnits = remainingUnits % unassignedIndices.length;
-
-        unassignedIndices.forEach((colIdx, listIdx) => {
-          const units = Math.max(3, baseUnits + (listIdx < extraUnits ? 1 : 0));
-          unitsPerCol[colIdx] = units;
-        });
-      }
-
-      const pixelWidths = unitsPerCol.map((u) => u * grid);
-      setColWidths(pixelWidths);
-    };
-
-    computeWidths();
-    window.addEventListener('resize', computeWidths);
-    return () => window.removeEventListener('resize', computeWidths);
-  }, [columns, wrapperRef]);
+  const colWidths = useDataTableColumns(columns, wrapperRef);
 
   const handleSort = (columnId: string) => {
     if (sortColumnId === columnId) {
@@ -157,16 +93,7 @@ export function DataTable<T>({
   }, [columns, data, sortColumnId, sortDirection]);
 
   if (loading) {
-    return (
-      <div className={cn(styles.wrapper, className)}>
-        <div className={styles.loadingState}>
-          <Spinner size="md" label={loadingLabel} />
-          <Text variant="mono" tone="secondary">
-            {loadingLabel}
-          </Text>
-        </div>
-      </div>
-    );
+    return <DataTableLoading label={loadingLabel} className={className} />;
   }
 
   if (sortedData.length === 0) {
@@ -259,3 +186,7 @@ export function DataTable<T>({
     </div>
   );
 }
+
+export const DataTable = Object.assign(DataTableBase, {
+  Loading: DataTableLoading,
+});

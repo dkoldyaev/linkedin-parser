@@ -84,3 +84,27 @@ export const GuestModeHeader: Story = {
   },
   render: (args) => <InteractiveHeaderStory {...args} />,
 };
+
+export const ComposedHeader: Story = {
+  render: () => (
+    <Header
+      brand={<Header.Brand title="BLUEPRINT" subtitle="MODULAR DESIGN" />}
+      actions={
+        <Header.Actions
+          showThemeToggle
+          theme="dark"
+          onThemeToggle={() => alert('Theme toggle')}
+        />
+      }
+      userSlot={
+        <Header.UserMenu
+          user={{
+            name: 'Alex Developer',
+            email: 'alex@example.com',
+          }}
+          onLogout={() => alert('Log out')}
+        />
+      }
+    />
+  ),
+};

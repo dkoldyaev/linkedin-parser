@@ -1,6 +1,9 @@
 export {
   DataTable,
-  type DataTableProps,
+  DataTableLoading,
+  useDataTableColumns,
   type DataTableColumn,
+  type DataTableProps,
+  type DataTableLoadingProps,
   type TableSortDirection,
 } from './DataTable';

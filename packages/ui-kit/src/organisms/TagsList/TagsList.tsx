@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Badge, type BadgeSize, type BadgeTone, type BadgeVariant } from '../../atoms';
-import { Input } from '../../atoms/Input';
 import { TokenList } from '../../molecules/TokenList';
 import { cn } from '../../utils';
+import { TagsListInput, type TagsListInputProps } from './TagsListInput';
 import styles from './TagsList.module.css';
+
+export { TagsListInput, type TagsListInputProps };
 
 export interface TagsListProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   /** Array of tag strings */
@@ -42,7 +44,7 @@ export interface TagsListProps extends Omit<React.HTMLAttributes<HTMLDivElement>
  * Manages an editable list of tags/chips rendered inside a TokenList container.
  * Supports removal (`deletable`), inline text addition (`addable`), and typing delimiters (`separator`).
  */
-export function TagsList({
+function TagsListBase({
   value = [],
   onChange,
   deletable = false,
@@ -58,62 +60,16 @@ export function TagsList({
   className,
   ...rest
 }: TagsListProps): React.ReactElement {
-  const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const commitTags = (raw: string) => {
-    if (!raw.trim()) {
-      return;
-    }
-    const parts = separator
-      ? raw
-          .split(separator)
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [raw.trim()];
-
-    if (parts.length === 0) {
-      return;
-    }
-
+  const handleAddTags = (newParts: readonly string[]) => {
     const next = [...value];
-    for (const part of parts) {
+    for (const part of newParts) {
       if (!next.includes(part)) {
         next.push(part);
       }
     }
     onChange?.(next);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (separator && val.includes(separator)) {
-      const parts = val.split(separator);
-      const remaining = parts.pop() ?? '';
-      commitTags(parts.join(separator));
-      setInputValue(remaining);
-    } else {
-      setInputValue(val);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commitTags(inputValue);
-      setInputValue('');
-    } else if (e.key === 'Escape') {
-      setInputValue('');
-      onFinishAdd?.();
-    }
-  };
-
-  const handleBlur = () => {
-    if (inputValue.trim()) {
-      commitTags(inputValue);
-      setInputValue('');
-    }
-    onFinishAdd?.();
   };
 
   const handleRemove = (tagToRemove: string) => {
@@ -159,17 +115,17 @@ export function TagsList({
       )}
 
       {addable && (
-        <Input
-          autoFocus
-          className={styles.addInput}
+        <TagsListInput
+          separator={separator}
           placeholder={placeholder}
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          aria-label={placeholder}
+          onCommit={handleAddTags}
+          onCancel={onFinishAdd}
         />
       )}
     </TokenList>
   );
 }
+
+export const TagsList = Object.assign(TagsListBase, {
+  Input: TagsListInput,
+});
