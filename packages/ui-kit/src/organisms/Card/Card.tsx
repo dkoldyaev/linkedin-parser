@@ -23,11 +23,13 @@ export interface CardHeaderProps
   readonly checkboxAriaLabel?: string;
   readonly statusIndicators?: React.ReactNode;
   readonly headerActions?: React.ReactNode;
+  readonly compact?: boolean;
 }
 
 /**
  * CardHeader renders the top section of a Card:
  * optional Checkbox + monospace overline/link, Heading (level 3), subtitle, and top-right status indicators.
+ * In compact mode, combines overline and title into a single-line meta row with ellipsis.
  */
 export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
   function CardHeader(
@@ -42,12 +44,68 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
       checkboxAriaLabel = 'Select card',
       statusIndicators,
       headerActions,
+      compact = false,
       className,
       children,
       ...rest
     },
     ref
   ) {
+    if (compact) {
+      return (
+        <div ref={ref} className={cn(styles.cardHeader, className)} {...rest}>
+          <div className={styles.cardHeading}>
+            <div className={styles.cardTitleContainer}>
+              <div className={styles.cardHeaderMeta}>
+                {selectable && (
+                  <Checkbox
+                    className={styles.cardCheckbox}
+                    checked={checked}
+                    aria-label={checkboxAriaLabel}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onCheckedChange?.(e.target.checked);
+                    }}
+                  />
+                )}
+                <span className={styles.cardHeaderMetaText}>
+                  {overline !== undefined &&
+                    (overlineHref ? (
+                      <Link
+                        href={overlineHref}
+                        variant="mono"
+                        tone="secondary"
+                        external
+                        className={styles.compactOverline}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {overline}
+                      </Link>
+                    ) : (
+                      <span className={styles.compactOverline}>{overline}</span>
+                    ))}
+                  {overline !== undefined && title !== undefined && (
+                    <span className={styles.compactDivider} aria-hidden="true">
+                      /
+                    </span>
+                  )}
+                  {title !== undefined && (
+                    <span className={styles.compactTitle}>{title}</span>
+                  )}
+                </span>
+                {children}
+              </div>
+            </div>
+          </div>
+          {statusIndicators !== undefined && (
+            <div className={styles.cardStatusIndicators}>{statusIndicators}</div>
+          )}
+          {headerActions !== undefined && <div>{headerActions}</div>}
+        </div>
+      );
+    }
+
     const showMetaRow = selectable || overline !== undefined;
 
     return (
@@ -235,46 +293,33 @@ export interface CardProps
   readonly snapToGrid?: boolean;
   readonly bodyClassName?: string;
   /**
-   * When true, renders in a compact format displaying only header (title/overline)
-   * and right-aligned status indicators.
+   * When true, renders the collapsed/compact 32px format with overline/title combined.
    */
   readonly compact?: boolean;
   /**
    * When true, renders an animated skeleton placeholder.
-   * Works for both standard and compact cards.
+   * Works for both standard and collapsed cards.
    */
   readonly isLoading?: boolean;
 }
 
-/**
- * Universal Blueprint Card organism.
- * Can be composed explicitly with `<Card><CardBody><CardHeader />...</CardBody><CardFooter /></Card>`
- * or via convenience props (`title`, `subtitle`, `overline`, `footer`, `accentTone`).
- */
-const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
-  {
-    title,
-    subtitle,
-    overline,
-    overlineHref,
-    headerActions,
-    statusIndicators,
-    footer,
-    accentTone,
-    matchScore,
-    selected = false,
-    horizontal = false,
-    interactive = false,
-    snapToGrid = true,
-    compact = false,
-    isLoading = false,
-    className,
-    bodyClassName,
-    children,
-    ...rest
-  },
-  ref
-) {
+export type CardFullProps = Omit<CardProps, 'compact'>;
+export type CardCollapsedProps = Omit<CardProps, 'compact' | 'footer' | 'horizontal' | 'snapToGrid'>;
+
+export interface CardFullLoadingProps extends React.HTMLAttributes<HTMLDivElement> {
+  readonly accentTone?: CardAccentTone;
+  readonly matchScore?: number;
+  readonly horizontal?: boolean;
+  readonly snapToGrid?: boolean;
+  readonly bodyClassName?: string;
+}
+
+export interface CardCollapsedLoadingProps extends React.HTMLAttributes<HTMLDivElement> {
+  readonly accentTone?: CardAccentTone;
+  readonly matchScore?: number;
+}
+
+function resolveCardToneClass(accentTone?: CardAccentTone, matchScore?: number): string | undefined {
   const resolvedTone: CardAccentTone | undefined =
     accentTone !== undefined
       ? accentTone
@@ -286,54 +331,67 @@ const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
             : 'danger'
         : undefined;
 
-  const toneClass =
-    resolvedTone === 'success'
-      ? styles.accentSuccess
-      : resolvedTone === 'warning'
-        ? styles.accentWarning
-        : resolvedTone === 'danger'
-          ? styles.accentDanger
-          : resolvedTone === 'accent'
-            ? styles.accentPrimary
-            : resolvedTone === 'info'
-              ? styles.accentInfo
-              : undefined;
+  return resolvedTone === 'success'
+    ? styles.accentSuccess
+    : resolvedTone === 'warning'
+      ? styles.accentWarning
+      : resolvedTone === 'danger'
+        ? styles.accentDanger
+        : resolvedTone === 'accent'
+          ? styles.accentPrimary
+          : resolvedTone === 'info'
+            ? styles.accentInfo
+            : undefined;
+}
 
-  const hasShorthandSlots =
-    title !== undefined ||
-    subtitle !== undefined ||
-    overline !== undefined ||
-    headerActions !== undefined ||
-    statusIndicators !== undefined ||
-    footer !== undefined;
-
-  // Render skeleton state when isLoading is true
-  if (isLoading) {
-    if (compact) {
-      return (
-        <div
-          ref={ref}
-          aria-busy="true"
-          className={cn(styles.card, styles.compact, toneClass, className)}
-          {...rest}
-        >
-          <CardBody snapToGrid={false} contentClassName={bodyClassName}>
-            <div className={styles.cardHeader}>
-              <div className={styles.cardHeading}>
-                <div className={styles.cardTitleContainer}>
-                  <div className={styles.cardHeaderMeta}>
-                    <Skeleton variant="text" className={styles.skeletonHeaderOverline} />
-                  </div>
-                  <Skeleton variant="text" width="75" height="sm" />
-                </div>
+/**
+ * CardCollapsedLoading renders the animated skeleton placeholder for CardCollapsed (32px / 1 cell).
+ */
+export const CardCollapsedLoading = forwardRef<HTMLDivElement, CardCollapsedLoadingProps>(
+  function CardCollapsedLoading(
+    { accentTone, matchScore, className, ...rest },
+    ref
+  ) {
+    const toneClass = resolveCardToneClass(accentTone, matchScore);
+    return (
+      <div
+        ref={ref}
+        aria-busy="true"
+        className={cn(styles.card, styles.compact, toneClass, className)}
+        {...rest}
+      >
+        <div className={styles.cardHeader}>
+          <div className={styles.cardHeading}>
+            <div className={styles.cardTitleContainer}>
+              <div className={styles.cardHeaderMeta}>
+                <Skeleton variant="text" width="75" height="xs" />
               </div>
-              <Skeleton variant="chip" className={styles.skeletonHeaderChip} />
             </div>
-          </CardBody>
+          </div>
+          <Skeleton variant="chip" className={styles.skeletonHeaderChip} />
         </div>
-      );
-    }
+      </div>
+    );
+  }
+);
 
+/**
+ * CardFullLoading renders the animated skeleton placeholder for CardFull.
+ */
+export const CardFullLoading = forwardRef<HTMLDivElement, CardFullLoadingProps>(
+  function CardFullLoading(
+    {
+      accentTone,
+      matchScore,
+      horizontal = false,
+      snapToGrid = true,
+      bodyClassName,
+      className,
+      ...rest
+    },
+    ref
+  ) {
+    const toneClass = resolveCardToneClass(accentTone, matchScore);
     return (
       <div
         ref={ref}
@@ -378,9 +436,46 @@ const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
       </div>
     );
   }
+);
 
-  // Render compact card
-  if (compact) {
+/**
+ * CardCollapsed renders the compact 32px (1 grid cell) version of Card.
+ * Displays overline / title in a single line with ellipsis and statusIndicators on the right.
+ */
+export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(
+  function CardCollapsed(
+    {
+      title,
+      subtitle,
+      overline,
+      overlineHref,
+      headerActions,
+      statusIndicators,
+      accentTone,
+      matchScore,
+      selected = false,
+      interactive = false,
+      isLoading = false,
+      className,
+      children,
+      ...rest
+    },
+    ref
+  ) {
+    if (isLoading) {
+      return (
+        <CardCollapsedLoading
+          ref={ref}
+          accentTone={accentTone}
+          matchScore={matchScore}
+          className={className}
+          {...rest}
+        />
+      );
+    }
+
+    const toneClass = resolveCardToneClass(accentTone, matchScore);
+
     return (
       <div
         ref={ref}
@@ -395,66 +490,137 @@ const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
         )}
         {...rest}
       >
-        <CardBody snapToGrid={false} contentClassName={bodyClassName}>
-          <CardHeader
-            title={title}
-            subtitle={subtitle}
-            overline={overline}
-            overlineHref={overlineHref}
-            headerActions={headerActions}
-            statusIndicators={statusIndicators}
-          >
-            {children}
-          </CardHeader>
-        </CardBody>
+        <CardHeader
+          compact
+          title={title}
+          subtitle={subtitle}
+          overline={overline}
+          overlineHref={overlineHref}
+          headerActions={headerActions}
+          statusIndicators={statusIndicators}
+        >
+          {children}
+        </CardHeader>
       </div>
     );
   }
+);
 
-  return (
-    <div
-      ref={ref}
-      tabIndex={interactive ? 0 : undefined}
-      className={cn(
-        styles.card,
-        toneClass,
-        selected && styles.selected,
-        horizontal && styles.horizontal,
-        interactive && styles.interactive,
-        className
-      )}
-      {...rest}
-    >
-      {hasShorthandSlots ? (
-        <>
-          <CardBody snapToGrid={snapToGrid} contentClassName={bodyClassName}>
-            {(title !== undefined ||
-              subtitle !== undefined ||
-              overline !== undefined ||
-              headerActions !== undefined ||
-              statusIndicators !== undefined) && (
-              <CardHeader
-                title={title}
-                subtitle={subtitle}
-                overline={overline}
-                overlineHref={overlineHref}
-                headerActions={headerActions}
-                statusIndicators={statusIndicators}
-              />
-            )}
-            {children}
-          </CardBody>
-          {footer !== undefined && <CardFooter>{footer}</CardFooter>}
-        </>
-      ) : (
-        children
-      )}
-    </div>
-  );
+/**
+ * CardFull renders the complete multi-row version of Card with body, tech stack, summary and footer.
+ */
+export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(
+  function CardFull(
+    {
+      title,
+      subtitle,
+      overline,
+      overlineHref,
+      headerActions,
+      statusIndicators,
+      footer,
+      accentTone,
+      matchScore,
+      selected = false,
+      horizontal = false,
+      interactive = false,
+      snapToGrid = true,
+      isLoading = false,
+      className,
+      bodyClassName,
+      children,
+      ...rest
+    },
+    ref
+  ) {
+    if (isLoading) {
+      return (
+        <CardFullLoading
+          ref={ref}
+          accentTone={accentTone}
+          matchScore={matchScore}
+          horizontal={horizontal}
+          snapToGrid={snapToGrid}
+          bodyClassName={bodyClassName}
+          className={className}
+          {...rest}
+        />
+      );
+    }
+
+    const toneClass = resolveCardToneClass(accentTone, matchScore);
+
+    const hasShorthandSlots =
+      title !== undefined ||
+      subtitle !== undefined ||
+      overline !== undefined ||
+      headerActions !== undefined ||
+      statusIndicators !== undefined ||
+      footer !== undefined;
+
+    return (
+      <div
+        ref={ref}
+        tabIndex={interactive ? 0 : undefined}
+        className={cn(
+          styles.card,
+          toneClass,
+          selected && styles.selected,
+          horizontal && styles.horizontal,
+          interactive && styles.interactive,
+          className
+        )}
+        {...rest}
+      >
+        {hasShorthandSlots ? (
+          <>
+            <CardBody snapToGrid={snapToGrid} contentClassName={bodyClassName}>
+              {(title !== undefined ||
+                subtitle !== undefined ||
+                overline !== undefined ||
+                headerActions !== undefined ||
+                statusIndicators !== undefined) && (
+                <CardHeader
+                  title={title}
+                  subtitle={subtitle}
+                  overline={overline}
+                  overlineHref={overlineHref}
+                  headerActions={headerActions}
+                  statusIndicators={statusIndicators}
+                />
+              )}
+              {children}
+            </CardBody>
+            {footer !== undefined && <CardFooter>{footer}</CardFooter>}
+          </>
+        ) : (
+          children
+        )}
+      </div>
+    );
+  }
+);
+
+/**
+ * Universal Blueprint Card organism.
+ * Automatically delegates to CardCollapsed when `compact` is true, otherwise to CardFull.
+ */
+const CardBase = forwardRef<HTMLDivElement, CardProps>(function Card(
+  { compact = false, ...props },
+  ref
+) {
+  if (compact) {
+    return <CardCollapsed ref={ref} {...props} />;
+  }
+  return <CardFull ref={ref} {...props} />;
 });
 
 export const Card = Object.assign(CardBase, {
   Header: CardHeader,
   Body: CardBody,
   Footer: CardFooter,
+  Full: CardFull,
+  Collapsed: CardCollapsed,
+  FullLoading: CardFullLoading,
+  CollapsedLoading: CardCollapsedLoading,
 });

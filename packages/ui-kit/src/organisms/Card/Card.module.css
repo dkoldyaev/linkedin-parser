@@ -198,22 +198,70 @@
   }
 
   .compact {
-    min-height: calc(2 * var(--ui-grid-cell));
+    height: var(--ui-grid-cell);
+    min-height: var(--ui-grid-cell);
+    max-height: var(--ui-grid-cell);
+    justify-content: center;
   }
 
-  .compact .cardGridBodyContent {
-    padding: var(--ui-space-2) var(--ui-space-3);
-    gap: var(--ui-space-1);
+  .compact .cardHeader {
+    height: var(--ui-grid-cell);
+    align-items: center;
+    padding: 0 var(--ui-space-3);
+    gap: var(--ui-space-2);
   }
 
-  .compact .cardTitle {
-    font-size: var(--ui-font-size-sm);
-    -webkit-line-clamp: 1;
+  .compact .cardHeading {
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
   }
 
-  .compact .cardSubtitle {
+  .compact .cardTitleContainer {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .compact .cardHeaderMeta {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    margin-bottom: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     font-size: var(--ui-font-size-xs);
-    margin: 0;
+    line-height: var(--ui-line-height-tight);
+    color: var(--ui-text-primary);
+  }
+
+  .compact .cardHeaderMetaText {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .compactOverline {
+    font-weight: var(--ui-font-weight-bold);
+    color: var(--ui-text-secondary);
+  }
+
+  .compactDivider {
+    margin: 0 var(--ui-space-1);
+    color: var(--ui-text-muted);
+  }
+
+  .compactTitle {
+    font-weight: var(--ui-font-weight-regular);
+    color: var(--ui-text-primary);
+  }
+
+  .compact .cardStatusIndicators {
+    position: static;
+    flex-shrink: 0;
   }
 
   .skeletonLines {
