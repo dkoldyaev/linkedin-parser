@@ -17,8 +17,6 @@ export default defineConfig(({ command, mode }) => {
     plugins: [react()],
     resolve: {
       alias: {
-        '@blueprint/ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src'),
-        '@ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src'),
         react: path.resolve(import.meta.dirname, 'node_modules/react'),
         'react-dom': path.resolve(import.meta.dirname, 'node_modules/react-dom'),
         'react/jsx-runtime': path.resolve(import.meta.dirname, 'node_modules/react/jsx-runtime'),

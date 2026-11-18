@@ -82,6 +82,49 @@ def mock_data_exists(db) -> bool:
     return db.query(Vacancy.id).filter(Vacancy.url.like(f"{MOCK_URL_PREFIX}%")).first() is not None
 
 
+def ensure_flagship_stripe_vacancy(db, user_id: int):
+    """Ensure the flagship Storybook Card demo vacancy exists in the database."""
+    existing = db.query(Vacancy).filter(Vacancy.job_id == "mock-stripe-storybook-card").first()
+    if existing:
+        return
+    stripe_created = datetime.datetime(2026, 11, 14, 12, 0, 0)
+    stripe_v = Vacancy(
+        user_id=user_id,
+        job_id="mock-stripe-storybook-card",
+        url="https://stripe.com",
+        title="Staff Frontend Architect — UI Platform",
+        company="Stripe",
+        source="LinkedIn",
+        location="EU / Dublin",
+        city="Dublin",
+        country="Ireland",
+        workplace_type="remote",
+        match_score=92.0,
+        description="Architecture and evolution of the Blueprint component system with strict token governance and automated verification.",
+        salary_min=140000,
+        salary_max=165000,
+        salary_currency="€",
+        salary_period="year",
+        ai_summary="Architecture and evolution of the Blueprint component system with strict token governance and automated verification.",
+        tech_stack=["TypeScript", "React 19", "Storybook 10", "Radix UI"],
+        tags=[],
+        status="interview",
+        created_at=stripe_created,
+        updated_at=stripe_created,
+    )
+    for i in range(3):
+        stripe_v.history.append(
+            VacancyStatusHistory(
+                from_status="not_contacted",
+                to_status="interview",
+                created_at=stripe_created,
+                comment="Interview scheduled" if i == 0 else ""
+            )
+        )
+    db.add(stripe_v)
+    db.commit()
+
+
 def seed_mock_data(count: int = 30, email: str = "dev@local.user", force: bool = False) -> int:
     """Create mock vacancies for the dev user. Skips if mock data already exists unless force=True."""
     from .auth import get_or_create_dev_user
@@ -89,10 +132,11 @@ def seed_mock_data(count: int = 30, email: str = "dev@local.user", force: bool =
     ensure_db_schema()
     db = SessionLocal()
     try:
+        user = get_or_create_dev_user(db, email=email, name="Dev User")
+        ensure_flagship_stripe_vacancy(db, user.id)
         if not force and mock_data_exists(db):
             logger.info("Mock data already present, skipping")
             return 0
-        user = get_or_create_dev_user(db, email=email, name="Dev User")
         created = generate_mock_vacancies(db, count=count, user_id=user.id)
         logger.info(f"Created {created} mock vacancies for {email}")
         return created

@@ -7,12 +7,17 @@ ENV APP_URL=${APP_URL}
 
 RUN apk add --no-cache zip
 
+# Build @blueprint/ui-kit package
+WORKDIR /app/packages/ui-kit
+COPY packages/ui-kit/package*.json ./
+RUN npm ci
+COPY packages/ui-kit/ ./
+RUN npm run build
+
 # Build frontend
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
-COPY packages/ui-kit /app/packages/ui-kit
-RUN rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
 COPY frontend/ ./
 RUN npm run build
 
