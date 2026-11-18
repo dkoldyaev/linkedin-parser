@@ -48,6 +48,21 @@ def test_openapi_endpoints(test_user):
     assert "/api/v2/columns" in schema["paths"]
     assert "/api/v2/api-keys" not in schema["paths"]
 
+    # Verify categories (tags) are present and all paths have assigned tags
+    assert "tags" in schema
+    tag_names = [t["name"] for t in schema["tags"]]
+    assert "Vacancies" in tag_names
+    assert "Queue" in tag_names
+    assert "Kanban" in tag_names
+    assert "CV" in tag_names
+    assert "Metadata" in tag_names
+    assert "Currency" in tag_names
+    assert "Stats" in tag_names
+
+    for path, methods in schema["paths"].items():
+        for method, op in methods.items():
+            assert op.get("tags"), f"Operation {method.upper()} {path} missing category tags"
+
     # /docs
     res_docs = client.get("/docs", headers=headers)
     assert res_docs.status_code == 200

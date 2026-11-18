@@ -363,6 +363,37 @@ app.mount("/api/v1", public_app)
 api_v2 = APIRouter(prefix="/api/v2")
 legacy_api = APIRouter(prefix="/api")
 
+OPENAPI_V2_TAGS = [
+    {
+        "name": "Vacancies",
+        "description": "Job vacancies CRUD operations, search, filtering, lane reordering, batch import, and reparsing.",
+    },
+    {
+        "name": "Queue",
+        "description": "Background link processing queue, progress tracking, synchronization, and cancellation.",
+    },
+    {
+        "name": "Kanban",
+        "description": "Customizable Kanban board columns, status migration, and order configuration.",
+    },
+    {
+        "name": "CV",
+        "description": "Candidate CV management, qualifications parsing, and AI vacancy compatibility scoring.",
+    },
+    {
+        "name": "Metadata",
+        "description": "Reference values and dictionary filters: tags, countries, cities, and job sources.",
+    },
+    {
+        "name": "Currency",
+        "description": "Exchange rates and multi-currency salary conversion.",
+    },
+    {
+        "name": "Stats",
+        "description": "Analytics funnel and daily vacancy activity statistics.",
+    },
+]
+
 @api_v2.get("/openapi.json", include_in_schema=False)
 def get_v2_openapi_json(current_user: User = Depends(get_current_user_with_api_access)):
     """OpenAPI schema for Unified API v2."""
@@ -371,6 +402,7 @@ def get_v2_openapi_json(current_user: User = Depends(get_current_user_with_api_a
         version="2.0.0",
         description="Unified Public and Private API v2 for Job Vacancies Tracker. Authenticate via Session Cookie, JWT Bearer token, or Personal API Key (header `X-API-Key: ak_...` or `Authorization: Bearer ak_...`).",
         routes=api_v2.routes,
+        tags=OPENAPI_V2_TAGS,
     )
     return JSONResponse(schema)
 
@@ -873,14 +905,14 @@ async def list_queue_links_v2(
     return await queue_manager.get_active_links(user_id=current_user.id)
 
 
-@api_v2.post("/queue/sync", status_code=202)
+@api_v2.post("/queue/sync", status_code=202, tags=["Queue"])
 async def sync_queue_state(current_user: User = Depends(get_current_user)):
     """Ask the backend to republish the current queue snapshot; the data is delivered only via Mercure `queue_state`."""
     await queue_manager.publish_queue_state(user_id=current_user.id)
     return Response(status_code=202)
 
-@api_v2.delete("/queue/links")
-@api_v2.delete("/queue/clear")
+@api_v2.delete("/queue/links", tags=["Queue"])
+@api_v2.delete("/queue/clear", tags=["Queue"])
 @legacy_api.delete("/queue/links")
 @legacy_api.delete("/queue/clear")
 async def clear_queue_links(current_user: User = Depends(get_current_user)):
@@ -896,7 +928,7 @@ async def get_queue_link(task_id: str, current_user: User = Depends(get_current_
         raise HTTPException(status_code=404, detail="Queue link task not found or access denied")
     return info
 
-@api_v2.delete("/queue/links/{link_id}")
+@api_v2.delete("/queue/links/{link_id}", tags=["Queue"])
 @legacy_api.delete("/queue/links/{link_id}")
 async def cancel_queue_link(link_id: str, current_user: User = Depends(get_current_user)):
     """Cancel/remove a link from the processing queue."""
@@ -946,7 +978,7 @@ def convert_vacancy_salary(
     return res
 
 
-@api_v2.get("/vacancies", response_model=List[VacancyResponse])
+@api_v2.get("/vacancies", response_model=List[VacancyResponse], tags=["Vacancies"])
 def list_vacancies(
     status_filter: Optional[str] = Query(None, alias="status"),
     tag: Optional[str] = None,
@@ -1055,7 +1087,7 @@ def _build_vacancy_compatibility_response(
     )
 
 
-@api_v2.get("/vacancies/{vacancy_id}", response_model=VacancyResponse)
+@api_v2.get("/vacancies/{vacancy_id}", response_model=VacancyResponse, tags=["Vacancies"])
 def get_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1073,7 +1105,7 @@ def get_vacancy(
     return res
 
 
-@api_v2.post("/vacancies", response_model=VacancyResponse)
+@api_v2.post("/vacancies", response_model=VacancyResponse, tags=["Vacancies"])
 async def create_vacancy(
     payload: VacancyCreate,
     current_user: User = Depends(get_current_user),
@@ -1132,7 +1164,7 @@ async def create_vacancy(
     return v
 
 
-@api_v2.post("/vacancies/reorder")
+@api_v2.post("/vacancies/reorder", tags=["Vacancies"])
 async def reorder_vacancies(
     payload: VacancyReorderRequest,
     current_user: User = Depends(get_current_user),
@@ -1217,7 +1249,7 @@ async def reorder_vacancies(
     return [VacancyResponse.model_validate(v) for v in changed]
 
 
-@api_v2.patch("/vacancies/{vacancy_id}", response_model=VacancyResponse)
+@api_v2.patch("/vacancies/{vacancy_id}", response_model=VacancyResponse, tags=["Vacancies"])
 async def update_vacancy(
     vacancy_id: int,
     payload: VacancyUpdate,
@@ -1318,7 +1350,7 @@ async def update_vacancy(
     return v
 
 
-@api_v2.patch("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+@api_v2.patch("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse, tags=["Vacancies"])
 async def update_vacancy_history_comment(
     vacancy_id: int,
     history_id: int,
@@ -1356,7 +1388,7 @@ async def update_vacancy_history_comment(
     return v
 
 
-@api_v2.get("/vacancies/{vacancy_id}/history", response_model=List[VacancyHistoryItem])
+@api_v2.get("/vacancies/{vacancy_id}/history", response_model=List[VacancyHistoryItem], tags=["Vacancies"])
 def get_vacancy_history_list(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1374,7 +1406,7 @@ def get_vacancy_history_list(
     return [VacancyHistoryItem.model_validate(h) for h in history_records]
 
 
-@api_v2.post("/vacancies/{vacancy_id}/history", response_model=VacancyResponse)
+@api_v2.post("/vacancies/{vacancy_id}/history", response_model=VacancyResponse, tags=["Vacancies"])
 async def add_vacancy_history_entry(
     vacancy_id: int,
     payload: VacancyHistoryCreate,
@@ -1427,7 +1459,7 @@ async def add_vacancy_history_entry(
     return v
 
 
-@api_v2.delete("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse)
+@api_v2.delete("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse, tags=["Vacancies"])
 async def delete_vacancy_history_entry(
     vacancy_id: int,
     history_id: int,
@@ -1463,7 +1495,7 @@ async def delete_vacancy_history_entry(
     return v
 
 
-@api_v2.delete("/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT)
+@api_v2.delete("/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Vacancies"])
 async def delete_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1491,7 +1523,7 @@ async def delete_vacancy(
     return None
 
 
-@api_v2.post("/vacancies/batch", response_model=AsyncBatchImportResponse)
+@api_v2.post("/vacancies/batch", response_model=AsyncBatchImportResponse, tags=["Vacancies"])
 async def batch_import_vacancies(
     payload: BatchImportRequest,
     current_user: User = Depends(get_current_user),
@@ -1614,7 +1646,7 @@ async def batch_import_vacancies(
     )
 
 
-@api_v2.post("/vacancies/{vacancy_id}/resummarize")
+@api_v2.post("/vacancies/{vacancy_id}/resummarize", tags=["Vacancies"])
 async def resummarize_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1646,7 +1678,7 @@ async def resummarize_vacancy(
     }
 
 
-@api_v2.post("/vacancies/{vacancy_id}/reparse")
+@api_v2.post("/vacancies/{vacancy_id}/reparse", tags=["Vacancies"])
 async def reparse_vacancy(
     vacancy_id: int,
     current_user: User = Depends(get_current_user),
@@ -1689,7 +1721,7 @@ async def reparse_vacancy(
     }
 
 
-@api_v2.post("/vacancies/reparse_all")
+@api_v2.post("/vacancies/reparse_all", tags=["Vacancies"])
 async def reparse_all_vacancies(
     payload: Optional[ReparseAllRequest] = None,
     current_user: User = Depends(get_current_user),
@@ -1749,7 +1781,7 @@ async def reparse_all_vacancies(
     }
 
 
-@api_v2.get("/tags", response_model=List[str])
+@api_v2.get("/tags", response_model=List[str], tags=["Metadata"])
 def list_unique_tags(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1763,7 +1795,7 @@ def list_unique_tags(
     return sorted(list(all_tags))
 
 
-@api_v2.get("/countries", response_model=List[str])
+@api_v2.get("/countries", response_model=List[str], tags=["Metadata"])
 def list_countries(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1779,7 +1811,7 @@ def list_countries(
     return sorted(list(countries))
 
 
-@api_v2.get("/cities", response_model=List[str])
+@api_v2.get("/cities", response_model=List[str], tags=["Metadata"])
 def list_cities(
     country: Optional[str] = None,
     current_user: User = Depends(get_current_user),
@@ -1794,7 +1826,7 @@ def list_cities(
     return sorted(list(cities))
 
 
-@api_v2.get("/sources", response_model=List[str])
+@api_v2.get("/sources", response_model=List[str], tags=["Metadata"])
 def list_sources(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1883,7 +1915,7 @@ def update_settings(
     return get_settings(current_user=current_user, db=db)
 
 
-@api_v2.get("/exchange-rates", response_model=ExchangeRatesResponse)
+@api_v2.get("/exchange-rates", response_model=ExchangeRatesResponse, tags=["Currency"])
 def get_exchange_rates(
     db: Session = Depends(get_db),
 ):
@@ -1987,7 +2019,7 @@ def revoke_api_key(
     return {"status": "ok", "message": "API key revoked"}
 
 
-@api_v2.get("/columns", response_model=List[ColumnItem])
+@api_v2.get("/columns", response_model=List[ColumnItem], tags=["Kanban"])
 def list_columns(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -1997,7 +2029,7 @@ def list_columns(
     return [ColumnItem(**c) for c in cols]
 
 
-@api_v2.post("/columns", response_model=List[ColumnItem])
+@api_v2.post("/columns", response_model=List[ColumnItem], tags=["Kanban"])
 def create_column(
     payload: ColumnCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -2030,7 +2062,7 @@ def create_column(
     return [ColumnItem(**c) for c in cols]
 
 
-@api_v2.patch("/columns/{column_id}", response_model=List[ColumnItem])
+@api_v2.patch("/columns/{column_id}", response_model=List[ColumnItem], tags=["Kanban"])
 async def update_column(
     column_id: str,
     payload: ColumnUpdateRequest,
@@ -2111,7 +2143,7 @@ async def update_column(
     return [ColumnItem(**c) for c in cols]
 
 
-@api_v2.delete("/columns/{column_id}", response_model=List[ColumnItem])
+@api_v2.delete("/columns/{column_id}", response_model=List[ColumnItem], tags=["Kanban"])
 async def delete_column(
     column_id: str,
     migrate_to: Optional[str] = Query(STATUS_NOT_CONTACTED, alias="migrate_to"),
@@ -2172,7 +2204,7 @@ async def delete_column(
     return [ColumnItem(**c) for c in remaining_cols]
 
 
-@api_v2.put("/columns/order", response_model=List[ColumnItem])
+@api_v2.put("/columns/order", response_model=List[ColumnItem], tags=["Kanban"])
 def reorder_columns(
     payload: ColumnsOrderRequest,
     current_user: User = Depends(get_current_user),
@@ -2339,7 +2371,7 @@ async def extension_parse_and_add(payload: Dict[str, Any], current_user: User = 
     return {"status": "queued", "task_id": task.task_id}
 
 
-@api_v2.get("/stats")
+@api_v2.get("/stats", tags=["Stats"])
 def get_stats(
     tz_offset: int = Query(0, description="Client offset in minutes, as JS Date.getTimezoneOffset()"),
     days: int = Query(365, ge=7, le=730),
@@ -2396,7 +2428,7 @@ def get_stats(
 # =====================================================================
 
 
-@api_v2.get("/cv", response_model=Optional[ApprovedCVResponse])
+@api_v2.get("/cv", response_model=Optional[ApprovedCVResponse], tags=["CV"])
 def get_approved_cv(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -2408,7 +2440,7 @@ def get_approved_cv(
     return ApprovedCVResponse.model_validate(approved_cv)
 
 
-@api_v2.post("/cv", response_model=ApprovedCVResponse)
+@api_v2.post("/cv", response_model=ApprovedCVResponse, tags=["CV"])
 async def save_approved_cv(
     payload: ApprovedCVCreate,
     current_user: User = Depends(get_current_user),
@@ -2455,7 +2487,7 @@ async def save_approved_cv(
     return ApprovedCVResponse.model_validate(approved_cv)
 
 
-@api_v2.delete("/cv", status_code=status.HTTP_204_NO_CONTENT)
+@api_v2.delete("/cv", status_code=status.HTTP_204_NO_CONTENT, tags=["CV"])
 def delete_approved_cv(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -2484,7 +2516,7 @@ def get_vacancy_compatibility(
     return _build_vacancy_compatibility_response(vacancy_id, current_user.id, db)
 
 
-@api_v2.post("/vacancies/{vacancy_id}/compatibility")
+@api_v2.post("/vacancies/{vacancy_id}/compatibility", tags=["CV"])
 async def analyze_vacancy_compatibility(
     vacancy_id: int,
     force: bool = Query(False, description="Force re-analysis even if a cached result exists"),
