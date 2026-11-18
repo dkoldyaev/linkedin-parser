@@ -148,6 +148,7 @@ class VacancyResponse(VacancyBase):
     lane: int = 0
     history: List[VacancyHistoryItem] = Field(default_factory=list)
     compatibility: Optional[Any] = None
+    stage: Optional[str] = None
 
     @computed_field
     @property

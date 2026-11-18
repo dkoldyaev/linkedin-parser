@@ -229,3 +229,74 @@ def test_stage_transition_publishes_queue_state():
         assert state["processing_count"] == 1
         assert state["pending_count"] == 0
         assert state["links"][0]["stage"] == "scraping"
+
+
+def test_vacancies_stage_field():
+    with TestClient(app) as client:
+        login = client.post("/api/v2/auth/dev-login", json={"email": "vacancies_stage@local.user"}).json()
+        user_id = login["user"]["id"]
+        client.cookies.set("access_token", login["token"])
+
+        # 1. Create a regular vacancy directly
+        create_resp = client.post("/api/v2/vacancies", json={
+            "title": "Software Engineer",
+            "company": "Tech Corp",
+            "url": "https://www.linkedin.com/jobs/view/555111222",
+            "status": "Еще не написал",
+        })
+        assert create_resp.status_code == 200
+        vac_id = create_resp.json()["id"]
+
+        # 2. Before any queue item, stage should dynamically be "completed"
+        single_res = client.get(f"/api/v2/vacancies/{vac_id}")
+        assert single_res.status_code == 200
+        assert single_res.json()["stage"] == "completed"
+
+        list_res = client.get("/api/v2/vacancies")
+        assert list_res.status_code == 200
+        vac_item = next(v for v in list_res.json() if v["id"] == vac_id)
+        assert vac_item["stage"] == "completed"
+
+        # 3. Add active queue item for this vacancy (stage: "ai_analysis")
+        with SessionLocal() as db:
+            q_item = ProcessingQueueItem(
+                task_id="task-vac-stage-1",
+                user_id=user_id,
+                url="https://www.linkedin.com/jobs/view/555111222",
+                normalized_url="https://www.linkedin.com/jobs/view/555111222",
+                status="pending",
+                stage="ai_analysis",
+                vacancy_id=vac_id,
+            )
+            db.add(q_item)
+            db.commit()
+
+        # Both endpoints should reflect "ai_analysis"
+        single_res = client.get(f"/api/v2/vacancies/{vac_id}")
+        assert single_res.status_code == 200
+        assert single_res.json()["stage"] == "ai_analysis"
+
+        list_res = client.get("/api/v2/vacancies")
+        vac_item = next(v for v in list_res.json() if v["id"] == vac_id)
+        assert vac_item["stage"] == "ai_analysis"
+
+        # 4. Update queue item to processing scraping
+        with SessionLocal() as db:
+            item = db.query(ProcessingQueueItem).filter(ProcessingQueueItem.task_id == "task-vac-stage-1").first()
+            item.status = "processing"
+            item.stage = "scraping"
+            db.commit()
+
+        single_res = client.get(f"/api/v2/vacancies/{vac_id}")
+        assert single_res.json()["stage"] == "scraping"
+
+        # 5. Update queue item to failed
+        with SessionLocal() as db:
+            item = db.query(ProcessingQueueItem).filter(ProcessingQueueItem.task_id == "task-vac-stage-1").first()
+            item.status = "failed"
+            item.stage = "failed"
+            db.commit()
+
+        single_res = client.get(f"/api/v2/vacancies/{vac_id}")
+        assert single_res.json()["stage"] == "failed"
+

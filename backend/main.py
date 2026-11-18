@@ -978,6 +978,85 @@ def convert_vacancy_salary(
     return res
 
 
+def _attach_vacancy_stages(
+    vacancies: List[VacancyResponse],
+    user_id: int,
+    db: Session,
+) -> None:
+    if not vacancies:
+        return
+
+    vac_ids = [v.id for v in vacancies if v.id is not None]
+    norm_url_map = {}
+    for v in vacancies:
+        if v.url:
+            clean_url = normalize_url(v.url.strip())
+            if clean_url:
+                norm_url_map[v.id] = clean_url
+
+    norm_urls = list(norm_url_map.values())
+
+    filter_conditions = []
+    if vac_ids:
+        filter_conditions.append(ProcessingQueueItem.vacancy_id.in_(vac_ids))
+    if norm_urls:
+        filter_conditions.append(ProcessingQueueItem.normalized_url.in_(norm_urls))
+
+    if not filter_conditions:
+        for v in vacancies:
+            v.stage = "completed"
+        return
+
+    items = (
+        db.query(ProcessingQueueItem)
+        .filter(
+            ProcessingQueueItem.user_id == user_id,
+            or_(*filter_conditions),
+        )
+        .order_by(ProcessingQueueItem.id.desc())
+        .all()
+    )
+
+    active_by_vac_id: Dict[int, ProcessingQueueItem] = {}
+    active_by_norm_url: Dict[str, ProcessingQueueItem] = {}
+    latest_by_vac_id: Dict[int, ProcessingQueueItem] = {}
+    latest_by_norm_url: Dict[str, ProcessingQueueItem] = {}
+
+    for item in items:
+        if item.vacancy_id:
+            if item.vacancy_id not in latest_by_vac_id:
+                latest_by_vac_id[item.vacancy_id] = item
+            if item.status in ("pending", "processing") and item.vacancy_id not in active_by_vac_id:
+                active_by_vac_id[item.vacancy_id] = item
+        if item.normalized_url:
+            if item.normalized_url not in latest_by_norm_url:
+                latest_by_norm_url[item.normalized_url] = item
+            if item.status in ("pending", "processing") and item.normalized_url not in active_by_norm_url:
+                active_by_norm_url[item.normalized_url] = item
+
+    for v in vacancies:
+        norm_url = norm_url_map.get(v.id)
+        item = None
+        if v.id in active_by_vac_id:
+            item = active_by_vac_id[v.id]
+        elif norm_url and norm_url in active_by_norm_url:
+            item = active_by_norm_url[norm_url]
+        elif v.id in latest_by_vac_id:
+            item = latest_by_vac_id[v.id]
+        elif norm_url and norm_url in latest_by_norm_url:
+            item = latest_by_norm_url[norm_url]
+
+        if item:
+            if item.stage:
+                v.stage = item.stage
+            elif item.status == "failed":
+                v.stage = "failed"
+            else:
+                v.stage = "completed"
+        else:
+            v.stage = "completed"
+
+
 @api_v2.get("/vacancies", response_model=List[VacancyResponse], tags=["Vacancies"])
 def list_vacancies(
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -1039,6 +1118,7 @@ def list_vacancies(
         item = convert_vacancy_salary(v, target_currency, rates)
         item.description = None
         results.append(item)
+    _attach_vacancy_stages(results, current_user.id, db)
     return results
 
 
@@ -1102,6 +1182,7 @@ def get_vacancy(
     rates = {(r.source_currency, r.target_currency): r.rate for r in rate_rows}
     res = convert_vacancy_salary(v, target_currency, rates)
     res.compatibility = _build_vacancy_compatibility_response(vacancy_id, current_user.id, db)
+    _attach_vacancy_stages([res], current_user.id, db)
     return res
 
 
