@@ -246,4 +246,8 @@
   .levelAssessment {
     margin-top: var(--ui-space-3);
   }
+
+  .container {
+    padding: var(--ui-space-6);
+  }
 }

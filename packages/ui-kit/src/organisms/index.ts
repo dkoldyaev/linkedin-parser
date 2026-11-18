@@ -79,4 +79,10 @@ export {
   type VacancySalaryData,
   type VacancyStageOption,
 } from './VacancyDetailsModal';
+export {
+  Drawer,
+  type DrawerProps,
+  type DrawerNavLinkItem,
+} from './Drawer';
+
 

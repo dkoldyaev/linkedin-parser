@@ -1,8 +1,9 @@
 import React from 'react';
 import { Text } from '../../atoms';
+import { cn } from '../../utils';
 import styles from './Header.module.css';
 
-export interface HeaderBrandProps {
+export interface HeaderBrandProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;
   readonly subtitle?: React.ReactNode;
   readonly brandIcon?: React.ReactNode;
@@ -16,9 +17,10 @@ export function HeaderBrand({
   brandIcon,
   className,
   children,
+  ...rest
 }: HeaderBrandProps): React.ReactElement {
   return (
-    <div className={className ?? styles.brand}>
+    <div className={cn(styles.brand, className)} {...rest}>
       <div className={styles.brandIcon}>
         {brandIcon !== undefined ? (
           brandIcon
@@ -40,4 +42,3 @@ export function HeaderBrand({
     </div>
   );
 }
-

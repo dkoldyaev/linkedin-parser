@@ -12,7 +12,7 @@ export { useDataTableColumns } from './useDataTableColumns';
 export { DataTableLoading, type DataTableLoadingProps } from './DataTableLoading';
 export type { DataTableColumn, TableSortDirection };
 
-export interface DataTableProps<T> {
+export interface DataTableProps<T> extends React.HTMLAttributes<HTMLDivElement> {
   readonly columns: readonly DataTableColumn<T>[];
   readonly data: readonly T[];
   readonly getRowId: (row: T, index: number) => string;
@@ -28,7 +28,7 @@ export interface DataTableProps<T> {
 
 /**
  * Typed DataTable organism on the Blueprint grid.
- * Supports sortable columns, loading state, and EmptyState fallback.
+ * Supports sortable columns, loading state, EmptyState fallback, and data-* / aria-* attributes forwarding.
  */
 function DataTableBase<T>({
   columns,
@@ -42,6 +42,7 @@ function DataTableBase<T>({
   emptyAction,
   caption,
   className,
+  ...rest
 }: DataTableProps<T>): React.ReactElement {
   const [sortColumnId, setSortColumnId] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
@@ -93,7 +94,7 @@ function DataTableBase<T>({
   }, [columns, data, sortColumnId, sortDirection]);
 
   if (loading) {
-    return <DataTableLoading label={loadingLabel} className={className} />;
+    return <DataTableLoading label={loadingLabel} className={className} {...rest} />;
   }
 
   if (sortedData.length === 0) {
@@ -103,12 +104,13 @@ function DataTableBase<T>({
         description={emptyDescription}
         action={emptyAction}
         className={className}
+        {...rest}
       />
     );
   }
 
   return (
-    <div ref={wrapperRef} className={cn(styles.wrapper, className)}>
+    <div ref={wrapperRef} className={cn(styles.wrapper, className)} {...rest}>
       <table className={styles.table}>
         {colWidths.length === columns.length && (
           <colgroup>

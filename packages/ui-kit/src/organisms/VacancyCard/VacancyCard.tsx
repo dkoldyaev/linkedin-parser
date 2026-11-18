@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React from 'react';
 import {
   Award,
   Ban,
@@ -56,12 +56,14 @@ export interface VacancyCardProps
   readonly closedLabel?: string;
   readonly pendingAiLabel?: string;
   readonly checkboxAriaLabel?: string;
+  readonly 'data-bp-card'?: string;
 }
 
 /**
  * VacancyCard renders a standardized Kanban vacancy card based on the Storybook Vacancy Card Showcase.
+ * Emits `data-bp-card="true"` and forwards all data-* and aria-* attributes.
  */
-export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
+export const VacancyCard = React.forwardRef<HTMLDivElement, VacancyCardProps>(
   function VacancyCard(
     {
       title,
@@ -100,6 +102,7 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
       pendingAiLabel = 'Ожидание AI-анализа...',
       checkboxAriaLabel = 'Select vacancy card',
       className,
+      'data-bp-card': customDataCard,
       ...rest
     },
     ref
@@ -141,6 +144,7 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
         selected={selected}
         interactive
         onClick={onClick}
+        data-bp-card={customDataCard ?? 'true'}
         className={className}
         {...rest}
       >
@@ -240,7 +244,7 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
                 </Badge>
               ))}
               {techStack.length > 4 && (
-                <Badge size="xs" variant="chip" tone="neutral" style={{ opacity: 0.6 }}>
+                <Badge size="xs" variant="chip" tone="neutral" className={styles.techStackMore}>
                   +{techStack.length - 4}
                 </Badge>
               )}

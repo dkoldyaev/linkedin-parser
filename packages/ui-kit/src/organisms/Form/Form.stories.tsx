@@ -4,7 +4,6 @@ import { Form } from './Form';
 import { Input } from '../../atoms';
 import { ColorPicker, FormField } from '../../molecules';
 import { useForm } from '../../hooks';
-import type { StatusDotPalette } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Form> = {
@@ -17,7 +16,7 @@ export default meta;
 type Story = StoryObj<typeof Form>;
 
 function ColumnFormDemo(): React.ReactElement {
-  const form = useForm<{ title: string; color: StatusDotPalette }>({
+  const form = useForm<{ title: string; color: string }>({
     initialValues: {
       title: 'Technical Screening',
       color: 'blue',

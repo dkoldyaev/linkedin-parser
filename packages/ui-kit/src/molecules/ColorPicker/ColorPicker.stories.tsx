@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ColorPicker } from './ColorPicker';
-import type { StatusDotPalette } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof ColorPicker> = {
@@ -14,7 +13,7 @@ export default meta;
 type Story = StoryObj<typeof ColorPicker>;
 
 function ColorPickerDemo(): React.ReactElement {
-  const [color, setColor] = useState<StatusDotPalette>('emerald');
+  const [color, setColor] = useState<string>('emerald');
   return (
     <div className={layoutStyles.stack}>
       <ColorPicker value={color} onChange={setColor} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { LogIn, LogOut } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
+import { cn } from '../../utils';
 import styles from './Header.module.css';
 
 export interface HeaderUser {
@@ -10,7 +11,7 @@ export interface HeaderUser {
   readonly isAnonymous?: boolean;
 }
 
-export interface HeaderUserProps {
+export interface HeaderUserProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly user: HeaderUser;
   readonly loginLabel?: string;
   readonly logoutLabel?: string;
@@ -26,6 +27,7 @@ export function HeaderUserMenu({
   onLogin,
   onLogout,
   className,
+  ...rest
 }: HeaderUserProps): React.ReactElement {
   if (user.isAnonymous) {
     return (
@@ -36,6 +38,7 @@ export function HeaderUserMenu({
         title={loginLabel}
         className={className}
         startIcon={<Icon icon={LogIn} size="sm" />}
+        {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       >
         <span className={styles.guestLoginText}>{loginLabel}</span>
       </Button>
@@ -49,7 +52,7 @@ export function HeaderUserMenu({
       : 'U';
 
   return (
-    <div className={className ?? styles.userProfileBadge}>
+    <div className={cn(styles.userProfileBadge, className)} {...rest}>
       {user.picture ? (
         <img
           src={user.picture}
@@ -77,4 +80,3 @@ export function HeaderUserMenu({
     </div>
   );
 }
-

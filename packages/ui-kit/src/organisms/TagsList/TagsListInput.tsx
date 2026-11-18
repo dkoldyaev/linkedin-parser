@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Input } from '../../atoms/Input';
+import { Input, type InputProps } from '../../atoms/Input';
+import { cn } from '../../utils';
 import styles from './TagsList.module.css';
 
-export interface TagsListInputProps {
+export interface TagsListInputProps extends Omit<InputProps, 'onCommit' | 'placeholder'> {
   readonly separator?: string;
   readonly placeholder?: string;
   readonly onCommit: (tags: readonly string[]) => void;
@@ -16,6 +17,7 @@ export function TagsListInput({
   onCommit,
   onCancel,
   className,
+  ...rest
 }: TagsListInputProps): React.ReactElement {
   const [inputValue, setInputValue] = useState('');
 
@@ -69,14 +71,14 @@ export function TagsListInput({
   return (
     <Input
       autoFocus
-      className={className ?? styles.addInput}
+      className={cn(styles.addInput, className)}
       placeholder={placeholder}
       value={inputValue}
       onChange={handleInputChange}
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       aria-label={placeholder}
+      {...rest}
     />
   );
 }
-
