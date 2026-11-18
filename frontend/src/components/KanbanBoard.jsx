@@ -96,8 +96,20 @@ export default function KanbanBoard({
 
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === rejectedStatusId));
 
+  const mapColorToPalette = (color) => {
+    if (!color) return 'brand';
+    const c = color.toLowerCase();
+    if (c.includes('red') || c.includes('ef4444')) return 'danger';
+    if (c.includes('green') || c.includes('10b981') || c.includes('22c55e')) return 'success';
+    if (c.includes('yellow') || c.includes('amber') || c.includes('f59e0b')) return 'warning';
+    if (c.includes('purple') || c.includes('8b5cf6') || c.includes('a855f7')) return 'purple';
+    if (c.includes('cyan') || c.includes('06b6d4')) return 'cyan';
+    if (c.includes('blue') || c.includes('3b82f6')) return 'info';
+    return 'brand';
+  };
+
   const computeDropIndex = (e) => {
-    const cards = Array.from(e.currentTarget.querySelectorAll('[data-bp-card="true"], .kanban-card:not(.is-dragging)'));
+    const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging), article:not(.is-dragging)'));
     let index = 0;
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
@@ -293,7 +305,7 @@ export default function KanbanBoard({
               <TableHeader
                 size="sm"
                 index={`[ ${String(colIndex + 1).padStart(2, '0')} ]`}
-                indicatorStyle={{ backgroundColor: col.color }}
+                indicatorColor={mapColorToPalette(col.color)}
                 title={columnName}
                 badge={columnVacancies.length}
                 actions={
@@ -419,7 +431,7 @@ export default function KanbanBoard({
       >
         <TableHeader
           size="sm"
-          indicatorStyle={{ backgroundColor: rejectedColumn?.color || '#ef4444' }}
+          indicatorColor="danger"
           title={rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
           badge={rejectedVacancies.length}
           onClick={() => {

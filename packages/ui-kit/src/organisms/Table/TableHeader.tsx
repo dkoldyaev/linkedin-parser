@@ -4,7 +4,6 @@ import {
   StatusDot,
   Text,
   type StatusDotPalette,
-  type StatusDotTone,
 } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './Table.module.css';
@@ -13,8 +12,6 @@ export interface TableHeaderProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly index?: string | number;
   readonly indicatorColor?: StatusDotPalette;
-  readonly indicatorTone?: StatusDotTone;
-  readonly indicatorStyle?: React.CSSProperties;
   readonly title?: React.ReactNode;
   readonly badge?: React.ReactNode;
   readonly actions?: React.ReactNode;
@@ -30,8 +27,6 @@ export interface TableHeaderProps
 export function TableHeader({
   index,
   indicatorColor,
-  indicatorTone,
-  indicatorStyle,
   title,
   badge,
   actions,
@@ -60,11 +55,9 @@ export function TableHeader({
                 {index}
               </Text>
             )}
-            {(indicatorColor !== undefined || indicatorTone !== undefined || indicatorStyle !== undefined) && (
+            {indicatorColor !== undefined && (
               <StatusDot
                 palette={indicatorColor}
-                tone={indicatorTone}
-                style={indicatorStyle}
                 size="md"
                 className={styles.headerDot}
               />

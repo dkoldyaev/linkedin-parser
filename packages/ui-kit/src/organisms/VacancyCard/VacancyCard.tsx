@@ -137,7 +137,6 @@ export const VacancyCard = forwardRef<HTMLDivElement, VacancyCardProps>(
     return (
       <Card
         ref={ref}
-        data-bp-card="true"
         matchScore={matchScore}
         selected={selected}
         interactive

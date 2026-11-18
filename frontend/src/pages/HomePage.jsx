@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   Plus, Search, Filter, 
-  RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
+  RefreshCw, CheckCircle2, AlertCircle, X, Loader2, Download,
   Globe, MapPin, RotateCcw, ChevronDown, Laptop, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
 import {
+  Header,
+  SearchBar,
   Button,
   Icon,
   Badge,
@@ -14,9 +16,10 @@ import {
 import KanbanBoard from '../components/KanbanBoard';
 import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
-import HeaderControls from '../components/HeaderControls';
+import SettingsModal from '../components/SettingsModal';
 import QueueModal from '../components/QueueModal';
 import LoginModal from '../components/LoginModal';
+import { useMenu } from '../components/menuContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 
@@ -99,6 +102,21 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   // Toast notifications
   const [toast, setToast] = useState(null);
+
+  const { open: menuOpen, toggle: toggleMenu } = useMenu();
+  const [theme, setTheme] = useState(() => (typeof document !== 'undefined' ? document.documentElement.dataset.theme || 'dark' : 'dark'));
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleThemeToggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('workspace-theme', next);
+    } catch {
+      /* Session fallback */
+    }
+    setTheme(next);
+  };
 
   // Guest save prompt modal & banner dismissed state
   const [isGuestAuthModalOpen, setIsGuestAuthModalOpen] = useState(false);
@@ -612,121 +630,96 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   return (
     <div className="app-container">
-      {/* Header */}
-      <header className={`app-header ${isSearchFocused ? 'search-focused' : ''}`}>
-        <div className="brand">
-          <div className="brand-icon">
-            <span className="blueprint-mark" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="brand-title">{t('nav.title')}</h1>
-            <p className="brand-subtitle">{t('nav.subtitle')}</p>
-          </div>
-        </div>
-
-        <div className="header-center">
-          <div className="search-bar">
-            <Search className="search-icon" size={16} />
-            <input
-              ref={searchInputRef}
-              type="text"
-              className={`search-input ${search ? 'has-value' : ''}`}
-              placeholder={t('nav.search_placeholder')}
-              value={search}
-              onChange={onChangeSearch}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.target.blur();
-                }
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={resetSearch}
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                className="search-clear-btn"
-                aria-label="Clear search"
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '4px'
-                }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <HeaderControls
-          user={user}
-          onLogout={handleLogout}
-          vacancies={vacancies}
-          onColumnsUpdated={(newCols) => {
-            setColumns(newCols);
-            fetchVacancies();
-          }}
-          onUserUpdated={onUserUpdated}
-        >
-          {/* Real-time Queue status indicator */}
-          {queueRemaining > 0 && (
-            <div className="status-indicators">
-              <div className="queue-pill" title={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })} onClick={() => setIsQueueOpen(true)}>
-                <Loader2 size={13} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                <span>{t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}</span>
-              </div>
-            </div>
-          )}
-
-          <Button
-            variant="primary"
-            size="md"
-            className={`add-button plausible-event-name=Batch+Import+Open ${
-              shouldHighlightAdd ? 'is-tour-attention' : ''
-            }`}
-            aria-label={t('nav.batch_import_btn')}
-            onClick={handleAddVacanciesClick}
-            startIcon={<Icon icon={Plus} size="sm" />}
-          >
-            {t('nav.batch_import_btn')}
-          </Button>
-
-          <Button
-            variant="secondary"
-            size="icon-md"
-            className="plausible-event-name=Refresh+Vacancies"
-            onClick={async () => {
-              trackEvent(EVENTS.REFRESH_CLICK);
-              try {
-                if (selectedIds.length > 0) {
-                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
-                } else {
-                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
-                }
-                fetchVacancies();
-              } catch (e) {
-                console.error(e);
+      {/* Universal Header organism from @blueprint/ui-kit matching Storybook */}
+      <Header
+        title={t('nav.title')}
+        subtitle={t('nav.subtitle')}
+        search={
+          <SearchBar
+            ref={searchInputRef}
+            value={search}
+            onValueChange={(val) => {
+              setSearch(val);
+            }}
+            onClear={() => {
+              trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
+              setSearch('');
+            }}
+            placeholder={t('nav.search_placeholder')}
+            expandOnFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.target.blur();
               }
             }}
-            title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
-          >
-            <Icon icon={RefreshCw} size="sm" aria-hidden="true" />
-          </Button>
-        </HeaderControls>
-      </header>
+          />
+        }
+        queueCount={queueRemaining}
+        queueLabel={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}
+        onQueueClick={() => setIsQueueOpen(true)}
+        primaryActionLabel={t('nav.batch_import_btn')}
+        onPrimaryAction={handleAddVacanciesClick}
+        onRefresh={async () => {
+          trackEvent(EVENTS.REFRESH_CLICK);
+          try {
+            if (selectedIds.length > 0) {
+              await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
+            } else {
+              await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+            }
+            fetchVacancies();
+          } catch (e) {
+            console.error(e);
+          }
+        }}
+        refreshLabel={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
+        showThemeToggle
+        theme={theme}
+        onThemeToggle={handleThemeToggle}
+        onSettingsClick={user ? () => {
+          trackEvent(EVENTS.SETTINGS_OPEN);
+          setIsSettingsOpen(true);
+        } : undefined}
+        settingsLabel={t('nav.settings_btn')}
+        user={user ? {
+          name: user.name,
+          email: user.email,
+          picture: user.picture,
+          isAnonymous: user.is_anonymous,
+        } : undefined}
+        loginLabel={t('auth.login_btn') || 'Войти'}
+        logoutLabel={t('auth.logout')}
+        onLogin={() => setIsGuestAuthModalOpen(true)}
+        onLogout={handleLogout}
+        menuOpen={menuOpen}
+        onMenuToggle={toggleMenu}
+        actions={
+          user ? (
+            <Button
+              as="a"
+              href="/extension.zip"
+              download
+              variant="ghost"
+              size="icon"
+              title="Скачать расширение (ZIP)"
+              aria-label="Скачать расширение (ZIP)"
+            >
+              <Icon icon={Download} size="sm" aria-hidden="true" />
+            </Button>
+          ) : null
+        }
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        vacancies={vacancies}
+        onColumnsUpdated={(newCols) => {
+          setColumns(newCols);
+          fetchVacancies();
+        }}
+        onUserUpdated={onUserUpdated}
+      />
 
       {/* Guest Mode Banner: informs the user they can save their progress across devices */}
       {user?.is_anonymous && vacancies.length >= 2 && !guestBannerDismissed && (
