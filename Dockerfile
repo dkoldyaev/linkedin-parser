@@ -12,6 +12,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY packages/ui-kit /app/packages/ui-kit
+RUN rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
 COPY frontend/ ./
 RUN npm run build
 
