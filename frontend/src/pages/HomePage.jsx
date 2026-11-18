@@ -8,10 +8,15 @@ import {
 import {
   Header,
   SearchBar,
+  FilterBar,
+  DashboardLayout,
+  AlertBanner,
   Button,
   Icon,
   Badge,
   Spinner,
+  Input,
+  Text,
 } from '@blueprint/ui-kit';
 import KanbanBoard from '../components/KanbanBoard';
 import BatchImportModal from '../components/BatchImportModal';
@@ -628,410 +633,356 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
 
+  // Filter configurations for UI-Kit FilterBar
+  const filterSelects = [
+    (allCountries.length > 0 || selectedCountry) && {
+      id: 'country',
+      ariaLabel: t('nav.filter_all_countries'),
+      placeholder: `${t('nav.filter_all_countries')} [${allCountries.length}]`,
+      value: selectedCountry,
+      options: [
+        { value: '', label: `${t('nav.filter_all_countries')} [${allCountries.length}]` },
+        ...allCountries.map((c) => ({ value: c, label: c })),
+      ],
+      onChange: (val) => handleCountryChange(val),
+    },
+    (allCities.length > 0 || selectedCity) && {
+      id: 'city',
+      ariaLabel: t('nav.filter_all_cities'),
+      placeholder: `${t('nav.filter_all_cities')} [${allCities.length}]`,
+      value: selectedCity,
+      options: [
+        { value: '', label: `${t('nav.filter_all_cities')} [${allCities.length}]` },
+        ...allCities.map((c) => ({ value: c, label: c })),
+      ],
+      onChange: (val) => {
+        trackEvent(EVENTS.FILTER_CITY, { city: val || 'all' });
+        setSelectedCity(val);
+      },
+    },
+    {
+      id: 'workplace',
+      ariaLabel: t('nav.filter_all_workplaces'),
+      placeholder: t('nav.filter_all_workplaces'),
+      value: selectedWorkplaceType,
+      options: [
+        { value: '', label: t('nav.filter_all_workplaces') },
+        { value: 'remote', label: t('workplace.remote') },
+        { value: 'hybrid', label: t('workplace.hybrid') },
+        { value: 'on-site', label: t('workplace.on-site') },
+      ],
+      onChange: (val) => {
+        trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: val || 'all' });
+        setSelectedWorkplaceType(val);
+      },
+    },
+    (allSources.length > 0 || selectedSource) && {
+      id: 'source',
+      ariaLabel: t('nav.filter_all_sources'),
+      placeholder: `${t('nav.filter_all_sources')} [${allSources.length}]`,
+      value: selectedSource,
+      options: [
+        { value: '', label: `${t('nav.filter_all_sources')} [${allSources.length}]` },
+        ...allSources.map((s) => ({ value: s, label: s })),
+      ],
+      onChange: (val) => {
+        trackEvent(EVENTS.FILTER_SOURCE, { source: val || 'all' });
+        setSelectedSource(val);
+      },
+    },
+    {
+      id: 'closed',
+      ariaLabel: t('nav.filter_all_closed'),
+      placeholder: t('nav.filter_all_closed'),
+      value: selectedClosed,
+      options: [
+        { value: '', label: t('nav.filter_all_closed') },
+        { value: 'false', label: t('nav.filter_open') },
+        { value: 'true', label: t('nav.filter_closed') },
+      ],
+      onChange: (val) => {
+        trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val || 'all' });
+        setSelectedClosed(val);
+      },
+    },
+  ].filter(Boolean);
+
+  const filterTags = allTags.map((tag) => ({
+    label: tag,
+  }));
+
+  const nonRejectedClosedCount = vacancies.filter((v) => v.status !== 'Отказ').length;
+  const closedActions = selectedClosed === 'true' && nonRejectedClosedCount > 0 ? (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={handleMoveAllClosedToRejected}
+      disabled={isMovingAllRejected}
+      title={t('nav.move_all_to_rejected_confirm', { count: nonRejectedClosedCount })}
+      startIcon={isMovingAllRejected ? <Spinner size="xs" /> : <Icon icon={XCircle} size="xs" />}
+    >
+      {t('nav.move_all_to_rejected')} [{nonRejectedClosedCount}]
+    </Button>
+  ) : null;
+
+  const filterBarSlot = selectedIds.length > 0 ? (
+    <div
+      role="toolbar"
+      aria-label="Bulk actions"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        boxSizing: 'border-box',
+        gap: 'var(--ui-space-3)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
+        <Badge variant="primary" size="sm">
+          Выделено: {selectedIds.length}
+        </Badge>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setSelectedIds([])}
+          title="Снять выделение"
+          aria-label="Снять выделение"
+        >
+          <Icon icon={X} size="xs" />
+        </Button>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+        <div style={{ width: 'calc(4 * var(--ui-grid-cell))' }}>
+          <Input
+            size="sm"
+            placeholder="Тег..."
+            value={bulkTagInput}
+            onChange={(e) => setBulkTagInput(e.target.value)}
+          />
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={async () => {
+            if (!bulkTagInput.trim()) return;
+            try {
+              await Promise.all(selectedIds.map(async id => {
+                const v = vacancies.find(x => x.id === id);
+                if (!v) return;
+                const tags = new Set(v.tags || []);
+                tags.add(bulkTagInput.trim());
+                await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+              }));
+              setBulkTagInput('');
+              fetchVacancies();
+              fetchTags();
+              showToast("Теги добавлены");
+            } catch (e) { console.error(e); }
+          }}
+        >
+          Добавить тег
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          tone="danger"
+          onClick={async () => {
+            if (!bulkTagInput.trim()) return;
+            try {
+              await Promise.all(selectedIds.map(async id => {
+                const v = vacancies.find(x => x.id === id);
+                if (!v) return;
+                const tags = new Set(v.tags || []);
+                tags.delete(bulkTagInput.trim());
+                await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
+              }));
+              setBulkTagInput('');
+              fetchVacancies();
+              fetchTags();
+              showToast("Теги удалены");
+            } catch (e) { console.error(e); }
+          }}
+        >
+          Удалить тег
+        </Button>
+        <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--ui-pixel-line)', margin: '0 var(--ui-space-1)' }} />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          tone="danger"
+          onClick={async () => {
+            if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
+            try {
+              await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
+              setSelectedIds([]);
+              fetchVacancies();
+              fetchTags();
+              fetchSources();
+              showToast("Карточки удалены");
+            } catch (e) { console.error(e); }
+          }}
+          title="Удалить выделенные"
+          aria-label="Удалить выделенные"
+        >
+          <Icon icon={Trash2} size="xs" />
+        </Button>
+      </div>
+    </div>
+  ) : (allCountries.length > 0 || allCities.length > 0 || allSources.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag) ? (
+    <FilterBar
+      selects={filterSelects}
+      tags={filterTags}
+      selectedTags={selectedTag ? [selectedTag] : []}
+      onToggleTag={(tag) => {
+        const next = selectedTag === tag ? '' : tag;
+        trackEvent(EVENTS.FILTER_TAG, { tag: next || 'all' });
+        setSelectedTag(next);
+      }}
+      tagPrefix="#"
+      hasActiveFilters={Boolean(selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag || search)}
+      onReset={resetAllFilters}
+      resetLabel={t('nav.reset_filters')}
+      actionsSlot={closedActions}
+    />
+  ) : undefined;
+
+  const guestToolbar = (user?.is_anonymous && vacancies.length >= 2 && !guestBannerDismissed) ? (
+    <AlertBanner
+      tone="info"
+      dismissible
+      onDismiss={() => {
+        setGuestBannerDismissed(true);
+        sessionStorage.setItem('guest_banner_dismissed', 'true');
+      }}
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setIsGuestAuthModalOpen(true)}
+        >
+          {t('auth.guest_banner_btn') || 'Сохранить прогресс'}
+        </Button>
+      }
+      style={{ width: '100%', borderRadius: 0 }}
+    >
+      {t('auth.guest_banner_text') || 'Вы пользуетесь гостевым доступом. Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу на другом компьютере или телефоне.'}
+    </AlertBanner>
+  ) : undefined;
+
   return (
-    <div className="app-container">
-      {/* Universal Header organism from @blueprint/ui-kit matching Storybook */}
-      <Header
-        title={t('nav.title')}
-        subtitle={t('nav.subtitle')}
-        search={
-          <SearchBar
-            ref={searchInputRef}
-            value={search}
-            onValueChange={(val) => {
-              setSearch(val);
-            }}
-            onClear={() => {
-              trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
-              setSearch('');
-            }}
-            placeholder={t('nav.search_placeholder')}
-            expandOnFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.target.blur();
+    <DashboardLayout
+      header={
+        <>
+          <Header
+            title={t('nav.title')}
+            subtitle={t('nav.subtitle')}
+            search={
+              <SearchBar
+                ref={searchInputRef}
+                value={search}
+                onValueChange={(val) => {
+                  setSearch(val);
+                }}
+                onClear={() => {
+                  trackEvent(EVENTS.SEARCH_APPLIED, { query_length: 0 });
+                  setSearch('');
+                }}
+                placeholder={t('nav.search_placeholder')}
+                expandOnFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.target.blur();
+                  }
+                }}
+              />
+            }
+            queueCount={queueRemaining}
+            queueLabel={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}
+            onQueueClick={() => setIsQueueOpen(true)}
+            primaryActionLabel={t('nav.batch_import_btn')}
+            onPrimaryAction={handleAddVacanciesClick}
+            onRefresh={async () => {
+              trackEvent(EVENTS.REFRESH_CLICK);
+              try {
+                if (selectedIds.length > 0) {
+                  await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
+                } else {
+                  await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+                }
+                fetchVacancies();
+              } catch (e) {
+                console.error(e);
               }
             }}
-          />
-        }
-        queueCount={queueRemaining}
-        queueLabel={t('nav.queue_label', { count: queueRemaining, unit: queueUnit })}
-        onQueueClick={() => setIsQueueOpen(true)}
-        primaryActionLabel={t('nav.batch_import_btn')}
-        onPrimaryAction={handleAddVacanciesClick}
-        onRefresh={async () => {
-          trackEvent(EVENTS.REFRESH_CLICK);
-          try {
-            if (selectedIds.length > 0) {
-              await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}/reparse`, { method: 'POST' })));
-            } else {
-              await fetch('/api/vacancies/reparse_all', { method: 'POST' });
+            refreshLabel={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
+            showThemeToggle
+            theme={theme}
+            onThemeToggle={handleThemeToggle}
+            onSettingsClick={user ? () => {
+              trackEvent(EVENTS.SETTINGS_OPEN);
+              setIsSettingsOpen(true);
+            } : undefined}
+            settingsLabel={t('nav.settings_btn')}
+            user={user ? {
+              name: user.name,
+              email: user.email,
+              picture: user.picture,
+              isAnonymous: user.is_anonymous,
+            } : undefined}
+            loginLabel={t('auth.login_btn') || 'Войти'}
+            logoutLabel={t('auth.logout')}
+            onLogin={() => setIsGuestAuthModalOpen(true)}
+            onLogout={handleLogout}
+            menuOpen={menuOpen}
+            onMenuToggle={toggleMenu}
+            actions={
+              user ? (
+                <Button
+                  as="a"
+                  href="/extension.zip"
+                  download
+                  variant="ghost"
+                  size="icon"
+                  title="Скачать расширение (ZIP)"
+                  aria-label="Скачать расширение (ZIP)"
+                >
+                  <Icon icon={Download} size="sm" aria-hidden="true" />
+                </Button>
+              ) : null
             }
-            fetchVacancies();
-          } catch (e) {
-            console.error(e);
-          }
-        }}
-        refreshLabel={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
-        showThemeToggle
-        theme={theme}
-        onThemeToggle={handleThemeToggle}
-        onSettingsClick={user ? () => {
-          trackEvent(EVENTS.SETTINGS_OPEN);
-          setIsSettingsOpen(true);
-        } : undefined}
-        settingsLabel={t('nav.settings_btn')}
-        user={user ? {
-          name: user.name,
-          email: user.email,
-          picture: user.picture,
-          isAnonymous: user.is_anonymous,
-        } : undefined}
-        loginLabel={t('auth.login_btn') || 'Войти'}
-        logoutLabel={t('auth.logout')}
-        onLogin={() => setIsGuestAuthModalOpen(true)}
-        onLogout={handleLogout}
-        menuOpen={menuOpen}
-        onMenuToggle={toggleMenu}
-        actions={
-          user ? (
-            <Button
-              as="a"
-              href="/extension.zip"
-              download
-              variant="ghost"
-              size="icon"
-              title="Скачать расширение (ZIP)"
-              aria-label="Скачать расширение (ZIP)"
-            >
-              <Icon icon={Download} size="sm" aria-hidden="true" />
-            </Button>
-          ) : null
-        }
-      />
+          />
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            vacancies={vacancies}
+            onColumnsUpdated={(newCols) => {
+              setColumns(newCols);
+              fetchVacancies();
+            }}
+            onUserUpdated={onUserUpdated}
+          />
+        </>
+      }
+      filterBar={filterBarSlot}
+      toolbar={guestToolbar}
+      style={{ minHeight: '100%', height: '100%' }}
+    >
+      <KanbanBoard
         vacancies={vacancies}
-        onColumnsUpdated={(newCols) => {
+        columns={columns}
+        onColumnsChange={(newCols) => {
           setColumns(newCols);
           fetchVacancies();
         }}
-        onUserUpdated={onUserUpdated}
+        onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
+        onStatusChange={handleStatusChange}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        onStatusChangeMulti={handleStatusChangeMulti}
+        onReorder={handleReorder}
       />
-
-      {/* Guest Mode Banner: informs the user they can save their progress across devices */}
-      {user?.is_anonymous && vacancies.length >= 2 && !guestBannerDismissed && (
-        <div className="guest-banner">
-          <div className="guest-banner-content">
-            <span className="guest-banner-icon">💡</span>
-            <span className="guest-banner-text">
-              {t('auth.guest_banner_text') || 'Вы пользуетесь гостевым доступом. Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу на другом компьютере или телефоне.'}
-            </span>
-          </div>
-          <div className="guest-banner-actions">
-            <button
-              className="btn btn-primary btn-sm guest-banner-btn"
-              onClick={() => setIsGuestAuthModalOpen(true)}
-            >
-              {t('auth.guest_banner_btn') || 'Сохранить прогресс'}
-            </button>
-            <button
-              className="btn btn-secondary btn-icon btn-sm guest-banner-close"
-              onClick={() => {
-                setGuestBannerDismissed(true);
-                sessionStorage.setItem('guest_banner_dismissed', 'true');
-              }}
-              title={t('common.close') || 'Закрыть'}
-              aria-label="Dismiss banner"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Filter bar for Country, City, Workplace & Tags */}
-      {selectedIds.length > 0 ? (
-        <div className="filter-bar filter-bar-bulk" style={{ justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="bulk-selection-count">Выделено карточек: {selectedIds.length}</span>
-            <button className="btn btn-secondary btn-icon" onClick={() => setSelectedIds([])} title="Снять выделение">
-              <X size={14} />
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input 
-              type="text" 
-              placeholder="Тег..."
-              className="search-input"
-              
-              value={bulkTagInput}
-              onChange={e => setBulkTagInput(e.target.value)}
-            />
-            <button className="btn btn-secondary" onClick={async () => {
-              if (!bulkTagInput.trim()) return;
-              try {
-                await Promise.all(selectedIds.map(async id => {
-                  const v = vacancies.find(x => x.id === id);
-                  if (!v) return;
-                  const tags = new Set(v.tags || []);
-                  tags.add(bulkTagInput.trim());
-                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
-                }));
-                setBulkTagInput('');
-                fetchVacancies();
-                fetchTags();
-                showToast("Теги добавлены");
-              } catch (e) { console.error(e); }
-            }}>Добавить тег</button>
-            <button className="btn btn-danger" onClick={async () => {
-              if (!bulkTagInput.trim()) return;
-              try {
-                await Promise.all(selectedIds.map(async id => {
-                  const v = vacancies.find(x => x.id === id);
-                  if (!v) return;
-                  const tags = new Set(v.tags || []);
-                  tags.delete(bulkTagInput.trim());
-                  await fetch(`/api/vacancies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tags: Array.from(tags) }) });
-                }));
-                setBulkTagInput('');
-                fetchVacancies();
-                fetchTags();
-                showToast("Теги удалены");
-              } catch (e) { console.error(e); }
-            }}>Удалить тег</button>
-            <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 4px' }} />
-            <button className="btn btn-danger btn-icon" onClick={async () => {
-              if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
-              try {
-                await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
-                setSelectedIds([]);
-                fetchVacancies();
-                fetchTags();
-                fetchSources();
-                showToast("Карточки удалены");
-              } catch (e) { console.error(e); }
-            }} title="Удалить выделенные">
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
-      ) : (allCountries.length > 0 || allCities.length > 0 || allSources.length > 0 || allTags.length > 0 || selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag) ? (
-        <div className="filter-bar">
-          {/* Location: Country Filter */}
-          {(allCountries.length > 0 || selectedCountry) && (
-            <div className="filter-group">
-              <div className="filter-select-wrapper">
-                <Globe size={13} className="filter-select-icon" />
-                <select
-                  className={`filter-select ${selectedCountry ? 'active' : ''}`}
-                  value={selectedCountry}
-                  onChange={(e) => handleCountryChange(e.target.value)}
-                  title={t('nav.filter_all_countries')}
-                >
-                  <option value="">{t('nav.filter_all_countries')} [{allCountries.length}]</option>
-                  {allCountries.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={11} className="filter-select-chevron" />
-              </div>
-            </div>
-          )}
-
-          {/* Location: City Filter */}
-          {(allCities.length > 0 || selectedCity) && (
-            <div className="filter-group">
-              <div className="filter-select-wrapper">
-                <MapPin size={13} className="filter-select-icon" />
-                <select
-                  className={`filter-select ${selectedCity ? 'active' : ''}`}
-                  value={selectedCity}
-                  onChange={(e) => {
-                    const city = e.target.value;
-                    trackEvent(EVENTS.FILTER_CITY, { city: city || 'all' });
-                    setSelectedCity(city);
-                  }}
-                  title={t('nav.filter_all_cities')}
-                >
-                  <option value="">{t('nav.filter_all_cities')} [{allCities.length}]</option>
-                  {allCities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={11} className="filter-select-chevron" />
-              </div>
-            </div>
-          )}
-
-          {/* Workplace Type Filter */}
-          <div className="filter-group">
-            <div className="filter-select-wrapper">
-              <Laptop size={13} className="filter-select-icon" />
-              <select
-                className={`filter-select ${selectedWorkplaceType ? 'active' : ''}`}
-                value={selectedWorkplaceType}
-                onChange={(e) => {
-                  const wp = e.target.value;
-                  trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: wp || 'all' });
-                  setSelectedWorkplaceType(wp);
-                }}
-                title={t('nav.filter_all_workplaces')}
-              >
-                <option value="">{t('nav.filter_all_workplaces')}</option>
-                <option value="remote">{t('workplace.remote')}</option>
-                <option value="hybrid">{t('workplace.hybrid')}</option>
-                <option value="on-site">{t('workplace.on-site')}</option>
-              </select>
-              <ChevronDown size={11} className="filter-select-chevron" />
-            </div>
-          </div>
-
-          {/* Source Filter */}
-          {(allSources.length > 0 || selectedSource) && (
-            <div className="filter-group">
-              <div className="filter-select-wrapper">
-                <ExternalLink size={13} className="filter-select-icon" />
-                <select
-                  className={`filter-select ${selectedSource ? 'active' : ''}`}
-                  value={selectedSource}
-                  onChange={(e) => {
-                    const src = e.target.value;
-                    trackEvent(EVENTS.FILTER_SOURCE, { source: src || 'all' });
-                    setSelectedSource(src);
-                  }}
-                  title={t('nav.filter_all_sources')}
-                >
-                  <option value="">{t('nav.filter_all_sources')} [{allSources.length}]</option>
-                  {allSources.map((src) => (
-                    <option key={src} value={src}>
-                      {src}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={11} className="filter-select-chevron" />
-              </div>
-            </div>
-          )}
-
-          {/* Closed Status Filter */}
-          <div className="filter-group">
-            <div className="filter-select-wrapper">
-              <Ban size={13} className="filter-select-icon" />
-              <select
-                className={`filter-select ${selectedClosed !== '' ? 'active' : ''}`}
-                value={selectedClosed}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val || 'all' });
-                  setSelectedClosed(val);
-                }}
-                title={t('nav.filter_all_closed')}
-              >
-                <option value="">{t('nav.filter_all_closed')}</option>
-                <option value="false">{t('nav.filter_open')}</option>
-                <option value="true">{t('nav.filter_closed')}</option>
-              </select>
-              <ChevronDown size={11} className="filter-select-chevron" />
-            </div>
-          </div>
-
-          {/* Move all closed to Rejected button */}
-          {selectedClosed === 'true' && (() => {
-            const nonRejectedClosedCount = vacancies.filter(v => v.status !== 'Отказ').length;
-            return (
-              <button
-                className="filter-reject-all-btn tag-filter-chip"
-                onClick={handleMoveAllClosedToRejected}
-                disabled={nonRejectedClosedCount === 0 || isMovingAllRejected}
-                title={nonRejectedClosedCount === 0 ? t('nav.all_already_rejected') : t('nav.move_all_to_rejected_confirm', { count: nonRejectedClosedCount })}
-              >
-                {isMovingAllRejected ? (
-                  <Loader2 size={12} className="spin" />
-                ) : (
-                  <XCircle size={12} />
-                )}
-                <span>
-                  {t('nav.move_all_to_rejected')}{nonRejectedClosedCount > 0 ? ` [${nonRejectedClosedCount}]` : ''}
-                </span>
-              </button>
-            );
-          })()}
-
-          {/* Divider if we have both dropdowns and tags */}
-          {allTags.length > 0 && (
-            <div className="filter-divider" />
-          )}
-
-          {/* Tag filters */}
-          {allTags.length > 0 && (
-            <div className="filter-group" style={{ overflowX: 'auto' }}>
-              <div className="filter-label">
-                <Filter size={12} />
-                <span>{t('nav.tags_label')}</span>
-              </div>
-              <button
-                className={`tag-filter-chip ${selectedTag === '' ? 'active' : ''}`}
-                onClick={() => {
-                  trackEvent(EVENTS.FILTER_TAG, { tag: 'all' });
-                  setSelectedTag('');
-                }}
-              >
-                {t('nav.all_tags')} [{vacancies.length}]
-              </button>
-              {allTags.map(tag => (
-                <button
-                  key={tag}
-                  className={`tag-filter-chip ${selectedTag === tag ? 'active' : ''}`}
-                  onClick={() => {
-                    const nextTag = selectedTag === tag ? '' : tag;
-                    trackEvent(EVENTS.FILTER_TAG, { tag: nextTag || 'all' });
-                    setSelectedTag(nextTag);
-                  }}
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Reset all filters */}
-          {(selectedCountry || selectedCity || selectedWorkplaceType || selectedSource || selectedClosed !== '' || selectedTag || search) && (
-            <button
-              className="filter-reset-btn tag-filter-chip "
-              onClick={resetAllFilters}
-              title={t('nav.reset_all_filters')}
-            >
-              <RotateCcw size={11} />
-              <span>{t('nav.reset_filters')}</span>
-            </button>
-          )}
-        </div>
-      ) : null}
-
-      {/* Kanban Board */}
-      <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <KanbanBoard
-          vacancies={vacancies}
-          columns={columns}
-          onColumnsChange={(newCols) => {
-            setColumns(newCols);
-            fetchVacancies();
-          }}
-          onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
-          onStatusChange={handleStatusChange}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onStatusChangeMulti={handleStatusChangeMulti}
-          onReorder={handleReorder}
-        />
-      </main>
 
       {/* Modals */}
       <BatchImportModal
@@ -1069,19 +1020,19 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           isGuestPromotion={true}
         />
       )}
+
       {/* Toast Notifications */}
       {toast && (
-        <div className="toast-container">
-          <div className={`toast ${toast.type}`}>
-            {toast.type === 'success' ? (
-              <CheckCircle2 size={16} color="#10b981" />
-            ) : (
-              <AlertCircle size={16} color="#ef4444" />
-            )}
-            <span>{toast.message}</span>
-          </div>
+        <div style={{ position: 'fixed', bottom: 'var(--ui-space-6)', right: 'var(--ui-space-6)', zIndex: 9999, maxWidth: '420px' }}>
+          <AlertBanner
+            tone={toast.type === 'error' ? 'danger' : 'success'}
+            dismissible
+            onDismiss={() => setToast(null)}
+          >
+            {toast.message}
+          </AlertBanner>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }

@@ -11,13 +11,33 @@ import {
   Checkbox,
   Text,
   AlertBanner,
+  ColorPicker,
 } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
-const PRESET_COLORS = [
-  '#2563eb', '#0284c7', '#d97706', '#9333ea', 
-  '#059669', '#e11d48', '#ea580c', '#0891b2', '#1d4ed8'
-];
+const PALETTE_TO_HEX = {
+  blue: '#2563eb',
+  cyan: '#0891b2',
+  amber: '#d97706',
+  purple: '#9333ea',
+  emerald: '#059669',
+  rose: '#e11d48',
+  indigo: '#1d4ed8',
+  slate: '#475569',
+};
+
+const HEX_TO_PALETTE = {
+  '#2563eb': 'blue',
+  '#0284c7': 'cyan',
+  '#0891b2': 'cyan',
+  '#d97706': 'amber',
+  '#9333ea': 'purple',
+  '#059669': 'emerald',
+  '#e11d48': 'rose',
+  '#ea580c': 'amber',
+  '#1d4ed8': 'indigo',
+  '#475569': 'slate',
+};
 
 export default function ColumnCreateModal({ isOpen, onClose, onCreate }) {
   const { t } = useTranslation();
@@ -92,7 +112,7 @@ export default function ColumnCreateModal({ isOpen, onClose, onCreate }) {
 
           {/* Color selection: Note - UI-Kit ColorPicker is currently limited to StatusDotPalette;
               retaining hex presets until issue #8 is resolved */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1-5)' }}>
             <Text
               as="label"
               variant="caption"
@@ -101,42 +121,10 @@ export default function ColumnCreateModal({ isOpen, onClose, onCreate }) {
             >
               {t('kanban.column_color')}
             </Text>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2-5)', marginTop: 'var(--ui-space-1)' }}>
-              <input
-                type="color"
-                className="column-color-picker"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  border: '1px solid var(--ui-border-subtle)',
-                  padding: 0,
-                  background: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '2px',
-                }}
-              />
-              <div style={{ display: 'flex', gap: 'var(--ui-space-1-5)', flexWrap: 'wrap' }}>
-                {PRESET_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setColor(c)}
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      background: c,
-                      border: color === c ? '2px solid #fff' : '1px solid transparent',
-                      cursor: 'pointer',
-                      padding: 0,
-                      boxShadow: color === c ? '0 0 8px rgba(255, 255, 255, 0.4)' : 'none',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+            <ColorPicker
+              value={HEX_TO_PALETTE[color] || 'blue'}
+              onChange={(palette) => setColor(PALETTE_TO_HEX[palette] || '#2563eb')}
+            />
           </div>
 
           <div style={{
