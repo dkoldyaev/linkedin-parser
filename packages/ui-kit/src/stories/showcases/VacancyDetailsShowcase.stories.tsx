@@ -6,6 +6,7 @@ import {
   type VacancyHistoryItem,
   type VacancySalaryData,
 } from '../../organisms';
+import styles from './Showcase.module.css';
 
 const meta: Meta<typeof VacancyDetailsModal> = {
   title: 'Showcases (Job Tracker)/Vacancy Details Showcase',
@@ -36,7 +37,7 @@ const COMPATIBILITY_SECTIONS = [
   {
     id: 'confirmed',
     title: 'ПОДТВЕРЖДЁННЫЕ ТРЕБОВАНИЯ',
-    tone: 'success' as const,
+    tone: 'mint' as const,
     items: [
       {
         id: 'c1',
@@ -273,7 +274,7 @@ function VacancyDetailsModalDemo(): React.ReactElement {
   }`;
 
   return (
-    <div style={{ padding: 'var(--ui-space-6)' }}>
+    <div className={styles.container}>
       <Button variant="primary" onClick={() => setIsOpen(true)}>
         Открыть карточку вакансии
       </Button>

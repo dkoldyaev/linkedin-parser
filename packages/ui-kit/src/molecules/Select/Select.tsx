@@ -11,7 +11,7 @@ export interface SelectOption {
   readonly disabled?: boolean;
 }
 
-export interface SelectProps {
+export interface SelectProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value' | 'defaultValue' | 'onChange'> {
   readonly id?: string;
   readonly value?: string;
   readonly defaultValue?: string;
@@ -47,6 +47,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
     'aria-describedby': ariaDescribedBy,
     className,
     variant = 'default',
+    ...rest
   },
   ref
 ) {
@@ -99,6 +100,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
           invalid && styles.invalid,
           className
         )}
+        {...rest}
       >
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon asChild>

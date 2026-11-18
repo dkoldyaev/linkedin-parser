@@ -224,6 +224,7 @@ export interface VacancyDetailsModalProps {
   readonly onReject?: () => void;
   readonly rejectLabel?: string;
   readonly closeLabel?: string;
+  readonly className?: string;
 }
 
 const DEFAULT_CURRENCY_OPTIONS: readonly SelectOption[] = [
@@ -365,7 +366,9 @@ export function VacancyDetailsModal({
   onReject,
   rejectLabel = 'В НЕ ПОДОШЛО',
   closeLabel = 'ЗАКРЫТЬ',
-}: VacancyDetailsModalProps): React.ReactElement {
+  className,
+  ...rest
+}: VacancyDetailsModalProps & React.HTMLAttributes<HTMLDivElement>): React.ReactElement {
   // Navigation tabs
   const [internalTab, setInternalTab] = useState('details');
   const activeTab = controlledTab !== undefined ? controlledTab : internalTab;
@@ -443,7 +446,7 @@ export function VacancyDetailsModal({
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={size}>
+    <Modal isOpen={isOpen} onClose={onClose} size={size} className={className} {...rest}>
       <Modal.Header
         title={
           onTitleChange ? (

@@ -1,6 +1,6 @@
 import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { Badge, Text } from '../../atoms';
+import { Badge, Text, type BadgeTone } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './Tabs.module.css';
@@ -9,12 +9,15 @@ export interface TabItem {
   readonly value: string;
   readonly label: React.ReactNode;
   readonly count?: number;
+  readonly badge?: React.ReactNode;
+  readonly badgeTone?: BadgeTone;
   readonly icon?: React.ReactNode;
   readonly disabled?: boolean;
   readonly content?: React.ReactNode;
 }
 
-export interface TabsProps {
+export interface TabsProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'dir'> {
   readonly value?: string;
   readonly defaultValue?: string;
   readonly onValueChange?: (value: string) => void;
@@ -26,8 +29,8 @@ export interface TabsProps {
 }
 
 /**
- * Accessible Tabs molecule powered by `@radix-ui/react-tabs` with full keyboard arrow-key navigation
- * and 32px Blueprint grid width quantization (`useBlueprintGrid`).
+ * Accessible Tabs molecule powered by `@radix-ui/react-tabs` with full keyboard arrow-key navigation,
+ * custom badge node and badge tone support, and 32px Blueprint grid width quantization (`useBlueprintGrid`).
  */
 export function Tabs({
   value,
@@ -38,6 +41,7 @@ export function Tabs({
   className,
   listClassName,
   contentClassName,
+  ...rest
 }: TabsProps): React.ReactElement {
   const rootRef = useBlueprintGrid<HTMLDivElement>([items.length]);
 
@@ -55,6 +59,7 @@ export function Tabs({
       defaultValue={resolvedDefault}
       onValueChange={onValueChange}
       className={cn(styles.root, className)}
+      {...rest}
     >
       <TabsPrimitive.List
         aria-label={ariaLabel}
@@ -81,16 +86,18 @@ export function Tabs({
             <Text as="span" variant="mono" className={styles.tabLabel}>
               {item.label}
             </Text>
-            {item.count !== undefined && (
+            {item.badge !== undefined ? (
+              <span className={styles.countBadge}>{item.badge}</span>
+            ) : item.count !== undefined ? (
               <Badge
                 variant="counter"
                 size="xs"
-                tone="primary"
+                tone={item.badgeTone ?? 'primary'}
                 className={styles.countBadge}
               >
                 {item.count}
               </Badge>
-            )}
+            ) : null}
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>

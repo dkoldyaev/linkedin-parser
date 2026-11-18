@@ -7,9 +7,9 @@ import { ModalBody, type ModalBodyProps } from './ModalBody';
 import { ModalFooter, ModalFooterActions, type ModalFooterProps, type ModalFooterActionsProps, type ModalFooterJustify } from './ModalFooter';
 import styles from './Modal.module.css';
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'custom';
 
-export interface ModalProps {
+export interface ModalProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly title?: React.ReactNode;
@@ -18,6 +18,9 @@ export interface ModalProps {
   readonly icon?: React.ReactNode;
   readonly footer?: React.ReactNode;
   readonly size?: ModalSize;
+  /** Custom width override in pixels or CSS units (e.g. 640, '640px', 'min(90vw, 800px)') */
+  readonly width?: string | number;
+  readonly style?: React.CSSProperties;
   readonly closeLabel?: string;
   readonly hideCloseButton?: boolean;
   readonly className?: string;
@@ -28,7 +31,8 @@ export interface ModalProps {
 /**
  * Accessible Modal organism powered by `@radix-ui/react-dialog`.
  * Decomposed into composable subcomponents (`ModalHeader`, `ModalBody`, `ModalFooter`)
- * with built-in focus trapping, Escape-to-close, backdrop click handling, and ARIA wiring.
+ * with built-in focus trapping, Escape-to-close, backdrop click handling, ARIA wiring,
+ * and support for custom width and style overrides.
  */
 export function Modal({
   isOpen,
@@ -38,11 +42,14 @@ export function Modal({
   icon,
   footer,
   size = 'md',
+  width,
+  style,
   closeLabel = 'Close modal',
   hideCloseButton = false,
   className,
   bodyClassName,
   children,
+  ...rest
 }: ModalProps): React.ReactElement {
   const contextValue: ModalContextValue = React.useMemo(
     () => ({
@@ -51,6 +58,24 @@ export function Modal({
       closeLabel,
     }),
     [isOpen, onClose, closeLabel]
+  );
+
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+
+  const setContentRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      contentRef.current = node;
+      if (!node) return;
+      if (width !== undefined) {
+        const formattedWidth = typeof width === 'number' ? `${width}px` : width;
+        node.style.setProperty('max-width', formattedWidth);
+        node.style.setProperty('width', formattedWidth);
+      }
+      if (style) {
+        Object.assign(node.style, style);
+      }
+    },
+    [width, style]
   );
 
   const handleOpenChange = React.useCallback(
@@ -70,7 +95,13 @@ export function Modal({
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className={styles.overlay}>
             <DialogPrimitive.Content
-              className={cn(styles.content, styles[`size-${size}`], className)}
+              ref={setContentRef}
+              className={cn(
+                styles.content,
+                size !== 'custom' && styles[`size-${size}`],
+                className
+              )}
+              {...rest}
             >
               {isShorthandMode ? (
                 <>

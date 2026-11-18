@@ -4,7 +4,7 @@ import { Text } from '../../atoms';
 import { cn } from '../../utils';
 import styles from './Tooltip.module.css';
 
-export interface TooltipProps {
+export interface TooltipProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> {
   readonly content: React.ReactNode;
   readonly children: React.ReactElement;
   readonly side?: 'top' | 'right' | 'bottom' | 'left';
@@ -23,6 +23,7 @@ export function Tooltip({
   align = 'center',
   delayDuration = 200,
   className,
+  ...rest
 }: TooltipProps): React.ReactElement {
   return (
     <TooltipPrimitive.Provider delayDuration={delayDuration}>
@@ -34,6 +35,7 @@ export function Tooltip({
             align={align}
             sideOffset={6}
             className={cn(styles.content, className)}
+            {...rest}
           >
             <Text variant="mono" as="span">
               {content}

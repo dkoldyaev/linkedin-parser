@@ -85,4 +85,17 @@
   .description {
     margin: 0;
   }
+
+  .actionsSlot {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-space-1);
+  }
+
+  .contentSlot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-2);
+    margin-top: var(--ui-space-2);
+  }
 }

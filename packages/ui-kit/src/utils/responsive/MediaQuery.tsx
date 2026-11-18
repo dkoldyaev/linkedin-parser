@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '../cn';
 import styles from './MediaQuery.module.css';
 
-export interface MediaQueryProps {
+export interface MediaQueryProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Component rendered on mobile viewports (< 768px) */
   readonly mobile?: React.ReactNode;
   /** Component rendered on tablet viewports (768px - 1023px) */
@@ -46,11 +46,12 @@ export function MediaQuery({
   desktop,
   wide,
   className,
+  ...rest
 }: MediaQueryProps): React.ReactElement {
   const hasTablet = tablet !== undefined;
 
   return (
-    <div className={cn(styles.mediaQuery, !hasTablet && styles.noTablet, className)}>
+    <div className={cn(styles.mediaQuery, !hasTablet && styles.noTablet, className)} {...rest}>
       {mobile !== undefined && <MobileSlot>{mobile}</MobileSlot>}
       {hasTablet && <TabletSlot>{tablet}</TabletSlot>}
       <DesktopSlot>{desktop}</DesktopSlot>
@@ -63,4 +64,3 @@ MediaQuery.Mobile = MobileSlot;
 MediaQuery.Tablet = TabletSlot;
 MediaQuery.Desktop = DesktopSlot;
 MediaQuery.Wide = WideSlot;
-

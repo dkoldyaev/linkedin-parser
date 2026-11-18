@@ -20,9 +20,13 @@ export interface StepperItemData {
   readonly description?: React.ReactNode;
   readonly tone?: BadgeTone;
   readonly active?: boolean;
+  readonly actions?: React.ReactNode;
+  readonly contentSlot?: React.ReactNode;
 }
 
-export interface StepperItemProps extends StepperItemData {
+export interface StepperItemProps
+  extends StepperItemData,
+    Omit<React.HTMLAttributes<HTMLLIElement>, 'id' | 'children'> {
   readonly isLast?: boolean;
 }
 
@@ -38,7 +42,8 @@ const BADGE_TO_STATUS_TONE: Record<BadgeTone, StatusDotTone> = {
 
 /**
  * StepperItem sub-component.
- * Renders a single timeline transition step composing StatusDot, Badge, Icon, and Text.
+ * Renders a single timeline transition step composing StatusDot, Badge, Icon, Text,
+ * actions slot, and interactive contentSlot.
  */
 export function StepperItem({
   label,
@@ -49,11 +54,15 @@ export function StepperItem({
   tone = 'neutral',
   active = false,
   isLast = false,
+  actions,
+  contentSlot,
+  className,
+  ...rest
 }: StepperItemProps): React.ReactElement {
   const dotTone: StatusDotTone = active ? 'accent' : BADGE_TO_STATUS_TONE[tone];
 
   return (
-    <li className={cn(styles.stepItem, active && styles.stepActive)}>
+    <li className={cn(styles.stepItem, active && styles.stepActive, className)} {...rest}>
       <div className={styles.timelineTrack} aria-hidden="true">
         <StatusDot
           tone={dotTone}
@@ -95,6 +104,9 @@ export function StepperItem({
                 {timestamp}
               </Text>
             )}
+            {actions !== undefined && (
+              <div className={styles.actionsSlot}>{actions}</div>
+            )}
           </div>
         </div>
 
@@ -102,6 +114,10 @@ export function StepperItem({
           <Text as="div" variant="caption" tone="secondary" className={styles.description}>
             {description}
           </Text>
+        )}
+
+        {contentSlot !== undefined && (
+          <div className={styles.contentSlot}>{contentSlot}</div>
         )}
       </div>
     </li>
