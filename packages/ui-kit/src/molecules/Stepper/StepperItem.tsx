@@ -99,7 +99,7 @@ export function StepperItem({
         </div>
 
         {description !== undefined && (
-          <Text as="p" variant="caption" tone="secondary" className={styles.description}>
+          <Text as="div" variant="caption" tone="secondary" className={styles.description}>
             {description}
           </Text>
         )}

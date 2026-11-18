@@ -1,26 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ExternalLink, MapPin, Building2, Sparkles, 
-  Trash2, RefreshCw, Check, FileText, StickyNote, Banknote,
-  Ban, Shield, Award, AlertCircle, Copy, AlignLeft
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import {
-  Modal,
-  ModalHeader,
-  ModalHeaderMeta,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Icon,
-  Tabs,
-  Badge,
-  Text,
-  Paragraph,
-  Select,
-  Textarea,
-  Input,
   AlertBanner,
-  CollapsibleSection,
+  VacancyDetailsModal,
 } from '@blueprint/ui-kit';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -31,12 +12,6 @@ import {
   STATUS_REJECTED,
   DEFAULT_COLUMNS,
 } from '../constants/columns';
-
-import VacancySalarySection from './vacancy/VacancySalarySection';
-import VacancyAISummarySection from './vacancy/VacancyAISummarySection';
-import VacancyTokensSection from './vacancy/VacancyTokensSection';
-import VacancyTimelineSection from './vacancy/VacancyTimelineSection';
-import VacancyCompatibilitySection from './vacancy/VacancyCompatibilitySection';
 
 export default function VacancyModal({
   vacancy,
@@ -50,7 +25,7 @@ export default function VacancyModal({
   const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
-    ? columns.map(c => typeof c === 'string' ? { id: c, color: '#2563eb' } : c)
+    ? columns.map(c => typeof c === 'string' ? { id: c, name: c } : c)
     : DEFAULT_COLUMNS;
 
   const rejectedColumn = modalColumns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || modalColumns.find(c => c.id === STATUS_REJECTED) || modalColumns.find(c => c.is_base && c.system_role !== 'not_contacted');
@@ -76,7 +51,7 @@ export default function VacancyModal({
   const [salaryCurrency, setSalaryCurrency] = useState(vacancy?.salary_currency || '$');
   const [salaryPeriod, setSalaryPeriod] = useState(vacancy?.salary_period || 'month');
   const [workplaceType, setWorkplaceType] = useState(vacancy?.workplace_type || '');
-  const [isClosed, setIsClosed] = useState(vacancy?.is_closed || false);
+  const [isClosed, setIsClosed] = useState(Boolean(vacancy?.is_closed));
 
   const [savingSalary, setSavingSalary] = useState(false);
   const [savedSalarySuccess, setSavedSalarySuccess] = useState(false);
@@ -86,11 +61,8 @@ export default function VacancyModal({
   const [reparseSuccess, setReparseSuccess] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [savedNotesSuccess, setSavedNotesSuccess] = useState(false);
-  const [savingTitle, setSavingTitle] = useState(false);
-  const [savedTitleSuccess, setSavedTitleSuccess] = useState(false);
   const [savingDesc, setSavingDesc] = useState(false);
   const [savedDescSuccess, setSavedDescSuccess] = useState(false);
-  const [copiedDesc, setCopiedDesc] = useState(false);
 
   // CV Compatibility Analysis state
   const [compatibility, setCompatibility] = useState(null);
@@ -99,7 +71,7 @@ export default function VacancyModal({
   const [compatError, setCompatError] = useState(null);
 
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'compatibility'
+  const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
     if (vacancy) {
@@ -186,15 +158,19 @@ export default function VacancyModal({
     }
   };
 
-  const handleSaveSalary = async () => {
+  const handleSaveSalary = async (salaryData) => {
     setSavingSalary(true);
     try {
       const payload = {
-        salary_min: salaryMin !== '' ? parseFloat(salaryMin) : null,
-        salary_max: salaryMax !== '' ? parseFloat(salaryMax) : null,
-        salary_currency: salaryCurrency || null,
-        salary_period: salaryPeriod || null,
+        salary_min: salaryData.min !== '' ? parseFloat(salaryData.min) : null,
+        salary_max: salaryData.max !== '' ? parseFloat(salaryData.max) : null,
+        salary_currency: salaryData.currency || null,
+        salary_period: salaryData.period || null,
       };
+      setSalaryMin(salaryData.min);
+      setSalaryMax(salaryData.max);
+      setSalaryCurrency(salaryData.currency);
+      setSalaryPeriod(salaryData.period);
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +190,6 @@ export default function VacancyModal({
   };
 
   const handleSaveTitle = async () => {
-    setSavingTitle(true);
     try {
       const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
@@ -223,25 +198,22 @@ export default function VacancyModal({
       });
       if (res.ok) {
         onUpdate(await res.json());
-        setSavedTitleSuccess(true);
-        setTimeout(() => setSavedTitleSuccess(false), 2000);
       }
     } catch (err) {
       console.error('Failed to save title', err);
-    } finally {
-      setSavingTitle(false);
     }
   };
 
-  const handleSaveNotes = async () => {
+  const handleSaveNotes = async (nextNotes) => {
     setSavingNotes(true);
+    setNotes(nextNotes);
     try {
       await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes }),
+        body: JSON.stringify({ notes: nextNotes }),
       });
-      onUpdate({ ...vacancy, notes });
+      onUpdate({ ...vacancy, notes: nextNotes });
       setSavedNotesSuccess(true);
       setTimeout(() => setSavedNotesSuccess(false), 2000);
     } catch (err) {
@@ -251,13 +223,14 @@ export default function VacancyModal({
     }
   };
 
-  const handleSaveDescription = async () => {
+  const handleSaveDescription = async (nextDesc) => {
     setSavingDesc(true);
+    setDescription(nextDesc);
     try {
       const res = await fetch(`/api/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({ description: nextDesc }),
       });
       if (res.ok) {
         onUpdate(await res.json());
@@ -377,54 +350,13 @@ export default function VacancyModal({
     }
   };
 
-  const handleCopyDescription = (e) => {
-    e.stopPropagation();
-    if (description) {
-      navigator.clipboard.writeText(description);
-      setCopiedDesc(true);
-      setTimeout(() => setCopiedDesc(false), 2000);
-    }
-  };
-
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
-  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : null;
-  const matchTone = matchScore == null ? 'neutral' : matchScore >= 75 ? 'success' : matchScore >= 50 ? 'warning' : 'danger';
+  const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
+  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : undefined;
 
-  const tabItems = [
-    {
-      value: 'details',
-      label: t('vacancyModal.tab_details'),
-      icon: <Icon icon={FileText} size="xs" />,
-    },
-    {
-      value: 'compatibility',
-      label: (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span>{t('vacancyModal.tab_cv_compatibility')}</span>
-          {compatibility && (
-            <Badge
-              variant="solid"
-              size="xs"
-              tone={
-                (compatibility.calculated_score ?? compatibility.overall_score) >= 70
-                  ? 'success'
-                  : (compatibility.calculated_score ?? compatibility.overall_score) >= 45
-                    ? 'warning'
-                    : 'danger'
-              }
-            >
-              {Math.round(compatibility.calculated_score ?? compatibility.overall_score)}%
-            </Badge>
-          )}
-        </span>
-      ),
-      icon: <Icon icon={Shield} size="xs" tone={compatibility ? 'success' : 'neutral'} />,
-    },
-  ];
-
-  const statusOptions = modalColumns.map((col) => ({
+  const stageOptions = modalColumns.map((col) => ({
     value: col.id,
-    label: t(`kanban.columns.${col.id}`) || col.id,
+    label: t(`kanban.columns.${col.id}`) || col.name || col.id,
   }));
 
   const workplaceOptions = [
@@ -434,284 +366,212 @@ export default function VacancyModal({
     { value: 'on-site', label: t('workplace.full_onsite') },
   ];
 
+  const historyItems = (vacancy.history || []).map((h, idx) => ({
+    id: String(h.id || idx),
+    label: getStageLabel(h.to_status, h.to_lane),
+    fromLabel: h.from_status ? getStageLabel(h.from_status, h.from_lane) : undefined,
+    timestamp: formatDate(h.created_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+    tone: 'accent',
+    comment: h.comment || '',
+  }));
+
+  // Build compatibility sections
+  const compatibilitySections = [];
+  if (compatibility?.matched_requirements?.length > 0) {
+    compatibilitySections.push({
+      id: 'matched',
+      title: t('vacancyModal.compat_matched', { count: compatibility.matched_requirements.length }),
+      tone: 'success',
+      items: compatibility.matched_requirements.map((m, idx) => ({
+        id: `m_${idx}`,
+        title: m.requirement,
+        content: m.evidence,
+        actionLabel: t('vacancyModal.compat_evidence'),
+      })),
+    });
+  }
+
+  if (compatibility?.missing_requirements?.length > 0) {
+    compatibilitySections.push({
+      id: 'missing',
+      title: t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length }),
+      tone: 'warning',
+      items: compatibility.missing_requirements.map((m, idx) => ({
+        id: `missing_${idx}`,
+        title: m.requirement,
+        content: m.reason,
+        actionLabel: m.severity || 'medium',
+      })),
+    });
+  }
+
+  if (compatibility?.critical_gaps?.length > 0) {
+    compatibilitySections.push({
+      id: 'gaps',
+      title: t('vacancyModal.compat_gaps'),
+      tone: 'danger',
+      defaultExpandedIds: compatibility.critical_gaps.map((_, idx) => `gap_${idx}`),
+      items: compatibility.critical_gaps.map((g, idx) => ({
+        id: `gap_${idx}`,
+        title: g.gap || g,
+        content: g.impact || g.reason,
+        actionLabel: 'critical',
+      })),
+    });
+  }
+
+  const recommendationsList = (compatibility?.recommendations || []).map((r) =>
+    typeof r === 'string' ? r : r.text || r.title || ''
+  ).filter(Boolean);
+
+  const displayScore = compatibility
+    ? (compatibility.calculated_score != null ? Math.round(compatibility.calculated_score) : Math.round(compatibility.overall_score))
+    : matchScore;
+
+  const scoreTone =
+    displayScore == null
+      ? 'neutral'
+      : displayScore >= 70
+        ? 'success'
+        : displayScore >= 45
+          ? 'warning'
+          : 'danger';
+
+  const seniorityStatus = compatibility?.seniority_assessment?.status;
+  const seniorityStatusTone = seniorityStatus === 'matched' ? 'success' : seniorityStatus === 'partially_matched' ? 'warning' : 'danger';
+  const seniorityStatusLabel = seniorityStatus ? (t(`vacancyModal.compat_seniority_status.${seniorityStatus}`) || seniorityStatus) : '';
+
+  const banner = (
+    <>
+      {reparseError && (
+        <AlertBanner tone="danger" title={reparseError} style={{ margin: 'var(--ui-space-2) var(--ui-space-3)' }} />
+      )}
+      {reparseSuccess && (
+        <AlertBanner tone="success" title={t('vacancyModal.reparse_success')} style={{ margin: 'var(--ui-space-2) var(--ui-space-3)' }} />
+      )}
+    </>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalHeader
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)', flex: 1 }}>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleSaveTitle}
-              style={{ fontWeight: 600, fontSize: 'var(--ui-font-size-base)' }}
-            />
-            {savedTitleSuccess && (
-              <Badge variant="solid" size="xs" tone="success">
-                {t('common.saved') || 'Saved'}
-              </Badge>
-            )}
-          </div>
-        }
-        meta={
-          <ModalHeaderMeta>
-            {vacancy.company && (
-              <Text variant="mono" tone="secondary">
-                {vacancy.company}
-              </Text>
-            )}
-            {vacancy.url && (
-              <Button
-                as="a"
-                href={vacancy.url}
-                target="_blank"
-                rel="noreferrer"
-                variant="ghost"
-                size="icon-xs"
-                title={vacancy.url}
-              >
-                <Icon icon={ExternalLink} size="xs" />
-              </Button>
-            )}
-            {vacancy.location && (
-              <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
-                {vacancy.location}
-              </Text>
-            )}
-            {matchScore !== null && (
-              <Badge variant="solid" size="xs" tone={matchTone} icon={<Icon icon={Award} size="2xs" />}>
-                {matchScore}%
-              </Badge>
-            )}
-            {isClosed && (
-              <Badge variant="solid" size="xs" tone="danger" icon={<Icon icon={Ban} size="2xs" />}>
-                {t('kanban.closed')}
-              </Badge>
-            )}
-          </ModalHeaderMeta>
-        }
-        actions={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-1-5)' }}>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={handleReparse}
-              disabled={reparsing}
-              loading={reparsing}
-              title={t('vacancyModal.reparse_btn')}
-              startIcon={<Icon icon={RefreshCw} size="xs" />}
-            >
-              {t('vacancyModal.reparse_btn')}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={handleCopyDescription}
-              title={copiedDesc ? t('vacancyModal.desc_copied') : t('vacancyModal.desc_copy')}
-            >
-              <Icon icon={copiedDesc ? Check : Copy} size="xs" tone={copiedDesc ? 'success' : 'neutral'} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              tone="danger"
-              onClick={() => onDelete && onDelete(vacancy.id)}
-              title={t('vacancyModal.delete_btn')}
-            >
-              <Icon icon={Trash2} size="xs" />
-            </Button>
-          </div>
-        }
-        tabs={
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            items={tabItems}
-          />
-        }
-        onClose={onClose}
-      />
-
-      <ModalBody padding="none" gap="none">
-        {reparseError && (
-          <AlertBanner
-            tone="danger"
-            title={reparseError}
-            style={{ marginBottom: 'var(--ui-space-4)' }}
-          />
-        )}
-        {reparseSuccess && (
-          <AlertBanner
-            tone="success"
-            title={t('vacancyModal.reparse_success')}
-            style={{ marginBottom: 'var(--ui-space-4)' }}
-          />
-        )}
-
-        {activeTab === 'details' && (
-          <>
-            {/* Status & Workplace Controls Bar */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 'var(--ui-space-3)',
-              padding: 'var(--ui-space-2) var(--ui-space-6)',
-              backgroundColor: 'var(--ui-bg-surface)',
-              boxShadow: 'inset 0 -1px 0 0 var(--ui-border-subtle)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
-                <Text variant="mono-label" tone="muted">
-                  {t('vacancyModal.status_label')}:
-                </Text>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-1)', flexWrap: 'wrap' }}>
-                  {modalColumns.map((col) => (
-                    <Button
-                      key={col.id}
-                      variant={status === col.id ? 'primary' : 'ghost'}
-                      size="sm"
-                      onClick={() => handleStatusChange(col.id)}
-                    >
-                      {t(`kanban.columns.${col.id}`) || col.name || col.id}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
-                  <Text variant="mono-label" tone="muted">
-                    {t('vacancyModal.workplace_label')}:
-                  </Text>
-                  <Select
-                    value={workplaceType}
-                    onValueChange={handleWorkplaceTypeChange}
-                    options={workplaceOptions}
-                  />
-                </div>
-
-                <Button
-                  variant={isClosed ? 'danger' : 'secondary'}
-                  size="sm"
-                  onClick={handleToggleClosed}
-                  startIcon={<Icon icon={isClosed ? Ban : Check} size="xs" />}
-                >
-                  {isClosed ? t('kanban.closed') : t('vacancyModal.open_badge')}
-                </Button>
-              </div>
-            </div>
-
-            <div style={{ padding: 'var(--ui-space-4) var(--ui-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-              {/* Salary Section */}
-            <VacancySalarySection
-              salaryInfo={salaryInfo}
-              salaryMin={salaryMin}
-              setSalaryMin={setSalaryMin}
-              salaryMax={salaryMax}
-              setSalaryMax={setSalaryMax}
-              salaryCurrency={salaryCurrency}
-              setSalaryCurrency={setSalaryCurrency}
-              salaryPeriod={salaryPeriod}
-              setSalaryPeriod={setSalaryPeriod}
-              onSaveSalary={handleSaveSalary}
-              savingSalary={savingSalary}
-              savedSalarySuccess={savedSalarySuccess}
-            />
-
-            {/* AI Summary */}
-            <VacancyAISummarySection
-              aiSummary={vacancy.ai_summary}
-              companyDescription={vacancy.company_description}
-              onResummarize={handleResummarize}
-              resummarizing={resummarizing}
-            />
-
-            {/* Tech Stack & Tags */}
-            <VacancyTokensSection
-              techStack={techStack}
-              onTechStackChange={handleTechStackChange}
-              tags={tags}
-              onTagsChange={handleTagsChange}
-            />
-
-            {/* User Notes */}
-            <CollapsibleSection
-              title={t('vacancyModal.notes_title')}
-              icon={<Icon icon={StickyNote} size="sm" tone="accent" />}
-              accessoryAction={
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={handleSaveNotes}
-                  loading={savingNotes}
-                  startIcon={<Icon icon={Check} size="xs" />}
-                >
-                  {savedNotesSuccess ? t('common.saved') : t('common.save')}
-                </Button>
-              }
-            >
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('vacancyModal.notes_placeholder')}
-                rows={3}
-              />
-            </CollapsibleSection>
-
-            {/* Full Vacancy Description */}
-            <CollapsibleSection
-              title={t('vacancyModal.description_title')}
-              icon={<Icon icon={AlignLeft} size="sm" tone="neutral" />}
-              accessoryAction={
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={handleSaveDescription}
-                  loading={savingDesc}
-                  startIcon={<Icon icon={Check} size="xs" />}
-                >
-                  {savedDescSuccess ? t('common.saved') : t('common.save')}
-                </Button>
-              }
-            >
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('vacancyModal.description_placeholder')}
-                rows={8}
-              />
-            </CollapsibleSection>
-
-            {/* Stage History Timeline */}
-            <VacancyTimelineSection
-              history={vacancy.history || []}
-              onSaveComment={handleSaveHistoryComment}
-              onDeleteComment={handleDeleteHistoryComment}
-              getStageLabel={getStageLabel}
-            />
-          </div>
-        </>
-      )}
-
-      {activeTab === 'compatibility' && (
-        <div style={{ padding: 'var(--ui-space-4) var(--ui-space-6)' }}>
-          <VacancyCompatibilitySection
-            compatibility={compatibility}
-            onRunAnalysis={handleRunCompatibility}
-            analyzing={analyzingCompatibility}
-            loading={loadingCompatibility}
-            hasDescription={Boolean(description?.trim())}
-            error={compatError}
-          />
-        </div>
-      )}
-    </ModalBody>
-
-      <ModalFooter justify="end">
-        <Button variant="secondary" onClick={onClose}>
-          {t('batchModal.done_btn')}
-        </Button>
-      </ModalFooter>
-    </Modal>
+    <VacancyDetailsModal
+      isOpen={isOpen}
+      onClose={onClose}
+      banner={banner}
+      size="xl"
+      title={title}
+      onTitleChange={setTitle}
+      onSaveTitle={handleSaveTitle}
+      company={vacancy.company}
+      sourceUrl={vacancy.url}
+      location={vacancy.location}
+      workplace={workplaceType}
+      workplaceLabel={workplaceInfo.label}
+      workplaceOptions={workplaceOptions}
+      onWorkplaceChange={handleWorkplaceTypeChange}
+      isClosed={isClosed}
+      onToggleClosed={handleToggleClosed}
+      closedBadgeLabel={t('kanban.closed')}
+      closedButtonLabel={t('kanban.closed')}
+      openButtonLabel={t('vacancyModal.open_badge')}
+      formattedSalary={salaryInfo.hasSalary ? salaryInfo.formatted : t('vacancyModal.salary_not_specified')}
+      matchScore={matchScore}
+      onRefresh={handleReparse}
+      refreshing={reparsing}
+      refreshLabel={t('vacancyModal.reparse_btn')}
+      externalLinkLabel="LINKEDIN"
+      onDelete={onDelete ? () => onDelete(vacancy.id) : undefined}
+      deleteLabel={t('vacancyModal.delete_btn')}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      detailsTabLabel={t('vacancyModal.tab_details')}
+      compatibilityTabLabel={t('vacancyModal.tab_cv_compatibility')}
+      status={status}
+      stageOptions={stageOptions}
+      onStatusChange={handleStatusChange}
+      statusLabel={t('vacancyModal.status_label')}
+      formatLabel={t('vacancyModal.workplace_label')}
+      salaryTitle={t('vacancyModal.salary_title')}
+      salaryMin={salaryMin}
+      salaryMax={salaryMax}
+      salaryCurrency={salaryCurrency}
+      salaryPeriod={salaryPeriod}
+      onSaveSalary={handleSaveSalary}
+      savingSalary={savingSalary}
+      savedSalarySuccess={savedSalarySuccess}
+      editSalaryLabel={t('common.edit')}
+      saveSalaryLabel={t('common.save')}
+      cancelSalaryLabel={t('common.cancel')}
+      salaryMinLabel={t('vacancyModal.min')}
+      salaryMaxLabel={t('vacancyModal.max')}
+      salaryCurrencyLabel={t('vacancyModal.currency')}
+      salaryPeriodLabel={t('vacancyModal.period')}
+      aiSummaryTitle={t('vacancyModal.ai_summary_title')}
+      aiSummary={vacancy.ai_summary}
+      companyDescription={vacancy.company_description}
+      companyInfoLabel={t('vacancyModal.about_company') + ' '}
+      onResummarize={handleResummarize}
+      resummarizing={resummarizing}
+      updateAiLabel={t('vacancyModal.resummarize_btn')}
+      noAiSummaryText={t('vacancyModal.no_summary')}
+      techStackTitle={t('vacancyModal.tech_stack_title')}
+      techStack={techStack}
+      onTechStackChange={handleTechStackChange}
+      addTechPlaceholder={t('vacancyModal.add_token_placeholder')}
+      tagsTitle={t('vacancyModal.tags_title')}
+      tags={tags}
+      onTagsChange={handleTagsChange}
+      addTagPlaceholder={t('vacancyModal.add_tag_placeholder')}
+      historyTitle={t('vacancyModal.history_timeline_title')}
+      historyStagesCountLabel={`{count} ${t('vacancyModal.history_timeline_title').toLowerCase()}`}
+      historyItems={historyItems}
+      onSaveComment={handleSaveHistoryComment}
+      onDeleteComment={handleDeleteHistoryComment}
+      addCommentLabel={t('vacancyModal.history_add_comment') || 'Добавить комментарий к этапу'}
+      commentPlaceholder={t('vacancyModal.history_comment_placeholder')}
+      saveCommentLabel={t('vacancyModal.history_save_comment')}
+      cancelCommentLabel={t('vacancyModal.history_cancel')}
+      noHistoryTitle={t('vacancyModal.no_history')}
+      notesTitle={t('vacancyModal.notes_title')}
+      notes={notes}
+      onNotesChange={setNotes}
+      onSaveNotes={handleSaveNotes}
+      savingNotes={savingNotes}
+      notesSaved={savedNotesSuccess}
+      saveNotesLabel={t('common.save')}
+      savedNotesLabel={t('common.saved')}
+      notesPlaceholder={t('vacancyModal.notes_placeholder')}
+      originalDescriptionTitle={t('vacancyModal.description_title')}
+      description={description}
+      onDescriptionChange={setDescription}
+      onSaveDescription={handleSaveDescription}
+      savingDescription={savingDesc}
+      descriptionSaved={savedDescSuccess}
+      saveDescriptionLabel={t('common.save')}
+      copyDescriptionLabel={t('vacancyModal.desc_copy')}
+      copiedDescriptionLabel={t('vacancyModal.desc_copied')}
+      isCvOutdated={Boolean(compatibility?.is_outdated)}
+      cvOutdatedMessage={t('vacancyModal.compat_outdated', { revision: compatibility?.cv_revision || '' })}
+      cvAssessment={compatibility?.summary}
+      cvLevelStatus={seniorityStatusLabel}
+      cvLevelTone={seniorityStatusTone}
+      cvLevelComment={compatibility?.seniority_assessment?.comment}
+      cvLevelStatusLabel={t('vacancyModal.compat_seniority')}
+      compatibilitySections={compatibilitySections}
+      compatibilityScore={displayScore}
+      compatibilityScoreTone={scoreTone}
+      onRunCompatibility={handleRunCompatibility}
+      analyzingCompatibility={analyzingCompatibility}
+      loadingCompatibility={loadingCompatibility}
+      compatibilityError={compatError}
+      recheckCompatibilityLabel={t('vacancyModal.compat_reanalyze')}
+      compareCompatibilityLabel={t('vacancyModal.compat_compare')}
+      recommendationsTitle={t('vacancyModal.compat_recommendations')}
+      recommendations={recommendationsList}
+      emptyCompatibilityTitle={t('vacancyModal.compat_title')}
+      emptyCompatibilityDescription={vacancy.description ? "Нажмите для запуска сопоставления резюме с требованиями вакансии." : t('vacancyModal.compat_no_description')}
+      onReject={() => handleStatusChange(rejectedStatusId)}
+      rejectLabel={t('vacancyModal.reject_btn') || 'В НЕ ПОДОШЛО'}
+      closeLabel={t('batchModal.done_btn') || 'ЗАКРЫТЬ'}
+    />
   );
 }
