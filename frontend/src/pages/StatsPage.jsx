@@ -1,7 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Flame, Trophy, CalendarCheck, PlusCircle, Loader2 } from 'lucide-react';
+import { Flame, Trophy, CalendarCheck, PlusCircle } from 'lucide-react';
+import {
+  PageLayout,
+  TableHeader,
+  Badge,
+  Text,
+  Spinner,
+  AlertBanner,
+  Icon,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import { useBlueprintGrid } from '../utils/useBlueprintGrid';
 import { useGridScroll } from '../utils/useGridScroll';
 
 const HEATMAP_WEEKS = 26;
@@ -59,62 +67,71 @@ export default function StatsPage() {
   const { t, formatDate, locale } = useTranslation();
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-
-  const pageRef = useBlueprintGrid([data, error, locale]);
   const snapScroll = useGridScroll();
 
   useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/stats?tz_offset=${new Date().getTimezoneOffset()}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('stats failed'))))
-      .then((json) => !cancelled && setData(json))
-      .catch(() => !cancelled && setError(true));
-    return () => {
-      cancelled = true;
-    };
+    let active = true;
+    fetch('/api/stats')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => { if (active) setData(d); })
+      .catch(() => { if (active) setError(true); });
+    return () => { active = false; };
   }, []);
 
   const view = useMemo(() => {
     if (!data) return null;
-    const marked = {};
-    const added = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const activity = {};
-    for (const row of data.daily) {
-      marked[row.date] = row.marked;
-      added[row.date] = row.added;
-      activity[row.date] = row.marked + row.added;
-    }
-    const today = parseIso(data.today);
+    const marked = data.marked_by_day || {};
+    const added = data.added_by_day || {};
+    for (const [k, v] of Object.entries(marked)) activity[k] = (activity[k] || 0) + v;
+    for (const [k, v] of Object.entries(added)) activity[k] = (activity[k] || 0) + v;
+
     const streaks = computeStreaks(activity, today);
 
-    // Heatmap: columns are weeks (Mon-first), ends with the current week.
-    const dow = (today.getDay() + 6) % 7;
-    const gridStart = addDays(today, -dow - (HEATMAP_WEEKS - 1) * 7);
+    // Heatmap calendar: HEATMAP_WEEKS columns of 7 days (Mon-Sun)
+    const todayDayOfWeek = (today.getDay() + 6) % 7; // 0 = Mon
+    const endOfWeek = addDays(today, 6 - todayDayOfWeek);
+    const start = addDays(endOfWeek, -(HEATMAP_WEEKS * 7 - 1));
+
     const weeks = [];
+    let cur = new Date(start);
     let max = 0;
-    for (let w = 0; w < HEATMAP_WEEKS; w++) {
+    for (let w = 0; w < HEATMAP_WEEKS; w += 1) {
       const col = [];
-      for (let d = 0; d < 7; d++) {
-        const date = addDays(gridStart, w * 7 + d);
-        const key = iso(date);
+      for (let d = 0; d < 7; d += 1) {
+        const key = iso(cur);
         const count = activity[key] || 0;
-        max = Math.max(max, count);
-        col.push({ key, date, count, future: date > today });
+        const isFuture = cur > today;
+        if (!isFuture && count > max) max = count;
+        col.push({ key, date: new Date(cur), count, future: isFuture });
+        cur = addDays(cur, 1);
       }
       weeks.push(col);
     }
 
+    // Bar chart: last BAR_DAYS days
     const bars = [];
-    for (let i = BAR_DAYS - 1; i >= 0; i--) {
-      const date = addDays(today, -i);
-      const key = iso(date);
-      bars.push({ key, date, marked: marked[key] || 0, added: added[key] || 0 });
+    let barMax = 0;
+    for (let i = BAR_DAYS - 1; i >= 0; i -= 1) {
+      const d = addDays(today, -i);
+      const key = iso(d);
+      const m = marked[key] || 0;
+      const a = added[key] || 0;
+      const total = m + a;
+      if (total > barMax) barMax = total;
+      bars.push({ key, date: d, marked: m, added: a });
     }
-    const barMax = Math.max(1, ...bars.map((b) => b.marked + b.added));
+    barMax = Math.max(barMax, 1);
 
     const sumLast = (n) => {
       let s = 0;
-      for (let i = 0; i < n; i++) s += activity[iso(addDays(today, -i))] || 0;
+      for (let i = 0; i < n; i += 1) {
+        const key = iso(addDays(today, -i));
+        s += activity[key] || 0;
+      }
       return s;
     };
 
@@ -139,112 +156,222 @@ export default function StatsPage() {
 
   if (error) {
     return (
-      <div ref={pageRef} className="info-page bp-page">
-        <div className="info-card bp-cell bp-snap" data-min-grids="2">
-          {t('pages.stats.error')}
+      <PageLayout gridDeps={[locale]} className="stats-page">
+        <div style={{ padding: 'var(--ui-space-4)' }}>
+          <AlertBanner tone="danger" title={t('pages.stats.error')} />
         </div>
-      </div>
+      </PageLayout>
     );
   }
+
   if (!view) {
     return (
-      <div ref={pageRef} className="info-page bp-page" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={28} className="spin" style={{ color: 'var(--primary)' }} />
-      </div>
+      <PageLayout gridDeps={[locale]} className="stats-page">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(8 * var(--ui-grid-cell))' }}>
+          <Spinner size="lg" />
+        </div>
+      </PageLayout>
     );
   }
 
   const doneToday = view.markedToday + view.addedToday > 0;
 
   return (
-    <div ref={pageRef} className="info-page bp-page">
-      <div className="info-container bp-container">
-        {/* Top Blueprint Rail */}
-        <header className="info-hero bp-subbar bp-snap" data-min-grids="1">
-          <div className="bp-subbar-left">
-            <span className="column-dot" style={{ background: 'var(--aspen-mint)' }} />
-            <h1 className="info-title bp-subbar-title">{t('pages.stats.title')}</h1>
-            <span className="bp-subbar-sep">/</span>
-            <p className="info-subtitle bp-subbar-subtitle">{t('pages.stats.subtitle')}</p>
+    <PageLayout
+      gridDeps={[locale]}
+      className="stats-page"
+      header={
+        <div
+          className="bp-subbar bp-snap"
+          data-min-grids="1"
+          style={{
+            height: 'var(--ui-grid-cell)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 var(--ui-space-4)',
+            backgroundColor: 'var(--ui-bg-surface)',
+            borderBottom: '1px solid var(--ui-pixel-line)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+            <span style={{ width: '8px', height: '8px', backgroundColor: 'var(--ui-success)' }} />
+            <Text variant="mono" weight="bold" tone="primary">
+              {t('pages.stats.title')}
+            </Text>
+            <Text variant="mono" tone="muted">
+              /
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {t('pages.stats.subtitle')}
+            </Text>
           </div>
-          <div className="bp-subbar-right">
-            <span className={`bp-streak-pill ${doneToday ? 'done' : ''}`}>
-              <Flame size={13} />
-              <span>{doneToday ? t('pages.stats.streak_done') : t('pages.stats.streak_todo')}</span>
-            </span>
+          <div>
+            <Badge
+              variant={doneToday ? 'solid' : 'outline'}
+              tone={doneToday ? 'success' : 'warning'}
+              size="sm"
+              icon={<Icon icon={Flame} size="xs" />}
+            >
+              {doneToday ? t('pages.stats.streak_done') : t('pages.stats.streak_todo')}
+            </Badge>
           </div>
-        </header>
-
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-6)', padding: 'var(--ui-space-4)' }}>
         {/* 4-Column KPI Grid Strip */}
-        <section className="stat-grid bp-grid-row" data-cols="4">
-          <div className={`stat-card stat-streak ${doneToday ? 'done' : ''} bp-snap`} data-min-grids="2" id="stat-current-streak">
-            <div className="stat-icon"><Flame size={18} /></div>
-            <div className="stat-card-body">
-              <div className="stat-card-top">
-                <span className="stat-label">{t('pages.stats.current_streak')}</span>
-                <span className="stat-value">{view.streaks.current}</span>
-              </div>
-              <div className="stat-hint">
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 'var(--ui-space-4)',
+          }}
+        >
+          <div
+            id="stat-current-streak"
+            style={{
+              padding: 'var(--ui-space-4)',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--ui-space-3)',
+            }}
+          >
+            <div style={{ color: 'var(--ui-warning)' }}>
+              <Icon icon={Flame} size="md" />
+            </div>
+            <div>
+              <Text variant="caption" tone="secondary">
+                {t('pages.stats.current_streak')}
+              </Text>
+              <Text variant="title" weight="bold" tone="primary">
+                {view.streaks.current}
+              </Text>
+              <Text variant="caption" tone="muted">
                 {doneToday ? t('pages.stats.streak_done') : t('pages.stats.streak_todo')}
-              </div>
+              </Text>
             </div>
           </div>
 
-          <div className="stat-card bp-snap" data-min-grids="2" id="stat-best-streak">
-            <div className="stat-icon gold"><Trophy size={18} /></div>
-            <div className="stat-card-body">
-              <div className="stat-card-top">
-                <span className="stat-label">{t('pages.stats.best_streak')}</span>
-                <span className="stat-value">{view.streaks.best}</span>
-              </div>
-              <div className="stat-hint">{t('pages.stats.active_days')}: {view.activeDays}</div>
+          <div
+            id="stat-best-streak"
+            style={{
+              padding: 'var(--ui-space-4)',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--ui-space-3)',
+            }}
+          >
+            <div style={{ color: 'var(--ui-warning)' }}>
+              <Icon icon={Trophy} size="md" />
+            </div>
+            <div>
+              <Text variant="caption" tone="secondary">
+                {t('pages.stats.best_streak')}
+              </Text>
+              <Text variant="title" weight="bold" tone="primary">
+                {view.streaks.best}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t('pages.stats.active_days')}: {view.activeDays}
+              </Text>
             </div>
           </div>
 
-          <div className="stat-card bp-snap" data-min-grids="2" id="stat-marked-today">
-            <div className="stat-icon green"><CalendarCheck size={18} /></div>
-            <div className="stat-card-body">
-              <div className="stat-card-top">
-                <span className="stat-label">{t('pages.stats.marked_today')}</span>
-                <span className="stat-value">{view.markedToday}</span>
-              </div>
-              <div className="stat-hint">{t('pages.stats.last7')}: {view.last7}</div>
+          <div
+            id="stat-marked-today"
+            style={{
+              padding: 'var(--ui-space-4)',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--ui-space-3)',
+            }}
+          >
+            <div style={{ color: 'var(--ui-success)' }}>
+              <Icon icon={CalendarCheck} size="md" />
+            </div>
+            <div>
+              <Text variant="caption" tone="secondary">
+                {t('pages.stats.marked_today')}
+              </Text>
+              <Text variant="title" weight="bold" tone="primary">
+                {view.markedToday}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t('pages.stats.last7')}: {view.last7}
+              </Text>
             </div>
           </div>
 
-          <div className="stat-card bp-snap" data-min-grids="2" id="stat-added-today">
-            <div className="stat-icon cyan"><PlusCircle size={18} /></div>
-            <div className="stat-card-body">
-              <div className="stat-card-top">
-                <span className="stat-label">{t('pages.stats.added_today')}</span>
-                <span className="stat-value">{view.addedToday}</span>
-              </div>
-              <div className="stat-hint">{t('pages.stats.last30')}: {view.last30}</div>
+          <div
+            id="stat-added-today"
+            style={{
+              padding: 'var(--ui-space-4)',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--ui-space-3)',
+            }}
+          >
+            <div style={{ color: 'var(--ui-primary)' }}>
+              <Icon icon={PlusCircle} size="md" />
+            </div>
+            <div>
+              <Text variant="caption" tone="secondary">
+                {t('pages.stats.added_today')}
+              </Text>
+              <Text variant="title" weight="bold" tone="primary">
+                {view.addedToday}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t('pages.stats.last30')}: {view.last30}
+              </Text>
             </div>
           </div>
         </section>
 
         {/* 3-Column Board Layout: [01 Activity + Summary] | [02 Last 14 Days] | [03 By Status] */}
-        <div className="stat-board-cols bp-grid-row" data-cols="3">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 'var(--ui-space-4)',
+          }}
+        >
           {/* Column 1: Heatmap + Summary */}
-          <section className="info-card bp-col">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">01</span>
-                <span className="column-dot" style={{ background: 'var(--aspen-mint)' }} />
-                <h2 className="column-name info-card-title">{t('pages.stats.activity')}</h2>
-                <span className="column-badge">[{HEATMAP_WEEKS}w]</span>
-              </div>
-              <div className="heatmap-legend">
-                <span>{t('pages.stats.less')}</span>
-                {[0, 1, 2, 3, 4].map((l) => (
-                  <span key={l} className={`heatmap-cell lvl-${l}`} aria-hidden="true" />
-                ))}
-                <span>{t('pages.stats.more')}</span>
-              </div>
-            </div>
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+            }}
+          >
+            <TableHeader
+              size="sm"
+              index="[ 01 ]"
+              indicatorTone="success"
+              title={t('pages.stats.activity')}
+              badge={`${HEATMAP_WEEKS}w`}
+              actions={
+                <div className="heatmap-legend" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+                  <Text variant="caption" tone="muted">{t('pages.stats.less')}</Text>
+                  {[0, 1, 2, 3, 4].map((l) => (
+                    <span key={l} className={`heatmap-cell lvl-${l}`} aria-hidden="true" />
+                  ))}
+                  <Text variant="caption" tone="muted">{t('pages.stats.more')}</Text>
+                </div>
+              }
+            />
 
-            <div className="bp-heatmap-box bp-snap" data-min-grids="4">
+            <div className="bp-heatmap-box bp-snap" data-min-grids="4" style={{ padding: 'var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
               <div className="heatmap" id="stat-heatmap" onScroll={(event) => snapScroll(event, 'x')}>
                 {view.weeks.map((col, i) => (
                   <div className="heatmap-col" key={i}>
@@ -260,37 +387,56 @@ export default function StatsPage() {
               </div>
             </div>
 
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">02</span>
-                <span className="column-dot" style={{ background: 'var(--primary)' }} />
-                <h2 className="column-name info-card-title">{t('pages.stats.summary')}</h2>
-              </div>
-            </div>
+            <TableHeader
+              size="sm"
+              index="[ 02 ]"
+              indicatorTone="accent"
+              title={t('pages.stats.summary')}
+            />
 
-            <ul className="summary-list">
-              <li><span>{t('pages.stats.total_vacancies')}</span><b>{data.total}</b></li>
-              <li><span>{t('pages.stats.last7')}</span><b>{view.last7}</b></li>
-              <li><span>{t('pages.stats.last30')}</span><b>{view.last30}</b></li>
-              <li><span>{t('pages.stats.active_days')}</span><b>{view.activeDays}</b></li>
+            <ul className="summary-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--ui-space-2) var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+                <Text variant="body-sm" tone="secondary">{t('pages.stats.total_vacancies')}</Text>
+                <Text variant="mono" weight="bold" tone="primary">{data.total}</Text>
+              </li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--ui-space-2) var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+                <Text variant="body-sm" tone="secondary">{t('pages.stats.last7')}</Text>
+                <Text variant="mono" weight="bold" tone="primary">{view.last7}</Text>
+              </li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--ui-space-2) var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+                <Text variant="body-sm" tone="secondary">{t('pages.stats.last30')}</Text>
+                <Text variant="mono" weight="bold" tone="primary">{view.last30}</Text>
+              </li>
+              <li style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--ui-space-2) var(--ui-space-4)' }}>
+                <Text variant="body-sm" tone="secondary">{t('pages.stats.active_days')}</Text>
+                <Text variant="mono" weight="bold" tone="primary">{view.activeDays}</Text>
+              </li>
             </ul>
           </section>
 
           {/* Column 2: Last 14 Days */}
-          <section className="info-card bp-col">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">03</span>
-                <span className="column-dot" style={{ background: '#0284c7' }} />
-                <h2 className="column-name info-card-title">{t('pages.stats.last_days', { n: BAR_DAYS })}</h2>
-              </div>
-              <div className="bars-legend">
-                <span><b className="chart-key chart-marked" /> {t('pages.stats.marked')}</span>
-                <span><b className="chart-key chart-added" /> {t('pages.stats.added')}</span>
-              </div>
-            </div>
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+            }}
+          >
+            <TableHeader
+              size="sm"
+              index="[ 03 ]"
+              indicatorTone="accent"
+              title={t('pages.stats.last_days', { n: BAR_DAYS })}
+              actions={
+                <div className="bars-legend" style={{ display: 'flex', gap: '8px', fontSize: '11px' }}>
+                  <Text variant="caption" tone="secondary"><b className="chart-key chart-marked" /> {t('pages.stats.marked')}</Text>
+                  <Text variant="caption" tone="secondary"><b className="chart-key chart-added" /> {t('pages.stats.added')}</Text>
+                </div>
+              }
+            />
 
-            <div className="ascii-day-chart" id="stat-bars" onScroll={(event) => snapScroll(event, 'x')}>
+            <div className="ascii-day-chart" id="stat-bars" onScroll={(event) => snapScroll(event, 'x')} style={{ padding: 'var(--ui-space-4)' }}>
               {view.bars.map((b) => {
                 const total = b.marked + b.added;
                 const width = 20;
@@ -315,30 +461,40 @@ export default function StatsPage() {
           </section>
 
           {/* Column 3: By Status */}
-          <section className="info-card bp-col">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">04</span>
-                <span className="column-dot" style={{ background: '#9333ea' }} />
-                <h3 className="column-name info-card-subtitle">{t('pages.stats.by_status')}</h3>
-                <span className="column-badge">[{data.total}]</span>
-              </div>
-            </div>
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: 'var(--ui-bg-card-fill)',
+              border: '1px solid var(--ui-border-subtle)',
+            }}
+          >
+            <TableHeader
+              size="sm"
+              index="[ 04 ]"
+              indicatorTone="accent"
+              title={t('pages.stats.by_status')}
+              badge={data.total}
+            />
 
-            <div className="status-rows" onScroll={(event) => snapScroll(event, 'x')}>
+            <div className="status-rows" onScroll={(event) => snapScroll(event, 'x')} style={{ padding: 'var(--ui-space-4)' }}>
               {view.statuses.map(([status, count]) => (
-                <div className="status-row" key={status}>
-                  <span className="status-name">{t(`kanban.columns.${status}`)}</span>
-                  <span className="chart-track" aria-label={`${count} / ${data.total}`}>
+                <div className="status-row" key={status} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                  <Text variant="body-sm" tone="primary" style={{ width: '120px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {t(`kanban.columns.${status}`)}
+                  </Text>
+                  <span className="chart-track" aria-label={`${count} / ${data.total}`} style={{ flex: 1 }}>
                     <span className="chart-marked" style={{ width: `${(count / Math.max(data.total, 1)) * 100}%` }} />
                   </span>
-                  <b>{count}</b>
+                  <Text variant="mono" weight="bold" tone="primary" style={{ width: '40px', textAlign: 'right' }}>
+                    {count}
+                  </Text>
                 </div>
               ))}
             </div>
           </section>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

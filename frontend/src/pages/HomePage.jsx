@@ -5,6 +5,12 @@ import {
   RefreshCw, CheckCircle2, AlertCircle, X, Loader2,
   Globe, MapPin, RotateCcw, ChevronDown, Laptop, Trash2, ExternalLink, Ban, XCircle
 } from 'lucide-react';
+import {
+  Button,
+  Icon,
+  Badge,
+  Spinner,
+} from '@blueprint/ui-kit';
 import KanbanBoard from '../components/KanbanBoard';
 import BatchImportModal from '../components/BatchImportModal';
 import VacancyModal from '../components/VacancyModal';
@@ -685,19 +691,23 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             </div>
           )}
 
-          <button
-            className={`btn btn-primary add-button plausible-event-name=Batch+Import+Open ${
+          <Button
+            variant="primary"
+            size="md"
+            className={`add-button plausible-event-name=Batch+Import+Open ${
               shouldHighlightAdd ? 'is-tour-attention' : ''
             }`}
             aria-label={t('nav.batch_import_btn')}
             onClick={handleAddVacanciesClick}
+            startIcon={<Icon icon={Plus} size="sm" />}
           >
-            <Plus size={16} />
-            <span>{t('nav.batch_import_btn')}</span>
-          </button>
+            {t('nav.batch_import_btn')}
+          </Button>
 
-          <button
-            className="btn btn-secondary btn-icon plausible-event-name=Refresh+Vacancies"
+          <Button
+            variant="secondary"
+            size="icon-md"
+            className="plausible-event-name=Refresh+Vacancies"
             onClick={async () => {
               trackEvent(EVENTS.REFRESH_CLICK);
               try {
@@ -713,8 +723,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
             }}
             title={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
           >
-            <RefreshCw size={18} aria-hidden="true" />
-          </button>
+            <Icon icon={RefreshCw} size="sm" aria-hidden="true" />
+          </Button>
         </HeaderControls>
       </header>
 

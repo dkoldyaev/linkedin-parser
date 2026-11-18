@@ -1,7 +1,14 @@
 import React from 'react';
 import { Download } from 'lucide-react';
+import {
+  PageLayout,
+  Button,
+  Icon,
+  Text,
+  Badge,
+  TableHeader,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import { useBlueprintGrid } from '../utils/useBlueprintGrid';
 
 const INSTALL_STEPS = [1, 2, 3, 4, 5];
 const USE_STEPS = [1, 2, 3, 4];
@@ -9,111 +16,224 @@ const TROUBLE = [1, 2, 3, 4, 5];
 
 export default function HowToUsePage() {
   const { t, locale } = useTranslation();
-  const pageRef = useBlueprintGrid([locale]);
 
   return (
-    <div ref={pageRef} className="info-page bp-page howto-page">
-      <div className="info-container bp-container">
-        {/* Top Blueprint Rail */}
-        <header className="info-hero bp-subbar bp-snap" data-min-grids="1">
-          <div className="bp-subbar-left">
-            <span className="column-dot" style={{ background: 'var(--primary)' }} />
-            <h1 className="info-title bp-subbar-title">{t('pages.howto.title')}</h1>
-            <span className="bp-subbar-sep">/</span>
-            <p className="info-subtitle bp-subbar-subtitle">{t('pages.howto.subtitle')}</p>
+    <PageLayout
+      gridDeps={[locale]}
+      className="howto-page"
+      header={
+        <div
+          className="bp-subbar bp-snap"
+          data-min-grids="1"
+          style={{
+            height: 'var(--ui-grid-cell)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 var(--ui-space-4)',
+            backgroundColor: 'var(--ui-bg-surface)',
+            borderBottom: '1px solid var(--ui-pixel-line)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+            <span style={{ width: '8px', height: '8px', backgroundColor: 'var(--ui-primary)' }} />
+            <Text variant="mono" weight="bold" tone="primary">
+              {t('pages.howto.title')}
+            </Text>
+            <Text variant="mono" tone="muted">
+              /
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {t('pages.howto.subtitle')}
+            </Text>
           </div>
-          <div className="bp-subbar-right">
-            <a href="/extension.zip" download className="btn btn-primary bp-subbar-btn">
-              <Download size={14} />
-              <span>{t('pages.howto.download')}</span>
-            </a>
+          <div>
+            <Button
+              as="a"
+              href="/extension.zip"
+              download
+              variant="primary"
+              size="sm"
+              startIcon={<Icon icon={Download} size="xs" />}
+            >
+              {t('pages.howto.download')}
+            </Button>
           </div>
-        </header>
-
-        {/* 3-Column Board Layout: [01 Install] | [02 Workflow] | [03 Support] */}
-        <div className="bp-grid-row" data-cols="3">
-          {/* Column 1: Extension Installation */}
-          <section className="info-card bp-col" id="howto-install">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">01</span>
-                <span className="column-dot" style={{ background: 'var(--primary)' }} />
-                <h2 className="column-name info-card-title">{t('pages.howto.install_title')}</h2>
-                <span className="column-badge">[{INSTALL_STEPS.length}]</span>
-              </div>
-              <span className="bp-col-tag">INSTALL</span>
-            </div>
-
-            <div className="bp-cell-intro bp-snap" data-min-grids="2">
-              <p className="info-text">{t('pages.howto.install_intro')}</p>
-            </div>
-
-            <ol className="steps bp-steps">
-              {INSTALL_STEPS.map((n) => (
-                <li key={n} className="bp-step-item bp-snap" data-min-grids="2">
-                  <span className="bp-step-num">{String(n).padStart(2, '0')}</span>
-                  <span className="bp-step-text">{t(`pages.howto.install_${n}`)}</span>
-                </li>
-              ))}
-            </ol>
-
-            <div className="bp-col-footer bp-snap" data-min-grids="2">
-              <a href="/extension.zip" download className="btn btn-primary">
-                <Download size={14} />
-                <span>{t('pages.howto.download')}</span>
-              </a>
-            </div>
-          </section>
-
-          {/* Column 2: Workflow */}
-          <section className="info-card bp-col" id="howto-use">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">02</span>
-                <span className="column-dot" style={{ background: 'var(--aspen-mint)' }} />
-                <h2 className="column-name info-card-title">{t('pages.howto.use_title')}</h2>
-                <span className="column-badge">[{USE_STEPS.length}]</span>
-              </div>
-              <span className="bp-col-tag">WORKFLOW</span>
-            </div>
-
-            <ol className="steps bp-steps">
-              {USE_STEPS.map((n) => (
-                <li key={n} className="bp-step-item bp-snap" data-min-grids="2">
-                  <span className="bp-step-num">{String(n).padStart(2, '0')}</span>
-                  <span className="bp-step-text">{t(`pages.howto.use_${n}`)}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          {/* Column 3: Troubleshooting */}
-          <section className="info-card bp-col" id="howto-trouble">
-            <div className="column-header">
-              <div className="column-title-group">
-                <span className="column-index">03</span>
-                <span className="column-dot" style={{ background: '#d97706' }} />
-                <h2 className="column-name info-card-title">{t('pages.howto.trouble_title')}</h2>
-                <span className="column-badge">[{TROUBLE.length}]</span>
-              </div>
-              <span className="bp-col-tag">SUPPORT</span>
-            </div>
-
-            <div className="bp-cell-intro bp-snap" data-min-grids="1">
-              <p className="info-text">{t('pages.howto.trouble_intro')}</p>
-            </div>
-
-            <ol className="steps bp-steps">
-              {TROUBLE.map((n) => (
-                <li key={n} className="bp-step-item bp-snap" data-min-grids="2">
-                  <span className="bp-step-num">{String(n).padStart(2, '0')}</span>
-                  <span className="bp-step-text">{t(`pages.howto.trouble_${n}`)}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
         </div>
+      }
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 'var(--ui-space-4)',
+          padding: 'var(--ui-space-4)',
+        }}
+      >
+        {/* Column 1: Extension Installation */}
+        <section
+          id="howto-install"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'var(--ui-bg-card-fill)',
+            border: '1px solid var(--ui-border-subtle)',
+          }}
+        >
+          <TableHeader
+            size="sm"
+            index="[ 01 ]"
+            indicatorTone="accent"
+            title={t('pages.howto.install_title')}
+            badge={INSTALL_STEPS.length}
+            actions={
+              <Badge variant="outline" size="xs" tone="accent">
+                INSTALL
+              </Badge>
+            }
+          />
+
+          <div style={{ padding: 'var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+            <Text variant="body-sm" tone="secondary">
+              {t('pages.howto.install_intro')}
+            </Text>
+          </div>
+
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+            {INSTALL_STEPS.map((n) => (
+              <li
+                key={n}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--ui-space-3)',
+                  padding: 'var(--ui-space-3) var(--ui-space-4)',
+                  borderBottom: '1px solid var(--ui-border-subtle)',
+                }}
+              >
+                <Badge variant="outline" size="xs" tone="accent" style={{ flexShrink: 0 }}>
+                  {String(n).padStart(2, '0')}
+                </Badge>
+                <Text variant="body-sm" tone="primary">
+                  {t(`pages.howto.install_${n}`)}
+                </Text>
+              </li>
+            ))}
+          </ol>
+
+          <div style={{ padding: 'var(--ui-space-4)', marginTop: 'auto' }}>
+            <Button
+              as="a"
+              href="/extension.zip"
+              download
+              variant="primary"
+              size="sm"
+              startIcon={<Icon icon={Download} size="xs" />}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              {t('pages.howto.download')}
+            </Button>
+          </div>
+        </section>
+
+        {/* Column 2: Workflow */}
+        <section
+          id="howto-use"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'var(--ui-bg-card-fill)',
+            border: '1px solid var(--ui-border-subtle)',
+          }}
+        >
+          <TableHeader
+            size="sm"
+            index="[ 02 ]"
+            indicatorTone="success"
+            title={t('pages.howto.use_title')}
+            badge={USE_STEPS.length}
+            actions={
+              <Badge variant="outline" size="xs" tone="success">
+                WORKFLOW
+              </Badge>
+            }
+          />
+
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+            {USE_STEPS.map((n) => (
+              <li
+                key={n}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--ui-space-3)',
+                  padding: 'var(--ui-space-3) var(--ui-space-4)',
+                  borderBottom: '1px solid var(--ui-border-subtle)',
+                }}
+              >
+                <Badge variant="outline" size="xs" tone="success" style={{ flexShrink: 0 }}>
+                  {String(n).padStart(2, '0')}
+                </Badge>
+                <Text variant="body-sm" tone="primary">
+                  {t(`pages.howto.use_${n}`)}
+                </Text>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Column 3: Troubleshooting */}
+        <section
+          id="howto-trouble"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'var(--ui-bg-card-fill)',
+            border: '1px solid var(--ui-border-subtle)',
+          }}
+        >
+          <TableHeader
+            size="sm"
+            index="[ 03 ]"
+            indicatorTone="warning"
+            title={t('pages.howto.trouble_title')}
+            badge={TROUBLE.length}
+            actions={
+              <Badge variant="outline" size="xs" tone="warning">
+                SUPPORT
+              </Badge>
+            }
+          />
+
+          <div style={{ padding: 'var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+            <Text variant="body-sm" tone="secondary">
+              {t('pages.howto.trouble_intro')}
+            </Text>
+          </div>
+
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+            {TROUBLE.map((n) => (
+              <li
+                key={n}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 'var(--ui-space-3)',
+                  padding: 'var(--ui-space-3) var(--ui-space-4)',
+                  borderBottom: '1px solid var(--ui-border-subtle)',
+                }}
+              >
+                <Badge variant="outline" size="xs" tone="warning" style={{ flexShrink: 0 }}>
+                  {String(n).padStart(2, '0')}
+                </Badge>
+                <Text variant="body-sm" tone="primary">
+                  {t(`pages.howto.trouble_${n}`)}
+                </Text>
+              </li>
+            ))}
+          </ol>
+        </section>
       </div>
-    </div>
+    </PageLayout>
   );
 }

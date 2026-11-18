@@ -3,6 +3,15 @@ import KanbanCard from './KanbanCard';
 import { useGridScroll } from '../utils/useGridScroll';
 import { useTranslation } from '../i18n/I18nContext';
 import { ChevronDown, ChevronUp, Ban, MoreVertical, Plus, Edit2, Trash2, Inbox } from 'lucide-react';
+import {
+  Table,
+  TableCol,
+  TableHeader,
+  TableBody,
+  Button,
+  Icon,
+  EmptyState,
+} from '@blueprint/ui-kit';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
@@ -85,89 +94,10 @@ export default function KanbanBoard({
   const funnelColumns = boardColumns.filter(c => c.id !== rejectedStatusId);
   const laneColumnIds = new Set(boardColumns.filter(c => c.has_lanes).map(c => c.id));
 
-  useLayoutEffect(() => {
-    const board = boardRef.current;
-    if (!board) return;
-    const update = () => {
-      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
-      const colEls = Array.from(board.children).filter(
-        child => !child.classList.contains('kanban-add-column')
-      );
-      const count = colEls.length;
-      if (count === 0) return;
-
-      const isMobile = window.innerWidth <= 700;
-      const minUnits = isMobile ? 10 : 8;
-      const totalUnits = Math.floor(board.clientWidth / grid);
-      const availUnits = totalUnits - 1;
-
-      if (!isMobile && availUnits >= count * minUnits) {
-        const baseUnits = Math.floor(availUnits / count);
-        const remUnits = availUnits % count;
-        colEls.forEach((el, idx) => {
-          const w = (baseUnits + (idx < remUnits ? 1 : 0)) * grid;
-          el.style.flex = `0 0 ${w}px`;
-          el.style.width = `${w}px`;
-          el.style.minWidth = `${w}px`;
-          el.style.maxWidth = `${w}px`;
-        });
-        board.style.setProperty('--add-column-extra-width', '0px');
-      } else {
-        const w = minUnits * grid;
-        colEls.forEach(el => {
-          el.style.flex = `0 0 ${w}px`;
-          el.style.width = `${w}px`;
-          el.style.minWidth = `${w}px`;
-          el.style.maxWidth = `${w}px`;
-        });
-        const columnsWidth = count * w;
-        const tail = columnsWidth + grid > board.clientWidth
-          ? ((board.clientWidth - columnsWidth - grid) % grid + grid) % grid
-          : 0;
-        board.style.setProperty('--add-column-extra-width', `${tail}px`);
-      }
-    };
-    const observer = new ResizeObserver(update);
-    observer.observe(board);
-    window.addEventListener('resize', update);
-    update();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, [columns]);
-
   const rejectedVacancies = sortByManualOrder(vacancies.filter(v => v.status === rejectedStatusId));
 
-  // Make the scrollable end land on the same grid as the column background.
-  useLayoutEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const lists = Array.from(wrapper.querySelectorAll('.column-cards'));
-    let frame;
-    const update = () => {
-      const grid = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--grid')) || 32;
-      for (const list of lists) {
-        const contentHeight = Array.from(list.children).reduce((sum, child) => sum + child.offsetHeight, 0);
-        const remainder = ((list.clientHeight - contentHeight) % grid + grid) % grid;
-        const padding = contentHeight > list.clientHeight ? remainder : 0;
-        list.style.setProperty('--column-grid-tail', `${padding}px`);
-      }
-    };
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
-    const observer = new ResizeObserver(schedule);
-    lists.forEach(list => { observer.observe(list); Array.from(list.children).forEach(child => observer.observe(child)); });
-    const mutations = new MutationObserver(() => {
-      lists.forEach(list => Array.from(list.children).forEach(child => observer.observe(child)));
-      schedule();
-    });
-    lists.forEach(list => mutations.observe(list, { childList: true }));
-    update();
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); mutations.disconnect(); };
-  }, [columns, vacancies]);
-
   const computeDropIndex = (e) => {
-    const cards = Array.from(e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging)'));
+    const cards = Array.from(e.currentTarget.querySelectorAll('[data-bp-card="true"], .kanban-card:not(.is-dragging)'));
     let index = 0;
     for (const card of cards) {
       const rect = card.getBoundingClientRect();
@@ -290,13 +220,16 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="kanban-wrapper" ref={wrapperRef}>
+    <div className="kanban-wrapper" ref={wrapperRef} style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden' }}>
       {/* Funnel Columns */}
-      <div
-        className="kanban-board"
+      <Table
         ref={boardRef}
+        layout="columns"
+        snapScroll
+        fullHeight
+        className="kanban-board-table"
         onScroll={event => snapScroll(event, 'x')}
-        style={boardHeight ? { height: boardHeight } : undefined}
+        style={boardHeight ? { height: boardHeight, flex: 1 } : { flex: 1 }}
         onDragStart={(e) => {
           const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
           setDraggingId(Number.isNaN(id) ? null : id);
@@ -348,79 +281,87 @@ export default function KanbanBoard({
           const isMenuOpen = activeMenuColId === col.id;
 
           return (
-            <div
+            <TableCol
               key={col.id}
-              className={`kanban-column ${dragOverColumn === col.id ? 'drag-over' : ''}`}
+              gridUnits={10}
+              isDragOver={dragOverColumn === col.id}
               onDragOver={(e) => handleDragOver(e, col.id)}
               onDragLeave={(e) => handleDragLeave(e, col.id)}
               onDrop={(e) => handleDrop(e, col.id)}
               style={{ position: 'relative' }}
             >
-              <div className="column-header">
-                <div className="column-title-group">
-                  <span className="column-index">{String(colIndex + 1).padStart(2, '0')}</span>
-                  <span className="column-dot" style={{ background: col.color }} />
-                  <span className="column-name" title={columnName}>{columnName}</span>
-                  <span className="column-badge">[{columnVacancies.length}]</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    className="column-actions-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuColId(prev => prev === col.id ? null : col.id);
-                    }}
-                    title={t('kanban.edit_column')}
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                </div>
-
-                {/* Column Action Menu */}
-                {isMenuOpen && (
-                  <div className="column-menu-dropdown" onClick={e => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="column-menu-item"
-                      onClick={() => {
-                        setActiveMenuColId(null);
-                        setEditingColumn(col);
+              <TableHeader
+                size="sm"
+                index={`[ ${String(colIndex + 1).padStart(2, '0')} ]`}
+                indicatorStyle={{ backgroundColor: col.color }}
+                title={columnName}
+                badge={columnVacancies.length}
+                actions={
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuColId(prev => prev === col.id ? null : col.id);
                       }}
+                      title={t('kanban.edit_column')}
+                      aria-label={t('kanban.edit_column')}
                     >
-                      <Edit2 size={13} color="#2563eb" />
-                      <span>{t('kanban.edit_column')}</span>
-                    </button>
+                      <Icon icon={MoreVertical} size="xs" />
+                    </Button>
 
-                    {!isBase && (
-                      <button
-                        type="button"
-                        className="column-menu-item danger"
-                        onClick={() => {
-                          setActiveMenuColId(null);
-                          setDeletingColumn(col);
-                        }}
-                      >
-                        <Trash2 size={13} />
-                        <span>{t('kanban.delete_column')}</span>
-                      </button>
+                    {/* Column Action Menu */}
+                    {isMenuOpen && (
+                      <div className="column-menu-dropdown" onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100 }}>
+                        <button
+                          type="button"
+                          className="column-menu-item"
+                          onClick={() => {
+                            setActiveMenuColId(null);
+                            setEditingColumn(col);
+                          }}
+                        >
+                          <Edit2 size={13} color="var(--ui-primary, #2563eb)" />
+                          <span>{t('kanban.edit_column')}</span>
+                        </button>
+
+                        {!isBase && (
+                          <button
+                            type="button"
+                            className="column-menu-item danger"
+                            onClick={() => {
+                              setActiveMenuColId(null);
+                              setDeletingColumn(col);
+                            }}
+                          >
+                            <Trash2 size={13} />
+                            <span>{t('kanban.delete_column')}</span>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
+                }
+              />
 
-              <div className="column-cards" onScroll={snapScroll}>
+              <TableBody
+                scrollable
+                snapScroll
+                padding="none"
+                gap="none"
+                className="column-cards"
+                onScroll={snapScroll}
+                emptyState={
+                  <EmptyState
+                    icon={<Icon icon={Inbox} size="md" />}
+                    title={t('kanban.empty_column')}
+                    description={t('kanban.empty_column_hint')}
+                  />
+                }
+              >
                 {cardsWithIndicator}
-
-                {columnVacancies.length === 0 && (
-                  <div className="empty-column">
-                    <Inbox className="empty-column-icon" size={20} aria-hidden="true" />
-                    <span className="empty-column-title">{t('kanban.empty_column')}</span>
-                    <span className="empty-column-hint">{t('kanban.empty_column_hint')}</span>
-                  </div>
-                )}
-              </div>
+              </TableBody>
 
               {/* Jira-style vertical drop overlay when dragging over a segmented column */}
               {isLaneColumn && isDragging && dragOverColumn === col.id && (
@@ -447,22 +388,25 @@ export default function KanbanBoard({
                   })}
                 </div>
               )}
-            </div>
+            </TableCol>
           );
         })}
 
         {/* Add column quick button at the end of board */}
-        <div className="kanban-add-column">
-          <button
-            type="button"
-            className="kanban-add-column-btn"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <Plus size={16} />
-            <span>{t('kanban.add_column')}</span>
-          </button>
-        </div>
-      </div>
+        <TableCol gridUnits={6} className="kanban-add-column-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 'calc(6 * var(--ui-grid-cell))', maxWidth: 'calc(6 * var(--ui-grid-cell))' }}>
+          <div style={{ height: 'var(--ui-grid-cell)', display: 'flex', alignItems: 'center', padding: '0 var(--ui-space-2)', borderBottom: '1px solid var(--ui-pixel-line)' }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCreateOpen(true)}
+              startIcon={<Icon icon={Plus} size="xs" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {t('kanban.add_column')}
+            </Button>
+          </div>
+        </TableCol>
+      </Table>
 
       {/* Bottom Rejection Block */}
       <div
@@ -471,57 +415,59 @@ export default function KanbanBoard({
         onDragOver={(e) => handleDragOver(e, rejectedStatusId)}
         onDragLeave={(e) => handleDragLeave(e, rejectedStatusId)}
         onDrop={(e) => handleDrop(e, rejectedStatusId)}
+        style={{ flexShrink: 0, borderTop: '1px solid var(--ui-pixel-line)', backgroundColor: 'var(--ui-bg-surface)' }}
       >
-        <div
-          className="kanban-rejected-header"
+        <TableHeader
+          size="sm"
+          indicatorStyle={{ backgroundColor: rejectedColumn?.color || '#ef4444' }}
+          title={rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
+          badge={rejectedVacancies.length}
           onClick={() => {
             trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
             setIsRejectedCollapsed(prev => !prev);
           }}
-        >
-          <div className="column-title-group">
-            <span className="column-dot" style={{ background: rejectedColumn?.color || '#ef4444' }} />
-            <span className="column-name">
-              {rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
-            </span>
-            <span className="column-badge">[{rejectedVacancies.length}]</span>
-          </div>
-
-          <button
-            type="button"
-            className="rejected-collapse-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
-              setIsRejectedCollapsed(prev => !prev);
-            }}
-            title={isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}
-          >
-            {isRejectedCollapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            <span>{isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}</span>
-          </button>
-        </div>
+          className="kanban-rejected-header"
+          style={{ cursor: 'pointer' }}
+          actions={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
+                setIsRejectedCollapsed(prev => !prev);
+              }}
+              title={isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}
+              endIcon={<Icon icon={isRejectedCollapsed ? ChevronUp : ChevronDown} size="xs" />}
+            >
+              {isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}
+            </Button>
+          }
+        />
 
         {!isRejectedCollapsed && (
-          <div className="kanban-rejected-content">
+          <div className="kanban-rejected-content" style={{ maxHeight: 'calc(10 * var(--ui-grid-cell))', overflowX: 'auto', overflowY: 'hidden' }}>
             {rejectedVacancies.length === 0 ? (
-              <div className="kanban-rejected-empty">
-                <Ban size={15} />
-                <span>{t('kanban.rejected_empty')}</span>
+              <div style={{ padding: 'var(--ui-space-4)' }}>
+                <EmptyState
+                  icon={<Icon icon={Ban} size="md" />}
+                  title={t('kanban.rejected_empty')}
+                />
               </div>
             ) : (
-              <div className="kanban-rejected-cards">
+              <div className="kanban-rejected-cards" style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 0, padding: 0 }}>
                 {rejectedVacancies.map(vacancy => (
-                  <KanbanCard
-                    key={vacancy.id}
-                    vacancy={vacancy}
-                    onClick={onCardClick}
-                    onStatusChange={onStatusChange}
-                    isSelected={selectedIds.includes(vacancy.id)}
-                    onToggleSelect={onToggleSelect}
-                    columns={boardColumns}
-                    laneColumns={laneColumnIds}
-                  />
+                  <div key={vacancy.id} style={{ width: 'calc(10 * var(--ui-grid-cell))', minWidth: 'calc(10 * var(--ui-grid-cell))', flexShrink: 0 }}>
+                    <KanbanCard
+                      vacancy={vacancy}
+                      onClick={onCardClick}
+                      onStatusChange={onStatusChange}
+                      isSelected={selectedIds.includes(vacancy.id)}
+                      onToggleSelect={onToggleSelect}
+                      columns={boardColumns}
+                      laneColumns={laneColumnIds}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -549,7 +495,7 @@ export default function KanbanBoard({
         availableColumns={funnelColumns}
         vacanciesCount={deletingColumn ? vacancies.filter(v => v.status === deletingColumn.id).length : 0}
         onClose={() => setDeletingColumn(null)}
-        onConfirm={handleDeleteColumn}
+        onDelete={handleDeleteColumn}
       />
     </div>
   );

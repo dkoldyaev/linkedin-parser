@@ -1,8 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Columns3, Flame, Puzzle } from 'lucide-react';
+import { Sparkles, Columns3, Flame, Puzzle, ArrowRight } from 'lucide-react';
+import {
+  PageLayout,
+  Button,
+  Icon,
+  Text,
+  Badge,
+  TableHeader,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import { useBlueprintGrid } from '../utils/useBlueprintGrid';
 
 const FEATURES = [
   { key: 'ai', icon: Sparkles, color: '#2563eb' },
@@ -13,76 +20,175 @@ const FEATURES = [
 
 export default function AboutPage() {
   const { t, locale } = useTranslation();
-  const pageRef = useBlueprintGrid([locale]);
 
   return (
-    <div ref={pageRef} className="info-page bp-page about-page">
-      <div className="info-container bp-container">
-        {/* Top Blueprint Rail */}
-        <header className="info-hero bp-subbar bp-snap" data-min-grids="1">
-          <div className="bp-subbar-left">
-            <span className="column-dot" style={{ background: 'var(--primary)' }} />
-            <h1 className="info-title bp-subbar-title">{t('pages.about.title')}</h1>
-            <span className="bp-subbar-sep">/</span>
-            <p className="info-subtitle bp-subbar-subtitle">{t('pages.about.subtitle')}</p>
+    <PageLayout
+      gridDeps={[locale]}
+      className="about-page"
+      header={
+        <div
+          className="bp-subbar bp-snap"
+          data-min-grids="1"
+          style={{
+            height: 'var(--ui-grid-cell)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 var(--ui-space-4)',
+            backgroundColor: 'var(--ui-bg-surface)',
+            borderBottom: '1px solid var(--ui-pixel-line)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+            <span style={{ width: '8px', height: '8px', backgroundColor: 'var(--ui-primary)' }} />
+            <Text variant="mono" weight="bold" tone="primary">
+              {t('pages.about.title')}
+            </Text>
+            <Text variant="mono" tone="muted">
+              /
+            </Text>
+            <Text variant="caption" tone="secondary">
+              {t('pages.about.subtitle')}
+            </Text>
           </div>
-          <div className="bp-subbar-right">
-            <Link to="/howtouse" className="btn btn-primary bp-subbar-btn">
-              <span>{t('pages.about.cta')}</span>
-            </Link>
+          <div>
+            <Button
+              as={Link}
+              to="/howtouse"
+              variant="primary"
+              size="sm"
+              endIcon={<Icon icon={ArrowRight} size="xs" />}
+            >
+              {t('pages.about.cta')}
+            </Button>
           </div>
-        </header>
-
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-6)', padding: 'var(--ui-space-4)' }}>
         {/* Overview Split Block */}
-        <section className="info-card bp-col">
-          <div className="column-header">
-            <div className="column-title-group">
-              <span className="column-index">01</span>
-              <span className="column-dot" style={{ background: 'var(--primary)' }} />
-              <span className="column-name">OVERVIEW</span>
-            </div>
-          </div>
+        <section
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: 'var(--ui-bg-card-fill)',
+            border: '1px solid var(--ui-border-subtle)',
+          }}
+        >
+          <TableHeader
+            size="sm"
+            index="[ 01 ]"
+            indicatorTone="accent"
+            title="OVERVIEW"
+          />
 
-          <div className="about-overview-grid bp-grid-row" data-cols="2">
-            <div className="about-overview-cell bp-snap" data-min-grids="3">
-              <span className="bp-step-num">01.1</span>
-              <p className="info-text">{t('pages.about.p1')}</p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 0,
+            }}
+          >
+            <div
+              style={{
+                padding: 'var(--ui-space-4)',
+                borderRight: '1px solid var(--ui-border-subtle)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--ui-space-2)',
+              }}
+            >
+              <Badge variant="outline" size="xs" tone="accent">
+                01.1
+              </Badge>
+              <Text variant="body" tone="secondary">
+                {t('pages.about.p1')}
+              </Text>
             </div>
-            <div className="about-overview-cell bp-snap" data-min-grids="3">
-              <span className="bp-step-num">01.2</span>
-              <p className="info-text">{t('pages.about.p2')}</p>
+            <div
+              style={{
+                padding: 'var(--ui-space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--ui-space-2)',
+              }}
+            >
+              <Badge variant="outline" size="xs" tone="accent">
+                01.2
+              </Badge>
+              <Text variant="body" tone="secondary">
+                {t('pages.about.p2')}
+              </Text>
             </div>
           </div>
         </section>
 
         {/* 4-Column Feature Grid */}
-        <section className="feature-grid bp-grid-row" data-cols="4">
-          {FEATURES.map(({ key, icon: Icon, color }, idx) => (
-            <div className="info-card feature-card bp-col" key={key}>
-              <div className="column-header">
-                <div className="column-title-group">
-                  <span className="column-index">{String(idx + 2).padStart(2, '0')}</span>
-                  <span className="column-dot" style={{ background: color }} />
-                  <h3 className="column-name info-card-subtitle">{t(`pages.about.f_${key}_title`)}</h3>
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 'var(--ui-space-4)',
+          }}
+        >
+          {FEATURES.map(({ key, icon: IconComponent, color }, idx) => (
+            <div
+              key={key}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: 'var(--ui-bg-card-fill)',
+                border: '1px solid var(--ui-border-subtle)',
+              }}
+            >
+              <TableHeader
+                size="sm"
+                index={`[ ${String(idx + 2).padStart(2, '0')} ]`}
+                indicatorStyle={{ backgroundColor: color }}
+                title={t(`pages.about.f_${key}_title`)}
+              />
+              <div
+                style={{
+                  padding: 'var(--ui-space-4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--ui-space-3)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    backgroundColor: 'var(--ui-bg-subtle)',
+                    border: '1px solid var(--ui-border-subtle)',
+                  }}
+                >
+                  <Icon icon={IconComponent} size="sm" style={{ color }} />
                 </div>
-              </div>
-              <div className="feature-card-body bp-snap" data-min-grids="3">
-                <div className="stat-icon">
-                  <Icon size={18} />
-                </div>
-                <p className="info-text">{t(`pages.about.f_${key}_desc`)}</p>
+                <Text variant="body-sm" tone="secondary">
+                  {t(`pages.about.f_${key}_desc`)}
+                </Text>
               </div>
             </div>
           ))}
         </section>
 
         {/* Footer CTA Bar */}
-        <div className="about-cta-bar bp-snap" data-min-grids="2">
-          <Link to="/howtouse" className="btn btn-secondary">
-            <span>{t('pages.about.cta')}</span>
-          </Link>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--ui-space-4)' }}>
+          <Button
+            as={Link}
+            to="/howtouse"
+            variant="secondary"
+            size="md"
+            endIcon={<Icon icon={ArrowRight} size="xs" />}
+          >
+            {t('pages.about.cta')}
+          </Button>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   ShieldAlert, 
   Save, 
-  Loader2, 
   AlertTriangle,
   Briefcase,
   Clock,
@@ -23,6 +22,15 @@ import {
   UserX,
   Filter
 } from 'lucide-react';
+import {
+  Button,
+  Icon,
+  Input,
+  Checkbox,
+  Badge,
+  AlertBanner,
+  Spinner,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export default function AdminPage({ user }) {
@@ -398,7 +406,7 @@ export default function AdminPage({ user }) {
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
-            <Loader2 size={36} className="spin" style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+            <Spinner size="lg" />
           </div>
         ) : filteredAndSortedUsers.length === 0 ? (
           <div className="info-card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
@@ -626,7 +634,7 @@ export default function AdminPage({ user }) {
                               onClick={() => handleSaveUserFlags(u.id)}
                               title={t('pages.admin.save_flags')}
                             >
-                              {isSaving ? <Loader2 size={12} className="spin" /> : <Save size={12} />}
+                              {isSaving ? <Spinner size="2xs" /> : <Save size={12} />}
                               <span>{t('common.save')}</span>
                             </button>
                             <button
@@ -992,7 +1000,7 @@ export default function AdminPage({ user }) {
                         disabled={isSaving}
                         onClick={() => handleSaveUserFlags(u.id)}
                       >
-                        {isSaving ? <Loader2 size={13} className="spin" /> : <Save size={13} />}
+                        {isSaving ? <Spinner size="2xs" /> : <Save size={13} />}
                         <span>{t('pages.admin.save_flags')}</span>
                       </button>
                     </div>
