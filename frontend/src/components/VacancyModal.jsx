@@ -521,18 +521,17 @@ export default function VacancyModal({
             </Button>
           </div>
         }
+        tabs={
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            items={tabItems}
+          />
+        }
         onClose={onClose}
       />
 
-      <div style={{ padding: '0 var(--ui-space-6)' }}>
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          items={tabItems}
-        />
-      </div>
-
-      <ModalBody>
+      <ModalBody padding="none" gap="none">
         {reparseError && (
           <AlertBanner
             tone="danger"
@@ -549,51 +548,61 @@ export default function VacancyModal({
         )}
 
         {activeTab === 'details' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-            {/* Status & Workplace Controls */}
+          <>
+            {/* Status & Workplace Controls Bar */}
             <div style={{
               display: 'flex',
-              flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: 'var(--ui-space-3)',
-              padding: 'var(--ui-space-3)',
-              background: 'var(--ui-bg-subtle)',
-              border: '1px solid var(--ui-border-subtle)',
+              padding: 'var(--ui-space-2) var(--ui-space-6)',
+              backgroundColor: 'var(--ui-bg-surface)',
+              boxShadow: 'inset 0 -1px 0 0 var(--ui-border-subtle)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
-                <Text variant="caption" weight="medium">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)', flexWrap: 'wrap' }}>
+                <Text variant="mono-label" tone="muted">
                   {t('vacancyModal.status_label')}:
                 </Text>
-                <Select
-                  value={status}
-                  onValueChange={handleStatusChange}
-                  options={statusOptions}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-1)', flexWrap: 'wrap' }}>
+                  {modalColumns.map((col) => (
+                    <Button
+                      key={col.id}
+                      variant={status === col.id ? 'primary' : 'ghost'}
+                      size="sm"
+                      onClick={() => handleStatusChange(col.id)}
+                    >
+                      {t(`kanban.columns.${col.id}`) || col.name || col.id}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
-                <Text variant="caption" weight="medium">
-                  {t('vacancyModal.workplace_label')}:
-                </Text>
-                <Select
-                  value={workplaceType}
-                  onValueChange={handleWorkplaceTypeChange}
-                  options={workplaceOptions}
-                />
-              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+                  <Text variant="mono-label" tone="muted">
+                    {t('vacancyModal.workplace_label')}:
+                  </Text>
+                  <Select
+                    value={workplaceType}
+                    onValueChange={handleWorkplaceTypeChange}
+                    options={workplaceOptions}
+                  />
+                </div>
 
-              <Button
-                variant={isClosed ? 'danger' : 'secondary'}
-                size="xs"
-                onClick={handleToggleClosed}
-                startIcon={<Icon icon={isClosed ? Ban : Check} size="xs" />}
-              >
-                {isClosed ? t('kanban.closed') : t('vacancyModal.open_badge')}
-              </Button>
+                <Button
+                  variant={isClosed ? 'danger' : 'secondary'}
+                  size="sm"
+                  onClick={handleToggleClosed}
+                  startIcon={<Icon icon={isClosed ? Ban : Check} size="xs" />}
+                >
+                  {isClosed ? t('kanban.closed') : t('vacancyModal.open_badge')}
+                </Button>
+              </div>
             </div>
 
-            {/* Salary Section */}
+            <div style={{ padding: 'var(--ui-space-4) var(--ui-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+              {/* Salary Section */}
             <VacancySalarySection
               salaryInfo={salaryInfo}
               salaryMin={salaryMin}
@@ -681,9 +690,11 @@ export default function VacancyModal({
               getStageLabel={getStageLabel}
             />
           </div>
-        )}
+        </>
+      )}
 
-        {activeTab === 'compatibility' && (
+      {activeTab === 'compatibility' && (
+        <div style={{ padding: 'var(--ui-space-4) var(--ui-space-6)' }}>
           <VacancyCompatibilitySection
             compatibility={compatibility}
             onRunAnalysis={handleRunCompatibility}
@@ -692,8 +703,9 @@ export default function VacancyModal({
             hasDescription={Boolean(description?.trim())}
             error={compatError}
           />
-        )}
-      </ModalBody>
+        </div>
+      )}
+    </ModalBody>
 
       <ModalFooter justify="end">
         <Button variant="secondary" onClick={onClose}>

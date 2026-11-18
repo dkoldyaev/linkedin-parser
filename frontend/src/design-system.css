@@ -1,8 +1,8 @@
 /* Blueprint workspace: shared surfaces, type and interaction tokens. */
 :root {
-  --font-display: 'JetBrains Mono', monospace;
-  --font-sans: 'JetBrains Mono', monospace;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: var(--ui-font-display, 'Inter', -apple-system, sans-serif);
+  --font-sans: var(--ui-font-sans, 'Inter', -apple-system, sans-serif);
+  --font-mono: var(--ui-font-mono, 'JetBrains Mono', monospace);
   --bg-main: #0a1729;
   --bg-surface: #101f35;
   --bg-card: #101f35;

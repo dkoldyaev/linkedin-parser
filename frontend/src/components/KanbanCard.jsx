@@ -16,6 +16,7 @@ import {
   Text,
   Paragraph,
   Skeleton,
+  TokenList,
 } from '@blueprint/ui-kit';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
@@ -185,16 +186,30 @@ export default function KanbanCard({
             overline={vacancy.company}
             overlineHref={vacancy.url}
             title={vacancy.title}
-            selectable
+            selectable={isSelected}
             checked={isSelected || false}
             onCheckedChange={() => onToggleSelect && onToggleSelect(vacancy.id)}
             checkboxAriaLabel="Выделить карточку"
             statusIndicators={
               <>
-                {laneColumns.has(vacancy.status) && vacancy.lane != null && (
+                {laneColumns.has(vacancy.status) && vacancy.lane != null ? (
                   <Badge variant="outline" size="xs" tone="info">
                     {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
                   </Badge>
+                ) : (
+                  (() => {
+                    const col = Array.isArray(columns) && columns.find(c => (typeof c === 'string' ? c : c.id) === vacancy.status);
+                    const colId = col ? (typeof col === 'string' ? col : col.id) : vacancy.status;
+                    if (colId === STATUS_INTERVIEW || colId === STATUS_ASSESSMENT || colId === STATUS_OFFER) {
+                      const label = t(`kanban.columns.${colId}`) || (typeof col === 'object' ? col.name : colId);
+                      return (
+                        <Badge variant="outline" size="xs" tone="info">
+                          {label.toUpperCase()}
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()
                 )}
                 {vacancy.is_closed && (
                   <Badge
@@ -213,7 +228,7 @@ export default function KanbanCard({
 
           {/* Meta row: match score, workplace format, location, salary */}
           {(vacancy.location || salaryInfo.hasSalary || workplaceInfo || matchScore !== null) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--ui-space-1-5)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--ui-space-1-5) var(--ui-space-3)' }}>
               {matchScore !== null && (
                 <Badge
                   variant="solid"
@@ -226,36 +241,33 @@ export default function KanbanCard({
                 </Badge>
               )}
               {workplaceInfo && (
-                <Badge
-                  variant="outline"
-                  size="xs"
+                <Text
+                  variant="caption"
                   tone={workplaceTone}
-                  icon={<Icon icon={workplaceIcon} size="2xs" />}
+                  startIcon={<Icon icon={workplaceIcon} size="xs" />}
                   title={t('workplace.badge_title', { format: workplaceInfo.fullLabel || workplaceInfo.label })}
                 >
                   {workplaceInfo.label}
-                </Badge>
+                </Text>
               )}
               {vacancy.location && (
                 <Text
                   variant="caption"
                   tone="secondary"
                   startIcon={<Icon icon={MapPin} size="xs" />}
-                  style={{ display: 'flex', alignItems: 'center', gap: '2px' }}
                 >
                   {vacancy.location}
                 </Text>
               )}
               {salaryInfo.hasSalary && (
-                <Badge
-                  variant="outline"
-                  size="xs"
-                  tone="accent"
-                  icon={<Icon icon={Banknote} size="2xs" />}
+                <Text
+                  variant="mono"
+                  tone="success"
+                  startIcon={<Icon icon={Banknote} size="xs" />}
                   title={salaryInfo.original || salaryInfo.formatted}
                 >
                   {salaryInfo.formatted}
-                </Badge>
+                </Text>
               )}
             </div>
           )}
@@ -263,7 +275,7 @@ export default function KanbanCard({
           {/* AI Summary or Skeleton */}
           {vacancy.ai_summary ? (
             <Paragraph
-              variant="caption"
+              size="sm"
               tone="secondary"
               style={{
                 display: '-webkit-box',
@@ -284,126 +296,122 @@ export default function KanbanCard({
           )}
 
           {/* Tech stack pills */}
-          {vacancy.tech_stack && vacancy.tech_stack.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          {vacancy.tech_stack && vacancy.tech_stack.length > 0 && (
+            <TokenList>
               {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
-                <Badge key={i} variant="outline" size="xs" tone="neutral">
+                <Badge key={i} size="xs" variant="chip">
                   {tech}
                 </Badge>
               ))}
               {vacancy.tech_stack.length > 4 && (
-                <Badge variant="outline" size="xs" tone="neutral" style={{ opacity: 0.6 }}>
+                <Badge size="xs" variant="chip" tone="neutral" style={{ opacity: 0.6 }}>
                   +{vacancy.tech_stack.length - 4}
                 </Badge>
               )}
-            </div>
-          ) : !vacancy.ai_summary && (
-            <div style={{ display: 'flex', gap: '4px' }} aria-hidden="true">
-              <Skeleton width="sm" height="xs" />
-              <Skeleton width="sm" height="xs" />
-              <Skeleton width="sm" height="xs" />
-            </div>
+            </TokenList>
           )}
 
           {/* Custom tags */}
           {vacancy.tags && vacancy.tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            <TokenList>
               {vacancy.tags.map((tag, i) => (
-                <Badge key={i} variant="outline" size="xs" tone="primary">
+                <Badge key={i} size="xs" variant="chip" tone="neutral">
                   #{tag}
                 </Badge>
               ))}
-            </div>
+            </TokenList>
           )}
         </div>
       </CardBody>
 
-      <CardFooter justify="between">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
-          <Text variant="mono" tone="muted" style={{ fontSize: 'var(--ui-font-size-2xs)' }}>
-            {formatDate(vacancy.created_at)}
-          </Text>
-          {hasHistory && (
-            <Badge
-              variant="outline"
+      <CardFooter
+        metaSlot={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+            <Text variant="caption" tone="muted">
+              {formatDate(vacancy.created_at)}
+            </Text>
+            {hasHistory && (
+              <Text
+                variant="caption"
+                tone="muted"
+                startIcon={<Icon icon={History} size="2xs" />}
+                title={
+                  hasHistoryComments
+                    ? t('vacancyModal.history_badge_with_comments', { count: vacancy.history.length })
+                    : t('vacancyModal.history_badge_hint', { count: vacancy.history.length })
+                }
+              >
+                {vacancy.history.length}
+              </Text>
+            )}
+          </div>
+        }
+        actionsSlot={
+          isRejected ? (
+            <Button
+              variant="ghost"
               size="xs"
-              tone={hasHistoryComments ? 'accent' : 'neutral'}
-              icon={<Icon icon={History} size="2xs" />}
-              title={
-                hasHistoryComments
-                  ? t('vacancyModal.history_badge_with_comments', { count: vacancy.history.length })
-                  : t('vacancyModal.history_badge_hint', { count: vacancy.history.length })
-              }
-            >
-              {vacancy.history.length}
-            </Badge>
-          )}
-        </div>
-
-        {isRejected ? (
-          <Button
-            variant="ghost"
-            size="xs"
-            tone="accent"
-            title={t('kanban.rejected_restore_hint')}
-            onClick={(e) => {
-              e.stopPropagation();
-              trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
-                vacancy_id: vacancy.id,
-                company: vacancy.company,
-                to_status: initialStatusId,
-                method: 'quick_restore_btn'
-              });
-              onStatusChange(vacancy.id, initialStatusId);
-            }}
-            startIcon={<Icon icon={RotateCcw} size="xs" />}
-          >
-            {t('kanban.rejected_restore')}
-          </Button>
-        ) : (
-          <ButtonGroup size="xs" attached>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              title={t('kanban.move_left')}
-              aria-label={t('kanban.move_left')}
-              disabled={currentIndex <= 0}
-              onClick={handleMoveLeft}
-            >
-              <Icon icon={ChevronLeft} size="xs" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              tone="danger"
-              title={t('kanban.move_to_rejected')}
-              aria-label={t('kanban.move_to_rejected')}
+              tone="accent"
+              title={t('kanban.rejected_restore_hint')}
               onClick={(e) => {
                 e.stopPropagation();
-                trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
+                trackEvent(EVENTS.VACANCY_RESTORE_REJECTED, {
                   vacancy_id: vacancy.id,
                   company: vacancy.company,
-                  from_status: vacancy.status,
-                  method: 'quick_reject_btn'
+                  to_status: initialStatusId,
+                  method: 'quick_restore_btn'
                 });
-                onStatusChange(vacancy.id, rejectedStatusId);
+                onStatusChange(vacancy.id, initialStatusId);
               }}
+              startIcon={<Icon icon={RotateCcw} size="xs" />}
             >
-              <Icon icon={X} size="xs" />
+              {t('kanban.rejected_restore')}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              title={t('kanban.move_right')}
-              aria-label={t('kanban.move_right')}
-              disabled={currentIndex >= linearColumns.length - 1}
-              onClick={handleMoveRight}
-            >
-              <Icon icon={ChevronRight} size="xs" />
-            </Button>
-          </ButtonGroup>
-        )}
-      </CardFooter>
+          ) : (
+            <ButtonGroup>
+              <Button
+                variant="ghost"
+                size="icon"
+                title={t('kanban.move_left')}
+                aria-label={t('kanban.move_left')}
+                disabled={currentIndex <= 0}
+                onClick={handleMoveLeft}
+              >
+                <Icon icon={ChevronLeft} size="sm" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                tone="danger"
+                title={t('kanban.move_to_rejected')}
+                aria-label={t('kanban.move_to_rejected')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  trackEvent(EVENTS.VACANCY_MOVE_REJECTED, {
+                    vacancy_id: vacancy.id,
+                    company: vacancy.company,
+                    from_status: vacancy.status,
+                    method: 'quick_reject_btn'
+                  });
+                  onStatusChange(vacancy.id, rejectedStatusId);
+                }}
+              >
+                <Icon icon={X} size="sm" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                title={t('kanban.move_right')}
+                aria-label={t('kanban.move_right')}
+                disabled={currentIndex >= linearColumns.length - 1}
+                onClick={handleMoveRight}
+              >
+                <Icon icon={ChevronRight} size="sm" />
+              </Button>
+            </ButtonGroup>
+          )
+        }
+      />
     </Card>
   );
 }
