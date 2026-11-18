@@ -34,12 +34,16 @@ def test_queue_links_state_and_deduplication():
         user_id = login_res.json()["user"]["id"]
         client.cookies.set("access_token", token)
 
-        # Queue data endpoints are not available on v2: everything comes from Mercure
-        assert client.get("/api/v2/queue/links").status_code in (404, 405)
+        # Status and tasks endpoints are not available on v2, but links endpoint is available
         assert client.get("/api/v2/queue/status").status_code in (404, 405)
         assert client.get("/api/v2/queue/tasks").status_code in (404, 405)
 
-        # 1. Initially queue should be empty
+        # 1. Initially queue should be empty via v2 endpoint and Mercure
+        v2_initial = client.get("/api/v2/queue/links")
+        assert v2_initial.status_code == 200
+        assert v2_initial.json()["total"] == 0
+        assert v2_initial.json()["links"] == []
+
         data = sync_queue(client, user_id)
         assert data["total"] == 0
         assert data["pending_count"] == 0
@@ -71,6 +75,13 @@ def test_queue_links_state_and_deduplication():
         assert link_info["stage"] == "queued"
         assert link_info["status"] == "pending"
         assert "999111222333" in link_info["url"]
+
+        # Verify GET /api/v2/queue/links returns the same queue state
+        v2_links_res = client.get("/api/v2/queue/links")
+        assert v2_links_res.status_code == 200
+        v2_links_data = v2_links_res.json()
+        assert v2_links_data["total"] == 1
+        assert v2_links_data["links"][0]["task_id"] == task_id
 
         # Legacy extension endpoints remain available on /api/queue/tasks
         assert client.get("/api/queue/tasks").status_code == 200

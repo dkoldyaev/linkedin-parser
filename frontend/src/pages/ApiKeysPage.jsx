@@ -120,9 +120,13 @@ export default function ApiKeysPage({ user }) {
           </div>
           {hasApiAccess && (
             <div className="bp-subbar-right">
-              <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
+              <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v1 Swagger">
                 <ExternalLink size={13} />
-                <span>Swagger UI</span>
+                <span>Swagger v1</span>
+              </a>
+              <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v2 Swagger">
+                <ExternalLink size={13} />
+                <span>Swagger v2</span>
               </a>
               <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
                 <Code2 size={13} />
@@ -207,15 +211,31 @@ export default function ApiKeysPage({ user }) {
 
               <div className="api-docs-panel bp-snap" data-min-grids="3">
                 <p className="info-text">{t('settingsModal.openapi_docs_desc')}</p>
-                <div className="api-docs-links">
-                  <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                    <ExternalLink size={14} />
-                    <span>{t('settingsModal.openapi_swagger_btn')}</span>
-                  </a>
-                  <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                    <ExternalLink size={14} />
-                    <span>{t('settingsModal.openapi_json_btn')}</span>
-                  </a>
+                <div className="api-docs-group">
+                  <div className="api-docs-version-title">{t('settingsModal.openapi_v2_title')}</div>
+                  <div className="api-docs-links">
+                    <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                      <ExternalLink size={14} />
+                      <span>{t('settingsModal.openapi_swagger_v2_btn')}</span>
+                    </a>
+                    <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                      <ExternalLink size={14} />
+                      <span>{t('settingsModal.openapi_json_v2_btn')}</span>
+                    </a>
+                  </div>
+                </div>
+                <div className="api-docs-group" style={{ marginTop: 'calc(var(--grid-unit) * 1.5)' }}>
+                  <div className="api-docs-version-title">{t('settingsModal.openapi_v1_title')}</div>
+                  <div className="api-docs-links">
+                    <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                      <ExternalLink size={14} />
+                      <span>{t('settingsModal.openapi_swagger_v1_btn')}</span>
+                    </a>
+                    <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                      <ExternalLink size={14} />
+                      <span>{t('settingsModal.openapi_json_v1_btn')}</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </section>

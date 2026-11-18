@@ -858,6 +858,21 @@ async def get_queue_links(current_user: User = Depends(get_current_user)):
     """Get active links and their processing stages for the current user."""
     return await queue_manager.get_active_links(user_id=current_user.id)
 
+
+@api_v2.get(
+    "/queue/links",
+    response_model=QueueLinksResponse,
+    tags=["Queue"],
+    summary="List processing queue links",
+    description="Retrieve all vacancy URLs currently being processed or waiting in queue for the authenticated user, including their stages (queued, scraping, ai_analysis, cv_scoring, failed), retry attempts, errors, and aggregate counters.",
+)
+async def list_queue_links_v2(
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieve all active and failed vacancy links in the processing queue for the current user."""
+    return await queue_manager.get_active_links(user_id=current_user.id)
+
+
 @api_v2.post("/queue/sync", status_code=202)
 async def sync_queue_state(current_user: User = Depends(get_current_user)):
     """Ask the backend to republish the current queue snapshot; the data is delivered only via Mercure `queue_state`."""

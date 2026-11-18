@@ -1590,6 +1590,21 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
   box-sizing: border-box;
 }
 
+.bp-page .api-docs-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--grid-unit) * 0.5);
+}
+
+.bp-page .api-docs-version-title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .bp-page .api-docs-links {
   display: flex;
   flex-wrap: wrap;
