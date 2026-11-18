@@ -479,6 +479,12 @@ def get_me(request: Request, response: Response, db: Session = Depends(get_db)):
             samesite="lax",
             path="/",
         )
+    if is_mock_data_enabled() and current_user:
+        user_vacancy_count = db.query(Vacancy.id).filter(Vacancy.user_id == current_user.id).count()
+        if user_vacancy_count == 0:
+            from .mock_data import generate_mock_vacancies, ensure_flagship_stripe_vacancy
+            ensure_flagship_stripe_vacancy(db, current_user.id)
+            generate_mock_vacancies(db, count=20, user_id=current_user.id)
     current_user.feature_flags = [f.flag for f in db.query(UserFeatureFlag).filter(UserFeatureFlag.user_id == current_user.id).all()]
     return current_user
 

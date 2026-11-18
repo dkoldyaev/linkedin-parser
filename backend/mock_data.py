@@ -83,14 +83,18 @@ def mock_data_exists(db) -> bool:
 
 
 def ensure_flagship_stripe_vacancy(db, user_id: int):
-    """Ensure the flagship Storybook Card demo vacancy exists in the database."""
-    existing = db.query(Vacancy).filter(Vacancy.job_id == "mock-stripe-storybook-card").first()
+    """Ensure the flagship Storybook Card demo vacancy exists in the database for the given user."""
+    existing = db.query(Vacancy).filter(
+        Vacancy.user_id == user_id,
+        Vacancy.company == "Stripe",
+        Vacancy.title == "Staff Frontend Architect — UI Platform"
+    ).first()
     if existing:
         return
     stripe_created = datetime.datetime(2026, 11, 14, 12, 0, 0)
     stripe_v = Vacancy(
         user_id=user_id,
-        job_id="mock-stripe-storybook-card",
+        job_id=f"mock-stripe-storybook-card-{user_id}",
         url="https://stripe.com",
         title="Staff Frontend Architect — UI Platform",
         company="Stripe",
