@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit3, Palette, Layers } from 'lucide-react';
+import { Edit3, Palette, Layers } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Icon,
+  Input,
+  Checkbox,
+  Text,
+  AlertBanner,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { BASE_STATUSES } from '../constants/columns';
 
@@ -30,7 +42,7 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
   const isBase = Boolean(column.is_base || column.system_role || BASE_STATUSES.includes(column.id));
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
     setError('');
@@ -49,116 +61,128 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
-        <div className="modal-header">
-          <div className="modal-title">
-            <Edit3 size={18} color="#2563eb" />
-            <span>{t('kanban.edit_column')}</span>
-          </div>
-          <button className="btn-icon modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} size="sm">
+      <ModalHeader
+        title={t('kanban.edit_column')}
+        icon={<Icon icon={Edit3} size="md" tone="accent" />}
+        onClose={onClose}
+      />
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {error && (
-              <div style={{ color: '#ef4444', fontSize: '0.8125rem', background: 'rgba(239, 68, 68, 0.1)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                {error}
-              </div>
+      <ModalBody>
+        <form id="edit-column-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+          {error && (
+            <AlertBanner
+              tone="danger"
+              title={error}
+            />
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+            <Text as="label" variant="caption" weight="medium">
+              {t('kanban.column_name_placeholder')}
+            </Text>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            {isBase && (
+              <Text variant="caption" tone="muted" style={{ marginTop: 'var(--ui-space-1)' }}>
+                {t('settingsModal.col_is_base_badge')} — {t('settingsModal.base_column_hint')}
+              </Text>
             )}
+          </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">{t('kanban.column_name_placeholder')}</label>
+          {/* Color selection: Note - UI-Kit ColorPicker is currently limited to StatusDotPalette;
+              retaining hex presets until issue #8 is resolved */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+            <Text
+              as="label"
+              variant="caption"
+              weight="medium"
+              startIcon={<Icon icon={Palette} size="xs" />}
+            >
+              {t('kanban.column_color')}
+            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2-5)', marginTop: 'var(--ui-space-1)' }}>
               <input
-                type="text"
-                className="form-input"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required
+                type="color"
+                className="column-color-picker"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  border: '1px solid var(--ui-border-subtle)',
+                  padding: 0,
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '2px',
+                }}
               />
-              {isBase && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '4px', height: 'var(--grid)', display: 'block' }}>
-                  {t('settingsModal.col_is_base_badge')} — {t('settingsModal.base_column_hint')}
-                </span>
-              )}
-            </div>
-
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Palette size={14} />
-                <span>{t('kanban.column_color')}</span>
-              </label>
-              <div className='form-input' style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
-                <input
-                  type="color"
-                  className="column-color-picker"
-                  value={color}
-                  onChange={e => setColor(e.target.value)}
-                />
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {PRESET_COLORS.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setColor(c)}
-                      style={{
-                        width: '22px',
-                        height: '22px',
-                        borderRadius: '50%',
-                        background: c,
-                        border: color === c ? '2px solid #fff' : '1px solid transparent',
-                        cursor: 'pointer',
-                        padding: 0,
-                        boxShadow: color === c ? '0 0 8px rgba(255, 255, 255, 0.4)' : 'none',
-                        transition: 'transform 0.1s'
-                      }}
-                    />
-                  ))}
-                </div>
+              <div style={{ display: 'flex', gap: 'var(--ui-space-1-5)', flexWrap: 'wrap' }}>
+                {PRESET_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      background: c,
+                      border: color === c ? '2px solid #fff' : '1px solid transparent',
+                      cursor: 'pointer',
+                      padding: 0,
+                      boxShadow: color === c ? '0 0 8px rgba(255, 255, 255, 0.4)' : 'none',
+                    }}
+                  />
+                ))}
               </div>
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-              padding: '12px',
-              borderRadius: 'var(--radius-md)',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-subtle)',
-              height: 'calc(var(--grid) * 2 + 1px)'
-            }}>
-              <input
-                type="checkbox"
-                id="edit-modal-has-lanes"
-                checked={hasLanes}
-                onChange={e => setHasLanes(e.target.checked)}
-                style={{ marginTop: '3px', cursor: 'pointer', width: '16px', height: '16px' }}
-              />
-              <label htmlFor="edit-modal-has-lanes" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={14} color="#2563eb" />
-                  {t('kanban.enable_stages')}
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {t('kanban.enable_stages_hint')}
-                </span>
-              </label>
             </div>
           </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              {t('batchModal.cancel_btn')}
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading || !name.trim()}>
-              {t('kanban.save_column')}
-            </button>
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 'var(--ui-space-3)',
+            padding: 'var(--ui-space-3)',
+            background: 'var(--ui-bg-subtle)',
+            border: '1px solid var(--ui-border-subtle)',
+          }}>
+            <Checkbox
+              id="edit-modal-has-lanes"
+              checked={hasLanes}
+              onChange={(e) => setHasLanes(e.target.checked)}
+            />
+            <label htmlFor="edit-modal-has-lanes" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <Text variant="body" weight="medium" startIcon={<Icon icon={Layers} size="xs" tone="accent" />}>
+                {t('kanban.enable_stages')}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {t('kanban.enable_stages_hint')}
+              </Text>
+            </label>
           </div>
         </form>
-      </div>
-    </div>
+      </ModalBody>
+
+      <ModalFooter justify="end">
+        <ModalFooter.Actions>
+          <Button variant="secondary" onClick={onClose}>
+            {t('batchModal.cancel_btn')}
+          </Button>
+          <Button
+            type="submit"
+            form="edit-column-form"
+            variant="primary"
+            disabled={loading || !name.trim()}
+            loading={loading}
+          >
+            {t('kanban.save_column')}
+          </Button>
+        </ModalFooter.Actions>
+      </ModalFooter>
+    </Modal>
   );
 }

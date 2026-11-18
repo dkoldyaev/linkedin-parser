@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, AlertCircle, ArrowRight, User, Sparkles } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  Button,
+  Icon,
+  Input,
+  Text,
+  AlertBanner,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ThemeToggle from './ThemeToggle';
@@ -56,47 +66,33 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
   };
 
   return (
-    <div className="login-overlay" onClick={isGuestPromotion && onClose ? onClose : undefined}>
-      <div className="login-card" onClick={(e) => e.stopPropagation()}>
-        <ThemeToggle />
-        {onClose && (
-          <button 
-            type="button" 
-            className="login-close-btn" 
-            onClick={onClose} 
-            title={t('common.close') || 'Закрыть'}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
-        {/* Brand Header */}
-        <div className="login-brand">
-          <div className="login-logo-glow">
-            <Briefcase size={28} color="#60a5fa" />
-          </div>
-          <h1 className="login-title">
-            {isGuestPromotion ? (t('auth.save_progress_title') || 'Сохранить прогресс') : 'LinkedIn Vacancies'}
-          </h1>
-          <p className="login-subtitle">
-            {isGuestPromotion 
-              ? (t('auth.save_progress_subtitle') || 'Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу с любого устройства.')
-              : t('auth.subtitle')}
-          </p>
-        </div>
+    <Modal isOpen={true} onClose={onClose || (() => {})} size="sm">
+      <ModalHeader
+        title={isGuestPromotion ? (t('auth.save_progress_title') || 'Сохранить прогресс') : 'LinkedIn Vacancies'}
+        description={
+          isGuestPromotion 
+            ? (t('auth.save_progress_subtitle') || 'Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу с любого устройства.')
+            : t('auth.subtitle')
+        }
+        icon={<Icon icon={Briefcase} size="md" tone="accent" />}
+        actions={<ThemeToggle />}
+        onClose={onClose}
+        hideCloseButton={!onClose}
+      />
 
-        {error && (
-          <div className="login-alert error">
-            <AlertCircle size={16} />
-            <span>{error}</span>
-          </div>
-        )}
+      <ModalBody>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+          {error && <AlertBanner tone="danger" title={error} />}
 
-        {/* Google OAuth Button */}
-        <div className="login-actions">
+          {/* Google OAuth Button */}
           {authConfig.google_configured ? (
-            <button className="btn-google-login plausible-event-name=Login+Google" onClick={handleGoogleLogin}>
-              <svg width="20" height="20" viewBox="0 0 24 24" className="google-icon">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={handleGoogleLogin}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" style={{ marginRight: '8px' }}>
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -115,56 +111,59 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
                 />
               </svg>
               <span>{t('auth.google_login')}</span>
-            </button>
+            </Button>
           ) : (
-            <div className="login-warning-box">
-              <AlertCircle size={16} color="#f59e0b" />
-              <span>{t('auth.google_not_configured')}</span>
-            </div>
+            <AlertBanner
+              tone="warning"
+              title={t('auth.google_not_configured')}
+            />
           )}
-        </div>
 
-        {/* Dev Mode Section */}
-        {authConfig.dev_mode && (
-          <div className="login-dev-section">
-            <div className="login-divider">
-              <span>{authConfig.google_configured ? 'или тестовый вход' : 'тестовый режим'}</span>
-            </div>
+          {/* Dev Mode Section */}
+          {authConfig.dev_mode && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--ui-space-3)',
+              paddingTop: 'var(--ui-space-3)',
+              borderTop: '1px solid var(--ui-border-subtle)',
+            }}>
+              <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
+                {authConfig.google_configured ? '— или тестовый вход —' : 'тестовый режим'}
+              </Text>
 
-            <form onSubmit={handleDevLogin} className="login-dev-form">
-              <div className="dev-inputs">
-                <div className="input-with-icon">
-                  <User size={15} className="input-icon" />
-                  <input
-                    type="text"
-                    value={devName}
-                    onChange={(e) => setDevName(e.target.value)}
-                    placeholder="Имя пользователя"
-                    required
-                  />
-                </div>
-                <input
+              <form onSubmit={handleDevLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+                <Input
+                  type="text"
+                  value={devName}
+                  onChange={(e) => setDevName(e.target.value)}
+                  placeholder="Имя пользователя"
+                  required
+                />
+                <Input
                   type="email"
                   value={devEmail}
                   onChange={(e) => setDevEmail(e.target.value)}
                   placeholder="Email"
                   required
                 />
-              </div>
-
-              <button
-                type="submit"
-                className="btn-dev-login plausible-event-name=Login+Dev"
-                disabled={loading}
-              >
-                <Sparkles size={16} />
-                <span>{loading ? 'Вход...' : t('auth.dev_login')}</span>
-                <ArrowRight size={16} />
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
-    </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  disabled={loading}
+                  loading={loading}
+                  startIcon={<Icon icon={Sparkles} size="xs" />}
+                  endIcon={<Icon icon={ArrowRight} size="xs" />}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {loading ? 'Вход...' : t('auth.dev_login')}
+                </Button>
+              </form>
+            </div>
+          )}
+        </div>
+      </ModalBody>
+    </Modal>
   );
 }

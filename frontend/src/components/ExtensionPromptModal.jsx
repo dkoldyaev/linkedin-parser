@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
 import { 
-  Puzzle, X, ShieldAlert, Layers, ExternalLink, 
-  HelpCircle, ArrowRight, CheckCircle2, Download,
-  Sparkles, RefreshCw
+  Puzzle, ShieldAlert, Layers, 
+  HelpCircle, ArrowRight, Download,
+  Sparkles
 } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Icon,
+  Checkbox,
+  Text,
+  Paragraph,
+  AlertBanner,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { dismissExtensionPrompt, getUpdatesBetween } from '../utils/extension';
 
@@ -43,75 +55,44 @@ export default function ExtensionPromptModal({
   const updates = isUpdate ? getUpdatesBetween(changelog, currentVersion, locale) : [];
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div 
-        className="modal-content" 
-        onClick={(e) => e.stopPropagation()} 
-        style={{ maxWidth: '600px' }}
-      >
-        <div className="modal-header">
-          <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              background: isUpdate
-                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.2))'
-                : 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
-              border: `1px solid ${isUpdate ? 'rgba(245, 158, 11, 0.4)' : 'rgba(99, 102, 241, 0.3)'}`,
-              borderRadius: '8px',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: isUpdate ? '#f59e0b' : '#60a5fa'
-            }}>
-              {isUpdate ? <Sparkles size={22} /> : <Puzzle size={22} />}
-            </div>
-            <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                {isUpdate ? t('extensionModal.title_update') : t('extensionModal.title')}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                {isUpdate 
-                  ? t('extensionModal.subtitle_update', { current: currentVersion || '?', latest: latestVersion || '?' })
-                  : t('extensionModal.subtitle')}
-              </div>
-            </div>
-          </div>
-          <button className="btn-icon modal-close-btn" onClick={handleClose} title={t('common.close')}>
-            <X size={18} />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={handleClose} size="lg">
+      <ModalHeader
+        title={isUpdate ? t('extensionModal.title_update') : t('extensionModal.title')}
+        description={
+          isUpdate 
+            ? t('extensionModal.subtitle_update', { current: currentVersion || '?', latest: latestVersion || '?' })
+            : t('extensionModal.subtitle')
+        }
+        icon={<Icon icon={isUpdate ? Sparkles : Puzzle} size="md" tone={isUpdate ? 'warning' : 'accent'} />}
+        onClose={handleClose}
+      />
 
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <p style={{ margin: 0, fontSize: '0.925rem', lineHeight: '1.5', color: 'var(--text-secondary)' }}>
+      <ModalBody>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+          <Paragraph variant="body" tone="secondary">
             {isUpdate ? t('extensionModal.desc_intro_update') : t('extensionModal.desc_intro')}
-          </p>
+          </Paragraph>
 
-          {/* If Update mode: show What's New changelog list */}
           {isUpdate && updates.length > 0 && (
             <div style={{
-              background: 'rgba(245, 158, 11, 0.06)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
-              borderRadius: '10px',
-              padding: '14px',
-              fontSize: '0.85rem'
+              background: 'var(--ui-bg-subtle)',
+              border: '1px solid var(--ui-border-subtle)',
+              padding: 'var(--ui-space-3-5)',
             }}>
-              <div style={{ fontWeight: 600, color: '#fbbf24', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sparkles size={16} />
-                <span>
-                  {updates.length === 1 
-                    ? t('extensionModal.whats_new', { version: updates[0].version }) 
-                    : t('extensionModal.whats_new_general')}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <Text variant="caption" weight="bold" tone="warning" startIcon={<Icon icon={Sparkles} size="xs" />}>
+                {updates.length === 1 
+                  ? t('extensionModal.whats_new', { version: updates[0].version }) 
+                  : t('extensionModal.whats_new_general')}
+              </Text>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)', marginTop: 'var(--ui-space-2)' }}>
                 {updates.map((up) => (
                   <div key={up.version}>
                     {updates.length > 1 && (
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                      <Text variant="caption" weight="medium" tone="muted">
                         v{up.version} {up.date ? `(${up.date})` : ''}
-                      </div>
+                      </Text>
                     )}
-                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--ui-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {up.changes.map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}
@@ -122,56 +103,29 @@ export default function ExtensionPromptModal({
             </div>
           )}
 
-          {/* If NOT update: show feature cards */}
           {!isUpdate && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr',
-              gap: '10px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '10px',
-              padding: '14px'
-            }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <div style={{
-                  background: 'rgba(99, 102, 241, 0.12)',
-                  color: '#60a5fa',
-                  borderRadius: '6px',
-                  padding: '6px',
-                  display: 'flex',
-                  marginTop: '2px'
-                }}>
-                  <Layers size={16} />
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
+              <div style={{ display: 'flex', gap: 'var(--ui-space-3)', alignItems: 'flex-start' }}>
+                <Icon icon={Layers} size="sm" tone="accent" style={{ marginTop: '2px' }} />
                 <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <Text variant="body" weight="medium">
                     {t('extensionModal.feature_tabs_title')}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                  </Text>
+                  <Text variant="caption" tone="muted" style={{ display: 'block', marginTop: '2px' }}>
                     {t('extensionModal.feature_tabs_desc')}
-                  </div>
+                  </Text>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <div style={{
-                  background: 'rgba(234, 179, 8, 0.12)',
-                  color: '#eab308',
-                  borderRadius: '6px',
-                  padding: '6px',
-                  display: 'flex',
-                  marginTop: '2px'
-                }}>
-                  <ShieldAlert size={16} />
-                </div>
+              <div style={{ display: 'flex', gap: 'var(--ui-space-3)', alignItems: 'flex-start' }}>
+                <Icon icon={ShieldAlert} size="sm" tone="warning" style={{ marginTop: '2px' }} />
                 <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <Text variant="body" weight="medium">
                     {t('extensionModal.feature_captcha_title')}
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                  </Text>
+                  <Text variant="caption" tone="muted" style={{ display: 'block', marginTop: '2px' }}>
                     {t('extensionModal.feature_captcha_desc')}
-                  </div>
+                  </Text>
                 </div>
               </div>
             </div>
@@ -179,28 +133,30 @@ export default function ExtensionPromptModal({
 
           {/* Installation or Update Instructions */}
           <div style={{
-            background: 'rgba(15, 23, 42, 0.5)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '10px',
-            padding: '14px',
-            fontSize: '0.8125rem'
+            background: 'var(--ui-bg-subtle)',
+            border: '1px solid var(--ui-border-subtle)',
+            padding: 'var(--ui-space-3-5)',
           }}>
-            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--ui-space-2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <HelpCircle size={15} color={isUpdate ? '#f59e0b' : '#60a5fa'} />
-                <span>{isUpdate ? t('extensionModal.update_title') : t('extensionModal.install_title')}</span>
+                <Icon icon={HelpCircle} size="xs" tone={isUpdate ? 'warning' : 'accent'} />
+                <Text variant="caption" weight="bold">
+                  {isUpdate ? t('extensionModal.update_title') : t('extensionModal.install_title')}
+                </Text>
               </div>
-              <a 
-                href="/extension.zip" 
-                download 
-                className="btn btn-secondary btn-icon" 
-                style={{ padding: '4px 10px', height: '24px', fontSize: '0.75rem', borderRadius: '4px' }} 
+              <Button
+                as="a"
+                href="/extension.zip"
+                download
+                variant="secondary"
+                size="xs"
+                startIcon={<Icon icon={Download} size="2xs" />}
                 title="Скачать ZIP"
               >
-                <Download size={12} style={{ marginRight: '4px' }}/> {isUpdate ? 'ZIP (v' + (latestVersion || '') + ')' : 'ZIP'}
-              </a>
+                {isUpdate ? `ZIP (v${latestVersion || ''})` : 'ZIP'}
+              </Button>
             </div>
-            <ol style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px', lineHeight: 1.4 }}>
+            <ol style={{ margin: 0, paddingLeft: '20px', color: 'var(--ui-text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: 'var(--ui-font-size-xs)' }}>
               {isUpdate ? (
                 <>
                   <li>{t('extensionModal.update_step1')}</li>
@@ -217,32 +173,33 @@ export default function ExtensionPromptModal({
             </ol>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-            <input
-              type="checkbox"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+            <Checkbox
               id="dontShowExtensionModal"
               checked={dontShowAgain}
               onChange={(e) => setDontShowAgain(e.target.checked)}
-              style={{ cursor: 'pointer' }}
             />
-            <label htmlFor="dontShowExtensionModal" style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            <Text as="label" htmlFor="dontShowExtensionModal" variant="caption" tone="muted" style={{ cursor: 'pointer' }}>
               {isUpdate ? t('extensionModal.dont_show_again_version') : t('extensionModal.dont_show_again')}
-            </label>
+            </Text>
           </div>
         </div>
+      </ModalBody>
 
-        <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-secondary" onClick={handleClose}>
-            {t('extensionModal.close')}
-          </button>
-          {onProceed && (
-            <button className="btn btn-primary" onClick={handleProceed} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>{isUpdate ? t('extensionModal.proceed_outdated') : t('extensionModal.proceed_anyway')}</span>
-              <ArrowRight size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+      <ModalFooter justify="between">
+        <Button variant="secondary" onClick={handleClose}>
+          {t('extensionModal.close')}
+        </Button>
+        {onProceed && (
+          <Button
+            variant="primary"
+            onClick={handleProceed}
+            endIcon={<Icon icon={ArrowRight} size="xs" />}
+          >
+            {isUpdate ? t('extensionModal.proceed_outdated') : t('extensionModal.proceed_anyway')}
+          </Button>
+        )}
+      </ModalFooter>
+    </Modal>
   );
 }

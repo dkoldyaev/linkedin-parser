@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Trash2, AlertCircle, List } from 'lucide-react';
+import { Trash2, AlertCircle, List } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  Button,
+  Icon,
+  Spinner,
+  EmptyState,
+  AlertBanner,
+  Text,
+  Badge,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 
@@ -43,14 +55,12 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
 
   const handleCancelTask = async (taskId) => {
     try {
-      // Remove from list visually immediately for responsive UI
-      setTasks((prev) => prev.filter(t => t.task_id !== taskId));
+      setTasks((prev) => prev.filter((t) => t.task_id !== taskId));
       const res = await fetch(`/api/queue/tasks/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel task');
       onRefreshQueue?.();
     } catch (err) {
       alert('Error cancelling task: ' + err.message);
-      // Optional: rollback tasks state if it failed
       fetchTasks();
     }
   };
@@ -58,57 +68,94 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '608px' }}>
-        <div className="modal-header">
-          <div className="modal-title">
-            <List size={20} color="#2563eb" />
-            <span>Очередь обработки</span>
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <ModalHeader
+        title="Очередь обработки"
+        icon={<Icon icon={List} size="md" tone="accent" />}
+        onClose={onClose}
+      />
+
+      <ModalBody>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--ui-space-8)' }}>
+            <Spinner size="lg" />
           </div>
-          <button className="btn-icon modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-          {loading ? (
-             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-               <Loader2 size={24} className="spin" style={{ color: '#2563eb', animation: 'spin 1s linear infinite' }} />
-             </div>
-          ) : error ? (
-             <div style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <AlertCircle size={16} /> {error}
-             </div>
-          ) : tasks.length === 0 ? (
-             <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-               Очередь пуста
-             </div>
-          ) : (
-            <ul ref={parent} style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {tasks.map(task => (
-                <li key={task.task_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ overflow: 'hidden', marginRight: '16px' }}>
-                    <div style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={task.url}>
-                      {task.title ? `${task.title} at ${task.company || 'Unknown'}` : task.url}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', gap: '8px', marginTop: '4px' }}>
-                      <span style={{ textTransform: 'capitalize' }}>Status: {task.status}</span>
-                      {task.stage && <span>• Stage: {task.stage}</span>}
-                    </div>
-                  </div>
-                  <button 
-                    className="btn btn-danger btn-icon" 
-                    title="Удалить из очереди"
-                    onClick={() => handleCancelTask(task.task_id)}
-                    style={{ flexShrink: 0 }}
+        ) : error ? (
+          <AlertBanner tone="danger" title={error} />
+        ) : tasks.length === 0 ? (
+          <EmptyState
+            title="Очередь пуста"
+            description="Нет активных задач парсинга или анализа."
+          />
+        ) : (
+          <ul
+            ref={parent}
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--ui-space-3)',
+            }}
+          >
+            {tasks.map((task) => (
+              <li
+                key={task.task_id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 'var(--ui-space-3)',
+                  background: 'var(--ui-bg-subtle)',
+                  border: '1px solid var(--ui-border-subtle)',
+                }}
+              >
+                <div style={{ overflow: 'hidden', marginRight: 'var(--ui-space-4)' }}>
+                  <Text
+                    variant="body"
+                    weight="medium"
+                    style={{
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                    title={task.url}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
+                    {task.title ? `${task.title} at ${task.company || 'Unknown'}` : task.url}
+                  </Text>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--ui-space-2)',
+                      marginTop: 'var(--ui-space-1)',
+                    }}
+                  >
+                    <Badge variant="outline" size="xs" tone="neutral">
+                      Status: {task.status}
+                    </Badge>
+                    {task.stage && (
+                      <Badge variant="outline" size="xs" tone="info">
+                        Stage: {task.stage}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="danger"
+                  size="icon-sm"
+                  title="Удалить из очереди"
+                  aria-label="Удалить из очереди"
+                  onClick={() => handleCancelTask(task.task_id)}
+                >
+                  <Icon icon={Trash2} size="sm" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </ModalBody>
+    </Modal>
   );
 }

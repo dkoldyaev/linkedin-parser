@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Header } from '@blueprint/ui-kit';
 import HeaderControls from './HeaderControls';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -7,15 +8,20 @@ import { useTranslation } from '../i18n/I18nContext';
 export default function PageHeader({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
   return (
-    <header className="app-header">
-      <Link to="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div className="brand-icon"><span className="blueprint-mark" aria-hidden="true" /></div>
-        <div>
-          <div className="brand-title">{t('nav.title')}</div>
-          <p className="brand-subtitle">{t('nav.subtitle')}</p>
-        </div>
-      </Link>
-      <HeaderControls user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />
-    </header>
+    <Header
+      title={t('nav.title')}
+      subtitle={t('nav.subtitle')}
+      brand={
+        <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+          <Header.Brand
+            title={t('nav.title')}
+            subtitle={t('nav.subtitle')}
+          />
+        </Link>
+      }
+      actions={
+        <HeaderControls user={user} onLogout={onLogout} onUserUpdated={onUserUpdated} />
+      }
+    />
   );
 }

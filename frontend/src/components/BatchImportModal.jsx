@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { X, UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Icon,
+  Textarea,
+  Input,
+  Text,
+  AlertBanner,
+  Badge,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { checkExtensionPromptRequirement, anyUrlRequiresExtension } from '../utils/extension';
@@ -49,81 +62,78 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
         urls_count: urls.length,
         status: data.status,
         queued: data.queued,
-        imported: data.imported,
-        total: data.total
+        results_count: (data.results || []).length
       });
 
       setResult(data);
-      setUrlsText('');
-      setTagsInput('');
-      setDuplicateWarning(null);
       if (onImportComplete) {
         onImportComplete();
       }
     } catch (err) {
       trackEvent(EVENTS.BATCH_IMPORT_ERROR, {
-        error: err.message || t('common.error')
+        urls_count: urls.length,
+        error: err.message
       });
-      setError(err.message || t('common.error'));
+      setError(err.message);
     } finally {
       setLoading(false);
+      setDuplicateWarning(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setResult(null);
+
     const urls = urlsText
       .split('\n')
       .map(u => u.trim())
       .filter(u => u.length > 0);
 
     if (urls.length === 0) {
-      setError(t('batchModal.error_empty_urls'));
+      setError(t('batchModal.error_empty'));
       return;
     }
 
     const defaultTags = tagsInput
       .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
 
     setLoading(true);
-    setError(null);
-    let requiresExt = anyUrlRequiresExtension(urls);
     try {
-      const dupRes = await fetch('/api/vacancies/check-duplicates', {
+      const checkRes = await fetch('/api/vacancies/batch/check-duplicates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls }),
+        body: JSON.stringify({ urls })
       });
-      if (dupRes.ok) {
-        const dupData = await dupRes.json();
-        if (typeof dupData.requires_extension === 'boolean') {
-          requiresExt = dupData.requires_extension;
-        }
-        if (dupData.has_duplicates && dupData.duplicates.length > 0) {
-          setLoading(false);
+
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.has_duplicates && checkData.duplicates.length > 0) {
           setDuplicateWarning({
-            duplicates: dupData.duplicates,
+            duplicates: checkData.duplicates,
             urls,
             defaultTags,
-            requiresExtension: requiresExt,
+            requiresExtension: checkData.requires_extension
           });
+          setLoading(false);
           return;
         }
       }
-    } catch (dupErr) {
-      console.warn("Duplicate check error:", dupErr);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.warn('Failed to pre-check duplicates:', err);
     }
 
-    if (requiresExt) {
+    const needsExt = anyUrlRequiresExtension(urls);
+    if (needsExt) {
       const promptReq = await checkExtensionPromptRequirement();
       if (promptReq.show) {
         setExtModalInfo(promptReq);
         setPendingSubmit(() => () => performSubmit(urls, defaultTags));
         setShowExtModal(true);
+        setLoading(false);
         return;
       }
     }
@@ -132,240 +142,224 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
   };
 
   const handleClose = () => {
-    setResult(null);
-    setError(null);
     setUrlsText('');
     setTagsInput('');
+    setResult(null);
+    setError(null);
     setDuplicateWarning(null);
     setPendingSubmit(null);
-    setShowExtModal(false);
     onClose();
   };
 
-  const queueUnit = queueRemaining === 1 ? t('nav.queue_unit_one') : t('nav.queue_unit_many');
-
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content batch-import-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-        <div className="modal-header">
-          <div className="modal-title">
-            <UploadCloud size={20} color="#2563eb" />
-            <span>{t('batchModal.title')}</span>
-          </div>
-          <button className="btn-icon modal-close-btn" onClick={handleClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <>
+      <Modal isOpen={isOpen} onClose={handleClose} size="lg">
+        <ModalHeader
+          title={t('batchModal.title')}
+          icon={<Icon icon={UploadCloud} size="md" tone="accent" />}
+          onClose={handleClose}
+        />
 
         {duplicateWarning ? (
-          <div className="batch-duplicates">
-            <div className="modal-body">
-              <div className="info-banner" style={{ background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fbbf24' }}>
-                <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                <div>
-                  <strong>{t('batchModal.duplicate_warning_title')}</strong>
-                  <div style={{ fontSize: '0.875rem', marginTop: '4px' }}>
-                    {t('batchModal.duplicate_warning_desc')}
-                  </div>
-                </div>
-              </div>
+          <>
+            <ModalBody>
+              <AlertBanner
+                tone="warning"
+                title={t('batchModal.duplicate_warning_title')}
+                description={t('batchModal.duplicate_warning_desc')}
+              />
 
-              <div style={{ marginTop: '16px', maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ marginTop: 'var(--ui-space-4)', maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
                 {duplicateWarning.duplicates.map((dup) => (
                   <div key={dup.id} style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-xs)',
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
+                    padding: 'var(--ui-space-2-5)',
+                    background: 'var(--ui-bg-subtle)',
+                    border: '1px solid var(--ui-border-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                   }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    <Text variant="body" weight="medium">
                       {dup.title || dup.url}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      <span>{dup.company || 'Unknown'}</span>
+                    </Text>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text variant="caption" tone="secondary">{dup.company || 'Unknown'}</Text>
                       {dup.status && (
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: 'rgba(37, 99, 235, 0.15)',
-                          border: '1px solid var(--border-blueprint)',
-                          color: '#93c5fd',
-                          fontSize: '0.75rem',
-                          fontFamily: 'var(--font-mono)'
-                        }}>
+                        <Badge variant="outline" size="xs" tone="primary">
                           {dup.status}
-                        </span>
+                        </Badge>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Text variant="mono" tone="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {dup.url}
-                    </div>
+                    </Text>
                   </div>
                 ))}
               </div>
-            </div>
+            </ModalBody>
 
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setDuplicateWarning(null)}
-                disabled={loading}
-              >
-                {t('batchModal.duplicate_warning_cancel')}
-              </button>
-              <button
-                type="button"
-                className="btn btn-warning"
-                style={{ background: '#f59e0b', color: '#111827', fontWeight: 600, border: 'none' }}
-                onClick={async () => {
-                  const { urls, defaultTags, requiresExtension } = duplicateWarning;
-                  const needsExt = typeof requiresExtension === 'boolean'
-                    ? requiresExtension
-                    : anyUrlRequiresExtension(urls);
-                  if (needsExt) {
-                    const promptReq = await checkExtensionPromptRequirement();
-                    if (promptReq.show) {
-                      setExtModalInfo(promptReq);
-                      setPendingSubmit(() => () => performSubmit(urls, defaultTags));
-                      setShowExtModal(true);
-                      return;
+            <ModalFooter justify="end">
+              <ModalFooter.Actions>
+                <Button
+                  variant="secondary"
+                  onClick={() => setDuplicateWarning(null)}
+                  disabled={loading}
+                >
+                  {t('batchModal.duplicate_warning_cancel')}
+                </Button>
+                <Button
+                  variant="warning"
+                  onClick={async () => {
+                    const { urls, defaultTags, requiresExtension } = duplicateWarning;
+                    const needsExt = typeof requiresExtension === 'boolean'
+                      ? requiresExtension
+                      : anyUrlRequiresExtension(urls);
+                    if (needsExt) {
+                      const promptReq = await checkExtensionPromptRequirement();
+                      if (promptReq.show) {
+                        setExtModalInfo(promptReq);
+                        setPendingSubmit(() => () => performSubmit(urls, defaultTags));
+                        setShowExtModal(true);
+                        return;
+                      }
                     }
-                  }
-                  await performSubmit(urls, defaultTags);
-                }}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>{t('batchModal.submitting_btn')}</span>
-                  </>
-                ) : (
-                  <span>{t('batchModal.duplicate_warning_proceed')}</span>
+                    await performSubmit(urls, defaultTags);
+                  }}
+                  disabled={loading}
+                  loading={loading}
+                >
+                  {t('batchModal.duplicate_warning_proceed')}
+                </Button>
+              </ModalFooter.Actions>
+            </ModalFooter>
+          </>
+        ) : result ? (
+          <>
+            <ModalBody>
+              <div style={{ textAlign: 'center', padding: 'var(--ui-space-6) 0' }}>
+                <Icon icon={CheckCircle} size="xl" tone="success" style={{ margin: '0 auto var(--ui-space-4)' }} />
+                <Text as="h3" variant="display" weight="bold" style={{ marginBottom: 'var(--ui-space-2)' }}>
+                  {t('batchModal.success_title')}
+                </Text>
+                <Text variant="body" tone="secondary" style={{ marginBottom: 'var(--ui-space-4)', display: 'block' }}>
+                  {t('batchModal.success_desc', { count: result.queued })}
+                </Text>
+
+                {result.results && result.results.length > 0 && (
+                  <div style={{ textAlign: 'left', marginTop: 'var(--ui-space-4)', maxHeight: '200px', overflowY: 'auto' }}>
+                    <Text variant="caption" weight="bold" style={{ marginBottom: 'var(--ui-space-2)', display: 'block' }}>
+                      {t('batchModal.details_label')}
+                    </Text>
+                    {result.results.map((r, i) => (
+                      <div key={i} style={{
+                        padding: 'var(--ui-space-2)',
+                        borderBottom: '1px solid var(--ui-border-subtle)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Text variant="mono" tone="secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                          {r.url}
+                        </Text>
+                        <Badge variant="outline" size="xs" tone={r.status === 'queued' ? 'success' : 'neutral'}>
+                          {r.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </button>
-            </div>
-          </div>
+              </div>
+            </ModalBody>
+            <ModalFooter justify="end">
+              <Button variant="primary" onClick={handleClose}>
+                {t('batchModal.done_btn')}
+              </Button>
+            </ModalFooter>
+          </>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div className="modal-body">
+            <ModalBody>
               {error && (
-                <div className="info-banner" style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5' }}>
-                  <AlertCircle size={18} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {result && (
-                <div className="info-banner" style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7' }}>
-                  <CheckCircle size={18} />
-                  <div>
-                    <strong>{result.status === 'queued' ? t('batchModal.queued_success_title') : t('batchModal.import_completed')}</strong>{' '}
-                    {result.status === 'queued' 
-                      ? t('batchModal.queued_success_desc', { count: result.queued })
-                      : t('batchModal.import_result', { imported: result.imported, total: result.total })}
-                  </div>
-                </div>
-              )}
-
-              {queueRemaining > 0 && (
-                <div className="info-banner" style={{ background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.4)', color: '#c7d2fe' }}>
-                  <Loader2 size={18} className="spin" style={{ animation: 'spin 1.2s linear infinite', flexShrink: 0 }} />
-                  <div>
-                    {t('batchModal.queue_remaining_notice', { count: queueRemaining, unit: queueUnit })}
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: '#a5b4fc', marginTop: '2px' }}>
-                      {t('batchModal.background_notice')}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="batch-vacancy-urls">
-                  {t('batchModal.urls_label')}
-                </label>
-                <textarea
-                  id="batch-vacancy-urls"
-                  className="form-textarea"
-                  rows={7}
-                  placeholder={t('batchModal.urls_placeholder')}
-                  value={urlsText}
-                  onChange={e => setUrlsText(e.target.value)}
-                  disabled={loading}
-                  required
+                <AlertBanner
+                  tone="danger"
+                  title={error}
+                  style={{ marginBottom: 'var(--ui-space-4)' }}
                 />
-              </div>
+              )}
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="batch-vacancy-tags">
-                  {t('batchModal.tags_label')}
-                </label>
-                <input
-                  id="batch-vacancy-tags"
-                  type="text"
-                  className="form-input"
-                  placeholder={t('batchModal.tags_placeholder')}
-                  value={tagsInput}
-                  onChange={e => setTagsInput(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-            </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+                  <Text as="label" variant="caption" weight="medium">
+                    {t('batchModal.urls_label')}
+                  </Text>
+                  <Textarea
+                    value={urlsText}
+                    onChange={(e) => setUrlsText(e.target.value)}
+                    placeholder={t('batchModal.urls_placeholder')}
+                    rows={6}
+                    disabled={loading}
+                    autoFocus
+                  />
+                  <Text variant="caption" tone="muted">
+                    {t('batchModal.urls_hint')}
+                  </Text>
+                </div>
 
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading}>
-                {t('common.cancel')}
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>{t('batchModal.submitting_btn')}</span>
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud size={16} />
-                    <span>{t('batchModal.submit_btn')}</span>
-                  </>
-                )}
-              </button>
-            </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
+                  <Text as="label" variant="caption" weight="medium">
+                    {t('batchModal.tags_label')}
+                  </Text>
+                  <Input
+                    type="text"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder={t('batchModal.tags_placeholder')}
+                    disabled={loading}
+                  />
+                  <Text variant="caption" tone="muted">
+                    {t('batchModal.tags_hint')}
+                  </Text>
+                </div>
+              </div>
+            </ModalBody>
+
+            <ModalFooter justify="end">
+              <ModalFooter.Actions>
+                <Button variant="secondary" onClick={handleClose} disabled={loading}>
+                  {t('batchModal.cancel_btn')}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={loading || !urlsText.trim()}
+                  loading={loading}
+                >
+                  {t('batchModal.submit_btn')}
+                </Button>
+              </ModalFooter.Actions>
+            </ModalFooter>
           </form>
         )}
-      </div>
+      </Modal>
 
-      <ExtensionPromptModal
-        isOpen={showExtModal}
-        mode={extModalInfo?.reason || 'not_installed'}
-        currentVersion={extModalInfo?.currentVersion}
-        latestVersion={extModalInfo?.latestVersion}
-        changelog={extModalInfo?.changelog}
-        onClose={() => {
-          setShowExtModal(false);
-          setPendingSubmit(null);
-        }}
-        onProceed={() => {
-          setShowExtModal(false);
-          if (pendingSubmit) {
-            pendingSubmit();
+      {showExtModal && (
+        <ExtensionPromptModal
+          isOpen={showExtModal}
+          onClose={() => {
+            setShowExtModal(false);
             setPendingSubmit(null);
-          } else {
-            const urls = urlsText
-              .split('\n')
-              .map(u => u.trim())
-              .filter(u => u.length > 0);
-            const defaultTags = tagsInput
-              .split(',')
-              .map(t => t.trim())
-              .filter(t => t.length > 0);
-            performSubmit(urls, defaultTags);
-          }
-        }}
-      />
-    </div>
+          }}
+          reason={extModalInfo?.reason}
+          onProceed={() => {
+            setShowExtModal(false);
+            if (pendingSubmit) {
+              const run = pendingSubmit;
+              setPendingSubmit(null);
+              run();
+            }
+          }}
+        />
+      )}
+    </>
   );
 }

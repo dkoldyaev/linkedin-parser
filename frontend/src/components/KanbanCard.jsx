@@ -1,9 +1,22 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { 
   MapPin, 
-  ExternalLink, Tag, Banknote, Laptop, Layers, Building, Ban,
-  RotateCcw, History, Award
+  ExternalLink, Banknote, Laptop, Layers, Building, Ban,
+  RotateCcw, History, Award, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  CardFooter,
+  Badge,
+  Button,
+  ButtonGroup,
+  Icon,
+  Text,
+  Paragraph,
+  Skeleton,
+} from '@blueprint/ui-kit';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
@@ -42,15 +55,15 @@ export default function KanbanCard({
     const content = contentRef.current;
     if (!content) return;
     const updateHeight = () => {
-      // Snap the content area to the grid, leaving the footer on the next grid line.
       const height = Math.ceil(content.offsetHeight / 32) * 32;
-      setGridHeight((previous) => previous === height ? previous : height);
+      setGridHeight((previous) => (previous === height ? previous : height));
     };
     const observer = new ResizeObserver(updateHeight);
     observer.observe(content);
     updateHeight();
     return () => observer.disconnect();
   }, []);
+
   const rejectedColumn = Array.isArray(columns)
     ? columns.find(c => c.system_role === 'rejected' || (c.is_base && (c.id === STATUS_REJECTED || c.role === 'rejected'))) || columns.find(c => c.id === STATUS_REJECTED)
     : null;
@@ -62,7 +75,6 @@ export default function KanbanCard({
   const initialStatusId = initialColumn ? (typeof initialColumn === 'string' ? initialColumn : initialColumn.id) : STATUS_NOT_CONTACTED;
 
   const isRejected = vacancy.status === rejectedStatusId;
-  // Filter out rejected column from linear column navigation
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
     ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== rejectedStatusId)
     : DEFAULT_COLUMNS;
@@ -70,22 +82,29 @@ export default function KanbanCard({
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
-  // Match score tier classification
   const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : null;
-  let matchTier = '';
-  let matchTierLabel = '';
-  if (matchScore !== null) {
-    if (matchScore >= 75) {
-      matchTier = 'match-high';
-      matchTierLabel = t('kanban.match_high');
-    } else if (matchScore >= 50) {
-      matchTier = 'match-medium';
-      matchTierLabel = t('kanban.match_medium');
-    } else {
-      matchTier = 'match-low';
-      matchTierLabel = t('kanban.match_low');
-    }
-  }
+  const matchTone =
+    matchScore === null
+      ? 'neutral'
+      : matchScore >= 75
+        ? 'success'
+        : matchScore >= 50
+          ? 'warning'
+          : 'danger';
+
+  const workplaceIcon =
+    workplaceInfo?.key === 'remote'
+      ? Laptop
+      : workplaceInfo?.key === 'hybrid'
+        ? Layers
+        : Building;
+
+  const workplaceTone =
+    workplaceInfo?.key === 'remote'
+      ? 'accent'
+      : workplaceInfo?.key === 'hybrid'
+        ? 'warning'
+        : 'secondary';
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());
@@ -145,173 +164,187 @@ export default function KanbanCard({
     });
   };
 
+  const hasHistory = vacancy.history && vacancy.history.length > 0;
+  const hasHistoryComments = hasHistory && vacancy.history.some(h => h.comment);
+
   return (
-    <div
-      className={`kanban-card ${vacancy.is_closed ? 'is-closed' : ''} ${isRejected ? 'is-rejected' : ''} ${isSelected ? 'is-selected' : ''} ${matchTier ? `card-${matchTier}` : ''}`}
+    <Card
+      matchScore={matchScore ?? undefined}
+      selected={isSelected}
+      status={isRejected ? 'danger' : vacancy.is_closed ? 'warning' : 'neutral'}
+      interactive
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleCardClick}
+      className={isRejected ? 'is-rejected' : vacancy.is_closed ? 'is-closed' : ''}
     >
-      <div className="card-grid-content">
-      <div className="card-grid-body" style={gridHeight ? { minHeight: gridHeight } : undefined}>
-      <div className="card-grid-body-content" ref={contentRef}>
-      <div className="card-top">
-        <div className="card-heading">
-          <div className="card-title-container">
-            <div className="card-header-meta">
-              <input
-                type="checkbox"
-                checked={isSelected || false}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  if (onToggleSelect) onToggleSelect(vacancy.id);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="card-checkbox"
-                title="Выделить карточку"
-              />
-              <a 
-                href={vacancy.url} 
-                target="_blank" 
-                rel="noreferrer" 
-                onClick={handleCompanyLinkClick}
-                className="card-source-link"
-                title={vacancy.company || ''}
-              >
-                {vacancy.company && <span>{vacancy.company}</span>}
-                <ExternalLink size={10} />
-              </a>
-            </div>
-            <h3 className="card-title">
-              {vacancy.title}
-            </h3>
-          </div>
+      <CardBody style={gridHeight ? { minHeight: gridHeight } : undefined}>
+        <div ref={contentRef} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+          <CardHeader
+            overline={vacancy.company}
+            overlineHref={vacancy.url}
+            title={vacancy.title}
+            selectable
+            checked={isSelected || false}
+            onCheckedChange={() => onToggleSelect && onToggleSelect(vacancy.id)}
+            checkboxAriaLabel="Выделить карточку"
+            statusIndicators={
+              <>
+                {laneColumns.has(vacancy.status) && vacancy.lane != null && (
+                  <Badge variant="outline" size="xs" tone="info">
+                    {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
+                  </Badge>
+                )}
+                {vacancy.is_closed && (
+                  <Badge
+                    variant="solid"
+                    size="xs"
+                    tone="danger"
+                    icon={<Icon icon={Ban} size="2xs" />}
+                    title={t('kanban.closed_hint')}
+                  >
+                    {t('kanban.closed')}
+                  </Badge>
+                )}
+              </>
+            }
+          />
 
-        </div>
-        <div className="card-status-indicators">
-          {(laneColumns.has(vacancy.status)) && (vacancy.lane != null) && (
-            <span className="card-lane-badge" title={t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}>
-              {t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 })}
-            </span>
-          )}
-          {vacancy.is_closed && (
-            <div className="card-closed-badge" title={t('kanban.closed_hint')}>
-              <Ban size={10} />
-              <span>{t('kanban.closed')}</span>
+          {/* Meta row: match score, workplace format, location, salary */}
+          {(vacancy.location || salaryInfo.hasSalary || workplaceInfo || matchScore !== null) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--ui-space-1-5)' }}>
+              {matchScore !== null && (
+                <Badge
+                  variant="solid"
+                  size="xs"
+                  tone={matchTone}
+                  icon={<Icon icon={Award} size="2xs" />}
+                  title={t('kanban.match_badge', { score: matchScore })}
+                >
+                  {matchScore}%
+                </Badge>
+              )}
+              {workplaceInfo && (
+                <Badge
+                  variant="outline"
+                  size="xs"
+                  tone={workplaceTone}
+                  icon={<Icon icon={workplaceIcon} size="2xs" />}
+                  title={t('workplace.badge_title', { format: workplaceInfo.fullLabel || workplaceInfo.label })}
+                >
+                  {workplaceInfo.label}
+                </Badge>
+              )}
+              {vacancy.location && (
+                <Text
+                  variant="caption"
+                  tone="secondary"
+                  startIcon={<Icon icon={MapPin} size="xs" />}
+                  style={{ display: 'flex', alignItems: 'center', gap: '2px' }}
+                >
+                  {vacancy.location}
+                </Text>
+              )}
+              {salaryInfo.hasSalary && (
+                <Badge
+                  variant="outline"
+                  size="xs"
+                  tone="accent"
+                  icon={<Icon icon={Banknote} size="2xs" />}
+                  title={salaryInfo.original || salaryInfo.formatted}
+                >
+                  {salaryInfo.formatted}
+                </Badge>
+              )}
             </div>
           )}
-        </div>
-      </div>
 
-      {(vacancy.location || salaryInfo.hasSalary || workplaceInfo || matchScore !== null) && (
-        <div className="card-meta">
-          {matchScore !== null && (
-            <div
-              className={`card-match-badge ${matchTier}`}
-              title={t('kanban.match_badge', { score: matchScore })}
+          {/* AI Summary or Skeleton */}
+          {vacancy.ai_summary ? (
+            <Paragraph
+              variant="caption"
+              tone="secondary"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: 1.4,
+              }}
             >
-              <Award size={11} />
-              <span>{matchScore}%</span>
+              {vacancy.ai_summary}
+            </Paragraph>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }} aria-hidden="true">
+              <Skeleton width="full" height="xs" />
+              <Skeleton width="lg" height="xs" />
+              <Skeleton width="md" height="xs" />
             </div>
           )}
-          {workplaceInfo && (
-            <div className={`card-workplace-badge ${workplaceInfo.className}`} title={t('workplace.badge_title', { format: workplaceInfo.fullLabel || workplaceInfo.label })}>
-              {workplaceInfo.key === 'remote' && <Laptop size={11} />}
-              {workplaceInfo.key === 'hybrid' && <Layers size={11} />}
-              {workplaceInfo.key === 'on-site' && <Building size={11} />}
-              <span>{workplaceInfo.label}</span>
+
+          {/* Tech stack pills */}
+          {vacancy.tech_stack && vacancy.tech_stack.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
+                <Badge key={i} variant="outline" size="xs" tone="neutral">
+                  {tech}
+                </Badge>
+              ))}
+              {vacancy.tech_stack.length > 4 && (
+                <Badge variant="outline" size="xs" tone="neutral" style={{ opacity: 0.6 }}>
+                  +{vacancy.tech_stack.length - 4}
+                </Badge>
+              )}
+            </div>
+          ) : !vacancy.ai_summary && (
+            <div style={{ display: 'flex', gap: '4px' }} aria-hidden="true">
+              <Skeleton width="sm" height="xs" />
+              <Skeleton width="sm" height="xs" />
+              <Skeleton width="sm" height="xs" />
             </div>
           )}
-          {vacancy.location && (
-            <div className="card-location">
-              <MapPin size={12} />
-              <span>{vacancy.location}</span>
+
+          {/* Custom tags */}
+          {vacancy.tags && vacancy.tags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {vacancy.tags.map((tag, i) => (
+                <Badge key={i} variant="outline" size="xs" tone="primary">
+                  #{tag}
+                </Badge>
+              ))}
             </div>
           )}
-          {salaryInfo.hasSalary && (
-            <div className="card-salary-badge" title={salaryInfo.original || salaryInfo.formatted}>
-              <Banknote size={12} />
-              <span>{salaryInfo.formatted}</span>
-            </div>
-          )}
         </div>
-      )}
+      </CardBody>
 
-      {vacancy.ai_summary ? (
-        <div className="card-summary">
-          {vacancy.ai_summary}
-        </div>
-      ) : (
-        <div className="card-skeleton-block" aria-hidden="true">
-          <div className="skeleton-line" style={{ width: '100%' }} />
-          <div className="skeleton-line" style={{ width: '85%' }} />
-          <div className="skeleton-line" style={{ width: '60%' }} />
-        </div>
-      )}
-
-      {/* Tech stack pills */}
-      {vacancy.tech_stack && vacancy.tech_stack.length > 0 ? (
-        <div className="card-tech-stack">
-          {vacancy.tech_stack.slice(0, 4).map((tech, i) => (
-            <span key={i} className="tech-chip">
-              {tech}
-            </span>
-          ))}
-          {vacancy.tech_stack.length > 4 && (
-            <span className="tech-chip" style={{ color: 'var(--text-muted)' }}>
-              +{vacancy.tech_stack.length - 4}
-            </span>
-          )}
-        </div>
-      ) : (!vacancy.ai_summary && (
-        <div className="card-tech-stack card-skeleton-chips" aria-hidden="true">
-          <span className="skeleton-chip" style={{ width: '52px' }} />
-          <span className="skeleton-chip" style={{ width: '42px' }} />
-          <span className="skeleton-chip" style={{ width: '64px' }} />
-        </div>
-      ))}
-
-      {/* Custom labels / tags */}
-      {vacancy.tags && vacancy.tags.length > 0 && (
-        <div className="card-tags">
-          {vacancy.tags.map((tag, i) => (
-            <span key={i} className="tag-chip">
-              <Tag size={10} />
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      </div>
-      </div>
-      <div className="card-footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="card-date">
+      <CardFooter justify="between">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+          <Text variant="mono" tone="muted" style={{ fontSize: 'var(--ui-font-size-2xs)' }}>
             {formatDate(vacancy.created_at)}
-          </span>
-          {vacancy.history && vacancy.history.length > 0 && (
-            <span
-              className="card-history-indicator"
+          </Text>
+          {hasHistory && (
+            <Badge
+              variant="outline"
+              size="xs"
+              tone={hasHistoryComments ? 'accent' : 'neutral'}
+              icon={<Icon icon={History} size="2xs" />}
               title={
-                vacancy.history.some(h => h.comment)
+                hasHistoryComments
                   ? t('vacancyModal.history_badge_with_comments', { count: vacancy.history.length })
                   : t('vacancyModal.history_badge_hint', { count: vacancy.history.length })
               }
             >
-              <History size={11} />
-              <span>{vacancy.history.length}</span>
-              {vacancy.history.some(h => h.comment) && (
-                <span className="card-history-comment-dot" />
-              )}
-            </span>
+              {vacancy.history.length}
+            </Badge>
           )}
         </div>
 
         {isRejected ? (
-          <button
-            className="quick-restore-btn"
+          <Button
+            variant="ghost"
+            size="xs"
+            tone="accent"
             title={t('kanban.rejected_restore_hint')}
             onClick={(e) => {
               e.stopPropagation();
@@ -323,23 +356,26 @@ export default function KanbanCard({
               });
               onStatusChange(vacancy.id, initialStatusId);
             }}
+            startIcon={<Icon icon={RotateCcw} size="xs" />}
           >
-            <RotateCcw size={12} />
-            <span>{t('kanban.rejected_restore')}</span>
-          </button>
+            {t('kanban.rejected_restore')}
+          </Button>
         ) : (
-          <div className="card-quick-actions">
-            <button
-              className="quick-move-btn"
+          <ButtonGroup size="xs" attached>
+            <Button
+              variant="ghost"
+              size="icon-xs"
               title={t('kanban.move_left')}
               aria-label={t('kanban.move_left')}
               disabled={currentIndex <= 0}
               onClick={handleMoveLeft}
             >
-              <span aria-hidden="true">&lt;</span>
-            </button>
-            <button
-              className="quick-move-btn quick-reject-btn"
+              <Icon icon={ChevronLeft} size="xs" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              tone="danger"
               title={t('kanban.move_to_rejected')}
               aria-label={t('kanban.move_to_rejected')}
               onClick={(e) => {
@@ -353,21 +389,21 @@ export default function KanbanCard({
                 onStatusChange(vacancy.id, rejectedStatusId);
               }}
             >
-              <span aria-hidden="true">×</span>
-            </button>
-            <button
-              className="quick-move-btn"
+              <Icon icon={X} size="xs" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
               title={t('kanban.move_right')}
               aria-label={t('kanban.move_right')}
               disabled={currentIndex >= linearColumns.length - 1}
               onClick={handleMoveRight}
             >
-              <span aria-hidden="true">&gt;</span>
-            </button>
-          </div>
+              <Icon icon={ChevronRight} size="xs" />
+            </Button>
+          </ButtonGroup>
         )}
-      </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

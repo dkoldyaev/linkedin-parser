@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { X, Trash2, ArrowRight } from 'lucide-react';
+import { Trash2, ArrowRight } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Icon,
+  Paragraph,
+  Text,
+  Select,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { STATUS_NOT_CONTACTED } from '../constants/columns';
 
@@ -9,14 +20,19 @@ export default function ColumnDeleteModal({
   column,
   availableColumns = [],
   vacanciesCount = 0,
-  onConfirm
+  onConfirm,
 }) {
   const { t } = useTranslation();
   const [targetColumn, setTargetColumn] = useState(STATUS_NOT_CONTACTED);
 
   if (!isOpen || !column) return null;
 
-  const validTargets = availableColumns.filter(c => c.id !== column.id);
+  const validTargets = availableColumns
+    .filter((c) => c.id !== column.id)
+    .map((col) => ({
+      value: col.id,
+      label: t(`kanban.columns.${col.id}`),
+    }));
 
   const handleConfirm = () => {
     onConfirm(column.id, targetColumn);
@@ -24,64 +40,57 @@ export default function ColumnDeleteModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '448px' }}>
-        <div className="modal-header">
-          <div className="modal-title" style={{ color: '#ef4444' }}>
-            <Trash2 size={18} />
-            <span>{t('kanban.delete_column_confirm_title', { name: t(`kanban.columns.${column.id}`) })}</span>
-          </div>
-          <button className="btn-icon modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} size="sm">
+      <ModalHeader
+        title={t('kanban.delete_column_confirm_title', {
+          name: t(`kanban.columns.${column.id}`),
+        })}
+        icon={<Icon icon={Trash2} size="md" tone="danger" />}
+        onClose={onClose}
+      />
 
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
+      <ModalBody>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
           {vacanciesCount > 0 ? (
             <>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, height:'40px' }}>
+              <Paragraph variant="body" tone="secondary">
                 {t('kanban.delete_column_has_vacancies', { count: vacanciesCount })}
-              </p>
+              </Paragraph>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ArrowRight size={14} color="#2563eb" />
-                  <span>{t('kanban.migrate_to_label')}</span>
-                </label>
-                <select
-                  className="form-input"
-                  value={targetColumn}
-                  onChange={e => setTargetColumn(e.target.value)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1-5)' }}>
+                <Text
+                  variant="caption"
+                  weight="medium"
+                  startIcon={<Icon icon={ArrowRight} size="xs" tone="accent" />}
                 >
-                  {validTargets.map(col => (
-                    <option key={col.id} value={col.id}>
-                      {t(`kanban.columns.${col.id}`)}
-                    </option>
-                  ))}
-                </select>
+                  {t('kanban.migrate_to_label')}
+                </Text>
+                <Select
+                  value={targetColumn}
+                  onValueChange={setTargetColumn}
+                  options={validTargets}
+                  ariaLabel={t('kanban.migrate_to_label')}
+                />
               </div>
             </>
           ) : (
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            <Paragraph variant="body" tone="secondary">
               {t('kanban.delete_column_confirm_empty')}
-            </p>
+            </Paragraph>
           )}
         </div>
+      </ModalBody>
 
-        <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+      <ModalFooter justify="end">
+        <ModalFooter.Actions>
+          <Button variant="secondary" onClick={onClose}>
             {t('batchModal.cancel_btn')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ background: '#ef4444', borderColor: '#ef4444' }}
-            onClick={handleConfirm}
-          >
+          </Button>
+          <Button variant="danger" onClick={handleConfirm}>
             {t('kanban.delete_column')}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </ModalFooter.Actions>
+      </ModalFooter>
+    </Modal>
   );
 }

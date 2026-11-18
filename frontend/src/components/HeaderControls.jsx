@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Settings, LogOut, LogIn, Menu, X } from 'lucide-react';
+import { Button, Icon } from '@blueprint/ui-kit';
 import SettingsModal from './SettingsModal';
 import ThemeToggle from './ThemeToggle';
 import LoginModal from './LoginModal';
@@ -16,55 +17,67 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
   const { open, toggle } = useMenu();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
   return (
-    <div className="header-actions">
+    <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
       {children}
       <ThemeToggle />
 
       {user && (
         <>
-          <a
+          <Button
+            as="a"
             href="/extension.zip"
             download
-            className="btn btn-secondary btn-icon plausible-event-name=Download+Extension"
+            variant="secondary"
+            size="icon-md"
             title="Скачать расширение (ZIP)"
           >
-            <Download size={18} aria-hidden="true" />
-          </a>
+            <Icon icon={Download} size="sm" aria-hidden="true" />
+          </Button>
 
-          <button
-            className="btn btn-secondary btn-icon plausible-event-name=Settings+Open"
+          <Button
+            variant="secondary"
+            size="icon-md"
             onClick={() => {
               trackEvent(EVENTS.SETTINGS_OPEN);
               setIsSettingsOpen(true);
             }}
             title={t('nav.settings_btn')}
           >
-            <Settings size={18} aria-hidden="true" />
-          </button>
+            <Icon icon={Settings} size="sm" aria-hidden="true" />
+          </Button>
 
           {user.is_anonymous ? (
-            <button
-              className="btn btn-primary btn-guest-login"
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setIsLoginModalOpen(true)}
               title={t('auth.guest_login_tooltip') || 'Войти в аккаунт'}
+              startIcon={<Icon icon={LogIn} size="xs" />}
             >
-              <LogIn size={16} aria-hidden="true" />
-              <span className="guest-login-text">{t('auth.login_btn') || 'Войти'}</span>
-            </button>
+              {t('auth.login_btn') || 'Войти'}
+            </Button>
           ) : (
-            <div className="user-profile-badge">
+            <div className="user-profile-badge" style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)', padding: '0 var(--ui-space-2)', height: 'var(--ui-control-height-md)', background: 'var(--ui-bg-subtle)', border: '1px solid var(--ui-border-subtle)' }}>
               {user.picture ? (
-                <img src={user.picture} alt={user.name} className="user-avatar" />
+                <img src={user.picture} alt={user.name} className="user-avatar" style={{ width: '20px', height: '20px', borderRadius: '50%' }} />
               ) : (
-                <div className="user-avatar-placeholder">
+                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--ui-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold' }}>
                   {(user.name || user.email || 'U')[0].toUpperCase()}
                 </div>
               )}
-              <span className="user-profile-name" title={user.email}>{user.name || user.email}</span>
-              <button className="btn-logout" onClick={onLogout} title={t('auth.logout')}>
-                <LogOut size={16} aria-hidden="true" />
-              </button>
+              <span className="user-profile-name" title={user.email} style={{ fontSize: 'var(--ui-font-size-xs)' }}>
+                {user.name || user.email}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={onLogout}
+                title={t('auth.logout')}
+              >
+                <Icon icon={LogOut} size="xs" aria-hidden="true" />
+              </Button>
             </div>
           )}
 
@@ -90,15 +103,17 @@ export default function HeaderControls({ user, onLogout, vacancies, onColumnsUpd
         </>
       )}
 
-      <button
+      <Button
         id="menu-toggle"
-        className={`btn btn-secondary btn-icon burger ${open ? 'open' : ''}`}
+        variant="secondary"
+        size="icon-md"
+        className={`burger ${open ? 'open' : ''}`}
         onClick={toggle}
         aria-expanded={open}
         aria-label="Menu"
       >
-        {open ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
-      </button>
+        <Icon icon={open ? X : Menu} size="sm" aria-hidden="true" />
+      </Button>
     </div>
   );
 }

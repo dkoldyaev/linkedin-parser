@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Settings, Check, Globe, Columns3, 
+  Settings, Check, Globe, Columns3, 
   Layers, Plus, Trash2, ArrowUp, ArrowDown, Edit2
 } from 'lucide-react';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Icon,
+  Tabs,
+  Select,
+  Text,
+  Badge,
+  AlertBanner,
+  Checkbox,
+} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
@@ -35,7 +49,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   const [editingCol, setEditingCol] = useState(null);
   const [deletingCol, setDeletingCol] = useState(null);
 
-
   const fetchSettings = () => {
     fetch('/api/settings')
       .then(res => res.json())
@@ -61,46 +74,39 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
   };
 
   useEffect(() => {
-    setSelectedLocale(locale || 'ru');
-  }, [locale]);
-
-  useEffect(() => {
-    setSelectedCurrency(salaryTargetCurrency || '');
-  }, [salaryTargetCurrency]);
-
-  useEffect(() => {
     if (isOpen) {
       fetchSettings();
+      setSavedSuccess(false);
     }
-  }, [isOpen, setLocale]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSaveGeneral = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
-    try {
-      const payload = {
-        locale: selectedLocale,
-        salary_display_format: selectedSalaryFormat,
-        salary_target_currency: selectedCurrency,
-      };
+    setSavedSuccess(false);
 
+    try {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          locale: selectedLocale,
+          salary_display_format: selectedSalaryFormat,
+          salary_target_currency: selectedCurrency
+        })
       });
 
       if (res.ok) {
-        trackEvent(EVENTS.LANGUAGE_CHANGE, {
-          locale: selectedLocale
-        });
         setLocale(selectedLocale);
         setSalaryDisplayFormat(selectedSalaryFormat);
         setSalaryTargetCurrency(selectedCurrency);
+        trackEvent(EVENTS.LANGUAGE_CHANGE, { locale: selectedLocale });
+        trackEvent(EVENTS.SALARY_FORMAT_CHANGE, { format: selectedSalaryFormat });
+        trackEvent(EVENTS.SALARY_CURRENCY_CHANGE, { currency: selectedCurrency });
         setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 2500);
+        setTimeout(() => setSavedSuccess(false), 2000);
       }
     } catch (err) {
       console.error('Failed to save settings', err);
@@ -156,7 +162,6 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     const targetIdx = index + direction;
     if (targetIdx < 0 || targetIdx >= columnsList.length) return;
 
-    // Keep "Отказ" at bottom if present
     const newCols = [...columnsList];
     const [moved] = newCols.splice(index, 1);
     newCols.splice(targetIdx, 0, moved);
@@ -184,268 +189,260 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     await handleSaveColumn(col.id, { has_lanes: !col.has_lanes });
   };
 
-
   const funnelColumns = columnsList.filter(c => c.id !== 'Отказ');
 
+  const tabItems = [
+    {
+      value: 'general',
+      label: t('settingsModal.tab_general'),
+      icon: <Icon icon={Globe} size="xs" />,
+    },
+    {
+      value: 'columns',
+      label: t('settingsModal.tab_columns'),
+      icon: <Icon icon={Columns3} size="xs" />,
+    },
+  ];
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content settings-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: activeTab === 'columns' ? '576px' : '448px' }}>
-        <div className="modal-header">
-          <div className="modal-title">
-            <Settings size={20} color="#2563eb" />
-            <span>{t('settingsModal.title')}</span>
-          </div>
-          <button className="btn-icon modal-close-btn" onClick={onClose}>
-            <X size={18} />
-          </button>
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} size={activeTab === 'columns' ? 'lg' : 'md'}>
+        <ModalHeader
+          title={t('settingsModal.title')}
+          icon={<Icon icon={Settings} size="md" tone="accent" />}
+          onClose={onClose}
+        />
+
+        <div style={{ padding: '0 var(--ui-space-6)' }}>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            items={tabItems}
+          />
         </div>
 
-        {/* Tab Navigation */}
-        <div className="settings-tabs">
-          <button
-            type="button"
-            className={`settings-tab-btn ${activeTab === 'general' ? 'active' : ''}`}
-            onClick={() => setActiveTab('general')}
-          >
-            <Globe size={15} />
-            <span>{t('settingsModal.tab_general')}</span>
-          </button>
-          <button
-            type="button"
-            className={`settings-tab-btn ${activeTab === 'columns' ? 'active' : ''}`}
-            onClick={() => setActiveTab('columns')}
-          >
-            <Columns3 size={15} />
-            <span>{t('settingsModal.tab_columns')}</span>
-          </button>
-        </div>
+        <ModalBody>
+          {activeTab === 'general' && (
+            <form id="settings-general-form" onSubmit={handleSaveGeneral} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+              {savedSuccess && (
+                <AlertBanner
+                  tone="success"
+                  title={t('settingsModal.saved_notification')}
+                />
+              )}
 
-        {/* General Tab */}
-        {activeTab === 'general' && (
-          <form className="settings-general-form" onSubmit={handleSaveGeneral}>
-            <div className="modal-body" onScroll={snapScroll}>
               {/* Language Selector */}
-              <div className="form-group settings-language-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Globe size={15} />
-                  <span>{t('settingsModal.language_section_title')}</span>
-                </label>
-                <div className="settings-language-options">
-                  <button type="button" className={`settings-language-option ${selectedLocale === 'ru' ? 'is-selected' : ''}`} aria-pressed={selectedLocale === 'ru'} onClick={() => setSelectedLocale('ru')}>
-                    <strong>🇷🇺 {t('settingsModal.language_ru')}</strong>
-                    {selectedLocale === 'ru' && <Check size={16} />}
-                  </button>
-                  <button type="button" className={`settings-language-option ${selectedLocale === 'en' ? 'is-selected' : ''}`} aria-pressed={selectedLocale === 'en'} onClick={() => setSelectedLocale('en')}>
-                    <strong>🇬🇧 {t('settingsModal.language_en')}</strong>
-                    {selectedLocale === 'en' && <Check size={16} />}
-                  </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+                <Text variant="caption" weight="medium" startIcon={<Icon icon={Globe} size="xs" />}>
+                  {t('settingsModal.language_section_title')}
+                </Text>
+                <div style={{ display: 'flex', gap: 'var(--ui-space-2)' }}>
+                  <Button
+                    type="button"
+                    variant={selectedLocale === 'ru' ? 'primary' : 'secondary'}
+                    onClick={() => setSelectedLocale('ru')}
+                    endIcon={selectedLocale === 'ru' ? <Icon icon={Check} size="xs" /> : undefined}
+                  >
+                    🇷🇺 {t('settingsModal.language_ru')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectedLocale === 'en' ? 'primary' : 'secondary'}
+                    onClick={() => setSelectedLocale('en')}
+                    endIcon={selectedLocale === 'en' ? <Icon icon={Check} size="xs" /> : undefined}
+                  >
+                    🇬🇧 {t('settingsModal.language_en')}
+                  </Button>
                 </div>
               </div>
 
               {/* Salary Format Selector */}
-              <div className="form-group settings-salary-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Globe size={15} />
-                  <span>{t('settingsModal.salary_format_title')}</span>
-                </label>
-                <select
-                  className="form-input"
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1-5)' }}>
+                <Text variant="caption" weight="medium">
+                  {t('settingsModal.salary_format_title')}
+                </Text>
+                <Select
                   value={selectedSalaryFormat}
-                  onChange={e => setSelectedSalaryFormat(e.target.value)}
-                >
-                  <option value="month">{t('settingsModal.salary_format_month')}</option>
-                  <option value="hour">{t('settingsModal.salary_format_hour')}</option>
-                  <option value="year">{t('settingsModal.salary_format_year')}</option>
-                  <option value="day">{t('settingsModal.salary_format_day')}</option>
-                  <option value="original">{t('settingsModal.salary_format_original')}</option>
-                </select>
+                  onValueChange={setSelectedSalaryFormat}
+                  options={[
+                    { value: 'month', label: t('settingsModal.salary_format_month') },
+                    { value: 'hour', label: t('settingsModal.salary_format_hour') },
+                    { value: 'year', label: t('settingsModal.salary_format_year') },
+                    { value: 'day', label: t('settingsModal.salary_format_day') },
+                    { value: 'original', label: t('settingsModal.salary_format_original') },
+                  ]}
+                />
               </div>
 
-              {/* Salary Currency Selector */}
-              <div className="form-group settings-currency-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Globe size={15} />
-                  <span>{t('settingsModal.salary_currency_title')}</span>
-                </label>
-                <select
-                  className="form-input"
+              {/* Target Currency Selector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1-5)' }}>
+                <Text variant="caption" weight="medium">
+                  {t('settingsModal.salary_currency_title')}
+                </Text>
+                <Select
                   value={selectedCurrency}
-                  onChange={e => setSelectedCurrency(e.target.value)}
-                >
-                  <option value="">{t('settingsModal.salary_currency_none')}</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="RUB">RUB (₽)</option>
-                  <option value="GBP">GBP (£)</option>
-                </select>
+                  onValueChange={setSelectedCurrency}
+                  options={[
+                    { value: '', label: t('settingsModal.salary_currency_auto') },
+                    { value: 'USD', label: 'USD ($)' },
+                    { value: 'EUR', label: 'EUR (€)' },
+                    { value: 'RUB', label: 'RUB (₽)' },
+                  ]}
+                />
+                <Text variant="caption" tone="muted">
+                  {t('settingsModal.salary_currency_hint')}
+                </Text>
               </div>
-            </div>
+            </form>
+          )}
 
-            <div className="modal-footer">
-              {savedSuccess && (
-                <span style={{ color: '#10b981', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Check size={16} /> {t('settingsModal.settings_saved')}
-                </span>
-              )}
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                {t('settingsModal.cancel_btn')}
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                {t('settingsModal.save_btn')}
-              </button>
-            </div>
-          </form>
-        )}
+          {activeTab === 'columns' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="caption" weight="medium">
+                  {t('settingsModal.columns_manager_desc')}
+                </Text>
+                <Button
+                  variant="primary"
+                  size="xs"
+                  startIcon={<Icon icon={Plus} size="xs" />}
+                  onClick={() => setIsCreateColOpen(true)}
+                >
+                  {t('kanban.add_column')}
+                </Button>
+              </div>
 
-        {/* Columns Tab */}
-        {activeTab === 'columns' && (
-          <div className="modal-form settings-columns-form">
-          <div className="modal-body settings-columns-body" onScroll={snapScroll}>
-            <p className="settings-columns-description">
-              {t('settingsModal.columns_desc')}
-            </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
+                {funnelColumns.map((col, idx) => {
+                  const isBase = Boolean(col.is_base || col.system_role || BASE_STATUSES.includes(col.id));
+                  return (
+                    <div
+                      key={col.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: 'var(--ui-space-2) var(--ui-space-3)',
+                        background: 'var(--ui-bg-subtle)',
+                        border: '1px solid var(--ui-border-subtle)',
+                        borderLeft: `4px solid ${col.color || '#2563eb'}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
+                        <Text variant="body" weight="medium">
+                          {t(`kanban.columns.${col.id}`)}
+                        </Text>
+                        {isBase && (
+                          <Badge variant="outline" size="xs" tone="neutral">
+                            {t('settingsModal.col_is_base_badge')}
+                          </Badge>
+                        )}
+                        {col.has_lanes && (
+                          <Badge variant="solid" size="xs" tone="info" icon={<Icon icon={Layers} size="2xs" />}>
+                            {t('kanban.stages_enabled')}
+                          </Badge>
+                        )}
+                      </div>
 
-            <div className="settings-columns-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: '0.8125rem', padding: '6px 12px', gap: '6px' }}
-                onClick={() => setIsCreateColOpen(true)}
-              >
-                <Plus size={14} color="#2563eb" />
-                <span>{t('kanban.add_column')}</span>
-              </button>
-            </div>
-
-            <div className="columns-settings-list">
-              {columnsList.map((col, index) => {
-                const isBase = Boolean(col.is_base || col.system_role || BASE_STATUSES.includes(col.id));
-                const colName = t(`kanban.columns.${col.id}`) || col.id;
-                const isFirst = index === 0;
-                const isLast = index === columnsList.length - 1;
-
-                return (
-                  <div key={col.id} className="column-setting-row">
-                    <div className="column-setting-left">
-                      <span className="column-dot" style={{ background: col.color }} />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                            {colName}
-                          </span>
-                          {isBase && (
-                            <span style={{
-                              fontSize: '0.6875rem',
-                              color: 'var(--text-muted)',
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              padding: '1px 6px',
-                              borderRadius: '4px'
-                            }}>
-                              {t('settingsModal.col_is_base_badge')}
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '0.75rem', color: col.has_lanes ? '#d97706' : 'var(--text-muted)' }}>
-                            <input
-                              type="checkbox"
-                              checked={Boolean(col.has_lanes)}
-                              onChange={() => handleToggleLanes(col)}
-                              style={{ width: '12px', height: '12px' }}
-                            />
-                            <Layers size={11} />
-                            <span>{col.has_lanes ? t('settingsModal.col_stages_enabled') : t('settingsModal.col_no_stages')}</span>
-                          </label>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveColumn(idx, -1)}
+                          title={t('settingsModal.move_col_up')}
+                        >
+                          <Icon icon={ArrowUp} size="xs" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          disabled={idx === funnelColumns.length - 1}
+                          onClick={() => handleMoveColumn(idx, 1)}
+                          title={t('settingsModal.move_col_down')}
+                        >
+                          <Icon icon={ArrowDown} size="xs" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setEditingCol(col)}
+                          title={t('settingsModal.edit_col')}
+                        >
+                          <Icon icon={Edit2} size="xs" />
+                        </Button>
+                        {!isBase && (
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            tone="danger"
+                            onClick={() => setDeletingCol(col)}
+                            title={t('settingsModal.delete_col')}
+                          >
+                            <Icon icon={Trash2} size="xs" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="column-setting-right">
-                      {/* Move Up / Down */}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-icon"
-                        
-                        disabled={isFirst}
-                        onClick={() => handleMoveColumn(index, -1)}
-                        title={t('settingsModal.col_move_up')}
-                      >
-                        <ArrowUp size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-icon"
-                        
-                        disabled={isLast}
-                        onClick={() => handleMoveColumn(index, 1)}
-                        title={t('settingsModal.col_move_down')}
-                      >
-                        <ArrowDown size={12} />
-                      </button>
-
-                      {/* Edit */}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-icon"
-                        
-                        onClick={() => setEditingCol(col)}
-                        title={t('kanban.edit_column')}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-
-                      {/* Delete */}
-                      {!isBase && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-icon"
-                          style={{ color: '#f87171' }}
-                          onClick={() => setDeletingCol(col)}
-                          title={t('kanban.delete_column')}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+          )}
+        </ModalBody>
 
-          </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-primary" onClick={onClose}>
-                {t('vacancyModal.close_btn')}
-              </button>
-            </div>
-          </div>
-        )}
+        <ModalFooter justify="end">
+          <ModalFooter.Actions>
+            {activeTab === 'general' ? (
+              <>
+                <Button variant="secondary" onClick={onClose}>
+                  {t('batchModal.cancel_btn')}
+                </Button>
+                <Button
+                  type="submit"
+                  form="settings-general-form"
+                  variant="primary"
+                  loading={loading}
+                >
+                  {t('settingsModal.save_btn')}
+                </Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={onClose}>
+                {t('batchModal.done_btn')}
+              </Button>
+            )}
+          </ModalFooter.Actions>
+        </ModalFooter>
+      </Modal>
 
-      </div>
+      {isCreateColOpen && (
+        <ColumnCreateModal
+          isOpen={isCreateColOpen}
+          onClose={() => setIsCreateColOpen(false)}
+          onCreate={handleCreateColumn}
+        />
+      )}
 
-      {/* Internal Modals */}
-      <ColumnCreateModal
-        isOpen={isCreateColOpen}
-        onClose={() => setIsCreateColOpen(false)}
-        onCreate={handleCreateColumn}
-      />
+      {editingCol && (
+        <ColumnEditModal
+          isOpen={Boolean(editingCol)}
+          column={editingCol}
+          onClose={() => setEditingCol(null)}
+          onSave={handleSaveColumn}
+        />
+      )}
 
-      <ColumnEditModal
-        isOpen={Boolean(editingCol)}
-        column={editingCol}
-        onClose={() => setEditingCol(null)}
-        onSave={handleSaveColumn}
-      />
-
-      <ColumnDeleteModal
-        isOpen={Boolean(deletingCol)}
-        column={deletingCol}
-        availableColumns={funnelColumns}
-        vacanciesCount={deletingCol ? vacancies.filter(v => v.status === deletingCol.id).length : 0}
-        onClose={() => setDeletingCol(null)}
-        onConfirm={handleDeleteColumn}
-      />
-    </div>
+      {deletingCol && (
+        <ColumnDeleteModal
+          isOpen={Boolean(deletingCol)}
+          column={deletingCol}
+          availableColumns={columnsList}
+          vacanciesCount={vacancies.filter(v => v.status === deletingCol.id).length}
+          onClose={() => setDeletingCol(null)}
+          onConfirm={handleDeleteColumn}
+        />
+      )}
+    </>
   );
 }
