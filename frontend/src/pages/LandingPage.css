@@ -1,3 +1,4 @@
+@layer legacy {
 /* ==========================================================================
    Blueprint Interactive Landing Page
    Fixed 32px grid, sticky header with animated stage switcher,
@@ -2757,3 +2758,5 @@
     padding: 0 6px !important;
   }
 }
+}
+

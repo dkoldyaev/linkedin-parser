@@ -10,7 +10,7 @@ import random
 import datetime
 
 from .database import SessionLocal, Base, engine, ensure_db_schema
-from .models import Vacancy, VacancyStatusHistory, VALID_STATUSES
+from .models import Vacancy, VacancyStatusHistory, VALID_STATUSES, STATUS_INTERVIEW, STATUS_NOT_CONTACTED
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +90,9 @@ def ensure_flagship_stripe_vacancy(db, user_id: int):
         Vacancy.title == "Staff Frontend Architect — UI Platform"
     ).first()
     if existing:
+        if existing.status != STATUS_INTERVIEW:
+            existing.status = STATUS_INTERVIEW
+            db.commit()
         return
     stripe_created = datetime.datetime(2026, 11, 14, 12, 0, 0)
     stripe_v = Vacancy(
@@ -112,15 +115,15 @@ def ensure_flagship_stripe_vacancy(db, user_id: int):
         ai_summary="Architecture and evolution of the Blueprint component system with strict token governance and automated verification.",
         tech_stack=["TypeScript", "React 19", "Storybook 10", "Radix UI"],
         tags=[],
-        status="interview",
+        status=STATUS_INTERVIEW,
         created_at=stripe_created,
         updated_at=stripe_created,
     )
     for i in range(3):
         stripe_v.history.append(
             VacancyStatusHistory(
-                from_status="not_contacted",
-                to_status="interview",
+                from_status=STATUS_NOT_CONTACTED,
+                to_status=STATUS_INTERVIEW,
                 created_at=stripe_created,
                 comment="Interview scheduled" if i == 0 else ""
             )

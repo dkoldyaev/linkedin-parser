@@ -1,3 +1,4 @@
+@layer legacy {
 /* Blueprint workspace: shared surfaces, type and interaction tokens. */
 :root {
   --font-display: var(--ui-font-display, 'Inter', -apple-system, sans-serif);
@@ -233,8 +234,6 @@ body { background: var(--bg-main); }
   width: auto;
 }
 .card-meta { gap: 6px 12px; }
-.card-workplace-badge, .card-workplace-badge.remote, .card-workplace-badge.hybrid, .card-workplace-badge.onsite,
-.card-salary-badge, .card-match-badge { padding: 0; border: 0; background: transparent; border-radius: 0; }
 .card-summary, [data-theme='light'] .card-summary { background: transparent; border: 0; padding: 0; color: var(--text-secondary); }
 .card-summary-pending { display: flex; align-items: center; gap: 6px; color: var(--primary); font-size: .75rem; }
 
@@ -347,9 +346,6 @@ button, input, select, textarea { font-family: var(--font-mono); }
 .kanban-card::after { content: '+'; right: -4px; }
 .kanban-card:hover::before, .kanban-card:hover::after { color: var(--primary); }
 .card-header-meta { letter-spacing: .06em; }
-.card-source-link::before { content: '[ '; }
-.card-source-link::after { content: ' ]'; }
-.card-footer { border-top: 1px dashed var(--border-strong); }
 .quick-move-btn { font: 700 14px var(--font-mono); }
 .quick-move-btn:hover:not(:disabled), .quick-restore-btn:hover { outline: 1px solid var(--primary); }
 .tag-chip::before { content: '#'; }
@@ -486,7 +482,7 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
 }
 .kanban-add-column-btn:hover { color: var(--primary); background: var(--board-header-fill); }
 .column-header, [data-theme='light'] .column-header { height: calc(1 * var(--grid)); min-height: calc(1 * var(--grid)); flex-shrink: 0; background: var(--board-header-fill); border: 0; box-shadow: inset 0 -1px var(--border-subtle); }
-.column-cards { padding: 0 0 var(--column-grid-tail, 0px); gap: 0; overflow-x: hidden; }
+.column-cards { padding: var(--ui-space-2, 8px); gap: var(--ui-space-2, 8px); overflow-x: hidden; }
 .column-cards > .kanban-card { width: 100%; min-width: 0; }
 .kanban-card, [data-theme='light'] .kanban-card {
   flex: none; padding: 0; gap: 0; border: 0;
@@ -1917,4 +1913,6 @@ select.form-input, select.form-select, .modal-status-select, .modal-workplace-se
     transform: translateX(120%) rotate(15deg);
   }
 }
+}
+
 

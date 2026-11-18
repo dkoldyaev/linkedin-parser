@@ -591,7 +591,9 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(
               )}
               {children}
             </CardBody>
-            {footer !== undefined && <CardFooter>{footer}</CardFooter>}
+            {footer !== undefined && (
+              React.isValidElement(footer) ? footer : <CardFooter>{footer}</CardFooter>
+            )}
           </>
         ) : (
           children

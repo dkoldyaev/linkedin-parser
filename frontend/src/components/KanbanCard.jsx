@@ -60,11 +60,31 @@ export default function KanbanCard({
     : null;
   const initialStatusId = initialColumn ? (typeof initialColumn === 'string' ? initialColumn : initialColumn.id) : STATUS_NOT_CONTACTED;
 
-  const isRejected = vacancy.status === rejectedStatusId;
+  const isRejected = vacancy.status === rejectedStatusId || vacancy.status === 'rejected' || vacancy.status === STATUS_REJECTED;
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
     ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== rejectedStatusId)
     : DEFAULT_COLUMNS;
-  const currentIndex = linearColumns.indexOf(vacancy.status);
+
+  const resolveCurrentIndex = () => {
+    let idx = linearColumns.indexOf(vacancy.status);
+    if (idx !== -1) return idx;
+    const statusLower = String(vacancy.status || '').toLowerCase();
+    return linearColumns.findIndex(colId => {
+      const col = Array.isArray(columns) && columns.find(c => (typeof c === 'string' ? c : c.id) === colId);
+      if (col && typeof col === 'object') {
+        if (col.system_role && col.system_role.toLowerCase() === statusLower) return true;
+        if (col.role && col.role.toLowerCase() === statusLower) return true;
+      }
+      if (String(colId).toLowerCase() === statusLower) return true;
+      if (statusLower === 'interview' && colId === STATUS_INTERVIEW) return true;
+      if (statusLower === 'not_contacted' && colId === STATUS_NOT_CONTACTED) return true;
+      if (statusLower === 'contacted' && colId === STATUS_CONTACTED) return true;
+      if (statusLower === 'assessment' && colId === STATUS_ASSESSMENT) return true;
+      if (statusLower === 'offer' && colId === STATUS_OFFER) return true;
+      return false;
+    });
+  };
+  const currentIndex = resolveCurrentIndex();
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
@@ -178,7 +198,7 @@ export default function KanbanCard({
                 </Badge>
               ) : isInterview ? (
                 <Badge variant="outline" size="xs" tone="info">
-                  Interview
+                  INTERVIEW
                 </Badge>
               ) : (
                 (() => {
