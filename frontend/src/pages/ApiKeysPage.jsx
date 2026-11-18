@@ -118,130 +118,128 @@ export default function ApiKeysPage({ user }) {
             <span className="bp-subbar-sep">/</span>
             <p className="info-subtitle bp-subbar-subtitle">{t('settingsModal.api_keys_desc')}</p>
           </div>
-          {hasApiAccess && (
-            <div className="bp-subbar-right">
-              <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v1 Swagger">
-                <ExternalLink size={13} />
-                <span>Swagger v1</span>
-              </a>
-              <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v2 Swagger">
-                <ExternalLink size={13} />
-                <span>Swagger v2</span>
-              </a>
-              <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn">
-                <Code2 size={13} />
-                <span>openapi.json</span>
-              </a>
-            </div>
-          )}
+          <div className="bp-subbar-right">
+            <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v1 Swagger">
+              <ExternalLink size={13} />
+              <span>Swagger v1</span>
+            </a>
+            <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v2 Swagger">
+              <ExternalLink size={13} />
+              <span>Swagger v2</span>
+            </a>
+            <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v1 openapi.json">
+              <Code2 size={13} />
+              <span>openapi.json v1</span>
+            </a>
+            <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary bp-subbar-btn" title="API v2 openapi.json">
+              <Code2 size={13} />
+              <span>openapi.json v2</span>
+            </a>
+          </div>
         </header>
 
-        {!hasApiAccess ? (
+        <div className="bp-grid-row" data-cols="2">
+          {/* Left Column: Create Key / Disabled Notice + OpenAPI Documentation */}
           <section className="info-card bp-col">
             <div className="column-header">
               <div className="column-title-group">
                 <span className="column-index">01</span>
-                <span className="column-dot" style={{ background: '#ef4444' }} />
-                <span className="column-name">{t('pages.apiKeys.disabled_title')}</span>
+                <span className="column-dot" style={{ background: hasApiAccess ? 'var(--primary)' : '#ef4444' }} />
+                <h2 className="column-name info-card-title">
+                  {hasApiAccess ? t('settingsModal.api_key_name_label') : t('pages.apiKeys.disabled_title')}
+                </h2>
               </div>
             </div>
-            <div className="api-locked-card bp-snap" data-min-grids="5">
-              <div className="stat-icon danger">
-                <Lock size={18} />
+
+            {!hasApiAccess ? (
+              <div className="api-locked-card bp-snap" data-min-grids="4" style={{ marginBottom: 'calc(var(--grid-unit) * 1.5)' }}>
+                <div className="stat-icon danger">
+                  <Lock size={18} />
+                </div>
+                <h2 className="api-locked-title">{t('pages.apiKeys.disabled_title')}</h2>
+                <p className="api-locked-desc">{t('pages.apiKeys.disabled_desc')}</p>
               </div>
-              <h2 className="api-locked-title">{t('pages.apiKeys.disabled_title')}</h2>
-              <p className="api-locked-desc">{t('pages.apiKeys.disabled_desc')}</p>
+            ) : (
+              <>
+                <form onSubmit={handleGenerateApiKey} className="api-create-form bp-snap" data-min-grids="2">
+                  <input
+                    type="text"
+                    className="form-input api-key-input"
+                    placeholder={t('settingsModal.api_key_name_placeholder')}
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                  />
+                  <button type="submit" className="btn btn-primary" disabled={generatingKey}>
+                    <Key size={14} />
+                    <span>{t('settingsModal.generate_key_btn')}</span>
+                  </button>
+                </form>
+
+                {createdKeyToken && (
+                  <div className="api-created-token-box bp-snap" data-min-grids="3">
+                    <div className="api-created-warning">
+                      <ShieldAlert size={15} />
+                      <span>{t('settingsModal.new_key_warning')}</span>
+                    </div>
+                    <div className="api-created-row">
+                      <input
+                        type="text"
+                        readOnly
+                        value={createdKeyToken}
+                        className="form-input api-token-readonly"
+                        onClick={(e) => e.target.select()}
+                      />
+                      <button type="button" className="btn btn-primary" onClick={handleCopyToken}>
+                        {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                        <span>{copiedKey ? t('settingsModal.key_copied') : t('settingsModal.copy_key_btn')}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="column-header">
+              <div className="column-title-group">
+                <span className="column-index">02</span>
+                <span className="column-dot" style={{ background: '#0284c7' }} />
+                <h2 className="column-name info-card-title">{t('settingsModal.openapi_docs_title')}</h2>
+              </div>
+            </div>
+
+            <div className="api-docs-panel bp-snap" data-min-grids="3">
+              <p className="info-text">{t('settingsModal.openapi_docs_desc')}</p>
+              <div className="api-docs-group">
+                <div className="api-docs-version-title">{t('settingsModal.openapi_v2_title')}</div>
+                <div className="api-docs-links">
+                  <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                    <ExternalLink size={14} />
+                    <span>{t('settingsModal.openapi_swagger_v2_btn')}</span>
+                  </a>
+                  <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                    <ExternalLink size={14} />
+                    <span>{t('settingsModal.openapi_json_v2_btn')}</span>
+                  </a>
+                </div>
+              </div>
+              <div className="api-docs-group" style={{ marginTop: 'calc(var(--grid-unit) * 1.5)' }}>
+                <div className="api-docs-version-title">{t('settingsModal.openapi_v1_title')}</div>
+                <div className="api-docs-links">
+                  <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                    <ExternalLink size={14} />
+                    <span>{t('settingsModal.openapi_swagger_v1_btn')}</span>
+                  </a>
+                  <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
+                    <ExternalLink size={14} />
+                    <span>{t('settingsModal.openapi_json_v1_btn')}</span>
+                  </a>
+                </div>
+              </div>
             </div>
           </section>
-        ) : (
-          <div className="bp-grid-row" data-cols="2">
-            {/* Left Column: Create Key + OpenAPI Documentation */}
-            <section className="info-card bp-col">
-              <div className="column-header">
-                <div className="column-title-group">
-                  <span className="column-index">01</span>
-                  <span className="column-dot" style={{ background: 'var(--primary)' }} />
-                  <h2 className="column-name info-card-title">{t('settingsModal.api_key_name_label')}</h2>
-                </div>
-              </div>
 
-              <form onSubmit={handleGenerateApiKey} className="api-create-form bp-snap" data-min-grids="2">
-                <input
-                  type="text"
-                  className="form-input api-key-input"
-                  placeholder={t('settingsModal.api_key_name_placeholder')}
-                  value={newKeyName}
-                  onChange={(e) => setNewKeyName(e.target.value)}
-                />
-                <button type="submit" className="btn btn-primary" disabled={generatingKey}>
-                  <Key size={14} />
-                  <span>{t('settingsModal.generate_key_btn')}</span>
-                </button>
-              </form>
-
-              {createdKeyToken && (
-                <div className="api-created-token-box bp-snap" data-min-grids="3">
-                  <div className="api-created-warning">
-                    <ShieldAlert size={15} />
-                    <span>{t('settingsModal.new_key_warning')}</span>
-                  </div>
-                  <div className="api-created-row">
-                    <input
-                      type="text"
-                      readOnly
-                      value={createdKeyToken}
-                      className="form-input api-token-readonly"
-                      onClick={(e) => e.target.select()}
-                    />
-                    <button type="button" className="btn btn-primary" onClick={handleCopyToken}>
-                      {copiedKey ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copiedKey ? t('settingsModal.key_copied') : t('settingsModal.copy_key_btn')}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="column-header">
-                <div className="column-title-group">
-                  <span className="column-index">02</span>
-                  <span className="column-dot" style={{ background: '#0284c7' }} />
-                  <h2 className="column-name info-card-title">{t('settingsModal.openapi_docs_title')}</h2>
-                </div>
-              </div>
-
-              <div className="api-docs-panel bp-snap" data-min-grids="3">
-                <p className="info-text">{t('settingsModal.openapi_docs_desc')}</p>
-                <div className="api-docs-group">
-                  <div className="api-docs-version-title">{t('settingsModal.openapi_v2_title')}</div>
-                  <div className="api-docs-links">
-                    <a href="/api/v2/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                      <ExternalLink size={14} />
-                      <span>{t('settingsModal.openapi_swagger_v2_btn')}</span>
-                    </a>
-                    <a href="/api/v2/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                      <ExternalLink size={14} />
-                      <span>{t('settingsModal.openapi_json_v2_btn')}</span>
-                    </a>
-                  </div>
-                </div>
-                <div className="api-docs-group" style={{ marginTop: 'calc(var(--grid-unit) * 1.5)' }}>
-                  <div className="api-docs-version-title">{t('settingsModal.openapi_v1_title')}</div>
-                  <div className="api-docs-links">
-                    <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                      <ExternalLink size={14} />
-                      <span>{t('settingsModal.openapi_swagger_v1_btn')}</span>
-                    </a>
-                    <a href="/api/v1/openapi.json" target="_blank" rel="noreferrer" className="btn btn-secondary">
-                      <ExternalLink size={14} />
-                      <span>{t('settingsModal.openapi_json_v1_btn')}</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Right Column: Active API Keys */}
-            <section className="info-card bp-col">
+          {/* Right Column: Active API Keys */}
+          <section className="info-card bp-col">
               <div className="column-header">
                 <div className="column-title-group">
                   <span className="column-index">03</span>
@@ -301,7 +299,6 @@ export default function ApiKeysPage({ user }) {
               )}
             </section>
           </div>
-        )}
       </div>
     </div>
   );

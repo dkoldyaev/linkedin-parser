@@ -63,10 +63,23 @@ def test_openapi_endpoints(test_user):
         for method, op in methods.items():
             assert op.get("tags"), f"Operation {method.upper()} {path} missing category tags"
 
-    # /docs
+    # /docs contains both v1 and v2 Swagger UI URLs
     res_docs = client.get("/docs", headers=headers)
     assert res_docs.status_code == 200
     assert "swagger" in res_docs.text.lower() or "html" in res_docs.text.lower()
+    assert "/api/v1/openapi.json" in res_docs.text
+    assert "/api/v2/openapi.json" in res_docs.text
+
+    # /api/v1/docs contains both v1 and v2 Swagger UI URLs
+    res_v1_docs = client.get("/api/v1/docs", headers=headers)
+    assert res_v1_docs.status_code == 200
+    assert "/api/v1/openapi.json" in res_v1_docs.text
+    assert "/api/v2/openapi.json" in res_v1_docs.text
+
+    # Frontend SPA routing for /apikeys serves index.html rather than 404
+    res_apikeys = client.get("/apikeys")
+    assert res_apikeys.status_code == 200
+    assert "html" in res_apikeys.headers.get("content-type", "")
 
     # /redoc removed, returns 404
     res_redoc = client.get("/redoc", headers=headers)

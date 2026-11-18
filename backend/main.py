@@ -354,6 +354,12 @@ def get_public_docs_html(current_user: User = Depends(get_current_user_with_api_
     return get_swagger_ui_html(
         openapi_url="/api/v1/openapi.json",
         title=f"{public_app.title} - Swagger UI",
+        swagger_ui_parameters={
+            "urls": [
+                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
+                {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
+            ]
+        },
     )
 
 # Mount public API at /api/v1 (legacy public API)
@@ -411,6 +417,12 @@ def get_v2_docs_html(current_user: User = Depends(get_current_user_with_api_acce
     return get_swagger_ui_html(
         openapi_url="/api/v2/openapi.json",
         title="Job Vacancies Unified API v2 - Swagger UI",
+        swagger_ui_parameters={
+            "urls": [
+                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
+                {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
+            ]
+        },
     )
 
 # Convenience redirects for root docs/openapi pointing directly to the Unified API v2 documentation
@@ -2808,7 +2820,7 @@ if os.path.exists(STATIC_DIR):
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
         # Don't hijack API routes and OpenAPI docs routes
-        if full_path.startswith("api") or full_path in ("docs", "redoc", "openapi.json"):
+        if full_path == "api" or full_path.startswith("api/") or full_path in ("docs", "redoc", "openapi.json"):
             raise HTTPException(status_code=404, detail="Not found")
         file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
