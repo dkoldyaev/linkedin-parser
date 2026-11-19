@@ -14,7 +14,7 @@ security:
             security: false
 
         api_public:
-            pattern: ^/(api/health|api/v2/health|api/v2/auth/dev-login|api/v2/auth/config|api/auth/config|api/v2/auth/google)
+            pattern: ^/(api/health|api/v2/health|api/v2/auth/dev-login|api/v2/auth/config|api/auth/config|api/v2/auth/google|api/auth/google|api/v2/exchange-rates|api/extension/changelog|api/v2/extension/changelog|api/extension/log|api/v2/extension/log)
             security: false
 
         api:
@@ -33,7 +33,14 @@ security:
                 path: api_auth_logout
 
     access_control:
-        - { path: ^/api/(health|v2/health|v2/auth/dev-login|v2/auth/config|auth/config), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(health|v2/health), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/config|v2/auth/config), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/google|v2/auth/google), roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/auth/dev-login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/auth/logout, roles: PUBLIC_ACCESS }
         - { path: ^/api/(auth/me|v2/auth/me), roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/exchange-rates, roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/changelog|v2/extension/changelog), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/log|v2/extension/log), roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
