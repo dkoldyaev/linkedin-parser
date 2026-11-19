@@ -22,7 +22,7 @@ class MetadataController extends AbstractController
 {
     private const BASE_STATUSES = ['Еще не написал', 'Отказ'];
 
-    private const DEFAULT_COLUMNS = [
+    public const DEFAULT_COLUMNS = [
         ['id' => 'Еще не написал', 'color' => '#6366f1', 'has_lanes' => false, 'is_base' => true],
         ['id' => 'Написал', 'color' => '#0284c7', 'has_lanes' => false, 'is_base' => false],
         ['id' => 'Собеседование', 'color' => '#d97706', 'has_lanes' => true, 'is_base' => false],

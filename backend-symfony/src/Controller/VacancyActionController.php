@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\ProcessingQueueItem;
 use App\Entity\User;
+use App\Entity\UserSetting;
 use App\Entity\Vacancy;
 use App\Entity\VacancyStatusHistory;
 use App\Message\ProcessJobUrlMessage;
@@ -76,6 +77,8 @@ class VacancyActionController extends AbstractController
     public function reorder(
         Request $request,
         EntityManagerInterface $entityManager,
+        SerializerInterface $serializer,
+        MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
         if ($user === null) {
@@ -83,35 +86,163 @@ class VacancyActionController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $items = $data['items'] ?? [];
-        if (!is_array($items)) {
-            return new JsonResponse(['detail' => 'Items list is required'], Response::HTTP_BAD_REQUEST);
-        }
-
         $repo = $entityManager->getRepository(Vacancy::class);
         $now = new \DateTimeImmutable();
+        $changed = [];
 
-        foreach ($items as $item) {
-            $id = isset($item['id']) ? (int)$item['id'] : 0;
-            /** @var Vacancy|null $vacancy */
-            $vacancy = $repo->findOneBy(['id' => $id, 'user' => $user]);
-            if ($vacancy !== null) {
-                if (isset($item['status'])) {
-                    $vacancy->setStatus((string)$item['status']);
-                }
-                if (isset($item['lane'])) {
-                    $vacancy->setLane((int)$item['lane']);
-                }
-                if (isset($item['sort_order'])) {
-                    $vacancy->setSortOrder((float)$item['sort_order']);
-                }
-                $vacancy->setUpdatedAt($now);
+        if (isset($data['ids']) && is_array($data['ids'])) {
+            $ids = $data['ids'];
+            if (count($ids) === 0) {
+                return new JsonResponse('[]', Response::HTTP_OK, [], true);
             }
+
+            $status = isset($data['status']) ? (string)$data['status'] : '';
+            $lane = isset($data['lane']) ? (int)$data['lane'] : 0;
+            $movedId = isset($data['moved_id']) ? (int)$data['moved_id'] : null;
+            $movedIds = isset($data['moved_ids']) && is_array($data['moved_ids']) ? $data['moved_ids'] : [];
+
+            $movedSet = [];
+            if ($movedId !== null) {
+                $movedSet[$movedId] = true;
+            }
+            foreach ($movedIds as $mid) {
+                $movedSet[(int)$mid] = true;
+            }
+
+            $cols = $this->getUserColumns($entityManager, $user);
+            $hasLanes = false;
+            foreach ($cols as $c) {
+                if (($c['id'] ?? '') === $status) {
+                    $hasLanes = !empty($c['has_lanes']);
+                    break;
+                }
+            }
+
+            /** @var list<Vacancy> $vacancies */
+            $vacancies = $repo->createQueryBuilder('v')
+                ->where('v.user = :user')
+                ->andWhere('v.id IN (:ids)')
+                ->setParameter('user', $user)
+                ->setParameter('ids', $ids)
+                ->getQuery()
+                ->getResult();
+
+            $byId = [];
+            foreach ($vacancies as $v) {
+                $byId[$v->getId()] = $v;
+            }
+
+            foreach ($ids as $position => $vid) {
+                $vid = (int)$vid;
+                if (!isset($byId[$vid])) {
+                    continue;
+                }
+                /** @var Vacancy $v */
+                $v = $byId[$vid];
+                $oldStatus = $v->getStatus();
+                $oldLane = $v->getLane();
+                $statusChanged = ($status !== '' && $oldStatus !== $status);
+
+                $newLane = $oldLane;
+                if (!$hasLanes) {
+                    $newLane = 0;
+                } else {
+                    if (isset($movedSet[$vid]) || ($statusChanged && count($movedSet) === 0)) {
+                        $newLane = max(0, $lane);
+                    }
+                }
+
+                $laneChanged = $hasLanes && ($newLane !== $oldLane);
+
+                if ($statusChanged || $laneChanged) {
+                    $history = new VacancyStatusHistory(
+                        $v,
+                        $oldStatus,
+                        $status !== '' ? $status : $oldStatus,
+                        $oldLane,
+                        $newLane,
+                        null,
+                        $now
+                    );
+                    $entityManager->persist($history);
+
+                    if ($status !== '') {
+                        $v->setStatus($status);
+                    }
+                    $v->setLane($newLane);
+                } elseif (!$hasLanes) {
+                    $v->setLane(0);
+                }
+
+                $v->setSortOrder((float)$position);
+                $v->setUpdatedAt($now);
+                $changed[] = $v;
+            }
+        } elseif (isset($data['items']) && is_array($data['items'])) {
+            foreach ($data['items'] as $item) {
+                $id = isset($item['id']) ? (int)$item['id'] : 0;
+                /** @var Vacancy|null $vacancy */
+                $vacancy = $repo->findOneBy(['id' => $id, 'user' => $user]);
+                if ($vacancy !== null) {
+                    if (isset($item['status'])) {
+                        $vacancy->setStatus((string)$item['status']);
+                    }
+                    if (isset($item['lane'])) {
+                        $vacancy->setLane((int)$item['lane']);
+                    }
+                    if (isset($item['sort_order'])) {
+                        $vacancy->setSortOrder((float)$item['sort_order']);
+                    }
+                    $vacancy->setUpdatedAt($now);
+                    $changed[] = $vacancy;
+                }
+            }
+        } else {
+            return new JsonResponse(['detail' => 'Invalid reorder payload'], Response::HTTP_BAD_REQUEST);
         }
 
         $entityManager->flush();
 
-        return new JsonResponse(['status' => 'ok']);
+        $topic = 'vacancies:' . $user->getId();
+        foreach ($changed as $v) {
+            $json = $serializer->serialize($v, 'json', ['groups' => ['vacancy:read']]);
+            $payload = json_decode($json, true) ?? [];
+
+            $mercure->publish(
+                $topic,
+                MercurePublisherService::EVENT_VACANCY_UPDATED,
+                MercurePublisherService::MSG_VACANCY_UPDATED,
+                [
+                    'vacancy' => $payload,
+                    'vacancy_id' => $v->getId(),
+                    'title' => $v->getTitle(),
+                    'company' => $v->getCompany(),
+                    'data' => $payload,
+                ]
+            );
+        }
+
+        $resultJson = $serializer->serialize($changed, 'json', ['groups' => ['vacancy:read']]);
+        return new JsonResponse($resultJson, Response::HTTP_OK, [], true);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getUserColumns(EntityManagerInterface $entityManager, User $user): array
+    {
+        $settingRepo = $entityManager->getRepository(UserSetting::class);
+        /** @var UserSetting|null $setting */
+        $setting = $settingRepo->findOneBy(['user' => $user, 'key' => 'kanban_columns']);
+
+        if ($setting !== null && $setting->getValue() !== null) {
+            $cols = json_decode($setting->getValue(), true);
+            if (is_array($cols) && count($cols) > 0) {
+                return $cols;
+            }
+        }
+
+        return MetadataController::DEFAULT_COLUMNS;
     }
 
     #[Route('/api/v2/vacancies/{id}/history', name: 'api_v2_vacancy_history', methods: ['GET'])]
