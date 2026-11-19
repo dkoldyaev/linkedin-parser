@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\ApiKey;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\Mercure\MercurePublisherService;
+use App\Service\UserMigrationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -73,17 +76,103 @@ class AuthController extends AbstractController
         return $response;
     }
 
+    private function resolveOptionalUser(
+        Request $request,
+        UserRepository $userRepository,
+        JWTEncoderInterface $jwtEncoder,
+        EntityManagerInterface $entityManager
+    ): ?User {
+        $apiKeyHeader = $request->headers->get('X-API-Key') ?? $request->headers->get('x-api-key');
+        $authHeader = $request->headers->get('Authorization');
+
+        $candidateApiKey = null;
+        if ($apiKeyHeader !== null && trim((string)$apiKeyHeader) !== '') {
+            $candidateApiKey = trim((string)$apiKeyHeader);
+        } elseif ($authHeader !== null && str_starts_with((string)$authHeader, 'Bearer ')) {
+            $bearerVal = trim(substr((string)$authHeader, 7));
+            if (str_starts_with($bearerVal, 'ak_')) {
+                $candidateApiKey = $bearerVal;
+            }
+        }
+
+        if ($candidateApiKey !== null) {
+            $keyHash = hash('sha256', $candidateApiKey);
+            $apiKeyRecord = $entityManager->getRepository(ApiKey::class)->findOneBy(['keyHash' => $keyHash]);
+            if ($apiKeyRecord !== null) {
+                $user = $apiKeyRecord->getUser();
+                if ($user !== null) {
+                    $hasApiAccess = false;
+                    foreach ($user->getFeatureFlags() as $flag) {
+                        if ($flag->getFlag() === 'api_access' || $flag->getFlag() === 'admin') {
+                            $hasApiAccess = true;
+                            break;
+                        }
+                    }
+                    if ($hasApiAccess) {
+                        $apiKeyRecord->setLastUsedAt(new \DateTimeImmutable());
+                        $apiKeyRecord->setRequestCount($apiKeyRecord->getRequestCount() + 1);
+                        $entityManager->flush();
+                        return $user;
+                    }
+                }
+            }
+            return null;
+        }
+
+        $rawToken = null;
+        if ($request->cookies->has('access_token')) {
+            $rawToken = (string)$request->cookies->get('access_token');
+        } elseif ($authHeader !== null && str_starts_with((string)$authHeader, 'Bearer ')) {
+            $bearerVal = trim(substr((string)$authHeader, 7));
+            if (!str_starts_with($bearerVal, 'ak_')) {
+                $rawToken = $bearerVal;
+            }
+        }
+
+        if ($rawToken === null || trim($rawToken) === '') {
+            return null;
+        }
+
+        try {
+            $payload = $jwtEncoder->decode($rawToken);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!is_array($payload)) {
+            return null;
+        }
+
+        $sub = $payload['sub'] ?? ($payload['email'] ?? null);
+        if ($sub === null) {
+            return null;
+        }
+
+        if (is_numeric($sub)) {
+            $user = $userRepository->find((int)$sub);
+            if ($user !== null) {
+                return $user;
+            }
+        }
+
+        return $userRepository->findByEmail((string)$sub);
+    }
+
     #[Route('/api/v2/auth/dev-login', name: 'api_auth_dev_login', methods: ['POST'])]
     public function devLogin(
         Request $request,
         UserRepository $userRepository,
         EntityManagerInterface $entityManager,
         JWTTokenManagerInterface $jwtManager,
-        MercurePublisherService $mercurePublisher
+        MercurePublisherService $mercurePublisher,
+        JWTEncoderInterface $jwtEncoder,
+        UserMigrationService $userMigrationService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $email = !empty($data['email']) ? (string)$data['email'] : 'dev@local.user';
         $name = !empty($data['name']) ? (string)$data['name'] : 'Dev User';
+
+        $prevUser = $this->resolveOptionalUser($request, $userRepository, $jwtEncoder, $entityManager);
 
         $user = $userRepository->findByEmail($email);
         $now = new \DateTimeImmutable();
@@ -103,6 +192,10 @@ class AuthController extends AbstractController
             if ($user->getAvatar() === null) {
                 $user->setAvatar('https://api.dicebear.com/7.x/bottts/svg?seed=dev');
             }
+        }
+
+        if ($prevUser !== null && $prevUser->isAnonymous() && $prevUser->getId() !== $user->getId()) {
+            $userMigrationService->migrateAnonymousUserData($prevUser, $user);
         }
 
         $user->setLastLoginAt($now);
@@ -146,12 +239,16 @@ class AuthController extends AbstractController
             'token' => $token,
         ]);
 
+        $forwardedProto = $request->headers->get('x-forwarded-proto');
+        $isSecure = $request->isSecure() || $forwardedProto === 'https' || str_starts_with($request->getUri(), 'https://');
+
         $cookie = Cookie::create('access_token')
             ->withValue($token)
             ->withExpires(time() + 86400 * 30)
             ->withPath('/')
             ->withHttpOnly(true)
-            ->withSameSite('lax');
+            ->withSameSite('lax')
+            ->withSecure($isSecure);
 
         $response->headers->setCookie($cookie);
         $mercureCookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
@@ -163,12 +260,28 @@ class AuthController extends AbstractController
     #[Route('/api/auth/me', name: 'api_auth_me_legacy', methods: ['GET'])]
     #[Route('/api/v2/auth/me', name: 'api_auth_me', methods: ['GET'])]
     public function me(
+        Request $request,
         EntityManagerInterface $entityManager,
         JWTTokenManagerInterface $jwtManager,
-        #[CurrentUser] ?User $user
+        JWTEncoderInterface $jwtEncoder,
+        UserRepository $userRepository,
+        MercurePublisherService $mercurePublisher
     ): JsonResponse {
-        $isAnonymous = false;
+        $apiKeyHeader = $request->headers->get('X-API-Key') ?? $request->headers->get('x-api-key');
+        $authHeader = $request->headers->get('Authorization');
+
+        $isExplicitApiKey = ($apiKeyHeader !== null && trim((string)$apiKeyHeader) !== '')
+            || ($authHeader !== null && str_starts_with((string)$authHeader, 'Bearer ak_'));
+
+        $user = $this->resolveOptionalUser($request, $userRepository, $jwtEncoder, $entityManager);
+
+        if ($isExplicitApiKey && $user === null) {
+            return new JsonResponse(['detail' => 'Invalid API Key'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $cookieToSet = null;
+        $forwardedProto = $request->headers->get('x-forwarded-proto');
+        $isSecure = $request->isSecure() || $forwardedProto === 'https' || str_starts_with($request->getUri(), 'https://');
 
         if ($user === null) {
             $anonId = substr(bin2hex(random_bytes(6)), 0, 12);
@@ -185,7 +298,6 @@ class AuthController extends AbstractController
             $user->setLastLoginAt($now);
             $entityManager->persist($user);
             $entityManager->flush();
-            $isAnonymous = true;
 
             $token = $jwtManager->create($user);
             $cookieToSet = Cookie::create('access_token')
@@ -193,7 +305,8 @@ class AuthController extends AbstractController
                 ->withExpires(time() + 86400 * 30)
                 ->withPath('/')
                 ->withHttpOnly(true)
-                ->withSameSite('lax');
+                ->withSameSite('lax')
+                ->withSecure($isSecure);
         }
 
         $flags = [];
@@ -219,7 +332,7 @@ class AuthController extends AbstractController
             'name' => $user->getName() ?? $user->getEmail(),
             'picture' => $user->getAvatar(),
             'feature_flags' => $flags,
-            'is_anonymous' => $isAnonymous,
+            'is_anonymous' => $user->isAnonymous(),
             'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
             'last_login_at' => (new \DateTimeImmutable())->format('Y-m-d\TH:i:s'),
             'last_board_interaction_at' => null,
@@ -229,6 +342,8 @@ class AuthController extends AbstractController
 
         if ($cookieToSet !== null) {
             $response->headers->setCookie($cookieToSet);
+            $mercureCookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
+            $response->headers->setCookie($mercureCookie);
         }
 
         return $response;

@@ -1,5 +1,6 @@
 lexik_jwt_authentication:
     secret_key: '%env(JWT_SECRET)%'
+    token_ttl: 2592000
     encoder:
         signature_algorithm: HS256
     user_id_claim: sub
