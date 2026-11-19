@@ -782,6 +782,14 @@ conn.close()
     }
 
     try {
+      const apiRes = await fetch(`https://${domainHost}/api/health`);
+      const apiBody = await apiRes.text();
+      console.log(`API Health (https://${domainHost}/api/health): ${apiRes.status} ${apiRes.statusText} -> ${apiBody}`);
+    } catch (err) {
+      console.error(`❌ API Health check failed: ${err.message}`);
+    }
+
+    try {
       const corsRes = await fetch(`https://${domainHost}/.well-known/mercure`, {
         method: 'OPTIONS',
         headers: {
