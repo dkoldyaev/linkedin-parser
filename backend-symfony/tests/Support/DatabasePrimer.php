@@ -26,21 +26,23 @@ class DatabasePrimer
 
     public static function seedFixtures(Connection $connection): void
     {
+        $adminPasswordHash = password_hash('AdminSecure2026!', PASSWORD_BCRYPT);
+
         // 1. Users
         $connection->executeStatement(
-            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at) ' .
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [1, 'dev@local.user', 'Dev User', 'https://api.dicebear.com/7.x/bottts/svg?seed=dev', 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, '2026-01-01 10:00:00', '2026-01-01 10:00:00']
+            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, password, created_at, updated_at) ' .
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [1, 'dev@local.user', 'Dev User', 'https://api.dicebear.com/7.x/bottts/svg?seed=dev', 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, $adminPasswordHash, '2026-01-01 10:00:00', '2026-01-01 10:00:00']
         );
         $connection->executeStatement(
-            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at) ' .
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [2, 'user2@local.user', 'Regular User', null, 0, '["ROLE_USER"]', 0, '2026-01-02 10:00:00', '2026-01-02 10:00:00']
+            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, password, created_at, updated_at) ' .
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [2, 'user2@local.user', 'Regular User', null, 0, '["ROLE_USER"]', 0, null, '2026-01-02 10:00:00', '2026-01-02 10:00:00']
         );
         $connection->executeStatement(
-            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at) ' .
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [3, 'test@example.com', 'Test User', null, 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, '2026-01-03 10:00:00', '2026-01-03 10:00:00']
+            'INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, password, created_at, updated_at) ' .
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [3, 'test@example.com', 'Test User', null, 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, $adminPasswordHash, '2026-01-03 10:00:00', '2026-01-03 10:00:00']
         );
 
         // 2. Feature Flags

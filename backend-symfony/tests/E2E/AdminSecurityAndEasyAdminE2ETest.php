@@ -66,4 +66,51 @@ class AdminSecurityAndEasyAdminE2ETest extends ApiTestCase
         $this->client->request('GET', '/admin/processing-queue-item');
         $this->assertTrue(in_array($this->client->getResponse()->getStatusCode(), [200, 302], true));
     }
+
+    public function testAdminLoginCsrfProtection(): void
+    {
+        $this->client->setServerParameters(['REMOTE_ADDR' => '192.168.100.1']);
+        $this->client->getCookieJar()->clear();
+
+        // 1. GET /admin/login returns 200 and renders CSRF hidden input
+        $crawler = $this->client->request('GET', '/admin/login');
+        $this->assertSame(200, $this->client->getResponse()->getStatusCode());
+        $csrfInput = $crawler->filter('input[name="_csrf_token"]');
+        $this->assertGreaterThan(0, $csrfInput->count());
+        $csrfToken = $csrfInput->attr('value');
+        $this->assertNotEmpty($csrfToken);
+
+        // 2. POST without valid CSRF token fails
+        $this->client->request('POST', '/admin/login', [
+            'email' => 'dev@local.user',
+            'password' => 'AdminSecure2026!',
+            '_csrf_token' => 'invalid_csrf_token',
+        ]);
+        $this->assertSame(200, $this->client->getResponse()->getStatusCode());
+        $this->assertStringContainsString('Недействительный токен CSRF', (string)$this->client->getResponse()->getContent());
+
+        // 3. POST with valid CSRF token succeeds and redirects to /admin with access_token cookie
+        $this->client->request('POST', '/admin/login', [
+            'email' => 'dev@local.user',
+            'password' => 'AdminSecure2026!',
+            '_csrf_token' => $csrfToken,
+        ]);
+        $this->assertSame(302, $this->client->getResponse()->getStatusCode(), 'Login failed: ' . $this->client->getResponse()->getContent());
+        $this->assertSame('/admin', $this->client->getResponse()->headers->get('Location'));
+        $cookie = $this->client->getCookieJar()->get('access_token');
+        $this->assertNotNull($cookie);
+
+        // 4. Rate limiting: excess attempts from a specific IP trigger throttling error
+        $this->client->setServerParameters(['REMOTE_ADDR' => '192.168.100.2']);
+        for ($i = 0; $i < 12; $i++) {
+            $this->client->request('POST', '/admin/login', [
+                'email' => 'dev@local.user',
+                'password' => 'WrongPassword!',
+                '_csrf_token' => $csrfToken,
+            ]);
+        }
+        $resRateLimited = $this->client->getResponse();
+        $this->assertSame(200, $resRateLimited->getStatusCode());
+        $this->assertStringContainsString('Слишком много попыток входа', (string)$resRateLimited->getContent());
+    }
 }

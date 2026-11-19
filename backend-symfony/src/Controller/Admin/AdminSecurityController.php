@@ -12,7 +12,10 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 class AdminSecurityController extends AbstractController
@@ -23,6 +26,8 @@ class AdminSecurityController extends AbstractController
         UserRepository $userRepository,
         UserPasswordHasherInterface $passwordHasher,
         JWTTokenManagerInterface $jwtManager,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        RateLimiterFactoryInterface $adminLoginLimiter,
         #[CurrentUser] ?User $currentUser
     ): Response {
         if ($currentUser !== null && $currentUser->isAdmin()) {
@@ -32,35 +37,50 @@ class AdminSecurityController extends AbstractController
         $errorMessage = null;
 
         if ($request->isMethod('POST')) {
-            $email = strtolower(trim((string)$request->request->get('email')));
-            $password = (string)$request->request->get('password');
+            $clientIp = (string)($request->getClientIp() ?? '127.0.0.1');
+            $limiter = $adminLoginLimiter->create($clientIp);
+            $limit = $limiter->consume(1);
 
-            if ($email === '' || $password === '') {
-                $errorMessage = 'Пожалуйста, введите email и пароль.';
+            if (!$limit->isAccepted()) {
+                $retryAfter = $limit->getRetryAfter()->getTimestamp() - time();
+                $errorMessage = sprintf('Слишком много попыток входа. Пожалуйста, повторите через %d секунд.', max(1, $retryAfter));
             } else {
-                $user = $userRepository->findByEmail($email);
-
-                if ($user === null || $user->getPassword() === null || !$passwordHasher->isPasswordValid($user, $password)) {
-                    $errorMessage = 'Неверный email или пароль.';
-                } elseif (!$user->isAdmin() && !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
-                    $errorMessage = 'Доступ запрещен: у вашей учетной записи нет прав администратора (ROLE_ADMIN).';
+                $submittedToken = (string)$request->request->get('_csrf_token');
+                if (!$csrfTokenManager->isTokenValid(new CsrfToken('admin_login', $submittedToken))) {
+                    $errorMessage = 'Недействительный токен CSRF. Пожалуйста, обновите страницу и попробуйте снова.';
                 } else {
-                    $token = $jwtManager->create($user);
-                    $response = $this->redirect('/admin');
-                    $cookie = Cookie::create('access_token')
-                        ->withValue($token)
-                        ->withExpires(time() + 86400 * 30)
-                        ->withPath('/')
-                        ->withHttpOnly(true)
-                        ->withSameSite('lax')
-                        ->withSecure($request->isSecure());
-                    $response->headers->setCookie($cookie);
+                    $email = strtolower(trim((string)$request->request->get('email')));
+                    $password = (string)$request->request->get('password');
 
-                    return $response;
+                    if ($email === '' || $password === '') {
+                        $errorMessage = 'Пожалуйста, введите email и пароль.';
+                    } else {
+                        $user = $userRepository->findByEmail($email);
+
+                        if ($user === null || $user->getPassword() === null || !$passwordHasher->isPasswordValid($user, $password)) {
+                            $errorMessage = 'Неверный email или пароль.';
+                        } elseif (!$user->isAdmin() && !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+                            $errorMessage = 'Доступ запрещен: у вашей учетной записи нет прав администратора (ROLE_ADMIN).';
+                        } else {
+                            $token = $jwtManager->create($user);
+                            $response = $this->redirect('/admin');
+                            $cookie = Cookie::create('access_token')
+                                ->withValue($token)
+                                ->withExpires(time() + 86400 * 30)
+                                ->withPath('/')
+                                ->withHttpOnly(true)
+                                ->withSameSite('lax')
+                                ->withSecure($request->isSecure());
+                            $response->headers->setCookie($cookie);
+
+                            return $response;
+                        }
+                    }
                 }
             }
         }
 
+        $csrfToken = htmlspecialchars($csrfTokenManager->getToken('admin_login')->getValue(), ENT_QUOTES, 'UTF-8');
         $errorHtml = '';
         if ($errorMessage !== null) {
             $safeError = htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8');
@@ -71,7 +91,8 @@ class AdminSecurityController extends AbstractController
 HTML;
         }
 
-        $defaultEmail = htmlspecialchars((string)$request->request->get('email', 'dkoldyaev@gmail.com'), ENT_QUOTES, 'UTF-8');
+        $submittedEmail = $request->request->has('email') ? (string)$request->request->get('email') : '';
+        $defaultEmail = htmlspecialchars($submittedEmail, ENT_QUOTES, 'UTF-8');
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -175,6 +196,7 @@ HTML;
         {$errorHtml}
 
         <form method="POST" action="/admin/login">
+            <input type="hidden" name="_csrf_token" value="{$csrfToken}">
             <div class="form-group">
                 <label for="email">Email администратора</label>
                 <input type="email" id="email" name="email" value="{$defaultEmail}" required autofocus autocomplete="username">

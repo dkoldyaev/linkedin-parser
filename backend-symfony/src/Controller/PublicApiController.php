@@ -26,6 +26,23 @@ use Symfony\Component\Uid\Uuid;
 #[Route('/api/v1')]
 class PublicApiController extends AbstractController
 {
+    private function checkApiAccess(User $user): ?JsonResponse
+    {
+        if ($user->isAdmin()) {
+            return null;
+        }
+
+        foreach ($user->getFeatureFlags() as $flag) {
+            if ($flag->getFlag() === 'api_access') {
+                return null;
+            }
+        }
+
+        return new JsonResponse([
+            'detail' => 'API access is disabled for this user (missing feature flag api_access)',
+        ], Response::HTTP_FORBIDDEN);
+    }
+
     #[Route('/vacancies', name: 'public_api_vacancies_list', methods: ['GET'])]
     public function listVacancies(
         EntityManagerInterface $entityManager,
@@ -34,6 +51,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         $vacancies = $entityManager->getRepository(Vacancy::class)->findBy(['user' => $user], ['id' => 'DESC']);
@@ -51,6 +72,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
@@ -71,6 +96,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -119,6 +148,10 @@ class PublicApiController extends AbstractController
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
         }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
+        }
 
         $cv = $entityManager->getRepository(ApprovedCV::class)->findOneBy(['user' => $user]);
         if ($cv === null) {
@@ -139,6 +172,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -200,6 +237,10 @@ class PublicApiController extends AbstractController
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
         }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
+        }
 
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
@@ -258,6 +299,10 @@ class PublicApiController extends AbstractController
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
         }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
+        }
 
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
@@ -287,6 +332,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         /** @var Vacancy|null $vacancy */
@@ -327,6 +376,10 @@ class PublicApiController extends AbstractController
     ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'API Key required'], Response::HTTP_UNAUTHORIZED);
+        }
+        $accessCheck = $this->checkApiAccess($user);
+        if ($accessCheck !== null) {
+            return $accessCheck;
         }
 
         /** @var Vacancy|null $vacancy */

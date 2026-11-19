@@ -34,8 +34,9 @@ class AuthController extends AbstractController
     #[Route('/api/v2/auth/config', name: 'api_auth_config', methods: ['GET'])]
     public function authConfig(): JsonResponse
     {
-        $googleClientId = isset($_SERVER['GOOGLE_CLIENT_ID']) ? (string)$_SERVER['GOOGLE_CLIENT_ID'] : '';
-        $devAuth = isset($_SERVER['DEV_AUTH']) ? ($_SERVER['DEV_AUTH'] === 'true' || $_SERVER['DEV_AUTH'] === '1') : true;
+        $googleClientId = isset($_ENV['GOOGLE_CLIENT_ID']) ? (string)$_ENV['GOOGLE_CLIENT_ID'] : (isset($_SERVER['GOOGLE_CLIENT_ID']) ? (string)$_SERVER['GOOGLE_CLIENT_ID'] : '');
+        $devAuthRaw = isset($_ENV['DEV_AUTH']) ? (string)$_ENV['DEV_AUTH'] : (isset($_SERVER['DEV_AUTH']) ? (string)$_SERVER['DEV_AUTH'] : '');
+        $devAuth = in_array(strtolower(trim($devAuthRaw)), ['true', '1', 'yes'], true);
 
         return new JsonResponse([
             'google_configured' => $googleClientId !== '',
@@ -204,6 +205,12 @@ class AuthController extends AbstractController
         UserMigrationService $userMigrationService,
         RefreshTokenService $refreshTokenService
     ): JsonResponse {
+        $devAuthRaw = isset($_ENV['DEV_AUTH']) ? (string)$_ENV['DEV_AUTH'] : (isset($_SERVER['DEV_AUTH']) ? (string)$_SERVER['DEV_AUTH'] : '');
+        $devAuth = in_array(strtolower(trim($devAuthRaw)), ['true', '1', 'yes'], true);
+        if (!$devAuth) {
+            return new JsonResponse(['detail' => 'Dev login is disabled in this environment'], Response::HTTP_FORBIDDEN);
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $email = !empty($data['email']) ? (string)$data['email'] : 'dev@local.user';
         $name = !empty($data['name']) ? (string)$data['name'] : 'Dev User';

@@ -33,7 +33,8 @@ class UserAdminApiController extends AbstractController
             return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (!$currentUser->isAdmin()) {
+        $isAdmin = $currentUser->isAdmin();
+        if (!$isAdmin) {
             return new JsonResponse(['detail' => 'Admin access required'], Response::HTTP_FORBIDDEN);
         }
 
@@ -200,7 +201,7 @@ class UserAdminApiController extends AbstractController
         }
 
         $isAdmin = $currentUser->isAdmin();
-        if ($userId !== $currentUser->getId() && !$isAdmin) {
+        if (!$isAdmin) {
             return new JsonResponse(['detail' => 'Admin access required'], Response::HTTP_FORBIDDEN);
         }
 
@@ -248,7 +249,8 @@ class UserAdminApiController extends AbstractController
         if ($currentUser === null) {
             return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
-        if (!$currentUser->isAdmin()) {
+        $isAdmin = $currentUser->isAdmin();
+        if (!$isAdmin) {
             return new JsonResponse(['detail' => 'Admin access required'], Response::HTTP_FORBIDDEN);
         }
 

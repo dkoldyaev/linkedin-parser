@@ -45,15 +45,13 @@ class VacancyEntityListener
 
     public function prePersist(Vacancy $vacancy, PrePersistEventArgs $event): void
     {
-        if ($vacancy->getUser() === null) {
-            $user = $this->security->getUser();
-            if ($user instanceof User) {
-                $vacancy->setUser($user);
-            }
+        $user = $this->security->getUser();
+        if ($user instanceof User) {
+            $vacancy->setUser($user);
         }
-        $user = $vacancy->getUser();
-        if ($user !== null) {
-            $user->setLastBoardInteractionAt(new \DateTimeImmutable());
+        $targetUser = $vacancy->getUser();
+        if ($targetUser !== null) {
+            $targetUser->setLastBoardInteractionAt(new \DateTimeImmutable());
         }
     }
 

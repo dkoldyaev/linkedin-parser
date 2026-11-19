@@ -14,14 +14,36 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 use App\Service\Mercure\MercurePublisherService;
+use Symfony\Component\HttpFoundation\Request;
 
 class LegacyQueueController extends AbstractController
 {
+    private function checkApiAccess(User $user): ?JsonResponse
+    {
+        if ($user->isAdmin()) {
+            return null;
+        }
+
+        foreach ($user->getFeatureFlags() as $flag) {
+            if ($flag->getFlag() === 'api_access') {
+                return null;
+            }
+        }
+
+        return new JsonResponse([
+            'detail' => 'API access is disabled for this user (missing feature flag api_access)',
+        ], Response::HTTP_FORBIDDEN);
+    }
+
     #[Route('/api/queue/status', name: 'api_queue_status_legacy', methods: ['GET'])]
     public function queueStatus(EntityManagerInterface $entityManager, #[CurrentUser] ?User $user): JsonResponse
     {
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $repo = $entityManager->getRepository(ProcessingQueueItem::class);
-        $criteria = $user !== null ? ['user' => $user] : [];
+        $criteria = ['user' => $user];
 
         $total = $repo->count($criteria);
         $pending = $repo->count(array_merge($criteria, ['status' => 'pending']));
@@ -46,8 +68,12 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/queue/tasks', name: 'api_queue_tasks_legacy', methods: ['GET'])]
     public function queueTasks(EntityManagerInterface $entityManager, #[CurrentUser] ?User $user): JsonResponse
     {
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
         $repo = $entityManager->getRepository(ProcessingQueueItem::class);
-        $criteria = $user !== null ? ['user' => $user] : [];
+        $criteria = ['user' => $user];
 
         $items = $repo->findBy($criteria, ['createdAt' => 'DESC'], 50);
         $result = [];
@@ -70,13 +96,27 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/queue/links', name: 'api_queue_links_legacy', methods: ['GET'])]
     #[Route('/api/v1/queue/links', name: 'api_v1_queue_links', methods: ['GET'])]
     #[Route('/api/v2/queue/links', name: 'api_v2_queue_links', methods: ['GET'])]
-    public function queueLinks(EntityManagerInterface $entityManager, #[CurrentUser] ?User $user): JsonResponse
-    {
-        $repo = $entityManager->getRepository(ProcessingQueueItem::class);
-        $criteria = ['status' => ['pending', 'processing', 'failed']];
-        if ($user !== null) {
-            $criteria['user'] = $user;
+    public function queueLinks(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] ?User $user
+    ): JsonResponse {
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
+
+        if (str_starts_with($request->getPathInfo(), '/api/v1/')) {
+            $accessCheck = $this->checkApiAccess($user);
+            if ($accessCheck !== null) {
+                return $accessCheck;
+            }
+        }
+
+        $repo = $entityManager->getRepository(ProcessingQueueItem::class);
+        $criteria = [
+            'user' => $user,
+            'status' => ['pending', 'processing', 'failed'],
+        ];
 
         $items = $repo->findBy($criteria, ['createdAt' => 'DESC'], 100);
         $links = [];
@@ -124,30 +164,38 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/v1/queue/links', name: 'api_v1_queue_links_clear', methods: ['DELETE'])]
     #[Route('/api/v2/queue/links', name: 'api_v2_queue_links_clear', methods: ['DELETE'])]
     public function clearQueue(
+        Request $request,
         EntityManagerInterface $entityManager,
         MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
-        $repo = $entityManager->getRepository(ProcessingQueueItem::class);
-        $criteria = $user !== null ? ['user' => $user] : [];
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
 
-        $items = $repo->findBy($criteria);
+        if (str_starts_with($request->getPathInfo(), '/api/v1/')) {
+            $accessCheck = $this->checkApiAccess($user);
+            if ($accessCheck !== null) {
+                return $accessCheck;
+            }
+        }
+
+        $repo = $entityManager->getRepository(ProcessingQueueItem::class);
+        $items = $repo->findBy(['user' => $user]);
         foreach ($items as $item) {
             $entityManager->remove($item);
         }
         $entityManager->flush();
 
-        if ($user !== null) {
-            $mercure->publish(
-                'vacancies:' . $user->getId(),
-                MercurePublisherService::EVENT_QUEUE_UPDATED,
-                MercurePublisherService::MSG_QUEUE_UPDATED,
-                [
-                    'total_remaining' => 0,
-                    'queued_count' => 0,
-                ]
-            );
-        }
+        $mercure->publish(
+            'vacancies:' . $user->getId(),
+            MercurePublisherService::EVENT_QUEUE_UPDATED,
+            MercurePublisherService::MSG_QUEUE_UPDATED,
+            [
+                'total_remaining' => 0,
+                'queued_count' => 0,
+            ]
+        );
 
         return new JsonResponse([
             'message' => 'All queue links cleared',
@@ -159,16 +207,26 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/v1/queue/links/{taskId}', name: 'api_v1_queue_link_get', methods: ['GET'])]
     public function getQueueLink(
         string $taskId,
+        Request $request,
         EntityManagerInterface $entityManager,
         #[CurrentUser] ?User $user
     ): JsonResponse {
-        $criteria = ['taskId' => $taskId];
-        if ($user !== null) {
-            $criteria['user'] = $user;
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (str_starts_with($request->getPathInfo(), '/api/v1/')) {
+            $accessCheck = $this->checkApiAccess($user);
+            if ($accessCheck !== null) {
+                return $accessCheck;
+            }
         }
 
         /** @var ProcessingQueueItem|null $item */
-        $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy($criteria);
+        $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy([
+            'taskId' => $taskId,
+            'user' => $user,
+        ]);
         if ($item === null) {
             return new JsonResponse(['detail' => 'Queue link task not found or access denied'], Response::HTTP_NOT_FOUND);
         }
@@ -188,17 +246,27 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/v2/queue/links/{taskId}', name: 'api_v2_queue_link_cancel', methods: ['DELETE'])]
     public function cancelQueueLink(
         string $taskId,
+        Request $request,
         EntityManagerInterface $entityManager,
         MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
-        $criteria = ['taskId' => $taskId];
-        if ($user !== null) {
-            $criteria['user'] = $user;
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        if (str_starts_with($request->getPathInfo(), '/api/v1/')) {
+            $accessCheck = $this->checkApiAccess($user);
+            if ($accessCheck !== null) {
+                return $accessCheck;
+            }
         }
 
         /** @var ProcessingQueueItem|null $item */
-        $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy($criteria);
+        $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy([
+            'taskId' => $taskId,
+            'user' => $user,
+        ]);
         if ($item === null) {
             return new JsonResponse(['detail' => 'Task not found or cannot be cancelled'], Response::HTTP_NOT_FOUND);
         }
@@ -206,22 +274,21 @@ class LegacyQueueController extends AbstractController
         $entityManager->remove($item);
         $entityManager->flush();
 
-        if ($user !== null) {
-            $totalRemaining = (int)$entityManager->getRepository(ProcessingQueueItem::class)->count([
-                'user' => $user,
-                'status' => ['pending', 'processing'],
-            ]);
+        $totalRemaining = (int)$entityManager->getRepository(ProcessingQueueItem::class)->count([
+            'user' => $user,
+            'status' => ['pending', 'processing'],
+        ]);
 
-            $mercure->publish(
-                'vacancies:' . $user->getId(),
-                MercurePublisherService::EVENT_QUEUE_UPDATED,
-                MercurePublisherService::MSG_QUEUE_UPDATED,
-                [
-                    'total_remaining' => $totalRemaining,
-                    'task_id' => $taskId,
-                ]
-            );
-        }
+        $mercure->publish(
+            'vacancies:' . $user->getId(),
+            MercurePublisherService::EVENT_QUEUE_UPDATED,
+            MercurePublisherService::MSG_QUEUE_UPDATED,
+            [
+                'total_remaining' => $totalRemaining,
+                'queued_count' => $totalRemaining,
+                'task_id' => $taskId,
+            ]
+        );
 
         return new JsonResponse(['message' => 'Link processing cancelled']);
     }

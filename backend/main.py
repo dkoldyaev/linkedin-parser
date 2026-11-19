@@ -697,10 +697,10 @@ def update_user_feature_flags(
     current_user: User = Depends(get_current_user_frontend_only),
     db: Session = Depends(get_db),
 ):
-    """Update feature flags for a specified user (requires admin permission or self-update)."""
+    """Update feature flags for a specified user (requires admin permission)."""
     user_flags = current_user.feature_flags or []
     is_admin = "admin" in user_flags
-    if user_id != current_user.id and not is_admin:
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
