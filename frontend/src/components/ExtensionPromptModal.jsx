@@ -151,7 +151,7 @@ export default function ExtensionPromptModal({
                 variant="secondary"
                 size="xs"
                 startIcon={<Icon icon={Download} size="2xs" />}
-                title="Скачать ZIP"
+                title={t('extensionModal.download_zip_btn')}
               >
                 {isUpdate ? `ZIP (v${latestVersion || ''})` : 'ZIP'}
               </Button>

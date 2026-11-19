@@ -70,7 +70,7 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalHeader
-        title="Очередь обработки"
+        title={t('queueModal.title')}
         icon={<Icon icon={List} size="md" tone="accent" />}
         onClose={onClose}
       />
@@ -84,8 +84,8 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
           <AlertBanner tone="danger" title={error} />
         ) : tasks.length === 0 ? (
           <EmptyState
-            title="Очередь пуста"
-            description="Нет активных задач парсинга или анализа."
+            title={t('queueModal.empty_title')}
+            description={t('queueModal.empty_desc')}
           />
         ) : (
           <ul
@@ -133,11 +133,11 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
                     }}
                   >
                     <Badge variant="outline" size="xs" tone="neutral">
-                      Status: {task.status}
+                      {t('queueModal.task_status', { status: task.status })}
                     </Badge>
                     {task.stage && (
                       <Badge variant="outline" size="xs" tone="info">
-                        Stage: {task.stage}
+                        {t('queueModal.task_stage', { stage: task.stage })}
                       </Badge>
                     )}
                   </div>
@@ -145,8 +145,8 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
                 <Button
                   variant="danger"
                   size="icon-sm"
-                  title="Удалить из очереди"
-                  aria-label="Удалить из очереди"
+                  title={t('queueModal.cancel_task')}
+                  aria-label={t('queueModal.cancel_task')}
                   onClick={() => handleCancelTask(task.task_id)}
                 >
                   <Icon icon={Trash2} size="sm" />

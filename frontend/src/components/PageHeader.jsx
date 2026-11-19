@@ -50,7 +50,7 @@ export default function PageHeader({ user, onLogout, onUserUpdated }) {
           picture: user.picture,
           isAnonymous: user.is_anonymous,
         } : undefined}
-        loginLabel={t('auth.login_btn') || 'Войти'}
+        loginLabel={t('auth.login_btn')}
         logoutLabel={t('auth.logout')}
         onLogin={() => setIsLoginModalOpen(true)}
         onLogout={onLogout}
@@ -64,8 +64,8 @@ export default function PageHeader({ user, onLogout, onUserUpdated }) {
               download
               variant="ghost"
               size="icon"
-              title="Скачать расширение (ZIP)"
-              aria-label="Скачать расширение (ZIP)"
+              title={t('nav.download_extension')}
+              aria-label={t('nav.download_extension')}
             >
               <Icon icon={Download} size="sm" aria-hidden="true" />
             </Button>

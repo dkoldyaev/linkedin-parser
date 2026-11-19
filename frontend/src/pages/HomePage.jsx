@@ -26,6 +26,7 @@ import QueueModal from '../components/QueueModal';
 import LoginModal from '../components/LoginModal';
 import { useMenu } from '../components/menuContext';
 import { useTranslation } from '../i18n/I18nContext';
+import { STATUS_REJECTED } from '../constants/columns';
 import { trackEvent, EVENTS } from '../utils/analytics';
 
 export default function HomePage({ user, onLogout, onUserUpdated }) {
@@ -567,7 +568,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   };
 
   const handleMoveAllClosedToRejected = async () => {
-    const targets = vacancies.filter(v => v.status !== 'Отказ');
+    const targets = vacancies.filter(v => v.status !== STATUS_REJECTED);
     if (targets.length === 0) return;
     const confirmMsg = t('nav.move_all_to_rejected_confirm', { count: targets.length });
     if (!window.confirm(confirmMsg)) return;
@@ -576,12 +577,12 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     trackEvent(EVENTS.MOVE_ALL_CLOSED_REJECTED, { count: targets.length });
     try {
       const ids = targets.map(v => v.id);
-      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
+      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: STATUS_REJECTED } : v));
       await Promise.all(ids.map(vid => 
         fetch(`/api/vacancies/${vid}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Отказ' })
+          body: JSON.stringify({ status: STATUS_REJECTED })
         })
       ));
       fetchVacancies();
@@ -711,7 +712,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     label: tag,
   }));
 
-  const nonRejectedClosedCount = vacancies.filter((v) => v.status !== 'Отказ').length;
+  const nonRejectedClosedCount = vacancies.filter((v) => v.status !== STATUS_REJECTED).length;
   const closedActions = selectedClosed === 'true' && nonRejectedClosedCount > 0 ? (
     <Button
       variant="secondary"
@@ -740,14 +741,14 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
         <Badge variant="primary" size="sm">
-          Выделено: {selectedIds.length}
+          {t('kanban.selected_count', { count: selectedIds.length })}
         </Badge>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setSelectedIds([])}
-          title="Снять выделение"
-          aria-label="Снять выделение"
+          title={t('kanban.clear_selection')}
+          aria-label={t('kanban.clear_selection')}
         >
           <Icon icon={X} size="xs" />
         </Button>
@@ -756,7 +757,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         <div style={{ width: 'calc(4 * var(--ui-grid-cell))' }}>
           <Input
             size="sm"
-            placeholder="Тег..."
+            placeholder={t('kanban.bulk_tag_placeholder')}
             value={bulkTagInput}
             onChange={(e) => setBulkTagInput(e.target.value)}
           />
@@ -777,11 +778,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               setBulkTagInput('');
               fetchVacancies();
               fetchTags();
-              showToast("Теги добавлены");
+              showToast(t('kanban.bulk_tags_added'));
             } catch (e) { console.error(e); }
           }}
         >
-          Добавить тег
+          {t('kanban.bulk_add_tag')}
         </Button>
         <Button
           variant="secondary"
@@ -800,11 +801,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               setBulkTagInput('');
               fetchVacancies();
               fetchTags();
-              showToast("Теги удалены");
+              showToast(t('kanban.bulk_tags_removed'));
             } catch (e) { console.error(e); }
           }}
         >
-          Удалить тег
+          {t('kanban.bulk_remove_tag')}
         </Button>
         <div style={{ width: '1px', height: '16px', backgroundColor: 'var(--ui-pixel-line)', margin: '0 var(--ui-space-1)' }} />
         <Button
@@ -812,18 +813,18 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           size="icon-sm"
           tone="danger"
           onClick={async () => {
-            if (!window.confirm(`Вы уверены, что хотите удалить ${selectedIds.length} карточек?`)) return;
+            if (!window.confirm(t('kanban.confirm_delete_selected', { count: selectedIds.length }))) return;
             try {
               await Promise.all(selectedIds.map(id => fetch(`/api/vacancies/${id}`, { method: 'DELETE' })));
               setSelectedIds([]);
               fetchVacancies();
               fetchTags();
               fetchSources();
-              showToast("Карточки удалены");
+              showToast(t('kanban.bulk_deleted'));
             } catch (e) { console.error(e); }
           }}
-          title="Удалить выделенные"
-          aria-label="Удалить выделенные"
+          title={t('kanban.bulk_delete_title')}
+          aria-label={t('kanban.bulk_delete_title')}
         >
           <Icon icon={Trash2} size="xs" />
         </Button>
@@ -861,12 +862,12 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           size="sm"
           onClick={() => setIsGuestAuthModalOpen(true)}
         >
-          {t('auth.guest_banner_btn') || 'Сохранить прогресс'}
+          {t('auth.guest_banner_btn')}
         </Button>
       }
       style={{ width: '100%', borderRadius: 0 }}
     >
-      {t('auth.guest_banner_text') || 'Вы пользуетесь гостевым доступом. Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу на другом компьютере или телефоне.'}
+      {t('auth.guest_banner_text')}
     </AlertBanner>
   ) : undefined;
 
@@ -915,7 +916,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                 console.error(e);
               }
             }}
-            refreshLabel={selectedIds.length > 0 ? "Обновить выделенные" : t('nav.refresh_btn')}
+            refreshLabel={selectedIds.length > 0 ? t('nav.refresh_selected_btn') : t('nav.refresh_btn')}
             showThemeToggle
             theme={theme}
             onThemeToggle={handleThemeToggle}
@@ -930,7 +931,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
               picture: user.picture,
               isAnonymous: user.is_anonymous,
             } : undefined}
-            loginLabel={t('auth.login_btn') || 'Войти'}
+            loginLabel={t('auth.login_btn')}
             logoutLabel={t('auth.logout')}
             onLogin={() => setIsGuestAuthModalOpen(true)}
             onLogout={handleLogout}
@@ -944,8 +945,8 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
                   download
                   variant="ghost"
                   size="icon"
-                  title="Скачать расширение (ZIP)"
-                  aria-label="Скачать расширение (ZIP)"
+                  title={t('nav.download_extension')}
+                  aria-label={t('nav.download_extension')}
                 >
                   <Icon icon={Download} size="sm" aria-hidden="true" />
                 </Button>

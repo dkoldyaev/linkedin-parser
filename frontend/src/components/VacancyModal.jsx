@@ -526,7 +526,7 @@ export default function VacancyModal({
       historyItems={historyItems}
       onSaveComment={handleSaveHistoryComment}
       onDeleteComment={handleDeleteHistoryComment}
-      addCommentLabel={t('vacancyModal.history_add_comment') || 'Добавить комментарий к этапу'}
+      addCommentLabel={t('vacancyModal.history_add_comment')}
       commentPlaceholder={t('vacancyModal.history_comment_placeholder')}
       saveCommentLabel={t('vacancyModal.history_save_comment')}
       cancelCommentLabel={t('vacancyModal.history_cancel')}
@@ -568,10 +568,10 @@ export default function VacancyModal({
       recommendationsTitle={t('vacancyModal.compat_recommendations')}
       recommendations={recommendationsList}
       emptyCompatibilityTitle={t('vacancyModal.compat_title')}
-      emptyCompatibilityDescription={vacancy.description ? "Нажмите для запуска сопоставления резюме с требованиями вакансии." : t('vacancyModal.compat_no_description')}
+      emptyCompatibilityDescription={vacancy.description ? t('vacancyModal.empty_compat_prompt') : t('vacancyModal.compat_no_description')}
       onReject={() => handleStatusChange(rejectedStatusId)}
-      rejectLabel={t('vacancyModal.reject_btn') || 'В НЕ ПОДОШЛО'}
-      closeLabel={t('batchModal.done_btn') || 'ЗАКРЫТЬ'}
+      rejectLabel={t('vacancyModal.reject_btn')}
+      closeLabel={t('vacancyModal.close_btn')}
     />
   );
 }

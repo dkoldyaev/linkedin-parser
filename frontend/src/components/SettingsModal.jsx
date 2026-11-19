@@ -23,7 +23,7 @@ import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
 import ColumnDeleteModal from './ColumnDeleteModal';
 import { useGridScroll } from '../utils/useGridScroll';
-import { BASE_STATUSES } from '../constants/columns';
+import { BASE_STATUSES, STATUS_REJECTED } from '../constants/columns';
 
 export default function SettingsModal({ isOpen, onClose, vacancies = [], onColumnsUpdated, onUserUpdated }) {
   const { 
@@ -189,7 +189,7 @@ export default function SettingsModal({ isOpen, onClose, vacancies = [], onColum
     await handleSaveColumn(col.id, { has_lanes: !col.has_lanes });
   };
 
-  const funnelColumns = columnsList.filter(c => c.id !== 'Отказ');
+  const funnelColumns = columnsList.filter(c => c.id !== STATUS_REJECTED);
 
   const tabItems = [
     {

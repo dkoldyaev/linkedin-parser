@@ -314,7 +314,7 @@ export default function CVManagementPage({ user }) {
             title={
               sourceText
                 ? t('pages.cv.content_header', {
-                    filename: filename || (locale === 'ru' ? 'Текущий документ' : 'Current Document'),
+                    filename: filename || t('pages.cv.current_document'),
                   })
                 : t('pages.cv.no_cv_title')
             }

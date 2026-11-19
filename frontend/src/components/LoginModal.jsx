@@ -68,10 +68,10 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
   return (
     <Modal isOpen={true} onClose={onClose || (() => {})} size="sm">
       <ModalHeader
-        title={isGuestPromotion ? (t('auth.save_progress_title') || 'Сохранить прогресс') : 'LinkedIn Vacancies'}
+        title={isGuestPromotion ? t('auth.save_progress_title') : 'LinkedIn Vacancies'}
         description={
           isGuestPromotion 
-            ? (t('auth.save_progress_subtitle') || 'Авторизуйтесь, чтобы не потерять добавленные вакансии и продолжить работу с любого устройства.')
+            ? t('auth.save_progress_subtitle')
             : t('auth.subtitle')
         }
         icon={<Icon icon={Briefcase} size="md" tone="accent" />}
@@ -129,7 +129,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
               borderTop: '1px solid var(--ui-border-subtle)',
             }}>
               <Text variant="caption" tone="muted" style={{ textAlign: 'center' }}>
-                {authConfig.google_configured ? '— или тестовый вход —' : 'тестовый режим'}
+                {authConfig.google_configured ? t('auth.or_dev_login') : t('auth.dev_mode_label')}
               </Text>
 
               <form onSubmit={handleDevLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
@@ -137,7 +137,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
                   type="text"
                   value={devName}
                   onChange={(e) => setDevName(e.target.value)}
-                  placeholder="Имя пользователя"
+                  placeholder={t('auth.dev_name_placeholder')}
                   required
                 />
                 <Input
@@ -157,7 +157,7 @@ export default function LoginModal({ onLoginSuccess, onClose, isGuestPromotion =
                   endIcon={<Icon icon={ArrowRight} size="xs" />}
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
-                  {loading ? 'Вход...' : t('auth.dev_login')}
+                  {loading ? t('auth.logging_in') : t('auth.dev_login')}
                 </Button>
               </form>
             </div>

@@ -411,8 +411,8 @@ export default function AdminPage({ user }) {
         ) : filteredAndSortedUsers.length === 0 ? (
           <div className="info-card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
             <Filter size={32} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
-            <div style={{ fontSize: 15, fontWeight: 500 }}>Пользователи не найдены</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Попробуйте изменить поисковый запрос или фильтр по гостям</div>
+            <div style={{ fontSize: 15, fontWeight: 500 }}>{t('pages.admin.no_users_found')}</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>{t('pages.admin.no_users_hint')}</div>
           </div>
         ) : viewMode === 'table' ? (
           /* TABLE VIEW */
@@ -493,7 +493,7 @@ export default function AdminPage({ user }) {
                                 <strong style={{ fontSize: 13, color: 'var(--text-main)' }}>{u.name || '—'}</strong>
                                 {user.id === u.id && (
                                   <span style={{ fontSize: 10, color: 'var(--text-muted)', background: 'var(--bg-app)', padding: '1px 5px', borderRadius: 4 }}>
-                                    (Вы)
+                                    {t('pages.admin.you')}
                                   </span>
                                 )}
                               </div>
@@ -643,7 +643,7 @@ export default function AdminPage({ user }) {
                               style={{ padding: '4px 8px', fontSize: 11 }}
                               disabled={isSaving || (user.id === u.id && isUserAdmin)}
                               onClick={() => handleToggleAdmin(u)}
-                              title={user.id === u.id && isUserAdmin ? "Нельзя снять права администратора с себя" : ""}
+                              title={user.id === u.id && isUserAdmin ? t('pages.admin.cannot_revoke_self') : ""}
                             >
                               {isUserAdmin ? t('pages.admin.toggle_admin_revoke') : t('pages.admin.toggle_admin_grant')}
                             </button>
@@ -705,7 +705,7 @@ export default function AdminPage({ user }) {
                           )}
                           {user.id === u.id && (
                             <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-app)', padding: '2px 6px', borderRadius: 4 }}>
-                              (Вы)
+                              {t('pages.admin.you')}
                             </span>
                           )}
                         </div>
@@ -736,7 +736,7 @@ export default function AdminPage({ user }) {
                         style={{ fontSize: 13, padding: '6px 14px' }}
                         disabled={isSaving || (user.id === u.id && isUserAdmin)}
                         onClick={() => handleToggleAdmin(u)}
-                        title={user.id === u.id && isUserAdmin ? "Нельзя снять права администратора с себя" : ""}
+                        title={user.id === u.id && isUserAdmin ? t('pages.admin.cannot_revoke_self') : ""}
                       >
                         {isUserAdmin ? t('pages.admin.toggle_admin_revoke') : t('pages.admin.toggle_admin_grant')}
                       </button>
