@@ -199,4 +199,71 @@ class AuthController extends AbstractController
         $response->headers->clearCookie('access_token', '/');
         return $response;
     }
+
+    #[Route('/api/auth/google/login', name: 'api_auth_google_login_legacy', methods: ['GET'])]
+    #[Route('/api/v2/auth/google/login', name: 'api_auth_google_login', methods: ['GET'])]
+    public function googleLogin(Request $request): Response
+    {
+        $clientId = isset($_SERVER['GOOGLE_CLIENT_ID']) ? (string)$_SERVER['GOOGLE_CLIENT_ID'] : '';
+        $clientSecret = isset($_SERVER['GOOGLE_CLIENT_SECRET']) ? (string)$_SERVER['GOOGLE_CLIENT_SECRET'] : '';
+
+        if ($clientId === '' || $clientSecret === '') {
+            return new JsonResponse([
+                'detail' => 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $redirectUri = isset($_SERVER['GOOGLE_REDIRECT_URI']) && (string)$_SERVER['GOOGLE_REDIRECT_URI'] !== ''
+            ? (string)$_SERVER['GOOGLE_REDIRECT_URI']
+            : rtrim($request->getSchemeAndHttpHost(), '/') . '/api/v2/auth/google/callback';
+
+        $state = bin2hex(random_bytes(16));
+        $params = [
+            'client_id' => $clientId,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'redirect_uri' => $redirectUri,
+            'state' => $state,
+            'access_type' => 'offline',
+            'prompt' => 'consent',
+        ];
+
+        $authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
+        $response = $this->redirect($authUrl);
+        $cookie = Cookie::create('oauth_state')
+            ->withValue($state)
+            ->withExpires(time() + 600)
+            ->withPath('/')
+            ->withHttpOnly(true)
+            ->withSameSite('lax')
+            ->withSecure(str_starts_with($redirectUri, 'https://'));
+        $response->headers->setCookie($cookie);
+
+        return $response;
+    }
+
+    #[Route('/api/auth/google/callback', name: 'api_auth_google_callback_legacy', methods: ['GET'])]
+    #[Route('/api/v2/auth/google/callback', name: 'api_auth_google_callback', methods: ['GET'])]
+    public function googleCallback(
+        Request $request,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager,
+        JWTTokenManagerInterface $jwtManager
+    ): Response {
+        $code = (string)$request->query->get('code');
+        $state = (string)$request->query->get('state');
+        $cookieState = (string)$request->cookies->get('oauth_state');
+
+        if ($code === '' || $state === '' || !hash_equals($cookieState, $state)) {
+            return new JsonResponse(['detail' => 'Invalid OAuth state'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $clientId = isset($_SERVER['GOOGLE_CLIENT_ID']) ? (string)$_SERVER['GOOGLE_CLIENT_ID'] : '';
+        $clientSecret = isset($_SERVER['GOOGLE_CLIENT_SECRET']) ? (string)$_SERVER['GOOGLE_CLIENT_SECRET'] : '';
+        $redirectUri = isset($_SERVER['GOOGLE_REDIRECT_URI']) && (string)$_SERVER['GOOGLE_REDIRECT_URI'] !== ''
+            ? (string)$_SERVER['GOOGLE_REDIRECT_URI']
+            : rtrim($request->getSchemeAndHttpHost(), '/') . '/api/v2/auth/google/callback';
+
+        return $this->redirect('/');
+    }
 }

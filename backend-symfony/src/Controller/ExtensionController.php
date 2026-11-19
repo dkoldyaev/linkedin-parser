@@ -127,4 +127,84 @@ class ExtensionController extends AbstractController
             'count' => count($tasks),
         ], Response::HTTP_ACCEPTED);
     }
+
+    #[Route('/api/extension/tasks', name: 'api_extension_tasks_legacy', methods: ['GET'])]
+    #[Route('/api/v2/extension/tasks', name: 'api_v2_extension_tasks', methods: ['GET'])]
+    public function tasks(#[CurrentUser] ?User $user): JsonResponse
+    {
+        return new JsonResponse([]);
+    }
+
+    #[Route('/api/extension/changelog', name: 'api_extension_changelog_legacy', methods: ['GET'])]
+    #[Route('/api/v2/extension/changelog', name: 'api_v2_extension_changelog', methods: ['GET'])]
+    public function changelog(): JsonResponse
+    {
+        $changelogPath = dirname(__DIR__, 3) . '/extension/changelog.json';
+        if (file_exists($changelogPath)) {
+            $content = file_get_contents($changelogPath);
+            if ($content !== false) {
+                return new JsonResponse(json_decode($content, true) ?? ['latest_version' => '1.0.7', 'releases' => []]);
+            }
+        }
+
+        return new JsonResponse([
+            'latest_version' => '1.0.7',
+            'releases' => [],
+        ]);
+    }
+
+    #[Route('/api/extension/tasks/{taskId}/result', name: 'api_extension_task_result_legacy', methods: ['POST'])]
+    #[Route('/api/v2/extension/tasks/{taskId}/result', name: 'api_v2_extension_task_result', methods: ['POST'])]
+    public function taskResult(string $taskId, Request $request, #[CurrentUser] ?User $user): JsonResponse
+    {
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    #[Route('/api/extension/tasks/{taskId}/error', name: 'api_extension_task_error_legacy', methods: ['POST'])]
+    #[Route('/api/v2/extension/tasks/{taskId}/error', name: 'api_v2_extension_task_error', methods: ['POST'])]
+    public function taskError(string $taskId, Request $request, #[CurrentUser] ?User $user): JsonResponse
+    {
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    #[Route('/api/extension/log', name: 'api_extension_log_legacy', methods: ['POST'])]
+    #[Route('/api/v2/extension/log', name: 'api_v2_extension_log', methods: ['POST'])]
+    public function remoteLog(Request $request): JsonResponse
+    {
+        return new JsonResponse(['status' => 'ok']);
+    }
+
+    #[Route('/api/extension/parse_and_add', name: 'api_extension_parse_and_add_legacy', methods: ['POST'])]
+    #[Route('/api/v2/extension/parse_and_add', name: 'api_v2_extension_parse_and_add', methods: ['POST'])]
+    public function parseAndAdd(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        MessageBusInterface $messageBus,
+        #[CurrentUser] ?User $user
+    ): JsonResponse {
+        if ($user === null) {
+            return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $data = json_decode($request->getContent(), true) ?? [];
+        $html = isset($data['html']) ? (string)$data['html'] : '';
+        if ($html === '') {
+            return new JsonResponse([
+                'detail' => 'HTML content is required for parse_and_add. Use /extension/add_link to queue URL.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $url = !empty($data['url']) ? trim((string)$data['url']) : 'https://www.linkedin.com/jobs/view/unknown';
+        $taskId = Uuid::v4()->toRfc4122();
+        $now = new \DateTimeImmutable();
+
+        $item = new ProcessingQueueItem($taskId, $url, 'pending', 'scraping', 0, $now);
+        $item->setUser($user);
+        $entityManager->persist($item);
+        $entityManager->flush();
+
+        $messageBus->dispatch(new ProcessJobUrlMessage($taskId, $url, $user->getId(), 0));
+
+        return new JsonResponse(['status' => 'queued', 'task_id' => $taskId]);
+    }
 }
