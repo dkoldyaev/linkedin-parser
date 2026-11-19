@@ -1,0 +1,10 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Tests\Support\TestMercureHub:
+        decorates: 'mercure.hub.default'
+        arguments:
+            $inner: '@.inner'

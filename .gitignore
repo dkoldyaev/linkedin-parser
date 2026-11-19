@@ -5,6 +5,7 @@ __pycache__
 .env.*
 !.env.example
 !backend-symfony/.env
+!backend-symfony/.env.test
 extension/dist
 extension/popup-dist
 extension/*.zip

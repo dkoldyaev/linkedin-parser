@@ -28,7 +28,7 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
 
     public function supports(Request $request): ?bool
     {
-        return $request->headers->has('X-API-Key');
+        return $request->headers->has('X-API-Key') && trim((string)$request->headers->get('X-API-Key')) !== '';
     }
 
     public function authenticate(Request $request): Passport
