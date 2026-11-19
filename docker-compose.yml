@@ -1,6 +1,5 @@
 services:
   app:
-    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -33,7 +32,7 @@ services:
       - DEV_AUTH=${DEV_AUTH:-false}
       - CREATE_MOCK_DATA=${CREATE_MOCK_DATA:-false}
       - EXTENSION_ID=${EXTENSION_ID:-}
-      - PARSER_API_URL=${PARSER_API_URL}
+      - PARSER_API_URL=${PARSER_API_URL:-http://parser-api:4000}
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
     depends_on:
       - mercure
@@ -45,7 +44,6 @@ services:
       start_period: 15s
 
   mercure:
-    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-mercure
     image: dunglas/mercure:v0.16
     restart: unless-stopped
     environment:
@@ -56,7 +54,6 @@ services:
         cors_origins ${APP_URL:-http://localhost:8000}
 
   parser-api:
-    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-parser-api
     build:
       context: .
       dockerfile: services/parser-api/Dockerfile

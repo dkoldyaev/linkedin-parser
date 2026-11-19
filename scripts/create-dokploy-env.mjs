@@ -204,10 +204,12 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
     `APP_ENV=prod`,
     `APP_SECRET=${requireEnvVar('JWT_SECRET')}`,
     `SERVER_NAME=:8000`,
+    `APP_NAME_PREFIX=${composeAppName || 'app'}`,
     `APP_URL=${fullDomain}`,
     `DATABASE_URL=${postgresUrl}?serverVersion=16&charset=utf8`,
     `BROKER_URL=${redisUrl}`,
     `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0`,
+    `PARSER_API_URL=http://parser-api:4000`,
     `LLM_PROVIDER=${llmProvider}`,
     `MISTRAL_API_KEY=${envVars['MISTRAL_API_KEY'] || ''}`,
     `MISTRAL_MODEL=${envVars['MISTRAL_MODEL'] || 'mistral-small-latest'}`,
@@ -430,7 +432,7 @@ async function main() {
   const serviceNetworks = [
     { serviceName: 'app', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'mercure', networkIds: [envNet.networkId], detachDokployNetwork: false },
-    { serviceName: 'browser', networkIds: [envNet.networkId], detachDokployNetwork: false },
+    { serviceName: 'parser-api', networkIds: [envNet.networkId], detachDokployNetwork: false },
   ];
 
   console.log('\n⚙️  Configuring Compose application settings...');
