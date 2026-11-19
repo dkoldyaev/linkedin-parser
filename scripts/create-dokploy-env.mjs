@@ -228,7 +228,7 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
     `CREATE_MOCK_DATA=${createMockData}`,
     `ADMIN_EMAILS=${adminEmails || ''}`,
     `ADMIN_EMAIL=${envVars['ADMIN_EMAIL'] || adminEmails || 'dkoldyaev@gmail.com'}`,
-    `ADMIN_PASSWORD=${envVars['ADMIN_PASSWORD'] || 'AdminSecure2026!#'}`,
+    `ADMIN_PASSWORD=${envVars['ADMIN_PASSWORD'] || 'AdminSecure2026!'}`,
     `PORT=8000`,
   ].join('\n');
 }
