@@ -7,8 +7,10 @@ namespace App\Command;
 use App\Entity\ApiKey;
 use App\Entity\AppSetting;
 use App\Entity\ExchangeRate;
+use App\Entity\ProcessingQueueItem;
 use App\Entity\User;
 use App\Entity\UserFeatureFlag;
+use App\Entity\UserLLMTokenUsage;
 use App\Entity\Vacancy;
 use App\Entity\VacancyStatusHistory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -330,6 +332,91 @@ class InitDatabaseCommand extends Command
                     $this->entityManager->persist(new ExchangeRate('USD', 'EUR', 0.92, $now));
                     $this->entityManager->persist(new ExchangeRate('EUR', 'USD', 1.09, $now));
                     $this->entityManager->persist(new ExchangeRate('GBP', 'EUR', 1.17, $now));
+                }
+
+                // LLM Token Usages mock seeding
+                $tokenUsageRepo = $this->entityManager->getRepository(UserLLMTokenUsage::class);
+                if ($tokenUsageRepo->count([]) === 0) {
+                    $this->entityManager->persist(new UserLLMTokenUsage(
+                        $primaryAdmin,
+                        'gemini',
+                        'gemini-2.5-flash',
+                        12400,
+                        3200,
+                        15600,
+                        $now->modify('-2 hours')
+                    ));
+                    $this->entityManager->persist(new UserLLMTokenUsage(
+                        $primaryAdmin,
+                        'gemini',
+                        'gemini-2.5-flash',
+                        8500,
+                        1900,
+                        10400,
+                        $now->modify('-1 hour')
+                    ));
+                    $this->entityManager->persist(new UserLLMTokenUsage(
+                        $primaryAdmin,
+                        'mistral',
+                        'mistral-small-latest',
+                        18200,
+                        4600,
+                        22800,
+                        $now->modify('-30 minutes')
+                    ));
+                }
+
+                // Processing queue items mock seeding
+                $queueRepo = $this->entityManager->getRepository(ProcessingQueueItem::class);
+                if ($queueRepo->count([]) === 0) {
+                    $item1 = new ProcessingQueueItem(
+                        'task-' . bin2hex(random_bytes(6)),
+                        'https://www.linkedin.com/jobs/view/4100000001/',
+                        'pending',
+                        'queued',
+                        0,
+                        $now->modify('-10 minutes')
+                    );
+                    $item1->setUser($primaryAdmin);
+                    $item1->setPriority(5);
+                    $this->entityManager->persist($item1);
+
+                    $item2 = new ProcessingQueueItem(
+                        'task-' . bin2hex(random_bytes(6)),
+                        'https://www.linkedin.com/jobs/view/4100000002/',
+                        'processing',
+                        'scraping',
+                        1,
+                        $now->modify('-5 minutes')
+                    );
+                    $item2->setUser($primaryAdmin);
+                    $item2->setPriority(10);
+                    $this->entityManager->persist($item2);
+
+                    $item3 = new ProcessingQueueItem(
+                        'task-' . bin2hex(random_bytes(6)),
+                        'https://www.linkedin.com/jobs/view/4100000003/',
+                        'failed',
+                        'failed',
+                        4,
+                        $now->modify('-20 minutes')
+                    );
+                    $item3->setUser($primaryAdmin);
+                    $item3->setError('HTTP 429 Too Many Requests: LinkedIn rate limit exceeded during scraping stage.');
+                    $item3->setPriority(0);
+                    $this->entityManager->persist($item3);
+
+                    $item4 = new ProcessingQueueItem(
+                        'task-' . bin2hex(random_bytes(6)),
+                        'https://www.linkedin.com/jobs/view/4100000004/',
+                        'completed',
+                        'completed',
+                        1,
+                        $now->modify('-1 hour')
+                    );
+                    $item4->setUser($primaryAdmin);
+                    $item4->setPriority(0);
+                    $this->entityManager->persist($item4);
                 }
 
                 $this->entityManager->flush();

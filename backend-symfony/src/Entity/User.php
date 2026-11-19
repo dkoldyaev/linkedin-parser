@@ -97,6 +97,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: ApiKey::class, mappedBy: 'user', cascade: ['remove'], orphanRemoval: true)]
     private Collection $apiKeys;
 
+    /**
+     * @var Collection<int, UserLLMTokenUsage>
+     */
+    #[ORM\OneToMany(targetEntity: UserLLMTokenUsage::class, mappedBy: 'user', cascade: ['remove'], orphanRemoval: true)]
+    private Collection $tokenUsages;
+
     public function __construct(string $email, ?string $name, ?string $avatar, bool $isAdmin, array $roles, \DateTimeImmutable $now)
     {
         $this->email = $email;
@@ -110,6 +116,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->featureFlags = new ArrayCollection();
         $this->settings = new ArrayCollection();
         $this->apiKeys = new ArrayCollection();
+        $this->tokenUsages = new ArrayCollection();
     }
 
     public function isAdmin(): bool
@@ -257,5 +264,133 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getApiKeys(): Collection
     {
         return $this->apiKeys;
+    }
+
+    /**
+     * @return Collection<int, UserLLMTokenUsage>
+     */
+    public function getTokenUsages(): Collection
+    {
+        return $this->tokenUsages;
+    }
+
+    public function getTotalLlmTokens(): int
+    {
+        $sum = 0;
+        foreach ($this->tokenUsages as $usage) {
+            $sum += $usage->getTotalTokens();
+        }
+        return $sum;
+    }
+
+    public function getPromptLlmTokens(): int
+    {
+        $sum = 0;
+        foreach ($this->tokenUsages as $usage) {
+            $sum += $usage->getPromptTokens();
+        }
+        return $sum;
+    }
+
+    public function getCompletionLlmTokens(): int
+    {
+        $sum = 0;
+        foreach ($this->tokenUsages as $usage) {
+            $sum += $usage->getCompletionTokens();
+        }
+        return $sum;
+    }
+
+    public function getLlmUsageSummary(): string
+    {
+        $total = 0;
+        $prompt = 0;
+        $completion = 0;
+        $byProvider = [];
+
+        foreach ($this->tokenUsages as $usage) {
+            $total += $usage->getTotalTokens();
+            $prompt += $usage->getPromptTokens();
+            $completion += $usage->getCompletionTokens();
+            $prov = $usage->getProvider();
+            if (!isset($byProvider[$prov])) {
+                $byProvider[$prov] = 0;
+            }
+            $byProvider[$prov] += $usage->getTotalTokens();
+        }
+
+        if ($total === 0) {
+            return '0 токенов';
+        }
+
+        $providerParts = [];
+        foreach ($byProvider as $prov => $tokens) {
+            $providerParts[] = sprintf('%s: %s', $prov, number_format((float)$tokens));
+        }
+
+        return sprintf(
+            '%s токенов (Prompt: %s, Completion: %s) [%s]',
+            number_format((float)$total),
+            number_format((float)$prompt),
+            number_format((float)$completion),
+            implode(', ', $providerParts)
+        );
+    }
+
+    public function getVacanciesCount(): int
+    {
+        return $this->vacancies->count();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getFlagsList(): array
+    {
+        $flags = [];
+        foreach ($this->featureFlags as $f) {
+            $flags[] = $f->getFlag();
+        }
+        return $flags;
+    }
+
+    /**
+     * @param list<string> $flags
+     */
+    public function setFlagsList(array $flags): self
+    {
+        $existing = [];
+        foreach ($this->featureFlags as $f) {
+            $existing[$f->getFlag()] = $f;
+        }
+
+        $targetFlags = array_values(array_unique($flags));
+
+        // Remove deleted flags
+        foreach ($existing as $flagName => $flagEntity) {
+            if (!in_array($flagName, $targetFlags, true)) {
+                $this->featureFlags->removeElement($flagEntity);
+            }
+        }
+
+        // Add new flags
+        $now = new \DateTimeImmutable();
+        foreach ($targetFlags as $flagName) {
+            if (!isset($existing[$flagName])) {
+                $flag = new UserFeatureFlag($this, (string)$flagName, $now);
+                $this->featureFlags->add($flag);
+            }
+        }
+
+        if (in_array('admin', $targetFlags, true)) {
+            $this->isAdmin = true;
+        }
+
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->email . ($this->name !== null && $this->name !== '' ? ' (' . $this->name . ')' : '');
     }
 }

@@ -41,6 +41,74 @@ class UserAdminApiController extends AbstractController
             foreach ($user->getFeatureFlags() as $flag) {
                 $flags[] = $flag->getFlag();
             }
+
+            // Vacancy stats
+            $vacancies = $user->getVacancies();
+            $byStatus = [];
+            $maxVacUpdated = null;
+            foreach ($vacancies as $v) {
+                $st = $v->getStatus();
+                $byStatus[$st] = ($byStatus[$st] ?? 0) + 1;
+                $up = $v->getUpdatedAt();
+                if ($maxVacUpdated === null || $up > $maxVacUpdated) {
+                    $maxVacUpdated = $up;
+                }
+            }
+
+            // LLM tokens stats
+            $tokenUsages = $user->getTokenUsages();
+            $totalTokens = 0;
+            $promptTokens = 0;
+            $completionTokens = 0;
+            $totalRequests = 0;
+            $byProvider = [];
+            foreach ($tokenUsages as $tu) {
+                $p = $tu->getProvider();
+                $tot = $tu->getTotalTokens();
+                $prm = $tu->getPromptTokens();
+                $cmp = $tu->getCompletionTokens();
+
+                $totalTokens += $tot;
+                $promptTokens += $prm;
+                $completionTokens += $cmp;
+                $totalRequests++;
+
+                if (!isset($byProvider[$p])) {
+                    $byProvider[$p] = [
+                        'total_tokens' => 0,
+                        'prompt_tokens' => 0,
+                        'completion_tokens' => 0,
+                        'requests' => 0,
+                    ];
+                }
+                $byProvider[$p]['total_tokens'] += $tot;
+                $byProvider[$p]['prompt_tokens'] += $prm;
+                $byProvider[$p]['completion_tokens'] += $cmp;
+                $byProvider[$p]['requests'] += 1;
+            }
+
+            $apiKeys = $user->getApiKeys();
+            $apiReqTotal = 0;
+            foreach ($apiKeys as $ak) {
+                $apiReqTotal += $ak->getRequestCount();
+            }
+
+            $stats = [
+                'total_vacancies' => count($vacancies),
+                'by_status' => $byStatus,
+                'last_login_at' => null,
+                'last_board_interaction_at' => $maxVacUpdated !== null ? $maxVacUpdated->format(\DateTimeInterface::ATOM) : null,
+                'api_keys_count' => count($apiKeys),
+                'api_requests_count' => $apiReqTotal,
+                'llm_tokens' => [
+                    'total_tokens' => $totalTokens,
+                    'prompt_tokens' => $promptTokens,
+                    'completion_tokens' => $completionTokens,
+                    'total_requests' => $totalRequests,
+                    'by_provider' => $byProvider,
+                ],
+            ];
+
             $result[] = [
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),
@@ -49,6 +117,7 @@ class UserAdminApiController extends AbstractController
                 'feature_flags' => $flags,
                 'is_anonymous' => false,
                 'created_at' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                'stats' => $stats,
             ];
         }
 

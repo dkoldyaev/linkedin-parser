@@ -54,6 +54,10 @@ class ProcessingQueueItem implements UserOwnedInterface
     #[Groups(['queue:read'])]
     private int $attempts;
 
+    #[ORM\Column(type: Types::INTEGER)]
+    #[Groups(['queue:read', 'queue:write'])]
+    private int $priority = 0;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     #[Groups(['queue:read'])]
     private ?string $error = null;
@@ -143,6 +147,17 @@ class ProcessingQueueItem implements UserOwnedInterface
     public function setAttempts(int $attempts): self
     {
         $this->attempts = $attempts;
+        return $this;
+    }
+
+    public function getPriority(): int
+    {
+        return $this->priority;
+    }
+
+    public function setPriority(int $priority): self
+    {
+        $this->priority = $priority;
         return $this;
     }
 
