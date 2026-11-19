@@ -1099,7 +1099,14 @@ export function VacancyDetailsModal({
           <span />
         )}
         <Modal.Footer.Actions>
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+          >
             {closeLabel}
           </Button>
         </Modal.Footer.Actions>

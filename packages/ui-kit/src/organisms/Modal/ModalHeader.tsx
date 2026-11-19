@@ -128,7 +128,10 @@ function ModalHeaderRoot({
                     variant="ghost"
                     size="icon"
                     aria-label={effectiveCloseLabel}
-                    onClick={effectiveOnClose}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      effectiveOnClose();
+                    }}
                   >
                     <Icon icon={X} size="md" />
                   </Button>
@@ -138,7 +141,10 @@ function ModalHeaderRoot({
                   variant="ghost"
                   size="icon"
                   aria-label={effectiveCloseLabel}
-                  onClick={effectiveOnClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    effectiveOnClose();
+                  }}
                 >
                   <Icon icon={X} size="md" />
                 </Button>

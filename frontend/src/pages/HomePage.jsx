@@ -71,6 +71,19 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
+  const lastModalClosedAt = useRef(0);
+
+  const handleCloseVacancyModal = useCallback(() => {
+    lastModalClosedAt.current = Date.now();
+    setSelectedVacancy(null);
+  }, []);
+
+  const handleCardClick = useCallback((vacancy) => {
+    if (Date.now() - lastModalClosedAt.current < 300) {
+      return;
+    }
+    setSelectedVacancy(vacancy);
+  }, []);
 
   // Attention highlight for "Add Vacancies" button when arriving from landing tour
   const location = useLocation();
@@ -977,7 +990,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
           setColumns(newCols);
           fetchVacancies();
         }}
-        onCardClick={(vacancy) => setSelectedVacancy(vacancy)}
+        onCardClick={handleCardClick}
         onStatusChange={handleStatusChange}
         selectedIds={selectedIds}
         onToggleSelect={toggleSelect}
@@ -997,7 +1010,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         vacancy={selectedVacancy}
         isOpen={Boolean(selectedVacancy)}
         columns={columns}
-        onClose={() => setSelectedVacancy(null)}
+        onClose={handleCloseVacancyModal}
         onUpdate={handleVacancyUpdate}
         onDelete={handleVacancyDelete}
       />
