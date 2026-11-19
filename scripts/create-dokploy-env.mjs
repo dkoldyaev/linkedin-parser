@@ -206,6 +206,7 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
     `SERVER_NAME=:8000`,
     `APP_NAME_PREFIX=${composeAppName || 'app'}`,
     `APP_URL=${fullDomain}`,
+    `DEFAULT_URI=${fullDomain}`,
     `DATABASE_URL=${postgresUrl}?serverVersion=16&charset=utf8`,
     `BROKER_URL=${redisUrl}`,
     `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0`,
@@ -218,6 +219,7 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
     `MERCURE_URL=http://${mercureInternalHost}/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
     `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
+    `MERCURE_JWT_ISSUER=linkedin-parser`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
     `GOOGLE_CLIENT_SECRET=${envVars['GOOGLE_CLIENT_SECRET'] || ''}`,
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
@@ -664,11 +666,13 @@ async function main() {
 
       const pyScript = `
 import sys
+import json
 import psycopg2
 
 db_url = sys.argv[1]
 emails = [e.strip().lower() for e in sys.argv[2].split(",") if e.strip()]
 flags = ["admin", "api_access"]
+roles_json = json.dumps(["ROLE_USER", "ROLE_ADMIN"])
 
 conn = psycopg2.connect(db_url)
 conn.autocommit = True
@@ -701,7 +705,7 @@ for email in emails:
                 ON CONFLICT (user_id, flag) DO NOTHING;
             """, (u_id, f))
         if has_is_admin and has_roles:
-            cur.execute("UPDATE users SET is_admin = true, roles = '[\"ROLE_USER\", \"ROLE_ADMIN\"]' WHERE id = %s;", (u_id,))
+            cur.execute("UPDATE users SET is_admin = true, roles = %s WHERE id = %s;", (roles_json, u_id))
         elif has_is_admin:
             cur.execute("UPDATE users SET is_admin = true WHERE id = %s;", (u_id,))
         updated_users.append(f"{u_name or email} (id: {u_id})")
@@ -709,9 +713,9 @@ for email in emails:
         if has_is_admin and has_roles:
             cur.execute("""
                 INSERT INTO users (email, name, is_admin, roles, created_at, updated_at)
-                VALUES (%s, %s, true, '[\"ROLE_USER\", \"ROLE_ADMIN\"]', NOW(), NOW())
+                VALUES (%s, %s, true, %s, NOW(), NOW())
                 RETURNING id;
-            """, (email, email.split("@")[0]))
+            """, (email, email.split("@")[0], roles_json))
             new_id = cur.fetchone()[0]
         else:
             cur.execute("""
