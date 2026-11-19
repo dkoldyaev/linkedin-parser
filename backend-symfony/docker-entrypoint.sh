@@ -15,6 +15,10 @@ if echo "${DATABASE_URL}" | grep -q "postgres"; then
     done
 fi
 
+# Run doctrine migrations
+echo "Running Doctrine database migrations..."
+php bin/console doctrine:migrations:migrate --no-interaction --all-or-nothing || true
+
 # Run database initialization, schema migration, admin creation, and mock data seeding
 echo "Running database initialization..."
 php bin/console app:init-database
