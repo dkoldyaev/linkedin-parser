@@ -570,7 +570,12 @@ export function VacancyDetailsModal({
                 value: 'compatibility',
                 label: compatibilityTabLabel,
                 icon: <Icon icon={Shield} size="xs" />,
-                count: matchScore,
+                accessory:
+                  matchScore !== undefined && matchScore !== null ? (
+                    <Badge variant="counter" size="xs" tone={compatibilityScoreTone}>
+                      {matchScore}%
+                    </Badge>
+                  ) : undefined,
               },
             ]}
           />

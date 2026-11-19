@@ -1,6 +1,6 @@
 import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
-import { Badge, Text, type BadgeTone } from '../../atoms';
+import { Text } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './Tabs.module.css';
@@ -8,9 +8,7 @@ import styles from './Tabs.module.css';
 export interface TabItem {
   readonly value: string;
   readonly label: React.ReactNode;
-  readonly count?: number;
-  readonly badge?: React.ReactNode;
-  readonly badgeTone?: BadgeTone;
+  readonly accessory?: React.ReactNode;
   readonly icon?: React.ReactNode;
   readonly disabled?: boolean;
   readonly content?: React.ReactNode;
@@ -30,7 +28,7 @@ export interface TabsProps
 
 /**
  * Accessible Tabs molecule powered by `@radix-ui/react-tabs` with full keyboard arrow-key navigation,
- * custom badge node and badge tone support, and 32px Blueprint grid width quantization (`useBlueprintGrid`).
+ * accessory slot (supporting Badge or custom elements), and 32px Blueprint grid width quantization (`useBlueprintGrid`).
  */
 export function Tabs({
   value,
@@ -86,18 +84,9 @@ export function Tabs({
             <Text as="span" variant="mono" className={styles.tabLabel}>
               {item.label}
             </Text>
-            {item.badge !== undefined ? (
-              <span className={styles.countBadge}>{item.badge}</span>
-            ) : item.count !== undefined ? (
-              <Badge
-                variant="counter"
-                size="xs"
-                tone={item.badgeTone ?? 'primary'}
-                className={styles.countBadge}
-              >
-                {item.count}
-              </Badge>
-            ) : null}
+            {item.accessory !== undefined && (
+              <span className={styles.countBadge}>{item.accessory}</span>
+            )}
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>
