@@ -103,6 +103,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: UserLLMTokenUsage::class, mappedBy: 'user', cascade: ['remove'], orphanRemoval: true)]
     private Collection $tokenUsages;
 
+    #[ORM\Column(name: 'last_login_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $lastLoginAt = null;
+
+    #[ORM\Column(name: 'last_board_interaction_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $lastBoardInteractionAt = null;
+
+    #[ORM\Column(name: 'is_anonymous', type: Types::BOOLEAN)]
+    #[Groups(['user:read'])]
+    private bool $isAnonymous;
+
     public function __construct(string $email, ?string $name, ?string $avatar, bool $isAdmin, array $roles, \DateTimeImmutable $now)
     {
         $this->email = $email;
@@ -112,6 +124,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->roles = $roles;
         $this->createdAt = $now;
         $this->updatedAt = $now;
+        $this->isAnonymous = false;
         $this->vacancies = new ArrayCollection();
         $this->featureFlags = new ArrayCollection();
         $this->settings = new ArrayCollection();
@@ -165,6 +178,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAvatar(?string $avatar): self
     {
         $this->avatar = $avatar;
+        return $this;
+    }
+
+    public function getLastLoginAt(): ?\DateTimeImmutable
+    {
+        return $this->lastLoginAt;
+    }
+
+    public function setLastLoginAt(?\DateTimeImmutable $lastLoginAt): self
+    {
+        $this->lastLoginAt = $lastLoginAt;
+        return $this;
+    }
+
+    public function getLastBoardInteractionAt(): ?\DateTimeImmutable
+    {
+        return $this->lastBoardInteractionAt;
+    }
+
+    public function setLastBoardInteractionAt(?\DateTimeImmutable $lastBoardInteractionAt): self
+    {
+        $this->lastBoardInteractionAt = $lastBoardInteractionAt;
+        return $this;
+    }
+
+    public function isAnonymous(): bool
+    {
+        return $this->isAnonymous;
+    }
+
+    public function setIsAnonymous(bool $isAnonymous): self
+    {
+        $this->isAnonymous = $isAnonymous;
         return $this;
     }
 

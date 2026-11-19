@@ -15,9 +15,10 @@ os.environ["DEV_AUTH"] = "true"
 os.environ["CREATE_MOCK_DATA"] = "false"
 os.environ["LLM_PROVIDER"] = "mock"
 os.environ["APP_URL"] = "http://localhost:8000"
-os.environ["MERCURE_JWT_SECRET"] = "4e0df8bb0b1c0b3967d1656096a603954e0df8bb0b1c0b3967d1656096a60395"
-os.environ["MERCURE_PUBLIC_URL"] = "https://example.com/.well-known/mercure"
-os.environ["JWT_SECRET"] = "7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b"
+os.environ["MERCURE_JWT_SECRET"] = "f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5"
+os.environ["MERCURE_URL"] = "https://test-symfony.linkedinparser.build.dkoldyaev.com/.well-known/mercure"
+os.environ["MERCURE_PUBLIC_URL"] = "https://test-symfony.linkedinparser.build.dkoldyaev.com/.well-known/mercure"
+os.environ["JWT_SECRET"] = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
 
 import fakeredis.aioredis
 from backend.queue_manager import queue_manager

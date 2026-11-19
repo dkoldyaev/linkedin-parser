@@ -9,13 +9,16 @@ use App\Entity\User;
 use App\Entity\Vacancy;
 use App\Entity\VacancyCVAnalysis;
 use App\Service\Llm\LlmManager;
+use App\Service\VacancyScoringService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Uid\Uuid;
 
 class VacancyDetailApiController extends AbstractController
 {
@@ -33,9 +36,10 @@ class VacancyDetailApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
+        /** @var VacancyCVAnalysis|null $analysis */
         $analysis = $entityManager->getRepository(VacancyCVAnalysis::class)->findOneBy([
             'vacancy' => $vacancy,
             'user' => $user,
@@ -45,6 +49,11 @@ class VacancyDetailApiController extends AbstractController
             return new JsonResponse(null, Response::HTTP_OK);
         }
 
+        $approvedCv = $entityManager->getRepository(ApprovedCV::class)->findOneBy(['user' => $user]);
+        if ($approvedCv !== null && $analysis->getCvRevision() !== $approvedCv->getRevision()) {
+            $analysis->setIsOutdated(true);
+        }
+
         $json = $serializer->serialize($analysis, 'json', ['groups' => ['analysis:read']]);
         return new JsonResponse($json, Response::HTTP_OK, [], true);
     }
@@ -52,9 +61,9 @@ class VacancyDetailApiController extends AbstractController
     #[Route('/api/v2/vacancies/{id}/compatibility', name: 'api_v2_vacancy_compatibility_post', methods: ['POST'])]
     public function analyzeCompatibility(
         int $id,
+        Request $request,
         EntityManagerInterface $entityManager,
-        LlmManager $llmManager,
-        SerializerInterface $serializer,
+        VacancyScoringService $scoringService,
         #[CurrentUser] ?User $user
     ): JsonResponse {
         if ($user === null) {
@@ -64,41 +73,35 @@ class VacancyDetailApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $cv = $entityManager->getRepository(ApprovedCV::class)->findOneBy(['user' => $user]);
-        if ($cv === null) {
-            return new JsonResponse(['detail' => 'No approved CV found'], Response::HTTP_BAD_REQUEST);
+        if ($cv === null || trim((string)$cv->getContent()) === '') {
+            return new JsonResponse([
+                'detail' => 'No approved CV found. Please upload and approve your CV before requesting compatibility analysis.',
+            ], Response::HTTP_BAD_REQUEST);
         }
 
-        $provider = $llmManager->getDefaultProvider();
-        $compatResult = $provider->evaluateCompatibility(
-            $vacancy->getDescription() ?? $vacancy->getTitle(),
-            $cv->getContent(),
-            'ru',
-            []
-        );
+        $desc = $vacancy->getDescription();
+        if ($desc === null || trim($desc) === '') {
+            return new JsonResponse([
+                'detail' => 'Vacancy has no description. Please provide a description before requesting compatibility analysis.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
 
-        $now = new \DateTimeImmutable();
-        $analysis = new VacancyCVAnalysis(
-            $user,
-            $vacancy,
-            $cv->getRevision(),
-            'v1.0',
-            $provider->getName(),
-            (float)($compatResult['overallScore'] ?? 80.0),
-            $compatResult,
-            null,
-            $now
-        );
+        $scoringService->triggerScoringForVacancy($vacancy, $user);
 
-        $vacancy->setMatchScore((float)($compatResult['overallScore'] ?? 80.0));
-        $entityManager->persist($analysis);
-        $entityManager->flush();
+        $taskId = substr(Uuid::v4()->toRfc4122(), 0, 8);
+        $batchId = substr(Uuid::v4()->toRfc4122(), 0, 8);
 
-        $json = $serializer->serialize($analysis, 'json', ['groups' => ['analysis:read']]);
-        return new JsonResponse($json, Response::HTTP_OK, [], true);
+        return new JsonResponse([
+            'status' => 'queued',
+            'task_id' => $taskId,
+            'batch_id' => $batchId,
+            'vacancy_id' => $vacancy->getId(),
+            'message' => 'Compatibility analysis enqueued',
+        ], Response::HTTP_OK);
     }
 
     #[Route('/api/v2/vacancies/{id}/adapt-cv', name: 'api_v2_vacancy_adapt_cv', methods: ['POST'])]

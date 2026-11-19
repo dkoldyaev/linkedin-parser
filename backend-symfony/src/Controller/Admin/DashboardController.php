@@ -54,8 +54,8 @@ class DashboardController extends AbstractDashboardController
     public function configureAssets(): Assets
     {
         return Assets::new()
-            ->addCssFile('/admin/admin-mercure.css')
-            ->addJsFile('/admin/admin-mercure.js');
+            ->addCssFile('/admin-assets/admin-mercure.css')
+            ->addJsFile('/admin-assets/admin-mercure.js');
     }
 
     public function configureMenuItems(): iterable

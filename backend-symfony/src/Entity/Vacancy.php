@@ -31,7 +31,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
             order: ['updatedAt' => 'DESC', 'id' => 'DESC']
         ),
         new Get(normalizationContext: ['groups' => ['vacancy:read', 'vacancy:detail']]),
-        new Post(normalizationContext: ['groups' => ['vacancy:read']], denormalizationContext: ['groups' => ['vacancy:write']]),
+        new Post(status: 200, normalizationContext: ['groups' => ['vacancy:read']], denormalizationContext: ['groups' => ['vacancy:write']]),
         new Patch(
             inputFormats: ['json' => ['application/merge-patch+json', 'application/json']],
             normalizationContext: ['groups' => ['vacancy:read']],
@@ -191,31 +191,18 @@ class Vacancy implements UserOwnedInterface
     #[Groups(['vacancy:read', 'vacancy:detail'])]
     private Collection $history;
 
-    /**
-     * @param list<string> $techStack
-     * @param list<string> $tags
-     */
-    public function __construct(
-        string $url,
-        string $title,
-        string $company,
-        string $status,
-        bool $isClosed,
-        int $lane,
-        array $techStack,
-        array $tags,
-        \DateTimeImmutable $now
-    ) {
-        $this->url = $url;
-        $this->title = $title;
-        $this->company = $company;
-        $this->status = $status;
-        $this->isClosed = $isClosed;
-        $this->lane = $lane;
-        $this->techStack = $techStack;
-        $this->tags = $tags;
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
+    public function __construct()
+    {
+        $this->url = '';
+        $this->title = '';
+        $this->company = '';
+        $this->status = self::STATUS_NOT_CONTACTED;
+        $this->isClosed = false;
+        $this->lane = 0;
+        $this->techStack = [];
+        $this->tags = [];
+        $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
         $this->history = new ArrayCollection();
     }
 
@@ -250,7 +237,7 @@ class Vacancy implements UserOwnedInterface
     #[Groups(['vacancy:read'])]
     public function getStage(): ?string
     {
-        return 'completed';
+        return null;
     }
 
     public function setUser(?User $user): self

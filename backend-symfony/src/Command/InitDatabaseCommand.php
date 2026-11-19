@@ -288,17 +288,17 @@ class InitDatabaseCommand extends Command
                 ];
 
                 foreach ($mockVacancies as $mv) {
-                    $v = new Vacancy(
-                        $mv['url'],
-                        $mv['title'],
-                        $mv['company'],
-                        $mv['status'],
-                        $mv['isClosed'],
-                        $mv['lane'],
-                        $mv['techStack'],
-                        $mv['tags'],
-                        $now
-                    );
+                    $v = new Vacancy();
+                    $v->setUrl($mv['url']);
+                    $v->setTitle($mv['title']);
+                    $v->setCompany($mv['company']);
+                    $v->setStatus($mv['status']);
+                    $v->setIsClosed($mv['isClosed']);
+                    $v->setLane($mv['lane']);
+                    $v->setTechStack($mv['techStack']);
+                    $v->setTags($mv['tags']);
+                    $v->setCreatedAt($now);
+                    $v->setUpdatedAt($now);
                     $v->setUser($primaryAdmin);
                     $v->setJobId($mv['jobId']);
                     $v->setSource($mv['source']);

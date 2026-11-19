@@ -73,7 +73,10 @@ class LegacyQueueController extends AbstractController
     public function queueLinks(EntityManagerInterface $entityManager, #[CurrentUser] ?User $user): JsonResponse
     {
         $repo = $entityManager->getRepository(ProcessingQueueItem::class);
-        $criteria = $user !== null ? ['user' => $user] : [];
+        $criteria = ['status' => ['pending', 'processing', 'failed']];
+        if ($user !== null) {
+            $criteria['user'] = $user;
+        }
 
         $items = $repo->findBy($criteria, ['createdAt' => 'DESC'], 100);
         $links = [];
@@ -94,10 +97,15 @@ class LegacyQueueController extends AbstractController
             $links[] = [
                 'task_id' => $item->getTaskId(),
                 'url' => $item->getUrl(),
+                'normalized_url' => $item->getUrl(),
                 'status' => $item->getStatus(),
+                'stage' => $item->getStage() ?? 'queued',
                 'attempts' => $item->getAttempts(),
+                'max_attempts' => 4,
                 'error' => $item->getError(),
-                'created_at' => $item->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                'vacancy_id' => $item->getVacancyId(),
+                'created_at' => $item->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'updated_at' => ($item->getUpdatedAt() ?? $item->getCreatedAt())->format('Y-m-d\TH:i:s'),
             ];
         }
 
@@ -115,8 +123,11 @@ class LegacyQueueController extends AbstractController
     #[Route('/api/queue/links', name: 'api_queue_links_clear_legacy', methods: ['DELETE'])]
     #[Route('/api/v1/queue/links', name: 'api_v1_queue_links_clear', methods: ['DELETE'])]
     #[Route('/api/v2/queue/links', name: 'api_v2_queue_links_clear', methods: ['DELETE'])]
-    public function clearQueue(EntityManagerInterface $entityManager, #[CurrentUser] ?User $user): JsonResponse
-    {
+    public function clearQueue(
+        EntityManagerInterface $entityManager,
+        MercurePublisherService $mercure,
+        #[CurrentUser] ?User $user
+    ): JsonResponse {
         $repo = $entityManager->getRepository(ProcessingQueueItem::class);
         $criteria = $user !== null ? ['user' => $user] : [];
 
@@ -126,7 +137,22 @@ class LegacyQueueController extends AbstractController
         }
         $entityManager->flush();
 
-        return new JsonResponse(['status' => 'cleared']);
+        if ($user !== null) {
+            $mercure->publish(
+                'vacancies:' . $user->getId(),
+                MercurePublisherService::EVENT_QUEUE_UPDATED,
+                MercurePublisherService::MSG_QUEUE_UPDATED,
+                [
+                    'total_remaining' => 0,
+                    'queued_count' => 0,
+                ]
+            );
+        }
+
+        return new JsonResponse([
+            'message' => 'All queue links cleared',
+            'cleared' => count($items),
+        ]);
     }
 
     #[Route('/api/queue/links/{taskId}', name: 'api_queue_link_get_legacy', methods: ['GET'])]
@@ -144,7 +170,7 @@ class LegacyQueueController extends AbstractController
         /** @var ProcessingQueueItem|null $item */
         $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy($criteria);
         if ($item === null) {
-            return new JsonResponse(['detail' => 'Queue link task not found or access denied'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Queue link task not found or access denied'], Response::HTTP_NOT_FOUND);
         }
 
         return new JsonResponse([
@@ -163,6 +189,7 @@ class LegacyQueueController extends AbstractController
     public function cancelQueueLink(
         string $taskId,
         EntityManagerInterface $entityManager,
+        MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
         $criteria = ['taskId' => $taskId];
@@ -173,11 +200,28 @@ class LegacyQueueController extends AbstractController
         /** @var ProcessingQueueItem|null $item */
         $item = $entityManager->getRepository(ProcessingQueueItem::class)->findOneBy($criteria);
         if ($item === null) {
-            return new JsonResponse(['detail' => 'Task not found or cannot be cancelled'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Task not found or cannot be cancelled'], Response::HTTP_NOT_FOUND);
         }
 
         $entityManager->remove($item);
         $entityManager->flush();
+
+        if ($user !== null) {
+            $totalRemaining = (int)$entityManager->getRepository(ProcessingQueueItem::class)->count([
+                'user' => $user,
+                'status' => ['pending', 'processing'],
+            ]);
+
+            $mercure->publish(
+                'vacancies:' . $user->getId(),
+                MercurePublisherService::EVENT_QUEUE_UPDATED,
+                MercurePublisherService::MSG_QUEUE_UPDATED,
+                [
+                    'total_remaining' => $totalRemaining,
+                    'task_id' => $taskId,
+                ]
+            );
+        }
 
         return new JsonResponse(['message' => 'Link processing cancelled']);
     }

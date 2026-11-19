@@ -22,7 +22,7 @@ class RemoteParserApiClient
      */
     public function parseJob(string $url): array
     {
-        $response = $this->httpClient->request('POST', sprintf('%s/parse', $this->parserApiUrl), [
+        $response = $this->httpClient->request('POST', sprintf('%s/api/parse', $this->parserApiUrl), [
             'json' => ['url' => $url],
             'timeout' => 45.0,
         ]);

@@ -30,6 +30,7 @@ class VacancyActionController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         MessageBusInterface $messageBus,
+        MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
         if ($user === null) {
@@ -51,26 +52,79 @@ class VacancyActionController extends AbstractController
                 continue;
             }
 
-            $taskId = Uuid::v4()->toRfc4122();
-            $item = new ProcessingQueueItem($taskId, $url, 'pending', 'scraping', 0, $now);
-            $item->setUser($user);
-            $entityManager->persist($item);
+            $vacancy = new Vacancy();
+            $vacancy->setUrl($url);
+            $vacancy->setTitle($url);
+            $vacancy->setCompany(str_contains($url, 'upwork.com') ? 'Upwork' : 'Загрузка...');
+            $vacancy->setStatus(Vacancy::STATUS_NOT_CONTACTED);
+            $vacancy->setIsClosed(false);
+            $vacancy->setLane(0);
+            $vacancy->setTechStack([]);
+            $vacancy->setTags([]);
+            $vacancy->setUser($user);
+            $vacancy->setCreatedAt($now);
+            $vacancy->setUpdatedAt($now);
+            $entityManager->persist($vacancy);
+            $entityManager->flush();
 
-            $messageBus->dispatch(new ProcessJobUrlMessage($taskId, $url, $user->getId(), 0));
+            $taskId = Uuid::v4()->toRfc4122();
+            $item = new ProcessingQueueItem($taskId, $url, 'pending', 'queued', 0, $now);
+            $item->setUser($user);
+            $item->setVacancyId($vacancy->getId());
+            $entityManager->persist($item);
 
             $tasks[] = [
                 'task_id' => $taskId,
                 'url' => $url,
                 'status' => 'pending',
+                'stage' => 'queued',
+                'created_at' => (float)$now->getTimestamp(),
+                'vacancy_id' => $vacancy->getId(),
+                'user_id' => $user->getId(),
+                'title' => null,
+                'company' => null,
+                'error' => null,
             ];
         }
 
         $entityManager->flush();
 
+        foreach ($tasks as $t) {
+            try {
+                $messageBus->dispatch(new ProcessJobUrlMessage($t['task_id'], $t['url'], $user->getId(), 0));
+            } catch (\Throwable) {
+                // Background worker/sync execution failure does not crash queue submission
+            }
+        }
+
+        $totalRemaining = (int)$entityManager->getRepository(ProcessingQueueItem::class)->count([
+            'user' => $user,
+            'status' => ['pending', 'processing'],
+        ]);
+
+        $batchId = substr(Uuid::v4()->toRfc4122(), 0, 8);
+        $mercure->publish(
+            'vacancies:' . $user->getId(),
+            MercurePublisherService::EVENT_QUEUE_UPDATED,
+            MercurePublisherService::MSG_QUEUE_UPDATED,
+            [
+                'message_code' => MercurePublisherService::MSG_QUEUE_UPDATED,
+                'batch_id' => $batchId,
+                'queued_count' => count($tasks),
+                'total_remaining' => $totalRemaining,
+                'tasks' => $tasks,
+            ]
+        );
+
         return new JsonResponse([
+            'status' => 'queued',
+            'queued' => count($tasks),
+            'batch_id' => $batchId,
+            'message' => count($tasks) . ' вакансий успешно добавлено в очередь на обработку',
             'tasks' => $tasks,
-            'count' => count($tasks),
-        ], Response::HTTP_ACCEPTED);
+            'already_in_queue' => [],
+            'existing_vacancies' => [],
+        ], Response::HTTP_OK);
     }
 
     #[Route('/api/v2/vacancies/reorder', name: 'api_v2_vacancies_reorder', methods: ['POST'])]
@@ -164,6 +218,7 @@ class VacancyActionController extends AbstractController
                         null,
                         $now
                     );
+                    $v->getHistory()->add($history);
                     $entityManager->persist($history);
 
                     if ($status !== '') {
@@ -201,6 +256,7 @@ class VacancyActionController extends AbstractController
             return new JsonResponse(['detail' => 'Invalid reorder payload'], Response::HTTP_BAD_REQUEST);
         }
 
+        $user->setLastBoardInteractionAt($now);
         $entityManager->flush();
 
         $topic = 'vacancies:' . $user->getId();
@@ -258,7 +314,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $historyItems = $entityManager->getRepository(VacancyStatusHistory::class)->findBy(
@@ -300,7 +356,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -353,7 +409,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         /** @var VacancyStatusHistory|null $history */
@@ -362,7 +418,7 @@ class VacancyActionController extends AbstractController
             'vacancy' => $vacancy,
         ]);
         if ($history === null) {
-            return new JsonResponse(['detail' => 'History record not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'History record not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -401,7 +457,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         /** @var VacancyStatusHistory|null $history */
@@ -410,7 +466,7 @@ class VacancyActionController extends AbstractController
             'vacancy' => $vacancy,
         ]);
         if ($history === null) {
-            return new JsonResponse(['detail' => 'History record not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'History record not found'], Response::HTTP_NOT_FOUND);
         }
 
         $entityManager->remove($history);
@@ -443,7 +499,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Вакансия не найдена'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Вакансия не найдена'], Response::HTTP_NOT_FOUND);
         }
 
         if (empty($vacancy->getUrl())) {
@@ -482,7 +538,7 @@ class VacancyActionController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         if (empty($vacancy->getDescription())) {
@@ -491,7 +547,20 @@ class VacancyActionController extends AbstractController
             ], Response::HTTP_BAD_REQUEST);
         }
 
+        $now = new \DateTimeImmutable();
         $taskId = Uuid::v4()->toRfc4122();
+        $item = new ProcessingQueueItem(
+            $taskId,
+            $vacancy->getUrl() ?? ('vacancy://' . $vacancy->getId()),
+            'pending',
+            'ai_analysis',
+            0,
+            $now
+        );
+        $item->setUser($user);
+        $item->setVacancyId($vacancy->getId());
+        $entityManager->persist($item);
+        $entityManager->flush();
 
         return new JsonResponse([
             'status' => 'queued',

@@ -56,9 +56,17 @@ class VacancyCVAnalysis implements UserOwnedInterface
     #[Groups(['analysis:read'])]
     private ?array $adaptedCv = null;
 
+    #[ORM\Column(name: 'is_outdated', type: Types::BOOLEAN)]
+    #[Groups(['analysis:read'])]
+    private bool $isOutdated = false;
+
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]
     #[Groups(['analysis:read'])]
     private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column(name: 'updated_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    #[Groups(['analysis:read'])]
+    private ?\DateTimeImmutable $updatedAt = null;
 
     /**
      * @param array<string, mixed> $result
@@ -148,5 +156,156 @@ class VacancyCVAnalysis implements UserOwnedInterface
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function isOutdated(): bool
+    {
+        return $this->isOutdated;
+    }
+
+    public function setIsOutdated(bool $isOutdated): self
+    {
+        $this->isOutdated = $isOutdated;
+        return $this;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt ?? $this->createdAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
+    {
+        $this->updatedAt = $updatedAt;
+        return $this;
+    }
+
+    public function setCvRevision(int $cvRevision): self
+    {
+        $this->cvRevision = $cvRevision;
+        return $this;
+    }
+
+    public function setScoringPolicyVersion(string $scoringPolicyVersion): self
+    {
+        $this->scoringPolicyVersion = $scoringPolicyVersion;
+        return $this;
+    }
+
+    public function setModelId(string $modelId): self
+    {
+        $this->modelId = $modelId;
+        return $this;
+    }
+
+    public function setOverallScore(float $overallScore): self
+    {
+        $this->overallScore = $overallScore;
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed> $result
+     */
+    public function setResult(array $result): self
+    {
+        $this->result = $result;
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed>|null $adaptedCv
+     */
+    public function setAdaptedCv(?array $adaptedCv): self
+    {
+        $this->adaptedCv = $adaptedCv;
+        return $this;
+    }
+
+    #[Groups(['analysis:read'])]
+    public function getVacancyId(): ?int
+    {
+        return $this->vacancy->getId();
+    }
+
+    #[Groups(['analysis:read'])]
+    public function getUserId(): ?int
+    {
+        return $this->user->getId();
+    }
+
+    #[Groups(['analysis:read'])]
+    public function getSummary(): string
+    {
+        return (string)($this->result['summary'] ?? '');
+    }
+
+    #[Groups(['analysis:read'])]
+    public function getCalculatedScore(): ?float
+    {
+        return isset($this->result['calculatedScore']) ? (float)$this->result['calculatedScore'] : $this->overallScore;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    #[Groups(['analysis:read'])]
+    public function getMatchedRequirements(): array
+    {
+        return $this->result['matchedRequirements'] ?? ($this->result['matched_requirements'] ?? []);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    #[Groups(['analysis:read'])]
+    public function getMissingRequirements(): array
+    {
+        return $this->result['missingRequirements'] ?? ($this->result['missing_requirements'] ?? []);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    #[Groups(['analysis:read'])]
+    public function getCriticalGaps(): array
+    {
+        return $this->result['criticalGaps'] ?? ($this->result['critical_gaps'] ?? []);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    #[Groups(['analysis:read'])]
+    public function getSeniorityAssessment(): ?array
+    {
+        return $this->result['seniorityAssessment'] ?? ($this->result['seniority_assessment'] ?? null);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    #[Groups(['analysis:read'])]
+    public function getRecommendations(): array
+    {
+        return $this->result['recommendations'] ?? [];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    #[Groups(['analysis:read'])]
+    public function getDimensionScores(): ?array
+    {
+        return $this->result['dimensionScores'] ?? ($this->result['dimension_scores'] ?? null);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    #[Groups(['analysis:read'])]
+    public function getVersions(): array
+    {
+        return [];
     }
 }

@@ -99,13 +99,32 @@ class AuthController extends AbstractController
             );
             $entityManager->persist($user);
             $entityManager->flush();
+        } else {
+            if ($user->getAvatar() === null) {
+                $user->setAvatar('https://api.dicebear.com/7.x/bottts/svg?seed=dev');
+            }
         }
+
+        $user->setLastLoginAt($now);
+        $entityManager->flush();
 
         $token = $jwtManager->create($user);
 
         $flags = [];
         foreach ($user->getFeatureFlags() as $flag) {
             $flags[] = $flag->getFlag();
+        }
+
+        $apiKeysData = [];
+        foreach ($user->getApiKeys() as $key) {
+            $apiKeysData[] = [
+                'id' => $key->getId(),
+                'name' => $key->getName(),
+                'key_prefix' => $key->getPrefix(),
+                'created_at' => $key->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'last_used_at' => $key->getLastUsedAt() !== null ? $key->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
+                'request_count' => $key->getRequestCount(),
+            ];
         }
 
         $userResponseData = [
@@ -115,7 +134,11 @@ class AuthController extends AbstractController
             'picture' => $user->getAvatar(),
             'feature_flags' => $flags,
             'is_anonymous' => false,
-            'created_at' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
+            'last_login_at' => $now->format('Y-m-d\TH:i:s'),
+            'last_board_interaction_at' => null,
+            'stats' => null,
+            'api_keys' => $apiKeysData,
         ];
 
         $response = new JsonResponse([
@@ -157,6 +180,9 @@ class AuthController extends AbstractController
                 ['ROLE_USER'],
                 new \DateTimeImmutable()
             );
+            $now = new \DateTimeImmutable();
+            $user->setIsAnonymous(true);
+            $user->setLastLoginAt($now);
             $entityManager->persist($user);
             $entityManager->flush();
             $isAnonymous = true;
@@ -211,7 +237,7 @@ class AuthController extends AbstractController
     #[Route('/api/v2/auth/logout', name: 'api_auth_logout', methods: ['POST'])]
     public function logout(MercurePublisherService $mercurePublisher): JsonResponse
     {
-        $response = new JsonResponse(['status' => 'logged_out']);
+        $response = new JsonResponse(['status' => 'ok']);
         $response->headers->clearCookie('access_token', '/');
         $response->headers->setCookie($mercurePublisher->createClearCookie());
 

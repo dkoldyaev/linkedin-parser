@@ -132,17 +132,17 @@ class MigrateLegacyDataCommand extends Command
                 $techStack = isset($row['tech_stack']) ? json_decode((string)$row['tech_stack'], true) : [];
                 $tags = isset($row['tags']) ? json_decode((string)$row['tags'], true) : [];
 
-                $vacancy = new Vacancy(
-                    (string)$row['url'],
-                    (string)($row['title'] ?? 'Untitled Vacancy'),
-                    (string)($row['company'] ?? 'Unknown Company'),
-                    (string)($row['status'] ?? Vacancy::STATUS_NOT_CONTACTED),
-                    !empty($row['is_closed']),
-                    (int)($row['lane'] ?? 0),
-                    is_array($techStack) ? $techStack : [],
-                    is_array($tags) ? $tags : [],
-                    $now
-                );
+                $vacancy = new Vacancy();
+                $vacancy->setUrl((string)$row['url']);
+                $vacancy->setTitle((string)($row['title'] ?? 'Untitled Vacancy'));
+                $vacancy->setCompany((string)($row['company'] ?? 'Unknown Company'));
+                $vacancy->setStatus((string)($row['status'] ?? Vacancy::STATUS_NOT_CONTACTED));
+                $vacancy->setIsClosed(!empty($row['is_closed']));
+                $vacancy->setLane((int)($row['lane'] ?? 0));
+                $vacancy->setTechStack(is_array($techStack) ? $techStack : []);
+                $vacancy->setTags(is_array($tags) ? $tags : []);
+                $vacancy->setCreatedAt($now);
+                $vacancy->setUpdatedAt($now);
 
                 if (!empty($row['user_id']) && isset($userMap[(int)$row['user_id']])) {
                     $vacancy->setUser($userMap[(int)$row['user_id']]);

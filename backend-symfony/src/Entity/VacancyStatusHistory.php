@@ -111,6 +111,12 @@ class VacancyStatusHistory
         return $this->comment;
     }
 
+    public function setComment(?string $comment): self
+    {
+        $this->comment = $comment;
+        return $this;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -119,5 +125,11 @@ class VacancyStatusHistory
     public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
+    {
+        $this->updatedAt = $updatedAt;
+        return $this;
     }
 }

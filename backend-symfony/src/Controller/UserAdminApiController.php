@@ -6,9 +6,12 @@ namespace App\Controller;
 
 use App\Entity\ApiKey;
 use App\Entity\ApprovedCV;
+use App\Entity\ProcessingQueueItem;
 use App\Entity\User;
 use App\Entity\UserFeatureFlag;
+use App\Entity\VacancyCVAnalysis;
 use App\Repository\UserRepository;
+use App\Service\VacancyScoringService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -93,11 +96,15 @@ class UserAdminApiController extends AbstractController
                 $apiReqTotal += $ak->getRequestCount();
             }
 
+            $effectiveBoardInteraction = $user->getLastBoardInteractionAt() !== null
+                ? $user->getLastBoardInteractionAt()
+                : $maxVacUpdated;
+
             $stats = [
                 'total_vacancies' => count($vacancies),
-                'by_status' => $byStatus,
-                'last_login_at' => null,
-                'last_board_interaction_at' => $maxVacUpdated !== null ? $maxVacUpdated->format(\DateTimeInterface::ATOM) : null,
+                'by_status' => count($byStatus) > 0 ? $byStatus : (object)[],
+                'last_login_at' => $user->getLastLoginAt() !== null ? $user->getLastLoginAt()->format('Y-m-d\TH:i:s') : null,
+                'last_board_interaction_at' => $effectiveBoardInteraction !== null ? $effectiveBoardInteraction->format('Y-m-d\TH:i:s') : null,
                 'api_keys_count' => count($apiKeys),
                 'api_requests_count' => $apiReqTotal,
                 'llm_tokens' => [
@@ -105,9 +112,21 @@ class UserAdminApiController extends AbstractController
                     'prompt_tokens' => $promptTokens,
                     'completion_tokens' => $completionTokens,
                     'total_requests' => $totalRequests,
-                    'by_provider' => $byProvider,
+                    'by_provider' => count($byProvider) > 0 ? $byProvider : (object)[],
                 ],
             ];
+
+            $apiKeysData = [];
+            foreach ($apiKeys as $ak) {
+                $apiKeysData[] = [
+                    'id' => $ak->getId(),
+                    'name' => $ak->getName(),
+                    'key_prefix' => $ak->getPrefix(),
+                    'created_at' => $ak->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                    'last_used_at' => $ak->getLastUsedAt() !== null ? $ak->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
+                    'request_count' => $ak->getRequestCount(),
+                ];
+            }
 
             $result[] = [
                 'id' => $user->getId(),
@@ -115,9 +134,12 @@ class UserAdminApiController extends AbstractController
                 'name' => $user->getName() ?? $user->getEmail(),
                 'picture' => $user->getAvatar(),
                 'feature_flags' => $flags,
-                'is_anonymous' => false,
-                'created_at' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                'is_anonymous' => $user->isAnonymous(),
+                'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'last_login_at' => $user->getLastLoginAt() !== null ? $user->getLastLoginAt()->format('Y-m-d\TH:i:s') : null,
+                'last_board_interaction_at' => $user->getLastBoardInteractionAt() !== null ? $user->getLastBoardInteractionAt()->format('Y-m-d\TH:i:s') : null,
                 'stats' => $stats,
+                'api_keys' => $apiKeysData,
             ];
         }
 
@@ -136,40 +158,33 @@ class UserAdminApiController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $flags = $data['feature_flags'] ?? [];
+        $rawFlags = $data['feature_flags'] ?? [];
+        $flags = array_values(array_intersect(is_array($rawFlags) ? $rawFlags : [], UserFeatureFlag::KNOWN_FLAGS));
 
         if (in_array('admin', $flags, true) && !$currentUser->isAdmin()) {
             return new JsonResponse(['detail' => 'Only administrators can grant admin'], Response::HTTP_FORBIDDEN);
         }
 
         // Remove old flags
-        foreach ($currentUser->getFeatureFlags() as $existingFlag) {
+        $existingFlags = iterator_to_array($currentUser->getFeatureFlags());
+        foreach ($existingFlags as $existingFlag) {
+            $currentUser->getFeatureFlags()->removeElement($existingFlag);
             $entityManager->remove($existingFlag);
         }
         $entityManager->flush();
 
         // Add new
         $now = new \DateTimeImmutable();
+        $updatedFlags = [];
         foreach ($flags as $flagName) {
             $flag = new UserFeatureFlag($currentUser, (string)$flagName, $now);
+            $currentUser->getFeatureFlags()->add($flag);
             $entityManager->persist($flag);
+            $updatedFlags[] = (string)$flagName;
         }
         $entityManager->flush();
 
-        $updatedFlags = [];
-        foreach ($currentUser->getFeatureFlags() as $f) {
-            $updatedFlags[] = $f->getFlag();
-        }
-
-        return new JsonResponse([
-            'id' => $currentUser->getId(),
-            'email' => $currentUser->getEmail(),
-            'name' => $currentUser->getName() ?? $currentUser->getEmail(),
-            'picture' => $currentUser->getAvatar(),
-            'feature_flags' => $updatedFlags,
-            'is_anonymous' => false,
-            'created_at' => $currentUser->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ]);
+        return new JsonResponse($this->formatUserResponse($currentUser, $updatedFlags));
     }
 
     #[Route('/api/v2/users/{userId}/feature-flags', name: 'api_v2_users_feature_flags_update', methods: ['PUT'])]
@@ -191,42 +206,35 @@ class UserAdminApiController extends AbstractController
 
         $targetUser = $userRepository->find($userId);
         if ($targetUser === null) {
-            return new JsonResponse(['detail' => 'User not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
-        $flags = $data['feature_flags'] ?? [];
+        $rawFlags = $data['feature_flags'] ?? [];
+        $flags = array_values(array_intersect(is_array($rawFlags) ? $rawFlags : [], UserFeatureFlag::KNOWN_FLAGS));
 
         if (in_array('admin', $flags, true) && !$isAdmin) {
             return new JsonResponse(['detail' => 'Only administrators can grant admin'], Response::HTTP_FORBIDDEN);
         }
 
-        foreach ($targetUser->getFeatureFlags() as $existingFlag) {
+        $existingFlags = iterator_to_array($targetUser->getFeatureFlags());
+        foreach ($existingFlags as $existingFlag) {
+            $targetUser->getFeatureFlags()->removeElement($existingFlag);
             $entityManager->remove($existingFlag);
         }
         $entityManager->flush();
 
         $now = new \DateTimeImmutable();
+        $updatedFlags = [];
         foreach ($flags as $flagName) {
             $flag = new UserFeatureFlag($targetUser, (string)$flagName, $now);
+            $targetUser->getFeatureFlags()->add($flag);
             $entityManager->persist($flag);
+            $updatedFlags[] = (string)$flagName;
         }
         $entityManager->flush();
 
-        $updatedFlags = [];
-        foreach ($targetUser->getFeatureFlags() as $f) {
-            $updatedFlags[] = $f->getFlag();
-        }
-
-        return new JsonResponse([
-            'id' => $targetUser->getId(),
-            'email' => $targetUser->getEmail(),
-            'name' => $targetUser->getName() ?? $targetUser->getEmail(),
-            'picture' => $targetUser->getAvatar(),
-            'feature_flags' => $updatedFlags,
-            'is_anonymous' => false,
-            'created_at' => $targetUser->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ]);
+        return new JsonResponse($this->formatUserResponse($targetUser, $updatedFlags));
     }
 
     #[Route('/api/v2/admin/users/{userId}', name: 'api_v2_admin_users_update', methods: ['PATCH'])]
@@ -246,19 +254,28 @@ class UserAdminApiController extends AbstractController
 
         $targetUser = $userRepository->find($userId);
         if ($targetUser === null) {
-            return new JsonResponse(['detail' => 'User not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
+        if (isset($data['name']) && is_string($data['name'])) {
+            $targetUser->setName(trim($data['name']));
+            $entityManager->flush();
+        }
+
         if (isset($data['feature_flags']) && is_array($data['feature_flags'])) {
-            foreach ($targetUser->getFeatureFlags() as $existingFlag) {
+            $existingFlags = iterator_to_array($targetUser->getFeatureFlags());
+            foreach ($existingFlags as $existingFlag) {
+                $targetUser->getFeatureFlags()->removeElement($existingFlag);
                 $entityManager->remove($existingFlag);
             }
             $entityManager->flush();
 
             $now = new \DateTimeImmutable();
-            foreach ($data['feature_flags'] as $flagName) {
+            $filteredFlags = array_values(array_intersect($data['feature_flags'], UserFeatureFlag::KNOWN_FLAGS));
+            foreach ($filteredFlags as $flagName) {
                 $flag = new UserFeatureFlag($targetUser, (string)$flagName, $now);
+                $targetUser->getFeatureFlags()->add($flag);
                 $entityManager->persist($flag);
             }
             $entityManager->flush();
@@ -269,15 +286,40 @@ class UserAdminApiController extends AbstractController
             $updatedFlags[] = $f->getFlag();
         }
 
-        return new JsonResponse([
-            'id' => $targetUser->getId(),
-            'email' => $targetUser->getEmail(),
-            'name' => $targetUser->getName() ?? $targetUser->getEmail(),
-            'picture' => $targetUser->getAvatar(),
-            'feature_flags' => $updatedFlags,
-            'is_anonymous' => false,
-            'created_at' => $targetUser->getCreatedAt()->format(\DateTimeInterface::ATOM),
-        ]);
+        return new JsonResponse($this->formatUserResponse($targetUser, $updatedFlags));
+    }
+
+    /**
+     * @param list<string> $featureFlags
+     * @return array<string, mixed>
+     */
+    private function formatUserResponse(User $user, array $featureFlags): array
+    {
+        $apiKeysData = [];
+        foreach ($user->getApiKeys() as $key) {
+            $apiKeysData[] = [
+                'id' => $key->getId(),
+                'name' => $key->getName(),
+                'key_prefix' => $key->getPrefix(),
+                'created_at' => $key->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'last_used_at' => $key->getLastUsedAt() !== null ? $key->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
+                'request_count' => $key->getRequestCount(),
+            ];
+        }
+
+        return [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'name' => $user->getName() ?? $user->getEmail(),
+            'picture' => $user->getAvatar(),
+            'feature_flags' => $featureFlags,
+            'is_anonymous' => $user->isAnonymous(),
+            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
+            'last_login_at' => $user->getLastLoginAt() !== null ? $user->getLastLoginAt()->format('Y-m-d\TH:i:s') : null,
+            'last_board_interaction_at' => $user->getLastBoardInteractionAt() !== null ? $user->getLastBoardInteractionAt()->format('Y-m-d\TH:i:s') : null,
+            'stats' => null,
+            'api_keys' => $apiKeysData,
+        ];
     }
 
     #[Route('/api/v2/api-keys', name: 'api_v2_api_keys_create', methods: ['POST'])]
@@ -318,9 +360,11 @@ class UserAdminApiController extends AbstractController
             'id' => $apiKey->getId(),
             'name' => $apiKey->getName(),
             'key_prefix' => $apiKey->getPrefix(),
-            'api_key' => $rawToken,
             'created_at' => $apiKey->getCreatedAt()->format('Y-m-d\TH:i:s'),
-        ], Response::HTTP_CREATED);
+            'last_used_at' => null,
+            'request_count' => 0,
+            'token' => $rawToken,
+        ], Response::HTTP_OK);
     }
 
     #[Route('/api/v2/api-keys/{keyId}', name: 'api_v2_api_keys_delete', methods: ['DELETE'])]
@@ -335,7 +379,7 @@ class UserAdminApiController extends AbstractController
 
         $key = $entityManager->getRepository(ApiKey::class)->findOneBy(['id' => $keyId, 'user' => $currentUser]);
         if ($key === null) {
-            return new JsonResponse(['detail' => 'API key not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'API key not found'], Response::HTTP_NOT_FOUND);
         }
 
         $entityManager->remove($key);
@@ -348,7 +392,7 @@ class UserAdminApiController extends AbstractController
     public function saveCv(
         Request $request,
         EntityManagerInterface $entityManager,
-        SerializerInterface $serializer,
+        VacancyScoringService $scoringService,
         #[CurrentUser] ?User $currentUser
     ): JsonResponse {
         if ($currentUser === null) {
@@ -375,8 +419,31 @@ class UserAdminApiController extends AbstractController
         }
 
         $entityManager->flush();
-        $json = $serializer->serialize($cv, 'json', ['groups' => ['cv:read']]);
-        return new JsonResponse($json, Response::HTTP_OK, [], true);
+
+        $cvTaskId = substr(bin2hex(random_bytes(4)), 0, 8);
+        $cvQueueItem = new ProcessingQueueItem(
+            $cvTaskId,
+            'cv://user/' . $currentUser->getId(),
+            'pending',
+            'cv_parsing',
+            0,
+            $now
+        );
+        $cvQueueItem->setUser($currentUser);
+        $entityManager->persist($cvQueueItem);
+        $entityManager->flush();
+
+        $scoringService->triggerScoringForUserVacancies($currentUser);
+
+        return new JsonResponse([
+            'id' => $cv->getId(),
+            'user_id' => $cv->getUser()->getId(),
+            'content' => $cv->getContent(),
+            'revision' => $cv->getRevision(),
+            'approved_at' => $cv->getApprovedAt()->format('Y-m-d\TH:i:s'),
+            'created_at' => $cv->getCreatedAt()->format('Y-m-d\TH:i:s'),
+            'updated_at' => $cv->getUpdatedAt()->format('Y-m-d\TH:i:s'),
+        ], Response::HTTP_OK);
     }
 
     #[Route('/api/v2/cv', name: 'api_v2_cv_delete', methods: ['DELETE'])]
@@ -391,8 +458,14 @@ class UserAdminApiController extends AbstractController
         $cv = $entityManager->getRepository(ApprovedCV::class)->findOneBy(['user' => $currentUser]);
         if ($cv !== null) {
             $entityManager->remove($cv);
-            $entityManager->flush();
         }
+
+        $analyses = $entityManager->getRepository(VacancyCVAnalysis::class)->findBy(['user' => $currentUser]);
+        foreach ($analyses as $analysis) {
+            $entityManager->remove($analysis);
+        }
+
+        $entityManager->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
@@ -412,9 +485,10 @@ class UserAdminApiController extends AbstractController
             $result[] = [
                 'id' => $k->getId(),
                 'name' => $k->getName(),
-                'prefix' => $k->getPrefix(),
-                'created_at' => $k->getCreatedAt()->format(\DateTimeInterface::ATOM),
-                'last_used_at' => $k->getLastUsedAt()?->format(\DateTimeInterface::ATOM),
+                'key_prefix' => $k->getPrefix(),
+                'created_at' => $k->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'last_used_at' => $k->getLastUsedAt()?->format('Y-m-d\TH:i:s'),
+                'request_count' => $k->getRequestCount(),
             ];
         }
 
@@ -424,7 +498,6 @@ class UserAdminApiController extends AbstractController
     #[Route('/api/v2/cv', name: 'api_v2_cv_get', methods: ['GET'])]
     public function getCv(
         EntityManagerInterface $entityManager,
-        SerializerInterface $serializer,
         #[CurrentUser] ?User $currentUser
     ): JsonResponse {
         if ($currentUser === null) {
@@ -436,7 +509,14 @@ class UserAdminApiController extends AbstractController
             return new JsonResponse(null, Response::HTTP_OK);
         }
 
-        $json = $serializer->serialize($cv, 'json', ['groups' => ['cv:read']]);
-        return new JsonResponse($json, Response::HTTP_OK, [], true);
+        return new JsonResponse([
+            'id' => $cv->getId(),
+            'user_id' => $cv->getUser()->getId(),
+            'content' => $cv->getContent(),
+            'revision' => $cv->getRevision(),
+            'approved_at' => $cv->getApprovedAt()->format('Y-m-d\TH:i:s'),
+            'created_at' => $cv->getCreatedAt()->format('Y-m-d\TH:i:s'),
+            'updated_at' => $cv->getUpdatedAt()->format('Y-m-d\TH:i:s'),
+        ], Response::HTTP_OK);
     }
 }

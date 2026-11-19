@@ -13,6 +13,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\UniqueConstraint(name: 'uq_user_feature_flag', columns: ['user_id', 'flag'])]
 class UserFeatureFlag
 {
+    public const KNOWN_FLAGS = ['api_access', 'admin'];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]

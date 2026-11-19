@@ -92,19 +92,26 @@ class ProcessJobUrlHandler
                 $user = $this->entityManager->getRepository(User::class)->find($message->getUserId());
             }
 
-            $vacancy = new Vacancy(
-                $message->getUrl(),
-                $summaryResult['title'] ?? ($scraped['title'] ?? 'Untitled Vacancy'),
-                $summaryResult['company'] ?? ($scraped['company'] ?? 'Unknown Company'),
-                Vacancy::STATUS_NOT_CONTACTED,
-                false,
-                0,
-                $summaryResult['tech_stack'] ?? [],
-                [],
-                new \DateTimeImmutable()
-            );
+            $vacancy = null;
+            if ($item->getVacancyId() !== null) {
+                /** @var Vacancy|null $vacancy */
+                $vacancy = $this->entityManager->getRepository(Vacancy::class)->find($item->getVacancyId());
+            }
+            if ($vacancy === null) {
+                $vacancy = new Vacancy();
+                $vacancy->setUrl($message->getUrl());
+                $vacancy->setUser($user);
+                $this->entityManager->persist($vacancy);
+            }
 
-            $vacancy->setUser($user);
+            $vacancy->setTitle($summaryResult['title'] ?? ($scraped['title'] ?? 'Untitled Vacancy'));
+            $vacancy->setCompany($summaryResult['company'] ?? ($scraped['company'] ?? 'Unknown Company'));
+            $vacancy->setStatus(Vacancy::STATUS_NOT_CONTACTED);
+            $vacancy->setIsClosed(false);
+            $vacancy->setLane(0);
+            $vacancy->setTechStack($summaryResult['tech_stack'] ?? []);
+            $vacancy->setTags([]);
+
             $vacancy->setLocation($summaryResult['location'] ?? ($scraped['location'] ?? null));
             $vacancy->setCity($summaryResult['city'] ?? null);
             $vacancy->setCountry($summaryResult['country'] ?? null);
@@ -115,8 +122,7 @@ class ProcessJobUrlHandler
             $vacancy->setSalaryMax($summaryResult['salary_max'] ?? null);
             $vacancy->setSalaryCurrency($summaryResult['salary_currency'] ?? null);
             $vacancy->setSalaryPeriod($summaryResult['salary_period'] ?? null);
-
-            $this->entityManager->persist($vacancy);
+            $vacancy->setUpdatedAt(new \DateTimeImmutable());
 
             // Complete queue item
             $item->setStatus('completed');

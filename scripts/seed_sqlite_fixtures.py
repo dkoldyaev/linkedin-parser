@@ -21,15 +21,15 @@ KEY2_PLAIN = "test_key_user2"
 KEY2_HASH = hashlib.sha256(KEY2_PLAIN.encode()).hexdigest()  # 4236fe0349e47ff78e6d78d317085e56d85973f829618fa957ba9f44db7df745
 
 VACANCIES_DATA = [
-    (1, 1, 'job-001', 'https://example.com/jobs/1', 'Senior Backend Engineer', 'Initech', 'LinkedIn', 'Berlin, Germany', 'Berlin', 'Germany', 'remote', 0, 5000.0, 7500.0, 'EUR', 'month', 'Backend services at Initech. Stack: Python, PostgreSQL, Docker.', '["Python", "FastAPI", "PostgreSQL", "Docker"]', 'Еще не написал', '["priority", "backend"]', 0, 1.0, '2026-01-10 10:00:00', '2026-01-10 10:00:00'),
-    (2, 1, 'job-002', 'https://example.com/jobs/2', 'Full Stack Developer', 'Acme Corp', 'Habr Career', 'Amsterdam, Netherlands', 'Amsterdam', 'Netherlands', 'hybrid', 0, 6000.0, 8500.0, 'EUR', 'month', 'Full Stack at Acme. Stack: React, TypeScript, Node.js.', '["TypeScript", "React", "Node.js"]', 'Написал', '["frontend"]', 0, 2.0, '2026-01-11 10:00:00', '2026-01-11 10:00:00'),
-    (3, 1, 'job-003', 'https://example.com/jobs/3', 'Lead Software Architect', 'Globex', 'Upwork', 'Warsaw, Poland', 'Warsaw', 'Poland', 'on-site', 0, 7000.0, 9500.0, 'USD', 'month', 'Architect role at Globex.', '["Go", "Kubernetes", "AWS"]', 'Собеседование', '["lead"]', 0, 3.0, '2026-01-12 10:00:00', '2026-01-12 10:00:00'),
-    (4, 1, 'job-004', 'https://example.com/jobs/4', 'DevOps / Platform Engineer', 'Stark Industries', 'LinkedIn', 'Lisbon, Portugal', 'Lisbon', 'Portugal', 'remote', 0, 5500.0, 8000.0, 'EUR', 'month', 'DevOps at Stark.', '["Terraform", "Docker", "CI/CD"]', 'Тестовое', '["devops"]', 0, 4.0, '2026-01-13 10:00:00', '2026-01-13 10:00:00'),
-    (5, 1, 'job-005', 'https://example.com/jobs/5', 'Staff Python Engineer', 'Pied Piper', 'Wellfound', 'Remote', None, None, 'remote', 0, 8000.0, 11000.0, 'USD', 'month', 'Pied Piper compression engine backend.', '["Python", "Algorithms", "Distributed Systems"]', 'Оффер', '["priority"]', 0, 5.0, '2026-01-14 10:00:00', '2026-01-14 10:00:00'),
-    (6, 1, 'job-006', 'https://example.com/jobs/6', 'Junior QA Engineer', 'Hooli', 'hh.ru', 'Berlin, Germany', 'Berlin', 'Germany', 'on-site', 1, 3000.0, 4000.0, 'EUR', 'month', 'QA at Hooli.', '["Python", "Selenium", "Pytest"]', 'Отказ', '[]', 0, 6.0, '2026-01-15 10:00:00', '2026-01-15 10:00:00'),
+    (1, 1, 'job-001', 'https://example.com/jobs/1', 'Senior Backend Engineer', 'Initech', 'LinkedIn', 'Berlin, Germany', 'Berlin', 'Germany', 'remote', 0, 5000.0, 7500.0, 'EUR', 'month', 'We need a Senior Backend Engineer with Python, PostgreSQL, Docker experience.', 'Backend services at Initech. Stack: Python, PostgreSQL, Docker.', '["Python", "FastAPI", "PostgreSQL", "Docker"]', 'Еще не написал', '["priority", "backend"]', 0, 1.0, '2026-01-10 10:00:00', '2026-01-10 10:00:00'),
+    (2, 1, 'job-002', 'https://example.com/jobs/2', 'Full Stack Developer', 'Acme Corp', 'Habr Career', 'Amsterdam, Netherlands', 'Amsterdam', 'Netherlands', 'hybrid', 0, 6000.0, 8500.0, 'EUR', 'month', 'Full Stack Developer with React and Node.js.', 'Full Stack at Acme. Stack: React, TypeScript, Node.js.', '["TypeScript", "React", "Node.js"]', 'Написал', '["frontend"]', 0, 2.0, '2026-01-11 10:00:00', '2026-01-11 10:00:00'),
+    (3, 1, 'job-003', 'https://example.com/jobs/3', 'Lead Software Architect', 'Globex', 'Upwork', 'Warsaw, Poland', 'Warsaw', 'Poland', 'on-site', 0, 7000.0, 9500.0, 'USD', 'month', 'Architect role with Go and Kubernetes.', 'Architect role at Globex.', '["Go", "Kubernetes", "AWS"]', 'Собеседование', '["lead"]', 0, 3.0, '2026-01-12 10:00:00', '2026-01-12 10:00:00'),
+    (4, 1, 'job-004', 'https://example.com/jobs/4', 'DevOps / Platform Engineer', 'Stark Industries', 'LinkedIn', 'Lisbon, Portugal', 'Lisbon', 'Portugal', 'remote', 0, 5500.0, 8000.0, 'EUR', 'month', 'DevOps position with Terraform and CI/CD.', 'DevOps at Stark.', '["Terraform", "Docker", "CI/CD"]', 'Тестовое', '["devops"]', 0, 4.0, '2026-01-13 10:00:00', '2026-01-13 10:00:00'),
+    (5, 1, 'job-005', 'https://example.com/jobs/5', 'Staff Python Engineer', 'Pied Piper', 'Wellfound', 'Remote', None, None, 'remote', 0, 8000.0, 11000.0, 'USD', 'month', 'Middle-out compression engine backend.', 'Pied Piper compression engine backend.', '["Python", "Algorithms", "Distributed Systems"]', 'Оффер', '["priority"]', 0, 5.0, '2026-01-14 10:00:00', '2026-01-14 10:00:00'),
+    (6, 1, 'job-006', 'https://example.com/jobs/6', 'Junior QA Engineer', 'Hooli', 'hh.ru', 'Berlin, Germany', 'Berlin', 'Germany', 'on-site', 1, 3000.0, 4000.0, 'EUR', 'month', 'QA automation with Selenium and Pytest.', 'QA at Hooli.', '["Python", "Selenium", "Pytest"]', 'Отказ', '[]', 0, 6.0, '2026-01-15 10:00:00', '2026-01-15 10:00:00'),
     # User 2 Vacancies (ids 101, 102) for Tenant Isolation
-    (101, 2, 'job-101', 'https://example.com/jobs/101', 'Secret Project Engineer', 'Umbrella Corp', 'LinkedIn', 'Tokyo, Japan', 'Tokyo', 'Japan', 'on-site', 0, 9000.0, 12000.0, 'USD', 'month', 'Classified project.', '["C++", "Embedded"]', 'Еще не написал', '["secret"]', 0, 1.0, '2026-01-10 10:00:00', '2026-01-10 10:00:00'),
-    (102, 2, 'job-102', 'https://example.com/jobs/102', 'Data Scientist', 'Cyberdyne', 'LinkedIn', 'San Francisco, USA', 'San Francisco', 'USA', 'remote', 0, 10000.0, 15000.0, 'USD', 'month', 'AI systems.', '["Python", "PyTorch"]', 'Написал', '["ai"]', 0, 2.0, '2026-01-11 10:00:00', '2026-01-11 10:00:00'),
+    (101, 2, 'job-101', 'https://example.com/jobs/101', 'Secret Project Engineer', 'Umbrella Corp', 'LinkedIn', 'Tokyo, Japan', 'Tokyo', 'Japan', 'on-site', 0, 9000.0, 12000.0, 'USD', 'month', 'Classified project in embedded C++.', 'Classified project.', '["C++", "Embedded"]', 'Еще не написал', '["secret"]', 0, 1.0, '2026-01-10 10:00:00', '2026-01-10 10:00:00'),
+    (102, 2, 'job-102', 'https://example.com/jobs/102', 'Data Scientist', 'Cyberdyne', 'LinkedIn', 'San Francisco, USA', 'San Francisco', 'USA', 'remote', 0, 10000.0, 15000.0, 'USD', 'month', 'Machine learning and deep neural networks.', 'AI systems.', '["Python", "PyTorch"]', 'Написал', '["ai"]', 0, 2.0, '2026-01-11 10:00:00', '2026-01-11 10:00:00'),
 ]
 
 
@@ -83,8 +83,8 @@ def seed_legacy_python_db(db_path: str):
 
     # Vacancies
     cur.executemany("""
-        INSERT INTO vacancies (id, user_id, job_id, url, title, company, source, location, city, country, workplace_type, is_closed, salary_min, salary_max, salary_currency, salary_period, ai_summary, tech_stack, status, tags, lane, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO vacancies (id, user_id, job_id, url, title, company, source, location, city, country, workplace_type, is_closed, salary_min, salary_max, salary_currency, salary_period, description, ai_summary, tech_stack, status, tags, lane, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, VACANCIES_DATA)
 
     # Vacancy Status History
@@ -129,27 +129,33 @@ def seed_symfony_db(db_path: str):
     if os.path.exists(db_path):
         os.remove(db_path)
 
+    import shutil
+    cache_dir = os.path.join(base_dir, "backend-symfony", "var", "cache")
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir, ignore_errors=True)
+
     import subprocess
     cmd = ["php", "bin/console", "doctrine:schema:create"]
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite:///{os.path.abspath(db_path)}"
     subprocess.run(cmd, cwd=os.path.join(base_dir, "backend-symfony"), env=env, check=True)
+    subprocess.run(["php", "bin/console", "messenger:setup-transports"], cwd=os.path.join(base_dir, "backend-symfony"), env=env, check=True)
 
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
     # Seed Users
     cur.execute("""
-        INSERT INTO users (id, email, name, avatar, is_admin, roles, created_at, updated_at)
-        VALUES (1, 'dev@local.user', 'Dev User', 'https://api.dicebear.com/7.x/bottts/svg?seed=dev', 1, '["ROLE_USER", "ROLE_ADMIN"]', '2026-01-01 10:00:00', '2026-01-01 10:00:00')
+        INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at)
+        VALUES (1, 'dev@local.user', 'Dev User', 'https://api.dicebear.com/7.x/bottts/svg?seed=dev', 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, '2026-01-01 10:00:00', '2026-01-01 10:00:00')
     """)
     cur.execute("""
-        INSERT INTO users (id, email, name, avatar, is_admin, roles, created_at, updated_at)
-        VALUES (2, 'user2@local.user', 'Regular User', NULL, 0, '["ROLE_USER"]', '2026-01-02 10:00:00', '2026-01-02 10:00:00')
+        INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at)
+        VALUES (2, 'user2@local.user', 'Regular User', NULL, 0, '["ROLE_USER"]', 0, '2026-01-02 10:00:00', '2026-01-02 10:00:00')
     """)
     cur.execute("""
-        INSERT INTO users (id, email, name, avatar, is_admin, roles, created_at, updated_at)
-        VALUES (3, 'test@example.com', 'Test User', NULL, 1, '["ROLE_USER", "ROLE_ADMIN"]', '2026-01-03 10:00:00', '2026-01-03 10:00:00')
+        INSERT INTO users (id, email, name, avatar, is_admin, roles, is_anonymous, created_at, updated_at)
+        VALUES (3, 'test@example.com', 'Test User', NULL, 1, '["ROLE_USER", "ROLE_ADMIN"]', 0, '2026-01-03 10:00:00', '2026-01-03 10:00:00')
     """)
 
     # Feature Flags
@@ -168,14 +174,16 @@ def seed_symfony_db(db_path: str):
         VALUES (2, 2, ?, 'User 2 Key', 'lp_test2', '2026-01-02 10:00:00', 0)
     """, (KEY2_HASH,))
 
-    # App Settings
+    # App Settings & User Settings
     cur.execute("INSERT INTO settings (\"key\", value, updated_at) VALUES ('locale', 'ru', '2026-01-01 10:00:00')")
     cur.execute("INSERT INTO settings (\"key\", value, updated_at) VALUES ('salary_display_format', 'month', '2026-01-01 10:00:00')")
+    cur.execute("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (1, 1, 'locale', 'ru', '2026-01-01 10:00:00')")
+    cur.execute("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (2, 1, 'salary_display_format', 'month', '2026-01-01 10:00:00')")
 
     # Vacancies
     cur.executemany("""
-        INSERT INTO vacancies (id, user_id, job_id, url, title, company, source, location, city, country, workplace_type, is_closed, salary_min, salary_max, salary_currency, salary_period, ai_summary, tech_stack, status, tags, lane, sort_order, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO vacancies (id, user_id, job_id, url, title, company, source, location, city, country, workplace_type, is_closed, salary_min, salary_max, salary_currency, salary_period, description, ai_summary, tech_stack, status, tags, lane, sort_order, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, VACANCIES_DATA)
 
     # Vacancy Status History

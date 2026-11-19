@@ -55,7 +55,7 @@ class PublicApiController extends AbstractController
 
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read', 'vacancy:detail']]);
@@ -150,7 +150,12 @@ class PublicApiController extends AbstractController
         }
 
         $now = new \DateTimeImmutable();
-        $vacancy = new Vacancy($user, $title, $company, $now);
+        $vacancy = new Vacancy();
+        $vacancy->setUser($user);
+        $vacancy->setTitle($title);
+        $vacancy->setCompany($company);
+        $vacancy->setCreatedAt($now);
+        $vacancy->setUpdatedAt($now);
         if (isset($data['url'])) {
             $vacancy->setUrl((string)$data['url']);
         }
@@ -180,7 +185,7 @@ class PublicApiController extends AbstractController
             ['vacancy' => $vacancyArray]
         );
 
-        return new JsonResponse($json, Response::HTTP_CREATED, [], true);
+        return new JsonResponse($json, Response::HTTP_OK, [], true);
     }
 
     #[Route('/vacancies/{id}', name: 'public_api_vacancies_update', methods: ['PATCH'])]
@@ -199,7 +204,7 @@ class PublicApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true) ?? [];
@@ -257,7 +262,7 @@ class PublicApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $title = $vacancy->getTitle();
@@ -287,7 +292,7 @@ class PublicApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $historyItems = $entityManager->getRepository(VacancyStatusHistory::class)->findBy(
@@ -327,7 +332,7 @@ class PublicApiController extends AbstractController
         /** @var Vacancy|null $vacancy */
         $vacancy = $entityManager->getRepository(Vacancy::class)->findOneBy(['id' => $id, 'user' => $user]);
         if ($vacancy === null) {
-            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_404);
+            return new JsonResponse(['detail' => 'Vacancy not found'], Response::HTTP_NOT_FOUND);
         }
 
         $analysis = $entityManager->getRepository(VacancyCVAnalysis::class)->findOneBy([
