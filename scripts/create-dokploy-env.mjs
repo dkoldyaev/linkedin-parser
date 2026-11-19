@@ -197,7 +197,7 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
   const createMockData = enableMockData ? 'true' : (envVars['CREATE_MOCK_DATA'] || 'false');
-  const llmProvider = enableMockLlm ? 'mock' : (envVars['LLM_PROVIDER'] || 'mistral');
+  const llmProvider = (enableMockLlm || enableMockData) ? 'mock' : (envVars['LLM_PROVIDER'] || 'mistral');
   const mercureInternalHost = composeAppName ? `${composeAppName}-mercure-1` : 'mercure';
 
   return [

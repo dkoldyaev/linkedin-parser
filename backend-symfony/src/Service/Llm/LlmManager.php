@@ -20,7 +20,7 @@ class LlmManager
     public function getProvider(string $providerName): LlmProviderInterface
     {
         $normalized = strtolower(trim($providerName));
-        if ($normalized === 'mock') {
+        if ($normalized === 'mock' || $normalized === 'mistral' || $normalized === 'gemini') {
             return $this->mockProvider;
         }
 
