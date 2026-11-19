@@ -26,11 +26,31 @@ app.post('/api/normalize', (req, res) => {
 app.post('/api/parse', async (req, res) => {
   try {
     const { url, html } = req.body;
-    if (!url || !html) {
-      return res.status(400).json({ error: 'Missing url or html' });
+    if (!url) {
+      return res.status(400).json({ error: 'Missing url' });
     }
 
-    const data = await registry.parse(url, html);
+    let jobHtml = html;
+    if (!jobHtml) {
+      try {
+        const resp = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8',
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(15000),
+        });
+        if (resp.ok) {
+          jobHtml = await resp.text();
+        }
+      } catch (e: any) {
+        console.warn(`[parser-api] Failed to fetch HTML for ${url}: ${e.message}`);
+      }
+    }
+
+    const data = await registry.parse(url, jobHtml || '');
 
     res.json(data);
   } catch (error: any) {

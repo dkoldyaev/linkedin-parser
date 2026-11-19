@@ -69,7 +69,7 @@ class ProcessJobUrlHandler
 
         try {
             // Stage 1: Scraping
-            $scraped = $this->parserClient->parseJob($message->getUrl());
+            $scraped = $this->parserClient->parseJob($message->getUrl(), null);
 
             $item->setStage('ai');
             $item->setUpdatedAt(new \DateTimeImmutable());
