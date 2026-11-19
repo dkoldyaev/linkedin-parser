@@ -14,7 +14,8 @@ class AdminAccessDeniedHandler implements AccessDeniedHandlerInterface
 {
     public function handle(Request $request, AccessDeniedException $accessDeniedException): ?Response
     {
-        if (str_starts_with($request->getPathInfo(), '/admin') && $request->getPathInfo() !== '/admin/login') {
+        $path = rtrim($request->getPathInfo(), '/') ?: '/';
+        if (str_starts_with($path, '/admin') && $path !== '/admin/login') {
             return new RedirectResponse('/admin/login');
         }
 

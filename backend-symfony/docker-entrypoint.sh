@@ -25,9 +25,14 @@ php bin/console assets:install public --quiet || true
 # Setup messenger transport tables if necessary
 php bin/console messenger:setup-transports --quiet || true
 
-# Start background messenger worker
-echo "Starting Messenger background worker..."
-php bin/console messenger:consume async --memory-limit=128M --time-limit=3600 &
+# Start background messenger worker with auto-restart
+echo "Starting Messenger background worker with auto-restart..."
+(
+    while true; do
+        php bin/console messenger:consume async --memory-limit=128M --time-limit=3600 --failure-limit=10 || true
+        sleep 2
+    done
+) &
 
 echo "Starting FrankenPHP on ${SERVER_NAME}..."
 exec frankenphp run --config /etc/caddy/Caddyfile

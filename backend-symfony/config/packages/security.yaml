@@ -25,14 +25,20 @@ security:
                 - App\Security\ApiKeyAuthenticator
             jwt: ~
 
+        admin:
+            pattern: ^/admin
+            lazy: true
+            provider: app_user_provider
+            entry_point: App\Security\AdminJwtCookieAuthenticator
+            access_denied_handler: App\Security\AdminAccessDeniedHandler
+            custom_authenticators:
+                - App\Security\AdminJwtCookieAuthenticator
+            logout:
+                path: admin_logout
+
         main:
             lazy: true
             provider: app_user_provider
-            jwt: ~
-            entry_point: App\Security\AdminAuthenticationEntryPoint
-            access_denied_handler: App\Security\AdminAccessDeniedHandler
-            logout:
-                path: api_auth_logout
 
     access_control:
         - { path: ^/api/(health|v2/health), roles: PUBLIC_ACCESS }

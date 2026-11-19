@@ -198,4 +198,13 @@ HTML;
 
         return new Response($html, Response::HTTP_OK, ['Content-Type' => 'text/html; charset=utf-8']);
     }
+
+    #[Route('/admin/logout', name: 'admin_logout', methods: ['GET', 'POST'])]
+    public function logout(): Response
+    {
+        $response = $this->redirect('/admin/login');
+        $response->headers->clearCookie('access_token', '/');
+
+        return $response;
+    }
 }
