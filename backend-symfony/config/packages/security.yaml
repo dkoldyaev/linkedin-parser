@@ -29,6 +29,8 @@ security:
             lazy: true
             provider: app_user_provider
             jwt: ~
+            entry_point: App\Security\AdminAuthenticationEntryPoint
+            access_denied_handler: App\Security\AdminAccessDeniedHandler
             logout:
                 path: api_auth_logout
 
@@ -42,5 +44,6 @@ security:
         - { path: ^/api/v2/exchange-rates, roles: PUBLIC_ACCESS }
         - { path: ^/api/(extension/changelog|v2/extension/changelog), roles: PUBLIC_ACCESS }
         - { path: ^/api/(extension/log|v2/extension/log), roles: PUBLIC_ACCESS }
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
