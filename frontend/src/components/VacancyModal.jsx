@@ -310,6 +310,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
   if (!isOpen || !vacancy) return null;
 
   const handleStatusChange = async (newStatus) => {
+    const prevStatus = status;
     setStatus(newStatus);
     trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
       vacancy_id: vacancy.id,
@@ -324,13 +325,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       });
     }
     try {
-      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
+      if (!res.ok) throw new Error('Failed to update status');
     } catch (err) {
       console.error('Failed to update status', err);
+      setStatus(prevStatus);
     }
   };
 
@@ -403,6 +406,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
   };
 
   const handleWorkplaceTypeChange = async (newType) => {
+    const prevType = workplaceType;
     const val = newType || null;
     setWorkplaceType(val || "");
     trackEvent(EVENTS.WORKPLACE_CHANGE, {
@@ -410,17 +414,20 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       workplace_type: val || 'none'
     });
     try {
-      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val })
       });
+      if (!res.ok) throw new Error('Failed to update workplace type');
     } catch (err) {
       console.error('Failed to update workplace type', err);
+      setWorkplaceType(prevType);
     }
   };
 
   const handleToggleClosed = async () => {
+    const prevClosed = isClosed;
     const nextVal = !isClosed;
     setIsClosed(nextVal);
     trackEvent(EVENTS.VACANCY_TOGGLE_CLOSED, {
@@ -428,13 +435,15 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       is_closed: nextVal
     });
     try {
-      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal })
       });
+      if (!res.ok) throw new Error('Failed to update closed status');
     } catch (err) {
       console.error('Failed to update closed status', err);
+      setIsClosed(prevClosed);
     }
   };
 

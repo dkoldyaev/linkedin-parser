@@ -6,6 +6,8 @@ api_platform:
         json: ['application/json']
         jsonld: ['application/ld+json']
         html: ['text/html']
+    patch_formats:
+        json: ['application/merge-patch+json', 'application/json']
     defaults:
         stateless: true
         pagination_enabled: false

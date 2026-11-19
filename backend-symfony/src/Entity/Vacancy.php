@@ -31,7 +31,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
         ),
         new Get(normalizationContext: ['groups' => ['vacancy:read', 'vacancy:detail']]),
         new Post(normalizationContext: ['groups' => ['vacancy:read']], denormalizationContext: ['groups' => ['vacancy:write']]),
-        new Patch(normalizationContext: ['groups' => ['vacancy:read']], denormalizationContext: ['groups' => ['vacancy:write']]),
+        new Patch(
+            inputFormats: ['json' => ['application/merge-patch+json', 'application/json']],
+            normalizationContext: ['groups' => ['vacancy:read']],
+            denormalizationContext: ['groups' => ['vacancy:write']]
+        ),
         new Delete(),
     ],
     order: ['updatedAt' => 'DESC', 'id' => 'DESC'],

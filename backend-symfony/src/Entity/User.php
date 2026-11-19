@@ -23,7 +23,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new Get(normalizationContext: ['groups' => ['user:read']]),
         new GetCollection(normalizationContext: ['groups' => ['user:read']]),
-        new Patch(normalizationContext: ['groups' => ['user:read']], denormalizationContext: ['groups' => ['user:write']]),
+        new Patch(
+            inputFormats: ['json' => ['application/merge-patch+json', 'application/json']],
+            normalizationContext: ['groups' => ['user:read']],
+            denormalizationContext: ['groups' => ['user:write']]
+        ),
     ],
     security: "is_granted('ROLE_ADMIN')"
 )]
