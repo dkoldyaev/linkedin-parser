@@ -66,9 +66,10 @@ class VacancyCrudController extends AbstractCrudController
     {
         return $filters
             ->add(ChoiceFilter::new('status')->setChoices([
-                'Не контактировали' => Vacancy::STATUS_NOT_CONTACTED,
-                'Откликнулись' => Vacancy::STATUS_APPLIED,
-                'Интервью' => Vacancy::STATUS_INTERVIEW,
+                'Еще не написал' => Vacancy::STATUS_NOT_CONTACTED,
+                'Написал' => Vacancy::STATUS_CONTACTED,
+                'Собеседование' => Vacancy::STATUS_INTERVIEW,
+                'Тестовое' => Vacancy::STATUS_ASSESSMENT,
                 'Оффер' => Vacancy::STATUS_OFFER,
                 'Отказ' => Vacancy::STATUS_REJECTED,
             ]))
@@ -94,9 +95,10 @@ class VacancyCrudController extends AbstractCrudController
         yield TextField::new('title', 'Должность');
         yield TextField::new('company', 'Компания');
         yield ChoiceField::new('status', 'Статус')->setChoices([
-            'Не контактировали' => Vacancy::STATUS_NOT_CONTACTED,
-            'Откликнулись' => Vacancy::STATUS_APPLIED,
-            'Интервью' => Vacancy::STATUS_INTERVIEW,
+            'Еще не написал' => Vacancy::STATUS_NOT_CONTACTED,
+            'Написал' => Vacancy::STATUS_CONTACTED,
+            'Собеседование' => Vacancy::STATUS_INTERVIEW,
+            'Тестовое' => Vacancy::STATUS_ASSESSMENT,
             'Оффер' => Vacancy::STATUS_OFFER,
             'Отказ' => Vacancy::STATUS_REJECTED,
         ]);
