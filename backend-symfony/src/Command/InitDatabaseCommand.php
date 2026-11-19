@@ -334,6 +334,13 @@ class InitDatabaseCommand extends Command
                     $this->entityManager->persist(new ExchangeRate('GBP', 'EUR', 1.17, $now));
                 }
 
+                $this->entityManager->flush();
+                $io->success(sprintf('Seeded %d mock vacancies for %s.', count($mockVacancies), $primaryAdmin->getEmail()));
+            }
+
+            if (count($adminUsers) > 0) {
+                $primaryAdmin = $adminUsers[0];
+
                 // LLM Token Usages mock seeding
                 $tokenUsageRepo = $this->entityManager->getRepository(UserLLMTokenUsage::class);
                 if ($tokenUsageRepo->count([]) === 0) {
@@ -364,6 +371,7 @@ class InitDatabaseCommand extends Command
                         22800,
                         $now->modify('-30 minutes')
                     ));
+                    $io->success('Seeded mock LLM token usage entries.');
                 }
 
                 // Processing queue items mock seeding
@@ -417,12 +425,10 @@ class InitDatabaseCommand extends Command
                     $item4->setUser($primaryAdmin);
                     $item4->setPriority(0);
                     $this->entityManager->persist($item4);
+                    $io->success('Seeded mock processing queue items.');
                 }
 
                 $this->entityManager->flush();
-                $io->success(sprintf('Seeded %d mock vacancies for %s.', count($mockVacancies), $primaryAdmin->getEmail()));
-            } else {
-                $io->info('Mock data already exists, skipping.');
             }
         }
 
