@@ -8,6 +8,7 @@ use App\Entity\ProcessingQueueItem;
 use App\Message\ProcessJobUrlMessage;
 use App\Service\Mercure\MercurePublisherService;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -134,6 +135,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         yield DateTimeField::new('updatedAt', 'Обновлено')->hideOnForm();
     }
 
+    #[AdminRoute]
     public function prioritizeTask(AdminContext $context, EntityManagerInterface $em): Response
     {
         /** @var ProcessingQueueItem $item */
@@ -147,6 +149,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
     }
 
+    #[AdminRoute]
     public function stopTask(AdminContext $context, EntityManagerInterface $em): Response
     {
         /** @var ProcessingQueueItem $item */
@@ -160,6 +163,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
     }
 
+    #[AdminRoute]
     public function retryTask(AdminContext $context, EntityManagerInterface $em): Response
     {
         /** @var ProcessingQueueItem $item */
@@ -183,6 +187,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
     }
 
+    #[AdminRoute]
     public function batchPrioritize(BatchActionDto $batchActionDto, EntityManagerInterface $em): Response
     {
         $repo = $em->getRepository(ProcessingQueueItem::class);
@@ -202,6 +207,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
     }
 
+    #[AdminRoute]
     public function batchStop(BatchActionDto $batchActionDto, EntityManagerInterface $em): Response
     {
         $repo = $em->getRepository(ProcessingQueueItem::class);
@@ -221,6 +227,7 @@ class ProcessingQueueItemCrudController extends AbstractCrudController
         return $this->redirect($this->adminUrlGenerator->setAction(Action::INDEX)->generateUrl());
     }
 
+    #[AdminRoute]
     public function batchRetry(BatchActionDto $batchActionDto, EntityManagerInterface $em): Response
     {
         $repo = $em->getRepository(ProcessingQueueItem::class);

@@ -10,6 +10,7 @@ use App\Entity\VacancyCVAnalysis;
 use App\Service\Llm\LlmManager;
 use App\Service\Mercure\MercurePublisherService;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminRoute;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
@@ -126,6 +127,7 @@ class VacancyCrudController extends AbstractCrudController
         yield DateTimeField::new('updatedAt', 'Обновлена')->hideOnForm();
     }
 
+    #[AdminRoute]
     public function rescoreVacancy(AdminContext $context, EntityManagerInterface $em): Response
     {
         /** @var Vacancy $vacancy */
