@@ -111,7 +111,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read'])]
     private ?\DateTimeImmutable $lastBoardInteractionAt = null;
 
-    #[ORM\Column(name: 'is_anonymous', type: Types::BOOLEAN)]
+    #[ORM\Column(name: 'is_anonymous', type: Types::BOOLEAN, options: ['default' => false])]
     #[Groups(['user:read'])]
     private bool $isAnonymous;
 

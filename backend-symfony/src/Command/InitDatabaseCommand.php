@@ -55,10 +55,16 @@ class InitDatabaseCommand extends Command
         $io->section('Updating Database Schema...');
         try {
             $conn = $this->entityManager->getConnection();
-            $conn->executeStatement("DO \$\$ BEGIN BEGIN ALTER TABLE vacancy_cv_analyses ADD COLUMN is_outdated BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE vacancy_cv_analyses SET is_outdated = false WHERE is_outdated IS NULL; END; END \$\$;");
+            $conn->executeStatement("DO \$\$ BEGIN 
+                BEGIN ALTER TABLE users ADD COLUMN is_anonymous BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE users SET is_anonymous = false WHERE is_anonymous IS NULL; END;
+                BEGIN ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP WITH TIME ZONE NULL; EXCEPTION WHEN duplicate_column THEN NULL; END;
+                BEGIN ALTER TABLE users ADD COLUMN last_board_interaction_at TIMESTAMP WITH TIME ZONE NULL; EXCEPTION WHEN duplicate_column THEN NULL; END;
+                BEGIN ALTER TABLE vacancy_cv_analyses ADD COLUMN is_outdated BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE vacancy_cv_analyses SET is_outdated = false WHERE is_outdated IS NULL; END;
+            END \$\$;");
         } catch (\Throwable) {
             try {
                 $conn = $this->entityManager->getConnection();
+                $conn->executeStatement("UPDATE users SET is_anonymous = 0 WHERE is_anonymous IS NULL");
                 $conn->executeStatement("UPDATE vacancy_cv_analyses SET is_outdated = 0 WHERE is_outdated IS NULL");
             } catch (\Throwable) {
             }
