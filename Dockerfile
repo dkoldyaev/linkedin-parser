@@ -55,7 +55,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY backend-symfony/ /app/
 
 # Install composer dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
+    && composer dump-autoload --optimize --classmap-authoritative
 
 # Copy built frontend assets to public directory
 COPY --from=frontend-builder /app/frontend/dist /app/public
