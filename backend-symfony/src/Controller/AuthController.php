@@ -8,6 +8,7 @@ use App\Entity\ApiKey;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\Mercure\MercurePublisherService;
+use App\Service\RefreshTokenService;
 use App\Service\UserMigrationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
@@ -158,6 +159,40 @@ class AuthController extends AbstractController
         return $userRepository->findByEmail((string)$sub);
     }
 
+    private function formatUserResponse(User $user): array
+    {
+        $flags = [];
+        foreach ($user->getFeatureFlags() as $flag) {
+            $flags[] = $flag->getFlag();
+        }
+
+        $apiKeysData = [];
+        foreach ($user->getApiKeys() as $key) {
+            $apiKeysData[] = [
+                'id' => $key->getId(),
+                'name' => $key->getName(),
+                'key_prefix' => $key->getPrefix(),
+                'created_at' => $key->getCreatedAt()->format('Y-m-d\TH:i:s'),
+                'last_used_at' => $key->getLastUsedAt() !== null ? $key->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
+                'request_count' => $key->getRequestCount(),
+            ];
+        }
+
+        return [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'name' => $user->getName() ?? $user->getEmail(),
+            'picture' => $user->getAvatar(),
+            'feature_flags' => $flags,
+            'is_anonymous' => $user->isAnonymous(),
+            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
+            'last_login_at' => (new \DateTimeImmutable())->format('Y-m-d\TH:i:s'),
+            'last_board_interaction_at' => null,
+            'stats' => null,
+            'api_keys' => $apiKeysData,
+        ];
+    }
+
     #[Route('/api/v2/auth/dev-login', name: 'api_auth_dev_login', methods: ['POST'])]
     public function devLogin(
         Request $request,
@@ -166,7 +201,8 @@ class AuthController extends AbstractController
         JWTTokenManagerInterface $jwtManager,
         MercurePublisherService $mercurePublisher,
         JWTEncoderInterface $jwtEncoder,
-        UserMigrationService $userMigrationService
+        UserMigrationService $userMigrationService,
+        RefreshTokenService $refreshTokenService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $email = !empty($data['email']) ? (string)$data['email'] : 'dev@local.user';
@@ -202,57 +238,16 @@ class AuthController extends AbstractController
         $entityManager->flush();
 
         $token = $jwtManager->create($user);
-
-        $flags = [];
-        foreach ($user->getFeatureFlags() as $flag) {
-            $flags[] = $flag->getFlag();
-        }
-
-        $apiKeysData = [];
-        foreach ($user->getApiKeys() as $key) {
-            $apiKeysData[] = [
-                'id' => $key->getId(),
-                'name' => $key->getName(),
-                'key_prefix' => $key->getPrefix(),
-                'created_at' => $key->getCreatedAt()->format('Y-m-d\TH:i:s'),
-                'last_used_at' => $key->getLastUsedAt() !== null ? $key->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
-                'request_count' => $key->getRequestCount(),
-            ];
-        }
-
-        $userResponseData = [
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'name' => $user->getName() ?? $user->getEmail(),
-            'picture' => $user->getAvatar(),
-            'feature_flags' => $flags,
-            'is_anonymous' => false,
-            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
-            'last_login_at' => $now->format('Y-m-d\TH:i:s'),
-            'last_board_interaction_at' => null,
-            'stats' => null,
-            'api_keys' => $apiKeysData,
-        ];
+        $refreshToken = $refreshTokenService->createRefreshToken($user, $now);
 
         $response = new JsonResponse([
-            'user' => $userResponseData,
+            'user' => $this->formatUserResponse($user),
             'token' => $token,
         ]);
 
-        $forwardedProto = $request->headers->get('x-forwarded-proto');
-        $isSecure = $request->isSecure() || $forwardedProto === 'https' || str_starts_with($request->getUri(), 'https://');
-
-        $cookie = Cookie::create('access_token')
-            ->withValue($token)
-            ->withExpires(time() + 86400 * 30)
-            ->withPath('/')
-            ->withHttpOnly(true)
-            ->withSameSite('lax')
-            ->withSecure($isSecure);
-
-        $response->headers->setCookie($cookie);
-        $mercureCookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
-        $response->headers->setCookie($mercureCookie);
+        $response->headers->setCookie($refreshTokenService->createAccessTokenCookie($request, $token));
+        $response->headers->setCookie($refreshTokenService->createRefreshTokenCookie($request, $refreshToken->getToken()));
+        $response->headers->setCookie($mercurePublisher->createSubscriberCookie($request, (int)$user->getId()));
 
         return $response;
     }
@@ -265,7 +260,8 @@ class AuthController extends AbstractController
         JWTTokenManagerInterface $jwtManager,
         JWTEncoderInterface $jwtEncoder,
         UserRepository $userRepository,
-        MercurePublisherService $mercurePublisher
+        MercurePublisherService $mercurePublisher,
+        RefreshTokenService $refreshTokenService
     ): JsonResponse {
         $apiKeyHeader = $request->headers->get('X-API-Key') ?? $request->headers->get('x-api-key');
         $authHeader = $request->headers->get('Authorization');
@@ -279,11 +275,63 @@ class AuthController extends AbstractController
             return new JsonResponse(['detail' => 'Invalid API Key'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $cookieToSet = null;
-        $forwardedProto = $request->headers->get('x-forwarded-proto');
-        $isSecure = $request->isSecure() || $forwardedProto === 'https' || str_starts_with($request->getUri(), 'https://');
+        $now = new \DateTimeImmutable();
+        $cookiesToSet = [];
 
-        if ($user === null) {
+        // 1. Silent renewal via refresh_token if access_token expired or missing
+        if ($user === null && !$isExplicitApiKey) {
+            $rawRefreshToken = $request->cookies->get('refresh_token');
+            if ($rawRefreshToken !== null && trim((string)$rawRefreshToken) !== '') {
+                $validRefreshToken = $refreshTokenService->findValidRefreshToken((string)$rawRefreshToken, $now);
+                if ($validRefreshToken !== null) {
+                    $user = $validRefreshToken->getUser();
+                    $rotated = $refreshTokenService->rotateRefreshToken($validRefreshToken, $now);
+                    $token = $jwtManager->create($user);
+                    $cookiesToSet[] = $refreshTokenService->createAccessTokenCookie($request, $token);
+                    $cookiesToSet[] = $refreshTokenService->createRefreshTokenCookie($request, $rotated->getToken());
+                    $cookiesToSet[] = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
+                }
+            }
+        }
+
+        // 2. If still unauthenticated, check if an expired access_token belonged to a permanent user
+        if ($user === null && !$isExplicitApiKey) {
+            $rawToken = null;
+            if ($request->cookies->has('access_token')) {
+                $rawToken = (string)$request->cookies->get('access_token');
+            } elseif ($authHeader !== null && str_starts_with((string)$authHeader, 'Bearer ')) {
+                $bearerVal = trim(substr((string)$authHeader, 7));
+                if (!str_starts_with($bearerVal, 'ak_')) {
+                    $rawToken = $bearerVal;
+                }
+            }
+
+            if ($rawToken !== null && trim($rawToken) !== '') {
+                $parts = explode('.', $rawToken);
+                if (count($parts) === 3) {
+                    $payloadJson = base64_decode(strtr($parts[1], '-_', '+/'));
+                    $payload = json_decode($payloadJson, true);
+                    if (is_array($payload)) {
+                        $sub = $payload['sub'] ?? ($payload['email'] ?? null);
+                        if ($sub !== null) {
+                            $expiredUser = is_numeric($sub) ? $userRepository->find((int)$sub) : $userRepository->findByEmail((string)$sub);
+                            if ($expiredUser !== null && !$expiredUser->isAnonymous()) {
+                                // Permanent registered user session expired -> prompt login, do NOT convert to guest!
+                                $response = new JsonResponse([
+                                    'code' => 401,
+                                    'message' => 'Session expired, please log in again',
+                                    'detail' => 'Session expired',
+                                ], Response::HTTP_UNAUTHORIZED);
+                                $response->headers->clearCookie('access_token', '/');
+                                $response->headers->setCookie($refreshTokenService->createClearRefreshCookie());
+                                return $response;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. No token, or was an anonymous guest -> create fresh anonymous guest user
             $anonId = substr(bin2hex(random_bytes(6)), 0, 12);
             $user = new User(
                 'guest_' . $anonId . '@guest.local',
@@ -293,67 +341,81 @@ class AuthController extends AbstractController
                 ['ROLE_USER'],
                 new \DateTimeImmutable()
             );
-            $now = new \DateTimeImmutable();
             $user->setIsAnonymous(true);
             $user->setLastLoginAt($now);
             $entityManager->persist($user);
             $entityManager->flush();
 
             $token = $jwtManager->create($user);
-            $cookieToSet = Cookie::create('access_token')
-                ->withValue($token)
-                ->withExpires(time() + 86400 * 30)
-                ->withPath('/')
-                ->withHttpOnly(true)
-                ->withSameSite('lax')
-                ->withSecure($isSecure);
+            $refreshToken = $refreshTokenService->createRefreshToken($user, $now);
+
+            $cookiesToSet[] = $refreshTokenService->createAccessTokenCookie($request, $token);
+            $cookiesToSet[] = $refreshTokenService->createRefreshTokenCookie($request, $refreshToken->getToken());
+            $cookiesToSet[] = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
         }
 
-        $flags = [];
-        foreach ($user->getFeatureFlags() as $flag) {
-            $flags[] = $flag->getFlag();
-        }
-
-        $apiKeysData = [];
-        foreach ($user->getApiKeys() as $key) {
-            $apiKeysData[] = [
-                'id' => $key->getId(),
-                'name' => $key->getName(),
-                'key_prefix' => $key->getPrefix(),
-                'created_at' => $key->getCreatedAt()->format('Y-m-d\TH:i:s'),
-                'last_used_at' => $key->getLastUsedAt() !== null ? $key->getLastUsedAt()->format('Y-m-d\TH:i:s') : null,
-                'request_count' => $key->getRequestCount(),
-            ];
-        }
-
-        $response = new JsonResponse([
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'name' => $user->getName() ?? $user->getEmail(),
-            'picture' => $user->getAvatar(),
-            'feature_flags' => $flags,
-            'is_anonymous' => $user->isAnonymous(),
-            'created_at' => $user->getCreatedAt()->format('Y-m-d\TH:i:s'),
-            'last_login_at' => (new \DateTimeImmutable())->format('Y-m-d\TH:i:s'),
-            'last_board_interaction_at' => null,
-            'stats' => null,
-            'api_keys' => $apiKeysData,
-        ]);
-
-        if ($cookieToSet !== null) {
-            $response->headers->setCookie($cookieToSet);
-            $mercureCookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
-            $response->headers->setCookie($mercureCookie);
+        $response = new JsonResponse($this->formatUserResponse($user));
+        foreach ($cookiesToSet as $cookie) {
+            $response->headers->setCookie($cookie);
         }
 
         return $response;
     }
 
+    #[Route('/api/auth/refresh', name: 'api_auth_refresh_legacy', methods: ['POST'])]
+    #[Route('/api/v2/auth/refresh', name: 'api_auth_refresh', methods: ['POST'])]
+    public function refresh(
+        Request $request,
+        RefreshTokenService $refreshTokenService,
+        JWTTokenManagerInterface $jwtManager,
+        MercurePublisherService $mercurePublisher
+    ): JsonResponse {
+        $rawRefreshToken = $request->cookies->get('refresh_token');
+        if ($rawRefreshToken === null || trim((string)$rawRefreshToken) === '') {
+            $data = json_decode($request->getContent(), true) ?? [];
+            $rawRefreshToken = $data['refresh_token'] ?? null;
+        }
+
+        if ($rawRefreshToken === null || trim((string)$rawRefreshToken) === '') {
+            return new JsonResponse(['detail' => 'Refresh token missing'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $now = new \DateTimeImmutable();
+        $refreshToken = $refreshTokenService->findValidRefreshToken((string)$rawRefreshToken, $now);
+        if ($refreshToken === null) {
+            return new JsonResponse(['detail' => 'Invalid or expired refresh token'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user = $refreshToken->getUser();
+        $newRefreshToken = $refreshTokenService->rotateRefreshToken($refreshToken, $now);
+        $token = $jwtManager->create($user);
+
+        $response = new JsonResponse([
+            'token' => $token,
+            'user' => $this->formatUserResponse($user),
+        ]);
+
+        $response->headers->setCookie($refreshTokenService->createAccessTokenCookie($request, $token));
+        $response->headers->setCookie($refreshTokenService->createRefreshTokenCookie($request, $newRefreshToken->getToken()));
+        $response->headers->setCookie($mercurePublisher->createSubscriberCookie($request, (int)$user->getId()));
+
+        return $response;
+    }
+
     #[Route('/api/v2/auth/logout', name: 'api_auth_logout', methods: ['POST'])]
-    public function logout(MercurePublisherService $mercurePublisher): JsonResponse
-    {
+    public function logout(
+        Request $request,
+        RefreshTokenService $refreshTokenService,
+        MercurePublisherService $mercurePublisher
+    ): JsonResponse {
+        $rawRefreshToken = $request->cookies->get('refresh_token');
+        if ($rawRefreshToken !== null && trim((string)$rawRefreshToken) !== '') {
+            $refreshTokenService->revokeToken((string)$rawRefreshToken, new \DateTimeImmutable());
+        }
+
         $response = new JsonResponse(['status' => 'ok']);
         $response->headers->clearCookie('access_token', '/');
+        $response->headers->setCookie($refreshTokenService->createClearRefreshCookie());
         $response->headers->setCookie($mercurePublisher->createClearCookie());
 
         return $response;

@@ -14,7 +14,7 @@ security:
             security: false
 
         api_public:
-            pattern: ^/(api/health|api/v2/health|api/v2/auth/dev-login|api/v2/auth/config|api/auth/config|api/v2/auth/google|api/auth/google|api/v2/auth/me$|api/auth/me$|api/v2/exchange-rates|api/extension/changelog|api/v2/extension/changelog|api/extension/log|api/v2/extension/log)
+            pattern: ^/(api/health|api/v2/health|api/v2/auth/dev-login|api/v2/auth/config|api/auth/config|api/v2/auth/google|api/auth/google|api/v2/auth/refresh$|api/auth/refresh$|api/v2/auth/me$|api/auth/me$|api/v2/exchange-rates|api/extension/changelog|api/v2/extension/changelog|api/extension/log|api/v2/extension/log)
             security: false
 
         api:
@@ -44,6 +44,7 @@ security:
         - { path: ^/api/(health|v2/health), roles: PUBLIC_ACCESS }
         - { path: ^/api/(auth/config|v2/auth/config), roles: PUBLIC_ACCESS }
         - { path: ^/api/(auth/google|v2/auth/google), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/refresh|v2/auth/refresh), roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/auth/dev-login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/auth/logout, roles: PUBLIC_ACCESS }
         - { path: ^/api/(auth/me|v2/auth/me), roles: PUBLIC_ACCESS }

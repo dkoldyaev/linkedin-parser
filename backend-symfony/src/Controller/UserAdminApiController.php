@@ -157,13 +157,13 @@ class UserAdminApiController extends AbstractController
             return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
 
+        if (!$currentUser->isAdmin()) {
+            return new JsonResponse(['detail' => 'Only administrators can update feature flags'], Response::HTTP_FORBIDDEN);
+        }
+
         $data = json_decode($request->getContent(), true) ?? [];
         $rawFlags = $data['feature_flags'] ?? [];
         $flags = array_values(array_intersect(is_array($rawFlags) ? $rawFlags : [], UserFeatureFlag::KNOWN_FLAGS));
-
-        if (in_array('admin', $flags, true) && !$currentUser->isAdmin()) {
-            return new JsonResponse(['detail' => 'Only administrators can grant admin'], Response::HTTP_FORBIDDEN);
-        }
 
         // Remove old flags
         $existingFlags = iterator_to_array($currentUser->getFeatureFlags());

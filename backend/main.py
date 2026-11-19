@@ -515,8 +515,8 @@ def update_my_feature_flags(
     db: Session = Depends(get_db),
 ):
     """Update current user's feature flags."""
-    if "admin" in payload.feature_flags and "admin" not in (current_user.feature_flags or []):
-        raise HTTPException(status_code=403, detail="Only administrators can grant admin")
+    if "admin" not in (current_user.feature_flags or []):
+        raise HTTPException(status_code=403, detail="Only administrators can update feature flags")
     saved_flags = _sync_user_flags_table(db, current_user.id, payload.feature_flags)
     current_user.feature_flags = saved_flags
     return current_user
