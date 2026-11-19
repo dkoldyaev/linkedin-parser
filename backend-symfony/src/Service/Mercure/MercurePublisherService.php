@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service\Mercure;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
@@ -27,10 +28,12 @@ class MercurePublisherService
     public const MSG_EXTENSION_TASK = 'EXTENSION_TASK';
 
     private HubInterface $hub;
+    private LoggerInterface $logger;
 
-    public function __construct(HubInterface $hub)
+    public function __construct(HubInterface $hub, LoggerInterface $logger)
     {
         $this->hub = $hub;
+        $this->logger = $logger;
     }
 
     /**
@@ -45,9 +48,15 @@ class MercurePublisherService
             'timestamp' => microtime(true),
         ];
 
-        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        $update = new Update($topic, $json);
+        try {
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $update = new Update($topic, $json);
 
-        $this->hub->publish($update);
+            $this->hub->publish($update);
+        } catch (\Throwable $e) {
+            $this->logger->error(sprintf('Mercure publish error for topic "%s": %s', $topic, $e->getMessage()), [
+                'exception' => $e,
+            ]);
+        }
     }
 }
