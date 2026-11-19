@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\Mercure\MercurePublisherService;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,17 +48,29 @@ class AuthController extends AbstractController
         ]);
     }
 
+    #[Route('/api/config', name: 'api_config_legacy', methods: ['GET'])]
+    #[Route('/api/mercure-config', name: 'api_mercure_config_legacy', methods: ['GET'])]
     #[Route('/api/v2/mercure-config', name: 'api_mercure_config', methods: ['GET'])]
-    public function mercureConfig(#[CurrentUser] ?User $user): JsonResponse
-    {
+    public function mercureConfig(
+        Request $request,
+        MercurePublisherService $mercurePublisher,
+        #[CurrentUser] ?User $user
+    ): JsonResponse {
         if ($user === null) {
             return new JsonResponse(['detail' => 'Not authenticated'], Response::HTTP_UNAUTHORIZED);
         }
         $publicUrl = isset($_SERVER['MERCURE_PUBLIC_URL']) ? (string)$_SERVER['MERCURE_PUBLIC_URL'] : '/.well-known/mercure';
-        return new JsonResponse([
+        $topic = 'vacancies:' . $user->getId();
+        $response = new JsonResponse([
             'mercure_hub_url' => $publicUrl,
-            'mercure_topic' => 'vacancies:' . $user->getId(),
+            'mercure_topic' => $topic,
         ]);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        $cookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
+        $response->headers->setCookie($cookie);
+
+        return $response;
     }
 
     #[Route('/api/v2/auth/dev-login', name: 'api_auth_dev_login', methods: ['POST'])]
@@ -65,7 +78,8 @@ class AuthController extends AbstractController
         Request $request,
         UserRepository $userRepository,
         EntityManagerInterface $entityManager,
-        JWTTokenManagerInterface $jwtManager
+        JWTTokenManagerInterface $jwtManager,
+        MercurePublisherService $mercurePublisher
     ): JsonResponse {
         $data = json_decode($request->getContent(), true) ?? [];
         $email = !empty($data['email']) ? (string)$data['email'] : 'dev@local.user';
@@ -117,6 +131,8 @@ class AuthController extends AbstractController
             ->withSameSite('lax');
 
         $response->headers->setCookie($cookie);
+        $mercureCookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
+        $response->headers->setCookie($mercureCookie);
 
         return $response;
     }
@@ -193,10 +209,12 @@ class AuthController extends AbstractController
     }
 
     #[Route('/api/v2/auth/logout', name: 'api_auth_logout', methods: ['POST'])]
-    public function logout(): JsonResponse
+    public function logout(MercurePublisherService $mercurePublisher): JsonResponse
     {
         $response = new JsonResponse(['status' => 'logged_out']);
         $response->headers->clearCookie('access_token', '/');
+        $response->headers->setCookie($mercurePublisher->createClearCookie());
+
         return $response;
     }
 

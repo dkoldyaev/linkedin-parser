@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\ProcessingQueueItem;
 use App\Entity\User;
 use App\Message\ProcessJobUrlMessage;
+use App\Service\Mercure\MercurePublisherService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -70,13 +71,25 @@ class ExtensionController extends AbstractController
 
     #[Route('/api/extension/mercure_config', name: 'api_extension_mercure_legacy', methods: ['GET'])]
     #[Route('/api/v2/extension/mercure_config', name: 'api_extension_mercure', methods: ['GET'])]
-    public function mercureConfig(#[CurrentUser] ?User $user): JsonResponse
-    {
+    public function mercureConfig(
+        Request $request,
+        MercurePublisherService $mercurePublisher,
+        #[CurrentUser] ?User $user
+    ): JsonResponse {
         $publicUrl = isset($_SERVER['MERCURE_PUBLIC_URL']) ? (string)$_SERVER['MERCURE_PUBLIC_URL'] : '/.well-known/mercure';
-        return new JsonResponse([
+        $topic = $user !== null ? 'vacancies:' . $user->getId() : 'vacancies';
+        $response = new JsonResponse([
             'mercure_hub_url' => $publicUrl,
-            'topic' => $user !== null ? 'vacancies:' . $user->getId() : 'vacancies',
+            'topic' => $topic,
         ]);
+        $response->headers->set('Cache-Control', 'no-store');
+
+        if ($user !== null) {
+            $cookie = $mercurePublisher->createSubscriberCookie($request, (int)$user->getId());
+            $response->headers->setCookie($cookie);
+        }
+
+        return $response;
     }
 
     #[Route('/api/extension/add_link', name: 'api_extension_add_link_legacy', methods: ['POST'])]

@@ -50,6 +50,8 @@ security:
         - { path: ^/api/v2/exchange-rates, roles: PUBLIC_ACCESS }
         - { path: ^/api/(extension/changelog|v2/extension/changelog), roles: PUBLIC_ACCESS }
         - { path: ^/api/(extension/log|v2/extension/log), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(config|mercure-config|v2/mercure-config), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/mercure_config|v2/extension/mercure_config), roles: PUBLIC_ACCESS }
         - { path: ^/admin/login, roles: PUBLIC_ACCESS }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace App\Service\Mercure;
 
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Jwt\Grant;
 use Symfony\Component\Mercure\Update;
 
 class MercurePublisherService
 {
     public const DEFAULT_TOPIC = 'vacancies';
+    public const COOKIE_NAME = 'mercureAuthorization';
+    public const SUBSCRIBER_TTL = 3600;
 
     public const EVENT_VACANCY_CREATED = 'vacancy_created';
     public const EVENT_VACANCY_UPDATED = 'vacancy_updated';
@@ -58,5 +63,42 @@ class MercurePublisherService
                 'exception' => $e,
             ]);
         }
+    }
+
+    public function createSubscriberCookie(Request $request, int $userId): Cookie
+    {
+        $topic = 'vacancies:' . $userId;
+        $factory = $this->hub->getFactory();
+        if ($factory === null) {
+            throw new \RuntimeException('Mercure Hub does not have a TokenFactory configured.');
+        }
+
+        $grant = new Grant([Grant::ACTION_SUBSCRIBE], [$topic, self::DEFAULT_TOPIC]);
+        $jwt = $factory->create([$grant], [
+            'sub' => (string)$userId,
+            'exp' => new \DateTimeImmutable('+' . self::SUBSCRIBER_TTL . ' seconds'),
+        ]);
+
+        $forwardedProto = $request->headers->get('x-forwarded-proto');
+        $isSecure = $request->isSecure()
+            || $forwardedProto === 'https'
+            || (isset($_SERVER['APP_URL']) && str_starts_with((string)$_SERVER['APP_URL'], 'https://'));
+
+        return Cookie::create(self::COOKIE_NAME)
+            ->withValue($jwt)
+            ->withExpires(time() + self::SUBSCRIBER_TTL)
+            ->withPath('/.well-known/mercure')
+            ->withHttpOnly(true)
+            ->withSameSite('lax')
+            ->withSecure($isSecure);
+    }
+
+    public function createClearCookie(): Cookie
+    {
+        return Cookie::create(self::COOKIE_NAME)
+            ->withValue('')
+            ->withExpires(1)
+            ->withPath('/.well-known/mercure')
+            ->withHttpOnly(true);
     }
 }
