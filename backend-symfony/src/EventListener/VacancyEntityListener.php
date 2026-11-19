@@ -76,6 +76,12 @@ class VacancyEntityListener
             $changeSet = $this->changeSets[$vacancy];
             $this->changeSets->detach($vacancy);
         }
+
+        // Do not broadcast vacancy_updated if only sortOrder changed (bystander cards in kanban reorder)
+        if (array_keys($changeSet) === ['sortOrder'] && !$vacancy->isManuallyMoved()) {
+            return;
+        }
+
         $this->eventDispatcher->dispatch(new VacancyUpdatedDomainEvent($vacancy, $changeSet));
     }
 

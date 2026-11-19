@@ -246,6 +246,19 @@ class Vacancy implements UserOwnedInterface
         return $this;
     }
 
+    private bool $manuallyMoved = false;
+
+    public function markManuallyMoved(): self
+    {
+        $this->manuallyMoved = true;
+        return $this;
+    }
+
+    public function isManuallyMoved(): bool
+    {
+        return $this->manuallyMoved;
+    }
+
     public function getJobId(): ?string
     {
         return $this->jobId;

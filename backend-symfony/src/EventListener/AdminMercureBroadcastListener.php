@@ -14,9 +14,11 @@ use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Event\PreRemoveEventArgs;
+use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\ORM\Events;
 
 #[AsDoctrineListener(event: Events::postPersist, priority: 500)]
+#[AsDoctrineListener(event: Events::preUpdate, priority: 500)]
 #[AsDoctrineListener(event: Events::postUpdate, priority: 500)]
 #[AsDoctrineListener(event: Events::preRemove, priority: 500)]
 #[AsDoctrineListener(event: Events::postRemove, priority: 500)]
@@ -25,11 +27,14 @@ class AdminMercureBroadcastListener
     private MercurePublisherService $mercure;
     /** @var \SplObjectStorage<object, array<string, mixed>> */
     private \SplObjectStorage $deletedEntities;
+    /** @var \SplObjectStorage<Vacancy, array<string, array{0: mixed, 1: mixed}>> */
+    private \SplObjectStorage $changeSets;
 
     public function __construct(MercurePublisherService $mercure)
     {
         $this->mercure = $mercure;
         $this->deletedEntities = new \SplObjectStorage();
+        $this->changeSets = new \SplObjectStorage();
     }
 
     public function postPersist(PostPersistEventArgs $args): void
@@ -113,11 +118,30 @@ class AdminMercureBroadcastListener
         }
     }
 
+    public function preUpdate(PreUpdateEventArgs $args): void
+    {
+        $entity = $args->getObject();
+        if ($entity instanceof Vacancy) {
+            $this->changeSets[$entity] = $args->getEntityChangeSet();
+        }
+    }
+
     public function postUpdate(PostUpdateEventArgs $args): void
     {
         $entity = $args->getObject();
 
         if ($entity instanceof Vacancy) {
+            $changeSet = [];
+            if ($this->changeSets->contains($entity)) {
+                $changeSet = $this->changeSets[$entity];
+                $this->changeSets->detach($entity);
+            }
+
+            // Do not broadcast vacancy_updated if only sortOrder changed (bystander cards in kanban reorder)
+            if (array_keys($changeSet) === ['sortOrder'] && !$entity->isManuallyMoved()) {
+                return;
+            }
+
             $this->mercure->publish(
                 MercurePublisherService::ADMIN_TOPIC,
                 MercurePublisherService::EVENT_VACANCY_UPDATED,

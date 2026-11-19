@@ -135,7 +135,6 @@ class VacancyActionController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SerializerInterface $serializer,
-        MercurePublisherService $mercure,
         #[CurrentUser] ?User $user
     ): JsonResponse {
         if ($user === null) {
@@ -189,6 +188,9 @@ class VacancyActionController extends AbstractController
                 $byId[$v->getId()] = $v;
             }
 
+            $orderedVacancies = [];
+            $hasAnyChange = false;
+
             foreach ($ids as $position => $vid) {
                 $vid = (int)$vid;
                 if (!isset($byId[$vid])) {
@@ -196,8 +198,13 @@ class VacancyActionController extends AbstractController
                 }
                 /** @var Vacancy $v */
                 $v = $byId[$vid];
+                $orderedVacancies[] = $v;
+
                 $oldStatus = $v->getStatus();
                 $oldLane = $v->getLane();
+                $oldSortOrder = $v->getSortOrder();
+                $newSortOrder = (float)$position;
+
                 $statusChanged = ($status !== '' && $oldStatus !== $status);
 
                 $newLane = $oldLane;
@@ -210,6 +217,13 @@ class VacancyActionController extends AbstractController
                 }
 
                 $laneChanged = $hasLanes && ($newLane !== $oldLane);
+                $sortOrderChanged = ($oldSortOrder === null || abs($oldSortOrder - $newSortOrder) > 0.0001);
+
+                if (!$statusChanged && !$laneChanged && !$sortOrderChanged) {
+                    continue;
+                }
+
+                $hasAnyChange = true;
 
                 if ($statusChanged || $laneChanged) {
                     $history = new VacancyStatusHistory(
@@ -228,60 +242,62 @@ class VacancyActionController extends AbstractController
                         $v->setStatus($status);
                     }
                     $v->setLane($newLane);
-                } elseif (!$hasLanes) {
+                } elseif (!$hasLanes && $oldLane !== 0) {
                     $v->setLane(0);
                 }
 
-                $v->setSortOrder((float)$position);
-                $v->setUpdatedAt($now);
-                $changed[] = $v;
+                if ($sortOrderChanged) {
+                    $v->setSortOrder($newSortOrder);
+                }
+
+                $isMovedCard = isset($movedSet[$vid]) || $statusChanged || $laneChanged;
+                if (!$isMovedCard && count($movedSet) === 0 && ($statusChanged || $laneChanged || $sortOrderChanged)) {
+                    $isMovedCard = true;
+                }
+
+                if ($isMovedCard) {
+                    $v->markManuallyMoved();
+                    $v->setUpdatedAt($now);
+                }
             }
         } elseif (isset($data['items']) && is_array($data['items'])) {
+            $orderedVacancies = [];
+            $hasAnyChange = false;
             foreach ($data['items'] as $item) {
                 $id = isset($item['id']) ? (int)$item['id'] : 0;
                 /** @var Vacancy|null $vacancy */
                 $vacancy = $repo->findOneBy(['id' => $id, 'user' => $user]);
                 if ($vacancy !== null) {
-                    if (isset($item['status'])) {
+                    $orderedVacancies[] = $vacancy;
+                    $itemChanged = false;
+                    if (isset($item['status']) && $vacancy->getStatus() !== (string)$item['status']) {
                         $vacancy->setStatus((string)$item['status']);
+                        $itemChanged = true;
                     }
-                    if (isset($item['lane'])) {
+                    if (isset($item['lane']) && $vacancy->getLane() !== (int)$item['lane']) {
                         $vacancy->setLane((int)$item['lane']);
+                        $itemChanged = true;
                     }
-                    if (isset($item['sort_order'])) {
+                    if (isset($item['sort_order']) && ($vacancy->getSortOrder() === null || abs($vacancy->getSortOrder() - (float)$item['sort_order']) > 0.0001)) {
                         $vacancy->setSortOrder((float)$item['sort_order']);
+                        $itemChanged = true;
                     }
-                    $vacancy->setUpdatedAt($now);
-                    $changed[] = $vacancy;
+                    if ($itemChanged) {
+                        $hasAnyChange = true;
+                        $vacancy->setUpdatedAt($now);
+                    }
                 }
             }
         } else {
             return new JsonResponse(['detail' => 'Invalid reorder payload'], Response::HTTP_BAD_REQUEST);
         }
 
-        $user->setLastBoardInteractionAt($now);
-        $entityManager->flush();
-
-        $topic = 'vacancies:' . $user->getId();
-        foreach ($changed as $v) {
-            $json = $serializer->serialize($v, 'json', ['groups' => ['vacancy:read']]);
-            $payload = json_decode($json, true) ?? [];
-
-            $mercure->publish(
-                $topic,
-                MercurePublisherService::EVENT_VACANCY_UPDATED,
-                MercurePublisherService::MSG_VACANCY_UPDATED,
-                [
-                    'vacancy' => $payload,
-                    'vacancy_id' => $v->getId(),
-                    'title' => $v->getTitle(),
-                    'company' => $v->getCompany(),
-                    'data' => $payload,
-                ]
-            );
+        if ($hasAnyChange) {
+            $user->setLastBoardInteractionAt($now);
+            $entityManager->flush();
         }
 
-        $resultJson = $serializer->serialize($changed, 'json', ['groups' => ['vacancy:read']]);
+        $resultJson = $serializer->serialize($orderedVacancies, 'json', ['groups' => ['vacancy:read']]);
         return new JsonResponse($resultJson, Response::HTTP_OK, [], true);
     }
 

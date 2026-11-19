@@ -156,11 +156,12 @@ class VacanciesCrudAndRealtimeE2ETest extends ApiTestCase
         // 4. POST Reorder vacancies
         $reorderPayload = [
             'status' => 'Собеседование',
-            'ids' => [$newId, 3],
+            'ids' => [3, $newId],
             'lane' => 0,
             'moved_id' => $newId,
         ];
 
+        $this->mercureHub->clear();
         $this->client->request(
             'POST',
             '/api/v2/vacancies/reorder',
@@ -173,10 +174,29 @@ class VacanciesCrudAndRealtimeE2ETest extends ApiTestCase
         $reorderRes = $this->client->getResponse();
         $this->assertSame(200, $reorderRes->getStatusCode());
 
+        // Verify that only the moved vacancy emitted vacancy_updated
+        $updates = $this->mercureHub->getPublishedUpdates();
+        $userVacancyUpdatedEvents = array_values(array_filter($updates, static fn($u) => str_starts_with($u['topics'][0] ?? '', 'vacancies:') && ($u['data']['type'] ?? null) === 'vacancy_updated'));
+        $this->assertCount(1, $userVacancyUpdatedEvents, 'Only the moved vacancy should emit a vacancy_updated event.');
+        $this->assertSame($newId, $userVacancyUpdatedEvents[0]['data']['vacancy_id'] ?? null);
+
+        // Verify that dragging a card and returning it to its place emits ZERO events
+        $this->mercureHub->clear();
+        $this->client->request(
+            'POST',
+            '/api/v2/vacancies/reorder',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            (string) json_encode($reorderPayload, JSON_UNESCAPED_UNICODE)
+        );
+        $this->assertSame(200, $this->client->getResponse()->getStatusCode());
+        $this->assertCount(0, $this->mercureHub->getPublishedUpdates(), 'Returning card to its place must not emit any Mercure events.');
+
         // Verify GET sort_order
         $this->client->request('GET', '/api/v2/vacancies/' . $newId);
         $reorderedData = $this->parseJsonResponse($this->client->getResponse());
-        $this->assertEquals(0.0, (float) $reorderedData['sort_order']);
+        $this->assertEquals(1.0, (float) $reorderedData['sort_order']);
 
         // 5. POST Resummarize
         $this->client->request('POST', '/api/v2/vacancies/' . $newId . '/resummarize');
