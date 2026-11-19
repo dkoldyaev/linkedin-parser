@@ -19,6 +19,9 @@ fi
 echo "Running database initialization..."
 php bin/console app:init-database
 
+# Ensure bundle assets (EasyAdmin, API Platform) are installed
+php bin/console assets:install public --quiet || true
+
 # Setup messenger transport tables if necessary
 php bin/console messenger:setup-transports --quiet || true
 

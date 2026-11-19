@@ -61,6 +61,9 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Copy built frontend assets to public directory
 COPY --from=frontend-builder /app/frontend/dist /app/public
 
+# Install bundle assets (EasyAdmin, API Platform) into public/bundles
+RUN php bin/console assets:install public
+
 # Ensure entrypoint is executable
 RUN chmod +x /app/docker-entrypoint.sh
 
