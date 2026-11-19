@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\ApiKey;
-use App\Entity\AppSetting;
 use App\Entity\ExchangeRate;
 use App\Entity\ProcessingQueueItem;
 use App\Entity\User;
 use App\Entity\UserFeatureFlag;
 use App\Entity\UserLLMTokenUsage;
+use App\Entity\UserSetting;
 use App\Entity\Vacancy;
 use App\Entity\VacancyStatusHistory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -68,6 +68,11 @@ class InitDatabaseCommand extends Command
                 $conn->executeStatement("UPDATE vacancy_cv_analyses SET is_outdated = 0 WHERE is_outdated IS NULL");
             } catch (\Throwable) {
             }
+        }
+        try {
+            $conn = $this->entityManager->getConnection();
+            $conn->executeStatement("DROP TABLE IF EXISTS settings;");
+        } catch (\Throwable) {
         }
         $metadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
         $schemaTool = new SchemaTool($this->entityManager);
@@ -149,6 +154,15 @@ class InitDatabaseCommand extends Command
                 $hash = hash('sha256', sprintf('lp_key_%s_%s', $user->getEmail(), (string)$now->getTimestamp()));
                 $apiKey = new ApiKey($user, $hash, 'Main Admin Key', 'lp_admin', $now);
                 $this->entityManager->persist($apiKey);
+            }
+
+            // Ensure default user settings
+            $userSettingRepo = $this->entityManager->getRepository(UserSetting::class);
+            if ($userSettingRepo->findOneBy(['user' => $user, 'key' => 'locale']) === null) {
+                $this->entityManager->persist(new UserSetting($user, 'locale', 'ru', $now));
+            }
+            if ($userSettingRepo->findOneBy(['user' => $user, 'key' => 'salary_display_format']) === null) {
+                $this->entityManager->persist(new UserSetting($user, 'salary_display_format', 'month', $now));
             }
 
             $this->entityManager->flush();
@@ -333,13 +347,6 @@ class InitDatabaseCommand extends Command
 
                     $h = new VacancyStatusHistory($v, null, $mv['status'], null, null, null, $now);
                     $this->entityManager->persist($h);
-                }
-
-                // Default settings
-                $settingRepo = $this->entityManager->getRepository(AppSetting::class);
-                if ($settingRepo->findOneBy(['key' => 'salary_display_format']) === null) {
-                    $setting = new AppSetting('salary_display_format', 'month', $now);
-                    $this->entityManager->persist($setting);
                 }
 
                 // Exchange rates

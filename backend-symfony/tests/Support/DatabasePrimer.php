@@ -63,9 +63,7 @@ class DatabasePrimer
             [2, 2, self::KEY2_HASH, 'User 2 Key', 'lp_test2', '2026-01-02 10:00:00', 0]
         );
 
-        // 4. App Settings & User Settings
-        $connection->executeStatement("INSERT INTO settings (\"key\", value, updated_at) VALUES ('locale', 'ru', '2026-01-01 10:00:00')");
-        $connection->executeStatement("INSERT INTO settings (\"key\", value, updated_at) VALUES ('salary_display_format', 'month', '2026-01-01 10:00:00')");
+        // 4. User Settings
         $connection->executeStatement("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (1, 1, 'locale', 'ru', '2026-01-01 10:00:00')");
         $connection->executeStatement("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (2, 1, 'salary_display_format', 'month', '2026-01-01 10:00:00')");
 

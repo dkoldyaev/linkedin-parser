@@ -174,9 +174,7 @@ def seed_symfony_db(db_path: str):
         VALUES (2, 2, ?, 'User 2 Key', 'lp_test2', '2026-01-02 10:00:00', 0)
     """, (KEY2_HASH,))
 
-    # App Settings & User Settings
-    cur.execute("INSERT INTO settings (\"key\", value, updated_at) VALUES ('locale', 'ru', '2026-01-01 10:00:00')")
-    cur.execute("INSERT INTO settings (\"key\", value, updated_at) VALUES ('salary_display_format', 'month', '2026-01-01 10:00:00')")
+    # User Settings
     cur.execute("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (1, 1, 'locale', 'ru', '2026-01-01 10:00:00')")
     cur.execute("INSERT INTO user_settings (id, user_id, \"key\", value, updated_at) VALUES (2, 1, 'salary_display_format', 'month', '2026-01-01 10:00:00')")
 

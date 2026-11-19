@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\ApiKey;
-use App\Entity\AppSetting;
 use App\Entity\ApprovedCV;
 use App\Entity\ExchangeRate;
 use App\Entity\User;
@@ -190,17 +189,6 @@ class MigrateLegacyDataCommand extends Command
                     );
                     $this->entityManager->persist($history);
                 }
-            }
-            $this->entityManager->flush();
-        }
-
-        // 6. Migrate App Settings
-        if (in_array('settings', $tables, true)) {
-            $settings = $legacyConn->fetchAllAssociative('SELECT * FROM settings');
-            foreach ($settings as $row) {
-                $now = new \DateTimeImmutable($row['updated_at'] ?? 'now');
-                $appSetting = new AppSetting((string)$row['key'], $row['value'] ?? null, $now);
-                $this->entityManager->persist($appSetting);
             }
             $this->entityManager->flush();
         }

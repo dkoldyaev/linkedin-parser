@@ -1039,7 +1039,7 @@ class ShadowDiffVerifier:
 def start_backend_servers():
     print("[*] Starting Python backend on 127.0.0.1:8000...")
     py_proc = subprocess.Popen(
-        [os.path.join(base_dir, ".venv", "bin", "python3"), os.path.join(base_dir, "scripts", "run_python_backend.py")],
+        [sys.executable, os.path.join(base_dir, "scripts", "run_python_backend.py")],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
