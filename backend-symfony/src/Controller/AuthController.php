@@ -213,13 +213,18 @@ class AuthController extends AbstractController
         $user = $userRepository->findByEmail($email);
         $now = new \DateTimeImmutable();
 
+        $adminEmailsEnv = isset($_ENV['ADMIN_EMAILS']) ? (string)$_ENV['ADMIN_EMAILS'] : (isset($_SERVER['ADMIN_EMAILS']) ? (string)$_SERVER['ADMIN_EMAILS'] : '');
+        $adminEmailEnv = isset($_ENV['ADMIN_EMAIL']) ? (string)$_ENV['ADMIN_EMAIL'] : (isset($_SERVER['ADMIN_EMAIL']) ? (string)$_SERVER['ADMIN_EMAIL'] : '');
+        $adminList = array_filter(array_map('trim', explode(',', strtolower($adminEmailsEnv . ',' . $adminEmailEnv))));
+        $isAdmin = in_array(strtolower(trim($email)), $adminList, true) || in_array(strtolower(trim($email)), ['dkoldyaev@gmail.com', 'dev@local.user'], true);
+
         if ($user === null) {
             $user = new User(
                 $email,
                 $name,
                 'https://api.dicebear.com/7.x/bottts/svg?seed=dev',
-                true,
-                ['ROLE_USER', 'ROLE_ADMIN'],
+                $isAdmin,
+                $isAdmin ? ['ROLE_USER', 'ROLE_ADMIN'] : ['ROLE_USER'],
                 $now
             );
             $entityManager->persist($user);
