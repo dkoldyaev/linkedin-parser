@@ -137,7 +137,7 @@ class VacancyCrudController extends AbstractCrudController
         $user = $vacancy->getUser();
 
         $cvContent = 'Senior Full Stack Software Engineer';
-        $cvRevision = 'v1.0';
+        $cvRevision = 1;
         if ($user !== null) {
             $approvedCv = $em->getRepository(ApprovedCV::class)->findOneBy(['user' => $user]);
             if ($approvedCv !== null) {
