@@ -48,6 +48,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         redis \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy Composer binary
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 # Copy Symfony backend application
 COPY backend-symfony/ /app/
 
