@@ -253,7 +253,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setJobId(?string $jobId): self
     {
-        $this->jobId = $jobId;
+        $this->jobId = ($jobId !== null && mb_strlen($jobId) > 64) ? mb_substr($jobId, 0, 64) : $jobId;
         return $this;
     }
 
@@ -264,7 +264,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setUrl(string $url): self
     {
-        $this->url = $url;
+        $this->url = mb_strlen($url) > 1024 ? mb_substr($url, 0, 1024) : $url;
         return $this;
     }
 
@@ -275,7 +275,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setTitle(string $title): self
     {
-        $this->title = $title;
+        $this->title = mb_strlen($title) > 255 ? mb_substr($title, 0, 255) : $title;
         return $this;
     }
 
@@ -286,7 +286,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setCompany(string $company): self
     {
-        $this->company = $company;
+        $this->company = mb_strlen($company) > 255 ? mb_substr($company, 0, 255) : $company;
         return $this;
     }
 
@@ -297,7 +297,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setCompanyUrl(?string $companyUrl): self
     {
-        $this->companyUrl = $companyUrl;
+        $this->companyUrl = ($companyUrl !== null && mb_strlen($companyUrl) > 1024) ? mb_substr($companyUrl, 0, 1024) : $companyUrl;
         return $this;
     }
 
@@ -319,7 +319,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setSource(?string $source): self
     {
-        $this->source = $source;
+        $this->source = ($source !== null && mb_strlen($source) > 64) ? mb_substr($source, 0, 64) : $source;
         return $this;
     }
 
@@ -330,7 +330,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setLocation(?string $location): self
     {
-        $this->location = $location;
+        $this->location = ($location !== null && mb_strlen($location) > 255) ? mb_substr($location, 0, 255) : $location;
         return $this;
     }
 
@@ -341,7 +341,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setCity(?string $city): self
     {
-        $this->city = $city;
+        $this->city = ($city !== null && mb_strlen($city) > 128) ? mb_substr($city, 0, 128) : $city;
         return $this;
     }
 
@@ -352,7 +352,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setCountry(?string $country): self
     {
-        $this->country = $country;
+        $this->country = ($country !== null && mb_strlen($country) > 128) ? mb_substr($country, 0, 128) : $country;
         return $this;
     }
 
@@ -374,7 +374,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setWorkplaceType(?string $workplaceType): self
     {
-        $this->workplaceType = $workplaceType;
+        $this->workplaceType = ($workplaceType !== null && mb_strlen($workplaceType) > 64) ? mb_substr($workplaceType, 0, 64) : $workplaceType;
         return $this;
     }
 
@@ -424,7 +424,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setSalaryCurrency(?string $salaryCurrency): self
     {
-        $this->salaryCurrency = $salaryCurrency;
+        $this->salaryCurrency = ($salaryCurrency !== null && mb_strlen($salaryCurrency) > 32) ? mb_substr($salaryCurrency, 0, 32) : $salaryCurrency;
         return $this;
     }
 
@@ -435,7 +435,7 @@ class Vacancy implements UserOwnedInterface
 
     public function setSalaryPeriod(?string $salaryPeriod): self
     {
-        $this->salaryPeriod = $salaryPeriod;
+        $this->salaryPeriod = ($salaryPeriod !== null && mb_strlen($salaryPeriod) > 32) ? mb_substr($salaryPeriod, 0, 32) : $salaryPeriod;
         return $this;
     }
 

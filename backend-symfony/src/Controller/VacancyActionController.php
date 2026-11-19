@@ -53,8 +53,8 @@ class VacancyActionController extends AbstractController
             }
 
             $vacancy = new Vacancy();
-            $vacancy->setUrl($url);
-            $vacancy->setTitle($url);
+            $vacancy->setUrl(mb_substr($url, 0, 1024));
+            $vacancy->setTitle(mb_substr($url, 0, 255));
             $vacancy->setCompany(str_contains($url, 'upwork.com') ? 'Upwork' : 'Загрузка...');
             $vacancy->setStatus(Vacancy::STATUS_NOT_CONTACTED);
             $vacancy->setIsClosed(false);
@@ -64,6 +64,9 @@ class VacancyActionController extends AbstractController
             $vacancy->setUser($user);
             $vacancy->setCreatedAt($now);
             $vacancy->setUpdatedAt($now);
+            if (preg_match('#(?:currentJobId=|/jobs/view/(?:[a-zA-Z0-9\-_]+?-)?|jobPosting:|/)(\d{8,12})#', $url, $matches)) {
+                $vacancy->setJobId($matches[1]);
+            }
             $entityManager->persist($vacancy);
             $entityManager->flush();
 

@@ -82,10 +82,10 @@ class ProcessingQueueItem implements UserOwnedInterface
         int $attempts,
         \DateTimeImmutable $now
     ) {
-        $this->taskId = $taskId;
-        $this->url = $url;
-        $this->status = $status;
-        $this->stage = $stage;
+        $this->taskId = mb_strlen($taskId) > 64 ? mb_substr($taskId, 0, 64) : $taskId;
+        $this->url = mb_strlen($url) > 1024 ? mb_substr($url, 0, 1024) : $url;
+        $this->status = mb_strlen($status) > 32 ? mb_substr($status, 0, 32) : $status;
+        $this->stage = ($stage !== null && mb_strlen($stage) > 32) ? mb_substr($stage, 0, 32) : $stage;
         $this->attempts = $attempts;
         $this->createdAt = $now;
         $this->updatedAt = $now;
@@ -117,6 +117,12 @@ class ProcessingQueueItem implements UserOwnedInterface
         return $this->url;
     }
 
+    public function setUrl(string $url): self
+    {
+        $this->url = mb_strlen($url) > 1024 ? mb_substr($url, 0, 1024) : $url;
+        return $this;
+    }
+
     public function getStatus(): string
     {
         return $this->status;
@@ -124,7 +130,7 @@ class ProcessingQueueItem implements UserOwnedInterface
 
     public function setStatus(string $status): self
     {
-        $this->status = $status;
+        $this->status = mb_strlen($status) > 32 ? mb_substr($status, 0, 32) : $status;
         return $this;
     }
 
@@ -135,7 +141,7 @@ class ProcessingQueueItem implements UserOwnedInterface
 
     public function setStage(?string $stage): self
     {
-        $this->stage = $stage;
+        $this->stage = ($stage !== null && mb_strlen($stage) > 32) ? mb_substr($stage, 0, 32) : $stage;
         return $this;
     }
 

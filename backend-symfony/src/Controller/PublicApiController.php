@@ -118,7 +118,7 @@ class PublicApiController extends AbstractController
             }
 
             $taskId = Uuid::v4()->toRfc4122();
-            $item = new ProcessingQueueItem($taskId, $url, 'pending', 'scraping', 0, $now);
+            $item = new ProcessingQueueItem($taskId, mb_substr($url, 0, 1024), 'pending', 'scraping', 0, $now);
             $item->setUser($user);
             $entityManager->persist($item);
 

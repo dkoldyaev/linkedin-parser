@@ -62,8 +62,9 @@ class ExtensionAndQueueE2ETest extends ApiTestCase
         $this->assertSame(200, $resQueue1->getStatusCode());
 
         // 2. POST /api/v2/vacancies/batch -> triggers queue_updated Mercure event
+        $longUrl = 'https://www.linkedin.com/jobs/view/999888777/?refId=6b447817-47b2-4d57-b2f5-d0c3eb149f12&trackingId=9m0dJ0jV%2B5k8CgB7WdGZtQ%3D%3D&midToken=AQEzO-JtQ695tw&midSig=31N_k7E0R6U1Y1&trk=eml-email_jobs_notification_single_search_01-job_card-0-jobcard_body&trkEmail=eml-email_jobs_notification_single_search_01-job_card-0-jobcard_body-null-3a5z8%7Eme40h5g2%7Ej2-null-null&eid=3a5z8-me40h5g2-j2';
         $batchPayload = [
-            'urls' => ['https://www.linkedin.com/jobs/view/999888777/'],
+            'urls' => [$longUrl],
         ];
         $this->client->request(
             'POST',
