@@ -392,7 +392,6 @@ class UserAdminApiController extends AbstractController
     public function saveCv(
         Request $request,
         EntityManagerInterface $entityManager,
-        VacancyScoringService $scoringService,
         #[CurrentUser] ?User $currentUser
     ): JsonResponse {
         if ($currentUser === null) {
@@ -420,21 +419,6 @@ class UserAdminApiController extends AbstractController
 
         $entityManager->flush();
 
-        $cvTaskId = substr(bin2hex(random_bytes(4)), 0, 8);
-        $cvQueueItem = new ProcessingQueueItem(
-            $cvTaskId,
-            'cv://user/' . $currentUser->getId(),
-            'pending',
-            'cv_parsing',
-            0,
-            $now
-        );
-        $cvQueueItem->setUser($currentUser);
-        $entityManager->persist($cvQueueItem);
-        $entityManager->flush();
-
-        $scoringService->triggerScoringForUserVacancies($currentUser);
-
         return new JsonResponse([
             'id' => $cv->getId(),
             'user_id' => $cv->getUser()->getId(),
@@ -458,14 +442,8 @@ class UserAdminApiController extends AbstractController
         $cv = $entityManager->getRepository(ApprovedCV::class)->findOneBy(['user' => $currentUser]);
         if ($cv !== null) {
             $entityManager->remove($cv);
+            $entityManager->flush();
         }
-
-        $analyses = $entityManager->getRepository(VacancyCVAnalysis::class)->findBy(['user' => $currentUser]);
-        foreach ($analyses as $analysis) {
-            $entityManager->remove($analysis);
-        }
-
-        $entityManager->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }

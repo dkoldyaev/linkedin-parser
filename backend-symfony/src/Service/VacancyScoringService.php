@@ -129,7 +129,7 @@ class VacancyScoringService
         return $queuedCount;
     }
 
-    public function triggerScoringForVacancy(Vacancy $vacancy, User $user): void
+    public function markAnalysisOutdatedForVacancy(Vacancy $vacancy, User $user): void
     {
         $analysisRepo = $this->entityManager->getRepository(VacancyCVAnalysis::class);
         $analysisRepo->createQueryBuilder('a')
@@ -141,6 +141,11 @@ class VacancyScoringService
             ->setParameter('user', $user)
             ->getQuery()
             ->execute();
+    }
+
+    public function triggerScoringForVacancy(Vacancy $vacancy, User $user): void
+    {
+        $this->markAnalysisOutdatedForVacancy($vacancy, $user);
 
         $cvRepo = $this->entityManager->getRepository(ApprovedCV::class);
         $cv = $cvRepo->findOneBy(['user' => $user]);
