@@ -56,7 +56,7 @@ class VacancyCVAnalysis implements UserOwnedInterface
     #[Groups(['analysis:read'])]
     private ?array $adaptedCv = null;
 
-    #[ORM\Column(name: 'is_outdated', type: Types::BOOLEAN)]
+    #[ORM\Column(name: 'is_outdated', type: Types::BOOLEAN, options: ['default' => false])]
     #[Groups(['analysis:read'])]
     private bool $isOutdated = false;
 

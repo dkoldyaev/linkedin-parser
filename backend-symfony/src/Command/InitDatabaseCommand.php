@@ -53,6 +53,16 @@ class InitDatabaseCommand extends Command
 
         // 1. Ensure Schema
         $io->section('Updating Database Schema...');
+        try {
+            $conn = $this->entityManager->getConnection();
+            $conn->executeStatement("DO \$\$ BEGIN BEGIN ALTER TABLE vacancy_cv_analyses ADD COLUMN is_outdated BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE vacancy_cv_analyses SET is_outdated = false WHERE is_outdated IS NULL; END; END \$\$;");
+        } catch (\Throwable) {
+            try {
+                $conn = $this->entityManager->getConnection();
+                $conn->executeStatement("UPDATE vacancy_cv_analyses SET is_outdated = 0 WHERE is_outdated IS NULL");
+            } catch (\Throwable) {
+            }
+        }
         $metadata = $this->entityManager->getMetadataFactory()->getAllMetadata();
         $schemaTool = new SchemaTool($this->entityManager);
         $schemaTool->updateSchema($metadata, true);
