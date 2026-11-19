@@ -32,21 +32,25 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Serializer\SerializerInterface;
 
 class VacancyCrudController extends AbstractCrudController
 {
     private AdminUrlGenerator $adminUrlGenerator;
     private LlmManager $llmManager;
     private MercurePublisherService $mercure;
+    private SerializerInterface $serializer;
 
     public function __construct(
         AdminUrlGenerator $adminUrlGenerator,
         LlmManager $llmManager,
-        MercurePublisherService $mercure
+        MercurePublisherService $mercure,
+        SerializerInterface $serializer
     ) {
         $this->adminUrlGenerator = $adminUrlGenerator;
         $this->llmManager = $llmManager;
         $this->mercure = $mercure;
+        $this->serializer = $serializer;
     }
 
     public static function getEntityFqcn(): string
@@ -178,16 +182,18 @@ class VacancyCrudController extends AbstractCrudController
 
         // Broadcast update via Mercure
         $topic = $user !== null ? sprintf('vacancies:%d', $user->getId()) : MercurePublisherService::DEFAULT_TOPIC;
+        $json = $this->serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
+        $payload = json_decode($json, true) ?? [];
         $this->mercure->publish(
             $topic,
             MercurePublisherService::EVENT_VACANCY_UPDATED,
             MercurePublisherService::MSG_VACANCY_UPDATED,
             [
-                'id' => $vacancy->getId(),
+                'vacancy' => $payload,
+                'vacancy_id' => $vacancy->getId(),
                 'title' => $vacancy->getTitle(),
-                'company' => $vacancy->getCompany(),
                 'match_score' => $overallScore,
-                'status' => $vacancy->getStatus(),
+                'data' => $payload,
             ]
         );
 

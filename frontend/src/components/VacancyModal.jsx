@@ -310,8 +310,6 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
   if (!isOpen || !vacancy) return null;
 
   const handleStatusChange = async (newStatus) => {
-    const prevStatus = status;
-    setStatus(newStatus);
     trackEvent(EVENTS.VACANCY_STATUS_CHANGE, {
       vacancy_id: vacancy.id,
       from_status: vacancy.status,
@@ -331,9 +329,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
         body: JSON.stringify({ status: newStatus })
       });
       if (!res.ok) throw new Error('Failed to update status');
+      setStatus(newStatus);
     } catch (err) {
       console.error('Failed to update status', err);
-      setStatus(prevStatus);
     }
   };
 
@@ -406,9 +404,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
   };
 
   const handleWorkplaceTypeChange = async (newType) => {
-    const prevType = workplaceType;
     const val = newType || null;
-    setWorkplaceType(val || "");
     trackEvent(EVENTS.WORKPLACE_CHANGE, {
       vacancy_id: vacancy.id,
       workplace_type: val || 'none'
@@ -420,16 +416,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
         body: JSON.stringify({ workplace_type: val })
       });
       if (!res.ok) throw new Error('Failed to update workplace type');
+      setWorkplaceType(val || "");
     } catch (err) {
       console.error('Failed to update workplace type', err);
-      setWorkplaceType(prevType);
     }
   };
 
   const handleToggleClosed = async () => {
-    const prevClosed = isClosed;
     const nextVal = !isClosed;
-    setIsClosed(nextVal);
     trackEvent(EVENTS.VACANCY_TOGGLE_CLOSED, {
       vacancy_id: vacancy.id,
       is_closed: nextVal
@@ -441,9 +435,9 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
         body: JSON.stringify({ is_closed: nextVal })
       });
       if (!res.ok) throw new Error('Failed to update closed status');
+      setIsClosed(nextVal);
     } catch (err) {
       console.error('Failed to update closed status', err);
-      setIsClosed(prevClosed);
     }
   };
 

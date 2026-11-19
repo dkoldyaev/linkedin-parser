@@ -37,14 +37,20 @@ class MercureBroadcastSubscriber implements EventSubscriberInterface
         $payload = json_decode($this->serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]), true);
 
         $topic = $vacancy->getUser() !== null
-            ? sprintf('vacancies/%d', $vacancy->getUser()->getId())
+            ? sprintf('vacancies:%d', $vacancy->getUser()->getId())
             : MercurePublisherService::DEFAULT_TOPIC;
 
         $this->mercure->publish(
             $topic,
             MercurePublisherService::EVENT_VACANCY_CREATED,
             MercurePublisherService::MSG_VACANCY_CREATED,
-            $payload
+            [
+                'vacancy' => $payload,
+                'vacancy_id' => $vacancy->getId(),
+                'title' => $vacancy->getTitle(),
+                'company' => $vacancy->getCompany(),
+                'data' => $payload,
+            ]
         );
     }
 
@@ -54,28 +60,38 @@ class MercureBroadcastSubscriber implements EventSubscriberInterface
         $payload = json_decode($this->serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]), true);
 
         $topic = $vacancy->getUser() !== null
-            ? sprintf('vacancies/%d', $vacancy->getUser()->getId())
+            ? sprintf('vacancies:%d', $vacancy->getUser()->getId())
             : MercurePublisherService::DEFAULT_TOPIC;
 
         $this->mercure->publish(
             $topic,
             MercurePublisherService::EVENT_VACANCY_UPDATED,
             MercurePublisherService::MSG_VACANCY_UPDATED,
-            $payload
+            [
+                'vacancy' => $payload,
+                'vacancy_id' => $vacancy->getId(),
+                'title' => $vacancy->getTitle(),
+                'company' => $vacancy->getCompany(),
+                'data' => $payload,
+            ]
         );
     }
 
     public function onVacancyDeleted(VacancyDeletedDomainEvent $event): void
     {
         $topic = $event->getUserId() !== null
-            ? sprintf('vacancies/%d', $event->getUserId())
+            ? sprintf('vacancies:%d', $event->getUserId())
             : MercurePublisherService::DEFAULT_TOPIC;
 
         $this->mercure->publish(
             $topic,
             MercurePublisherService::EVENT_VACANCY_DELETED,
             MercurePublisherService::MSG_VACANCY_DELETED,
-            ['id' => $event->getVacancyId()]
+            [
+                'vacancy_id' => $event->getVacancyId(),
+                'id' => $event->getVacancyId(),
+                'data' => ['id' => $event->getVacancyId()],
+            ]
         );
     }
 }

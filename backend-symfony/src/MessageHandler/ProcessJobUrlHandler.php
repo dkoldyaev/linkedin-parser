@@ -151,7 +151,7 @@ class ProcessJobUrlHandler
             $this->entityManager->flush();
 
             $topic = $message->getUserId() !== null
-                ? sprintf('vacancies/%d', $message->getUserId())
+                ? sprintf('vacancies:%d', $message->getUserId())
                 : MercurePublisherService::DEFAULT_TOPIC;
 
             $this->mercure->publish(

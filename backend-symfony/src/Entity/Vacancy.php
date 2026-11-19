@@ -19,6 +19,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: VacancyRepository::class)]
 #[ORM\Table(name: 'vacancies')]
+#[ORM\HasLifecycleCallbacks]
 #[ORM\Index(name: 'ix_vacancies_user_updated', columns: ['user_id', 'updated_at', 'id'])]
 #[ORM\Index(name: 'ix_vacancies_user_created', columns: ['user_id', 'created_at'])]
 #[ORM\Index(name: 'ix_vacancies_user_job', columns: ['user_id', 'job_id'])]
@@ -588,6 +589,12 @@ class Vacancy implements UserOwnedInterface
     {
         $this->updatedAt = $updatedAt;
         return $this;
+    }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /**

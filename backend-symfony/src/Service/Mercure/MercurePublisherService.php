@@ -48,10 +48,15 @@ class MercurePublisherService
     {
         $data = [
             'type' => $eventType,
+            'message_code' => $messageCode,
             'message' => $messageCode,
-            'data' => $payload,
             'timestamp' => microtime(true),
+            ...$payload,
         ];
+
+        if (!isset($data['data'])) {
+            $data['data'] = $payload;
+        }
 
         try {
             $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);

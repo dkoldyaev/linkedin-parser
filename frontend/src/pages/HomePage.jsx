@@ -490,14 +490,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const handleStatusChange = async (vacancyId, newStatus, lane = 0) => {
     const targetCol = columns.find(c => c.id === newStatus);
     const targetLane = targetCol?.has_lanes ? lane : 0;
-    const prevVacancies = vacancies;
-    const prevSelected = selectedVacancy;
-
-    // Optimistic UI update for smooth drag & drop
-    setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v));
-    if (selectedVacancy && selectedVacancy.id === vacancyId) {
-      setSelectedVacancy(prev => ({ ...prev, status: newStatus, lane: targetLane }));
-    }
 
     try {
       const res = await fetch(`/api/v2/vacancies/${vacancyId}`, {
@@ -508,12 +500,14 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       if (!res.ok) {
         throw new Error('Update failed');
       }
+      setVacancies(prev => prev.map(v => v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v));
+      if (selectedVacancy && selectedVacancy.id === vacancyId) {
+        setSelectedVacancy(prev => ({ ...prev, status: newStatus, lane: targetLane }));
+      }
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
       console.error('Failed to update status', err);
-      setVacancies(prevVacancies);
-      setSelectedVacancy(prevSelected);
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -523,23 +517,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
     const positions = new Map(ids.map((id, i) => [id, i]));
     const targetCol = columns.find(c => c.id === status);
     const hasLanes = targetCol ? Boolean(targetCol.has_lanes) : false;
-    const prevVacancies = vacancies;
-
-    setVacancies(prev => prev.map(v => {
-      if (!positions.has(v.id)) return v;
-      let newLane = v.lane || 0;
-      if (!hasLanes) {
-        newLane = 0;
-      } else if (v.id === movedId || movedId == null) {
-        newLane = lane;
-      }
-      return {
-        ...v,
-        status,
-        lane: newLane,
-        sort_order: positions.get(v.id)
-      };
-    }));
 
     try {
       const res = await fetch('/api/v2/vacancies/reorder', {
@@ -553,9 +530,24 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
         })
       });
       if (!res.ok) throw new Error('Reorder failed');
+
+      setVacancies(prev => prev.map(v => {
+        if (!positions.has(v.id)) return v;
+        let newLane = v.lane || 0;
+        if (!hasLanes) {
+          newLane = 0;
+        } else if (v.id === movedId || movedId == null) {
+          newLane = lane;
+        }
+        return {
+          ...v,
+          status,
+          lane: newLane,
+          sort_order: positions.get(v.id)
+        };
+      }));
     } catch (err) {
       console.error('Failed to reorder vacancies', err);
-      setVacancies(prevVacancies);
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -563,9 +555,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const handleStatusChangeMulti = async (vacancyIds, newStatus, lane = 0) => {
     const targetCol = columns.find(c => c.id === newStatus);
     const targetLane = targetCol?.has_lanes ? lane : 0;
-    const prevVacancies = vacancies;
 
-    setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v));
     try {
       const responses = await Promise.all(vacancyIds.map(vid => 
         fetch(`/api/v2/vacancies/${vid}`, {
@@ -577,11 +567,11 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       if (responses.some(r => !r.ok)) {
         throw new Error('Update failed');
       }
+      setVacancies(prev => prev.map(v => vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v));
       const localizedStatus = t(`kanban.columns.${newStatus}`);
       showToast(t('nav.moved_to', { status: localizedStatus }));
     } catch (err) {
       console.error('Failed to update status', err);
-      setVacancies(prevVacancies);
       showToast(t('nav.update_status_failed'), 'error');
     }
   };
@@ -594,7 +584,6 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
     setIsMovingAllRejected(true);
     trackEvent(EVENTS.MOVE_ALL_CLOSED_REJECTED, { count: targets.length });
-    const prevVacancies = vacancies;
 
     try {
       const ids = targets.map(v => v.id);
@@ -608,10 +597,10 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
       if (responses.some(r => !r.ok)) {
         throw new Error('Update failed');
       }
+      setVacancies(prev => prev.map(v => ids.includes(v.id) ? { ...v, status: 'Отказ' } : v));
       showToast(t('nav.move_all_to_rejected_success', { count: targets.length }));
     } catch (err) {
       console.error('Failed to move all to rejected', err);
-      setVacancies(prevVacancies);
       showToast(t('nav.update_status_failed'), 'error');
     } finally {
       setIsMovingAllRejected(false);
