@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ColorPicker, DEFAULT_PALETTE_OPTIONS } from '../molecules/ColorPicker';
+import { ColorPicker } from '../molecules/ColorPicker';
 import { TableHeader } from '../organisms/Table/TableHeader';
 import { Drawer } from '../organisms/Drawer/Drawer';
 import { VacancyCard } from '../organisms/VacancyCard/VacancyCard';
-import { Stepper, StepperItem } from '../molecules/Stepper';
+import { Stepper } from '../molecules/Stepper';
 import { Tabs } from '../molecules/Tabs/Tabs';
 import { Modal } from '../organisms/Modal/Modal';
 import { Badge } from '../atoms';
@@ -138,21 +138,20 @@ describe('UI-Kit GitHub Issues Tests', () => {
     });
   });
 
-  describe('Issue #13: Tabs custom badge node and tone support in TabItem', () => {
-    it('renders custom badge node and applies badgeTone', () => {
+  describe('Issue #13: Tabs accessory slot in TabItem', () => {
+    it('renders accessory slot accepting Badge component', () => {
       render(
         <Tabs
           items={[
             {
               value: 'score',
               label: 'Score Tab',
-              badge: <Badge variant="solid" tone="success" data-testid="custom-tab-badge">95%</Badge>,
+              accessory: <Badge variant="solid" tone="success" data-testid="custom-tab-badge">95%</Badge>,
             },
             {
-              value: 'count',
-              label: 'Count Tab',
-              count: 42,
-              badgeTone: 'warning',
+              value: 'counter',
+              label: 'Counter Tab',
+              accessory: <Badge variant="counter" size="xs" tone="warning" data-testid="counter-tab-badge">42</Badge>,
             },
           ]}
           data-testid="tabs-root"
@@ -164,7 +163,9 @@ describe('UI-Kit GitHub Issues Tests', () => {
       expect(customBadge).toBeInTheDocument();
       expect(customBadge).toHaveTextContent('95%');
 
-      expect(screen.getByText('42')).toBeInTheDocument();
+      const counterBadge = screen.getByTestId('counter-tab-badge');
+      expect(counterBadge).toBeInTheDocument();
+      expect(counterBadge).toHaveTextContent('42');
     });
   });
 

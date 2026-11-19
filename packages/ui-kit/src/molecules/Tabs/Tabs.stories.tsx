@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Tabs } from './Tabs';
-import { Text } from '../../atoms';
+import { Badge, Text } from '../../atoms';
 
 const meta: Meta<typeof Tabs> = {
   title: 'Molecules/Tabs',
@@ -19,7 +19,11 @@ export const Default: Story = {
         {
           value: 'overview',
           label: 'Overview & Keywords',
-          count: 14,
+          accessory: (
+            <Badge variant="counter" size="xs" tone="primary">
+              14
+            </Badge>
+          ),
           content: (
             <Text as="p" variant="body">
               Extracted technology tokens, company details, and salary range.
@@ -29,7 +33,11 @@ export const Default: Story = {
         {
           value: 'cv',
           label: 'Adapted CV Versions',
-          count: 3,
+          accessory: (
+            <Badge variant="counter" size="xs" tone="neutral">
+              3
+            </Badge>
+          ),
           content: (
             <Text as="p" variant="body">
               Version history of tailored resumes generated for this vacancy.
