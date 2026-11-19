@@ -10,14 +10,14 @@ services:
     volumes:
       - ./data:/app/data
     environment:
+      - APP_ENV=prod
+      - APP_SECRET=${JWT_SECRET}
+      - SERVER_NAME=:8000
       - APP_URL=${APP_URL}
       - DATA_DIR=/app/data
-      - SQL_DIAGNOSTICS=${SQL_DIAGNOSTICS:-false}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:8000}
-      - DATABASE_URL=${DATABASE_URL:-}
+      - DATABASE_URL=${DATABASE_URL}
       - BROKER_URL=${BROKER_URL}
-      - STATIC_DIR=/app/static
+      - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN:-doctrine://default}
       - LLM_PROVIDER=${LLM_PROVIDER:-mistral}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       - MISTRAL_MODEL=${MISTRAL_MODEL:-mistral-small-latest}
@@ -35,11 +35,10 @@ services:
       - EXTENSION_ID=${EXTENSION_ID:-}
       - PARSER_API_URL=${PARSER_API_URL}
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
-      - ALLRATESTODAY_API_KEY=${ALLRATESTODAY_API_KEY:-}
     depends_on:
       - mercure
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ | grep -q '<div id=\"root\"></div>'"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health | grep -q 'ok'"]
       interval: 5s
       timeout: 5s
       retries: 3

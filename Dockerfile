@@ -1,4 +1,4 @@
-# Stage 1: Build Frontend Assets
+# Stage 1: Build Frontend Assets & Extension
 FROM node:24-alpine AS frontend-builder
 WORKDIR /app
 
@@ -24,38 +24,45 @@ COPY extension/ ./extension/
 RUN npm run extension:build
 RUN cd extension/dist && zip -r /app/frontend/dist/extension.zip *
 
-# Stage 2: Python Backend Runtime
-FROM python:3.11-slim
+# Stage 2: Symfony Backend Runtime with FrankenPHP
+FROM dunglas/frankenphp:1-php8.3
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    SERVER_NAME=":8000"
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    STATIC_DIR=/app/static \
-    DATA_DIR=/app/data
-
-# Install curl for healthcheck and Chromium for selenium-driverless
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    chromium \
-    chromium-driver \
+    git \
+    unzip \
+    libpq-dev \
+    librabbitmq-dev \
+    && install-php-extensions \
+        pdo_pgsql \
+        intl \
+        zip \
+        apcu \
+        opcache \
+        amqp \
+        redis \
     && rm -rf /var/lib/apt/lists/*
-COPY backend/requirements.lock ./
-RUN pip install --no-cache-dir -r requirements.lock
 
-# Copy backend application and scripts
-COPY backend/ ./backend
-COPY scripts/ ./scripts
+# Copy Symfony backend application
+COPY backend-symfony/ /app/
 
-# Copy built frontend assets to static dir
-COPY --from=frontend-builder /app/frontend/dist /app/static
+# Install composer dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Create data dir for SQLite persistence
-RUN mkdir -p /app/data && chmod -R 777 /app/data
+# Copy built frontend assets to public directory
+COPY --from=frontend-builder /app/frontend/dist /app/public
+
+# Ensure entrypoint is executable
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=5s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/ | grep -q '<div id="root"></div>'
+    CMD curl -fsS http://127.0.0.1:8000/api/health | grep -q 'ok'
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

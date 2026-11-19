@@ -1,0 +1,4 @@
+services:
+  postgres:
+    volumes:
+      - ./docker/fixtures/init_fixtures.sql:/docker-entrypoint-initdb.d/01_fixtures.sql:ro

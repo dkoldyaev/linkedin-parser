@@ -1,0 +1,16 @@
+api_platform:
+    title: LinkedIn Vacancy Tracker API
+    version: 2.0.0
+    name_converter: 'serializer.name_converter.camel_case_to_snake_case'
+    formats:
+        json: ['application/json']
+        jsonld: ['application/ld+json']
+        html: ['text/html']
+    defaults:
+        stateless: true
+        pagination_enabled: false
+        normalization_context:
+            skip_null_values: false
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+

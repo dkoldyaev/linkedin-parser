@@ -1481,7 +1481,7 @@ def get_vacancy_history_list(
     history_records = (
         db.query(VacancyStatusHistory)
         .filter(VacancyStatusHistory.vacancy_id == v.id)
-        .order_by(VacancyStatusHistory.changed_at.desc(), VacancyStatusHistory.id.desc())
+        .order_by(VacancyStatusHistory.created_at.desc(), VacancyStatusHistory.id.desc())
         .all()
     )
     return [VacancyHistoryItem.model_validate(h) for h in history_records]

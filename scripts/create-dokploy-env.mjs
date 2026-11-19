@@ -201,9 +201,13 @@ function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgP
   const mercureInternalHost = composeAppName ? `${composeAppName}-mercure-1` : 'mercure';
 
   return [
+    `APP_ENV=prod`,
+    `APP_SECRET=${requireEnvVar('JWT_SECRET')}`,
+    `SERVER_NAME=:8000`,
     `APP_URL=${fullDomain}`,
-    `DATABASE_URL=${postgresUrl}`,
+    `DATABASE_URL=${postgresUrl}?serverVersion=16&charset=utf8`,
     `BROKER_URL=${redisUrl}`,
+    `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0`,
     `LLM_PROVIDER=${llmProvider}`,
     `MISTRAL_API_KEY=${envVars['MISTRAL_API_KEY'] || ''}`,
     `MISTRAL_MODEL=${envVars['MISTRAL_MODEL'] || 'mistral-small-latest'}`,
@@ -607,7 +611,16 @@ async function main() {
     while (Date.now() - startupWaitStart < 120000) {
       try {
         const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
-        if (logs && (logs.includes('Application startup complete') || logs.includes('Uvicorn running on'))) {
+        if (
+          logs &&
+          (logs.includes('FrankenPHP') ||
+            logs.includes('Caddy started') ||
+            logs.includes('server is listening') ||
+            logs.includes('Starting FrankenPHP') ||
+            logs.includes('ready to handle requests') ||
+            logs.includes('Application startup complete') ||
+            logs.includes('Uvicorn running on'))
+        ) {
           startupComplete = true;
           console.log('\n\x1b[32m✅ Application successfully started!\x1b[0m');
           break;
@@ -667,6 +680,12 @@ if not cur.fetchone()[0]:
     conn.close()
     sys.exit(0)
 
+# Check user table columns
+cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'users';")
+cols = [r[0] for r in cur.fetchall()]
+has_is_admin = "is_admin" in cols
+has_roles = "roles" in cols
+
 updated_users = []
 for email in emails:
     cur.execute("SELECT id, name FROM users WHERE lower(email) = lower(%s);", (email,))
@@ -679,15 +698,27 @@ for email in emails:
                 VALUES (%s, %s, NOW())
                 ON CONFLICT (user_id, flag) DO NOTHING;
             """, (u_id, f))
+        if has_is_admin and has_roles:
+            cur.execute("UPDATE users SET is_admin = true, roles = '[\"ROLE_USER\", \"ROLE_ADMIN\"]' WHERE id = %s;", (u_id,))
+        elif has_is_admin:
+            cur.execute("UPDATE users SET is_admin = true WHERE id = %s;", (u_id,))
         updated_users.append(f"{u_name or email} (id: {u_id})")
     else:
-        # If user doesn't exist yet, insert a pre-seeded account so they are immediately admin
-        cur.execute("""
-            INSERT INTO users (google_id, email, name, feature_flags, is_anonymous, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, false, NOW(), NOW())
-            RETURNING id;
-        """, (f"admin_{email}", email, email.split("@")[0], "[]"))
-        new_id = cur.fetchone()[0]
+        if has_is_admin and has_roles:
+            cur.execute("""
+                INSERT INTO users (email, name, is_admin, roles, created_at, updated_at)
+                VALUES (%s, %s, true, '[\"ROLE_USER\", \"ROLE_ADMIN\"]', NOW(), NOW())
+                RETURNING id;
+            """, (email, email.split("@")[0]))
+            new_id = cur.fetchone()[0]
+        else:
+            cur.execute("""
+                INSERT INTO users (google_id, email, name, feature_flags, is_anonymous, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, false, NOW(), NOW())
+                RETURNING id;
+            """, (f"admin_{email}", email, email.split("@")[0], "[]"))
+            new_id = cur.fetchone()[0]
+
         for f in flags:
             cur.execute("""
                 INSERT INTO user_feature_flags (user_id, flag, created_at)

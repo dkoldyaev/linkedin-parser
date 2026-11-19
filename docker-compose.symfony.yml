@@ -1,0 +1,68 @@
+services:
+  app-symfony:
+    container_name: linkedin-parser-symfony
+    build:
+      context: .
+      dockerfile: backend-symfony/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${JWT_SECRET:-dev_secret_key_symfony}
+      DATABASE_URL: postgresql://app:secret@postgres:5432/app_symfony?serverVersion=16&charset=utf8
+      MESSENGER_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672/%2f/messages
+      MERCURE_URL: ${MERCURE_URL:-http://mercure:80/.well-known/mercure}
+      MERCURE_PUBLIC_URL: ${MERCURE_PUBLIC_URL:-/.well-known/mercure}
+      MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET}
+      PARSER_API_URL: http://parser-api:4000
+      LLM_PROVIDER: mock
+    depends_on:
+      - postgres
+      - rabbitmq
+      - mercure
+      - parser-api
+
+  postgres:
+    container_name: linkedin-parser-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app_symfony
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  rabbitmq:
+    container_name: linkedin-parser-rabbitmq
+    image: rabbitmq:3-management-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  mercure:
+    container_name: linkedin-parser-mercure
+    image: dunglas/mercure:v0.16
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:-random_secret_for_mercure_dev}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-random_secret_for_mercure_dev}
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://localhost:5173 http://localhost:8000 http://localhost:8001
+
+  parser-api:
+    container_name: linkedin-parser-parser-api
+    build:
+      context: .
+      dockerfile: services/parser-api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:
