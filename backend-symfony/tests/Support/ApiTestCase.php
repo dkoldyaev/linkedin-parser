@@ -90,4 +90,20 @@ abstract class ApiTestCase extends WebTestCase
 
         return $event;
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function assertMercureAdminEvent(string $eventType): array
+    {
+        foreach (array_reverse($this->mercureHub->getPublishedUpdates()) as $item) {
+            if (in_array(\App\Service\Mercure\MercurePublisherService::ADMIN_TOPIC, $item['topics'], true)
+                && isset($item['data']['type'])
+                && $item['data']['type'] === $eventType) {
+                return $item['data'];
+            }
+        }
+
+        $this->fail(sprintf('Mercure event "%s" on admin topic "%s" was not published.', $eventType, \App\Service\Mercure\MercurePublisherService::ADMIN_TOPIC));
+    }
 }

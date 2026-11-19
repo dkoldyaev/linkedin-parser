@@ -37,7 +37,7 @@ class DashboardController extends AbstractDashboardController
         if ($user instanceof User) {
             $currentRequest = $this->requestStack->getCurrentRequest();
             if ($currentRequest !== null) {
-                $cookie = $this->mercure->createSubscriberCookie($currentRequest, (int)$user->getId());
+                $cookie = $this->mercure->createAdminSubscriberCookie($currentRequest, (int)$user->getId());
                 $response->headers->setCookie($cookie);
             }
         }

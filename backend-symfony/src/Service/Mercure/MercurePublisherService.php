@@ -14,6 +14,7 @@ use Symfony\Component\Mercure\Update;
 class MercurePublisherService
 {
     public const DEFAULT_TOPIC = 'vacancies';
+    public const ADMIN_TOPIC = 'admin:events';
     public const COOKIE_NAME = 'mercureAuthorization';
     public const SUBSCRIBER_TTL = 3600;
 
@@ -24,6 +25,7 @@ class MercurePublisherService
     public const EVENT_QUEUE_UPDATED = 'queue_updated';
     public const EVENT_QUEUE_STATE = 'queue_state';
     public const EVENT_EXTENSION_TASK = 'extension_task';
+    public const EVENT_TOKEN_USAGE_CREATED = 'token_usage_created';
 
     public const MSG_VACANCY_CREATED = 'VACANCY_CREATED';
     public const MSG_VACANCY_UPDATED = 'VACANCY_UPDATED';
@@ -31,6 +33,7 @@ class MercurePublisherService
     public const MSG_TASK_FAILED = 'TASK_FAILED';
     public const MSG_QUEUE_UPDATED = 'QUEUE_UPDATED';
     public const MSG_EXTENSION_TASK = 'EXTENSION_TASK';
+    public const MSG_TOKEN_USAGE_CREATED = 'TOKEN_USAGE_CREATED';
 
     private HubInterface $hub;
     private LoggerInterface $logger;
@@ -79,6 +82,34 @@ class MercurePublisherService
         }
 
         $grant = new Grant([Grant::ACTION_SUBSCRIBE], [$topic, self::DEFAULT_TOPIC]);
+        $jwt = $factory->create([$grant], [
+            'sub' => (string)$userId,
+            'exp' => new \DateTimeImmutable('+' . self::SUBSCRIBER_TTL . ' seconds'),
+        ]);
+
+        $forwardedProto = $request->headers->get('x-forwarded-proto');
+        $isSecure = $request->isSecure()
+            || $forwardedProto === 'https'
+            || (isset($_SERVER['APP_URL']) && str_starts_with((string)$_SERVER['APP_URL'], 'https://'));
+
+        return Cookie::create(self::COOKIE_NAME)
+            ->withValue($jwt)
+            ->withExpires(time() + self::SUBSCRIBER_TTL)
+            ->withPath('/.well-known/mercure')
+            ->withHttpOnly(true)
+            ->withSameSite('lax')
+            ->withSecure($isSecure);
+    }
+
+    public function createAdminSubscriberCookie(Request $request, int $userId): Cookie
+    {
+        $topic = 'vacancies:' . $userId;
+        $factory = $this->hub->getFactory();
+        if ($factory === null) {
+            throw new \RuntimeException('Mercure Hub does not have a TokenFactory configured.');
+        }
+
+        $grant = new Grant([Grant::ACTION_SUBSCRIBE], [self::ADMIN_TOPIC, 'admin', $topic, self::DEFAULT_TOPIC]);
         $jwt = $factory->create([$grant], [
             'sub' => (string)$userId,
             'exp' => new \DateTimeImmutable('+' . self::SUBSCRIBER_TTL . ' seconds'),

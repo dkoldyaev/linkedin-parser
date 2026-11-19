@@ -113,4 +113,104 @@ class AdminSecurityAndEasyAdminE2ETest extends ApiTestCase
         $this->assertSame(200, $resRateLimited->getStatusCode());
         $this->assertStringContainsString('Слишком много попыток входа', (string)$resRateLimited->getContent());
     }
+
+    public function testAdminMercureRealtimeEventsAndCookieAuthorization(): void
+    {
+        $this->authenticateClientAs($this->client, 'dev@local.user', 'Dev User');
+
+        // 1. Visiting /admin sets mercureAuthorization cookie granting subscription to admin:events
+        $this->client->request('GET', '/admin');
+        $cookie = $this->client->getCookieJar()->get('mercureAuthorization', '/.well-known/mercure');
+        $this->assertNotNull($cookie, 'Admin visiting /admin must receive mercureAuthorization cookie.');
+
+        $tokenParts = explode('.', $cookie->getValue());
+        $this->assertCount(3, $tokenParts);
+        $payload = json_decode((string) base64_decode(strtr($tokenParts[1], '-_', '+/')), true);
+        $this->assertIsArray($payload);
+        $this->assertArrayHasKey('mercure', $payload);
+        $subscribeGrants = $payload['mercure']['subscribe'] ?? [];
+        $this->assertContains(\App\Service\Mercure\MercurePublisherService::ADMIN_TOPIC, $subscribeGrants);
+
+        // 2. Doctrine event for Vacancy -> published to admin:events
+        $em = static::getContainer()->get('doctrine.orm.entity_manager');
+        $user = $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'dev@local.user']);
+        $this->assertNotNull($user);
+
+        $now = new \DateTimeImmutable();
+        $vacancy = new \App\Entity\Vacancy();
+        $vacancy->setUrl('https://www.linkedin.com/jobs/view/777888999');
+        $vacancy->setTitle('Staff Engineer Realtime');
+        $vacancy->setCompany('Antigravity');
+        $vacancy->setStatus(\App\Entity\Vacancy::STATUS_NOT_CONTACTED);
+        $vacancy->setIsClosed(false);
+        $vacancy->setLane(0);
+        $vacancy->setTechStack(['PHP', 'Symfony', 'Mercure']);
+        $vacancy->setTags([]);
+        $vacancy->setUser($user);
+        $vacancy->setCreatedAt($now);
+        $vacancy->setUpdatedAt($now);
+
+        $em->persist($vacancy);
+        $em->flush();
+
+        $vacancyCreatedEvent = $this->assertMercureAdminEvent(\App\Service\Mercure\MercurePublisherService::EVENT_VACANCY_CREATED);
+        $this->assertSame('vacancy', $vacancyCreatedEvent['data']['entity'] ?? null);
+        $this->assertSame('created', $vacancyCreatedEvent['data']['action'] ?? null);
+        $this->assertSame('Staff Engineer Realtime', $vacancyCreatedEvent['data']['title'] ?? null);
+
+        // 3. Updating Vacancy status -> published to admin:events
+        $vacancy->setStatus(\App\Entity\Vacancy::STATUS_CONTACTED);
+        $em->flush();
+
+        $vacancyUpdatedEvent = $this->assertMercureAdminEvent(\App\Service\Mercure\MercurePublisherService::EVENT_VACANCY_UPDATED);
+        $this->assertSame('vacancy', $vacancyUpdatedEvent['data']['entity'] ?? null);
+        $this->assertSame('updated', $vacancyUpdatedEvent['data']['action'] ?? null);
+        $this->assertSame(\App\Entity\Vacancy::STATUS_CONTACTED, $vacancyUpdatedEvent['data']['status'] ?? null);
+
+        // 4. Doctrine event for ProcessingQueueItem -> published to admin:events
+        $queueItem = new \App\Entity\ProcessingQueueItem(
+            'task-test-realtime-admin',
+            'https://www.linkedin.com/jobs/view/777888999',
+            'pending',
+            'queued',
+            0,
+            $now
+        );
+        $queueItem->setUser($user);
+        $queueItem->setVacancyId($vacancy->getId());
+        $em->persist($queueItem);
+        $em->flush();
+
+        $queueCreatedEvent = $this->assertMercureAdminEvent(\App\Service\Mercure\MercurePublisherService::EVENT_QUEUE_UPDATED);
+        $this->assertSame('queue', $queueCreatedEvent['data']['entity'] ?? null);
+        $this->assertSame('task-test-realtime-admin', $queueCreatedEvent['data']['task_id'] ?? null);
+
+        // 5. Doctrine event for UserLLMTokenUsage -> published to admin:events
+        $tokenUsage = new \App\Entity\UserLLMTokenUsage(
+            $user,
+            'gemini',
+            'gemini-2.0-flash',
+            100,
+            50,
+            150,
+            $now
+        );
+        $em->persist($tokenUsage);
+        $em->flush();
+
+        $tokenEvent = $this->assertMercureAdminEvent(\App\Service\Mercure\MercurePublisherService::EVENT_TOKEN_USAGE_CREATED);
+        $this->assertSame('token_usage', $tokenEvent['data']['entity'] ?? null);
+        $this->assertSame('gemini', $tokenEvent['data']['provider'] ?? null);
+        $this->assertSame(150, $tokenEvent['data']['total_tokens'] ?? null);
+
+        // 6. Doctrine event for Vacancy deletion -> published to admin:events
+        $vacancyId = $vacancy->getId();
+        $em->remove($vacancy);
+        $em->flush();
+
+        $vacancyDeletedEvent = $this->assertMercureAdminEvent(\App\Service\Mercure\MercurePublisherService::EVENT_VACANCY_DELETED);
+        $this->assertSame('vacancy', $vacancyDeletedEvent['data']['entity'] ?? null);
+        $this->assertSame('deleted', $vacancyDeletedEvent['data']['action'] ?? null);
+        $this->assertSame($vacancyId, $vacancyDeletedEvent['data']['id'] ?? null);
+    }
 }
