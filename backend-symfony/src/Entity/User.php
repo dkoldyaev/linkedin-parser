@@ -13,6 +13,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -26,7 +27,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
     ],
     security: "is_granted('ROLE_ADMIN')"
 )]
-class User implements UserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -37,6 +38,9 @@ class User implements UserInterface
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
     #[Groups(['user:read'])]
     private string $email;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $password = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     #[Groups(['user:read'])]
@@ -184,6 +188,17 @@ class User implements UserInterface
 
     public function eraseCredentials(): void
     {
+    }
+
+    public function getPassword(): ?string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(?string $password): self
+    {
+        $this->password = $password;
+        return $this;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

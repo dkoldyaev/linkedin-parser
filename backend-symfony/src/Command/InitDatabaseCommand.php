@@ -19,6 +19,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
     name: 'app:init-database',
@@ -27,17 +28,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class InitDatabaseCommand extends Command
 {
     private EntityManagerInterface $entityManager;
+    private UserPasswordHasherInterface $passwordHasher;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher)
     {
         parent::__construct();
         $this->entityManager = $entityManager;
+        $this->passwordHasher = $passwordHasher;
     }
 
     protected function configure(): void
     {
         $this->addOption('mock-data', null, InputOption::VALUE_NONE, 'Seed mock vacancies and fixtures');
         $this->addOption('admin-email', null, InputOption::VALUE_REQUIRED, 'Admin email to grant admin permissions');
+        $this->addOption('admin-password', null, InputOption::VALUE_REQUIRED, 'Admin password to set for admin accounts');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -73,6 +77,12 @@ class InitDatabaseCommand extends Command
             $adminEmails[] = 'dkoldyaev@gmail.com';
         }
 
+        $adminPasswordOption = $input->getOption('admin-password');
+        $adminPasswordEnv = isset($_ENV['ADMIN_PASSWORD']) ? (string)$_ENV['ADMIN_PASSWORD'] : (isset($_SERVER['ADMIN_PASSWORD']) ? (string)$_SERVER['ADMIN_PASSWORD'] : '');
+        $adminPassword = $adminPasswordOption !== null && (string)$adminPasswordOption !== ''
+            ? (string)$adminPasswordOption
+            : ($adminPasswordEnv !== '' ? $adminPasswordEnv : 'AdminSecure2026!#');
+
         $userRepo = $this->entityManager->getRepository(User::class);
         $flagRepo = $this->entityManager->getRepository(UserFeatureFlag::class);
         $apiKeyRepo = $this->entityManager->getRepository(ApiKey::class);
@@ -94,14 +104,16 @@ class InitDatabaseCommand extends Command
                     ['ROLE_USER', 'ROLE_ADMIN'],
                     $now
                 );
+                $user->setPassword($this->passwordHasher->hashPassword($user, $adminPassword));
                 $this->entityManager->persist($user);
                 $this->entityManager->flush();
                 $io->info(sprintf('Created admin user: %s (ID: %d)', $email, (int)$user->getId()));
             } else {
                 $user->setIsAdmin(true);
                 $user->setRoles(['ROLE_USER', 'ROLE_ADMIN']);
+                $user->setPassword($this->passwordHasher->hashPassword($user, $adminPassword));
                 $this->entityManager->flush();
-                $io->info(sprintf('Updated existing user with admin privileges: %s (ID: %d)', $email, (int)$user->getId()));
+                $io->info(sprintf('Updated existing user with admin privileges and password: %s (ID: %d)', $email, (int)$user->getId()));
             }
 
             // Ensure feature flags
