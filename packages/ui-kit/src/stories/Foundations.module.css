@@ -109,6 +109,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--ui-space-3);
+    width: 300px;
   }
 
   .spacingRow {
@@ -136,23 +137,44 @@
     box-shadow: inset 0 0 0 1px var(--ui-primary-hover);
   }
 
+  .space-0 {
+    width: var(--ui-space-0);
+  }
+  .space-0-5 {
+    width: var(--ui-space-0-5);
+  }
   .space-1 {
     width: var(--ui-space-1);
+  }
+  .space-1-5 {
+    width: var(--ui-space-1-5);
   }
   .space-2 {
     width: var(--ui-space-2);
   }
+  .space-2-5 {
+    width: var(--ui-space-2-5);
+  }
   .space-3 {
     width: var(--ui-space-3);
   }
+  .space-3-5 {
+    width: var(--ui-space-3-5);
+  }
   .space-4 {
     width: var(--ui-space-4);
+  }
+  .space-5 {
+    width: var(--ui-space-5);
   }
   .space-6 {
     width: var(--ui-space-6);
   }
   .space-8 {
     width: var(--ui-space-8);
+  }
+  .space-10 {
+    width: var(--ui-space-10);
   }
   .space-12 {
     width: var(--ui-space-12);

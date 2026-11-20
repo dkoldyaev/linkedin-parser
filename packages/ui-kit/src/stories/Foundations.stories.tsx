@@ -64,12 +64,19 @@ const PREVIEW_CLASS_MAP: Record<string, string> = {
 };
 
 const SPACING_CLASS_MAP: Record<string, string> = {
+  '--ui-space-0': styles['space-0'],
+  '--ui-space-0-5': styles['space-0-5'],
   '--ui-space-1': styles['space-1'],
+  '--ui-space-1-5': styles['space-1-5'],
   '--ui-space-2': styles['space-2'],
+  '--ui-space-2-5': styles['space-2-5'],
   '--ui-space-3': styles['space-3'],
+  '--ui-space-3-5': styles['space-3-5'],
   '--ui-space-4': styles['space-4'],
+  '--ui-space-5': styles['space-5'],
   '--ui-space-6': styles['space-6'],
   '--ui-space-8': styles['space-8'],
+  '--ui-space-10': styles['space-10'],
   '--ui-space-12': styles['space-12'],
   '--ui-space-16': styles['space-16'],
 };
@@ -207,12 +214,10 @@ function SpacingCatalog(): React.ReactElement {
               <Text variant="mono" weight="semibold">
                 {token.cssVar}
               </Text>
-              <Badge size="sm" tone={isCopied ? 'success' : 'neutral'}>
-                {isCopied ? 'Copied!' : `${token.px}px (${token.gridFraction})`}
-              </Badge>
               <div
                 className={`${styles.spacingBar} ${SPACING_CLASS_MAP[token.cssVar] ?? ''}`}
               />
+              {isCopied && <Badge size="xs" tone="success">Copied!</Badge>}
             </button>
           );
         })}

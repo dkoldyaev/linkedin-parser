@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Button, StatusDot, type StatusDotPalette, Text, Input, Icon } from '../../atoms';
 import { Pipette } from 'lucide-react';
 import { useKeyboardNavigation } from '../../hooks';
@@ -13,7 +13,7 @@ export interface ColorOption {
 }
 
 export const DEFAULT_PALETTE_OPTIONS: readonly ColorOption[] = [
-  { id: 'slate', label: 'Slate', palette: 'slate', hex: '#475569' },
+  // { id: 'slate', label: 'Slate', palette: 'slate', hex: '#475569' },
   { id: 'blue', label: 'Blue', palette: 'blue', hex: '#2563eb' },
   { id: 'purple', label: 'Purple', palette: 'purple', hex: '#9333ea' },
   { id: 'emerald', label: 'Emerald', palette: 'emerald', hex: '#059669' },
@@ -30,8 +30,6 @@ export interface ColorPickerProps extends Omit<React.HTMLAttributes<HTMLDivEleme
   readonly onChange: (color: string) => void;
   readonly options?: readonly ColorOption[];
   readonly presets?: readonly string[];
-  readonly allowCustom?: boolean;
-  readonly customInputSlot?: React.ReactNode;
   readonly disabled?: boolean;
   readonly ariaLabel?: string;
   readonly className?: string;
@@ -46,8 +44,6 @@ export function ColorPicker({
   onChange,
   options,
   presets,
-  allowCustom = true,
-  customInputSlot,
   disabled = false,
   ariaLabel = 'Color palette',
   className,
@@ -91,17 +87,13 @@ export function ColorPicker({
     },
   });
 
-  const isMatchedPreset = resolvedOptions.some(
-    (opt) =>
-      opt.id.toLowerCase() === value.toLowerCase() ||
-      (opt.hex !== undefined && opt.hex.toLowerCase() === value.toLowerCase())
-  );
+  // const nativeColorValue = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)
+  //   ? value.length === 4
+  //     ? `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`
+  //     : value
+  //   : '#2563eb';
+  const [nativeColorValue, setNativeColorValue] = useState<string | undefined>(undefined);
 
-  const nativeColorValue = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)
-    ? value.length === 4
-      ? `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`
-      : value
-    : '#2563eb';
 
   const previewRef = React.useRef<HTMLSpanElement | null>(null);
   React.useEffect(() => {
@@ -110,7 +102,15 @@ export function ColorPicker({
     }
   }, [value]);
 
+  const customColorInputRef = useRef<HTMLInputElement>(null);
+  const handleClickCustomColorInput = () => {
+    const input = customColorInputRef.current;
+    if (!input) return;
+    input.click();
+  };
+
   return (
+    <>
     <div
       role="radiogroup"
       aria-label={ariaLabel}
@@ -119,6 +119,21 @@ export function ColorPicker({
       {...rest}
     >
       <div className={styles.grid}>
+          <Button
+            variant={value === nativeColorValue ? 'primary' : 'secondary'}
+            aria-checked={value === nativeColorValue}
+            disabled={disabled}
+            onClick={handleClickCustomColorInput}
+            startIcon={
+              <StatusDot
+                color={nativeColorValue}
+                size="sm"
+              />
+            }
+            // className={cn(styles.swatch, value === nativeColorValue && styles.selected)}
+          >
+            {nativeColorValue || 'Custom'}
+          </Button>
         {resolvedOptions.map((option) => {
           const isSelected =
             option.id.toLowerCase() === value.toLowerCase() ||
@@ -126,7 +141,7 @@ export function ColorPicker({
           return (
             <Button
               key={option.id}
-              variant="secondary"
+              variant={isSelected ? 'primary' : 'secondary'}
               role="radio"
               aria-checked={isSelected}
               disabled={disabled}
@@ -138,54 +153,27 @@ export function ColorPicker({
                   size="sm"
                 />
               }
-              className={cn(styles.swatch, isSelected && styles.selected)}
+              // className={cn(styles.swatch, isSelected && styles.selected)}
             >
-              <Text variant="mono" tone={isSelected ? 'accent' : 'secondary'} truncate>
+              {/* <Text variant="mono" tone={isSelected ? 'accent' : 'secondary'} truncate> */}
                 {option.label}
-              </Text>
+              {/* </Text> */}
             </Button>
           );
         })}
       </div>
 
-      {allowCustom && (
-        customInputSlot !== undefined ? (
-          <div className={styles.customRow}>{customInputSlot}</div>
-        ) : (
-          <div className={styles.customRow}>
-            <label className={styles.colorInputLabel} title="Choose custom color">
-              <span
-                ref={previewRef}
-                className={styles.colorPreview}
-              >
-                <Icon icon={Pipette} size="2xs" />
-              </span>
-              <input
-                type="color"
-                value={nativeColorValue}
-                disabled={disabled}
-                onChange={(e) => onChange(e.target.value)}
-                className={styles.nativeColorInput}
-                aria-label="Custom color picker"
-              />
-            </label>
-            <Input
-              size="sm"
-              value={value}
-              disabled={disabled}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="#000000"
-              aria-label="Hex color value"
-              className={styles.hexInput}
-            />
-            {!isMatchedPreset && value && (
-              <Text variant="mono" tone="accent" className={styles.customBadge}>
-                CUSTOM
-              </Text>
-            )}
-          </div>
-        )
-      )}
     </div>
+          <input
+            ref={customColorInputRef}
+            type="color"
+            value={nativeColorValue}
+            aria-checked={value === nativeColorValue}
+            disabled={disabled}
+            onChange={(e) => setNativeColorValue(e.target.value)}
+            className={styles.nativeColorInput}
+            aria-label="Custom color picker"
+          />
+    </>
   );
 }
