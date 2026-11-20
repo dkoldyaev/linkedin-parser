@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Button, StatusDot, type StatusDotPalette, Text, Input, Icon } from '../../atoms';
-import { Pipette } from 'lucide-react';
+import { Button, StatusDot, type StatusDotPalette } from '../../atoms';
 import { useKeyboardNavigation } from '../../hooks';
 import { cn } from '../../utils';
 import styles from './ColorPicker.module.css';
