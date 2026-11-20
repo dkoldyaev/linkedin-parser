@@ -3,7 +3,7 @@ import { TableCol } from './TableCol';
 import { TableHeader } from './TableHeader';
 import { TableBody } from './TableBody';
 import { TableCell } from './TableCell';
-import { Text } from '../../atoms';
+import { StatusDot, Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof TableCol> = {
@@ -27,7 +27,15 @@ export const DefaultGridUnits10: Story = {
   render: () => (
     <div className={layoutStyles.row}>
       <TableCol gridUnits={10}>
-        <TableHeader index="[ 01 ]" indicatorColor="blue" title="10 Grid Units (320px)" />
+        <TableHeader>
+          <Text as="span" variant="mono" weight="semibold" tone="accent">
+            [ 01 ]
+          </Text>
+          <StatusDot palette="blue" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+            10 Grid Units (320px)
+          </Text>
+        </TableHeader>
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
@@ -46,7 +54,15 @@ export const WidthVariants: Story = {
   render: () => (
     <div className={layoutStyles.row}>
       <TableCol gridUnits={8}>
-        <TableHeader index="8" indicatorColor="cyan" title="8 Units (256px)" />
+        <TableHeader>
+          <Text as="span" variant="mono" weight="semibold" tone="accent">
+            8
+          </Text>
+          <StatusDot palette="cyan" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+            8 Units (256px)
+          </Text>
+        </TableHeader>
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
@@ -57,7 +73,15 @@ export const WidthVariants: Story = {
       </TableCol>
 
       <TableCol gridUnits={10}>
-        <TableHeader index="10" indicatorColor="emerald" title="10 Units (320px)" />
+        <TableHeader>
+          <Text as="span" variant="mono" weight="semibold" tone="accent">
+            10
+          </Text>
+          <StatusDot palette="emerald" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+            10 Units (320px)
+          </Text>
+        </TableHeader>
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
@@ -68,7 +92,15 @@ export const WidthVariants: Story = {
       </TableCol>
 
       <TableCol gridUnits={12}>
-        <TableHeader index="12" indicatorColor="purple" title="12 Units (384px)" />
+        <TableHeader>
+          <Text as="span" variant="mono" weight="semibold" tone="accent">
+            12
+          </Text>
+          <StatusDot palette="purple" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+            12 Units (384px)
+          </Text>
+        </TableHeader>
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
@@ -85,7 +117,15 @@ export const DragOverActiveDropzone: Story = {
   render: () => (
     <div className={layoutStyles.row}>
       <TableCol gridUnits={10} isDragOver>
-        <TableHeader index="[ DROP ]" indicatorColor="amber" title="Drop Target" />
+        <TableHeader>
+          <Text as="span" variant="mono" weight="semibold" tone="accent">
+            [ DROP ]
+          </Text>
+          <StatusDot palette="amber" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+            Drop Target
+          </Text>
+        </TableHeader>
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>

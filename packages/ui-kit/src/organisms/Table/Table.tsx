@@ -11,6 +11,15 @@ import styles from './Table.module.css';
 
 export interface TableProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly layout?: 'columns' | 'rows';
+  /** When true with layout="columns", all direct TableCol child columns expand to take maximum available width. */
+  readonly fluidColumns?: boolean;
+  /**
+   * When true with layout="columns", columns are quantized to equal maximum multiples of the 32px grid (--ui-grid-cell),
+   * leaving remainder/extra space for a trailing rail (e.g. "Add column").
+   */
+  readonly quantizeColumns?: boolean;
+  /** Minimum width in grid units for quantized columns (default: 8 units = 256px). */
+  readonly minColGridUnits?: number;
   readonly snapScroll?: boolean;
   readonly fullHeight?: boolean;
   readonly bordered?: boolean;
@@ -26,6 +35,9 @@ export interface TableProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table(
   {
     layout = 'columns',
+    fluidColumns = false,
+    quantizeColumns = false,
+    minColGridUnits = 8,
     snapScroll = true,
     fullHeight = true,
     bordered = false,
@@ -34,9 +46,61 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
     onScroll,
     ...restProps
   },
-  ref
+  forwardedRef
 ): React.ReactElement {
+  const internalRef = React.useRef<HTMLDivElement | null>(null);
   const handleGridScroll = useGridScroll();
+
+  React.useImperativeHandle(forwardedRef, () => internalRef.current as HTMLDivElement);
+
+  React.useLayoutEffect(() => {
+    if (!quantizeColumns || layout !== 'columns' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const tableEl = internalRef.current;
+    if (!tableEl) return undefined;
+
+    const update = () => {
+      const docComputed = window.getComputedStyle(document.documentElement);
+      const rawCell = docComputed.getPropertyValue('--ui-grid-cell') || docComputed.getPropertyValue('--ui-grid');
+      const grid = Number.parseFloat(rawCell) || 32;
+
+      const colEls = Array.from(tableEl.children).filter(
+        (child) => (child.getAttribute('role') === 'region' || child.classList.contains(styles.col)) && !child.hasAttribute('data-fixed-rail')
+      );
+      const count = colEls.length;
+      if (count === 0) return;
+
+      const totalWidth = tableEl.clientWidth;
+      const totalUnits = Math.floor(totalWidth / grid);
+      // Reserve at least 1 unit for trailing add-column rail if present
+      const hasRail = Boolean(tableEl.querySelector('[data-fixed-rail]'));
+      const reservedRailUnits = hasRail ? 1 : 0;
+      const availUnits = totalUnits - reservedRailUnits;
+
+      if (availUnits >= count * minColGridUnits) {
+        const unitsPerCol = Math.floor(availUnits / count);
+        tableEl.style.setProperty('--col-grid-width', `${unitsPerCol * grid}px`);
+        const usedUnits = unitsPerCol * count;
+        const remainderPx = (totalUnits - usedUnits) * grid;
+        tableEl.style.setProperty('--rail-extra-width', `${Math.max(0, remainderPx)}px`);
+      } else {
+        tableEl.style.setProperty('--col-grid-width', `${minColGridUnits * grid}px`);
+        tableEl.style.setProperty('--rail-extra-width', `${grid}px`);
+      }
+    };
+
+    const observer = new ResizeObserver(update);
+    observer.observe(tableEl);
+    window.addEventListener('resize', update);
+    update();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [quantizeColumns, layout, minColGridUnits, children]);
 
   const handleScrollCombined = (event: React.UIEvent<HTMLDivElement>) => {
     if (snapScroll && layout === 'columns') {
@@ -47,12 +111,14 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
 
   return (
     <div
-      ref={ref}
+      ref={internalRef}
       role="table"
       onScroll={handleScrollCombined}
       className={cn(
         styles.table,
         layout === 'columns' ? styles.tableLayoutColumns : styles.tableLayoutRows,
+        fluidColumns && styles.tableFluidColumns,
+        quantizeColumns && styles.tableQuantizedColumns,
         fullHeight && styles.tableFullHeight,
         bordered && styles.tableBordered,
         className

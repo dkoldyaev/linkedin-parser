@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Award, Banknote, ChevronLeft, ChevronRight, Globe, MapPin, MoreVertical, X } from 'lucide-react';
+import { Award, Banknote, ChevronLeft, ChevronRight, Globe, MapPin, MoreVertical, Plus, RotateCcw, X } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -15,6 +15,7 @@ import {
   Icon,
   Paragraph,
   SearchBar,
+  StatusDot,
   Table,
   TableBody,
   TableCell,
@@ -95,20 +96,27 @@ function KanbanShowcaseBoard(): React.ReactElement {
         />
       }
     >
-      <Table layout="columns" snapScroll fullHeight>
-        <TableCol gridUnits={10}>
+      <Table layout="columns" bordered quantizeColumns snapScroll fullHeight>
+        <TableCol>
           <TableHeader
-            index="[ 01 ]"
-            indicatorColor="blue"
-            title="НЕ СВЯЗЫВАЛИСЬ"
-            badge="2"
             actions={
               <Button variant="ghost" size="icon-sm" aria-label="Действия">
                 <Icon icon={MoreVertical} size="sm" />
               </Button>
             }
-          />
-          <TableBody scrollable snapScroll padding="sm" gap="sm">
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 01 ]
+            </Text>
+            <StatusDot palette="blue" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              НЕ СВЯЗЫВАЛИСЬ
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              2
+            </Badge>
+          </TableHeader>
+          <TableBody scrollable snapScroll padding="none" gap="none">
             <TableCell padding="none">
               <Card matchScore={88} interactive>
                 <CardBody>
@@ -184,19 +192,26 @@ function KanbanShowcaseBoard(): React.ReactElement {
           </TableBody>
         </TableCol>
 
-        <TableCol gridUnits={10}>
+        <TableCol>
           <TableHeader
-            index="[ 02 ]"
-            indicatorColor="emerald"
-            title="ОТКЛИКНУЛСЯ"
-            badge="1"
             actions={
               <Button variant="ghost" size="icon-sm" aria-label="Действия">
                 <Icon icon={MoreVertical} size="sm" />
               </Button>
             }
-          />
-          <TableBody scrollable snapScroll padding="sm" gap="sm">
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 02 ]
+            </Text>
+            <StatusDot palette="emerald" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              ОТКЛИКНУЛСЯ
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              1
+            </Badge>
+          </TableHeader>
+          <TableBody scrollable snapScroll padding="none" gap="none">
             <TableCell padding="none">
               <Card matchScore={96} interactive>
                 <CardBody>
@@ -265,6 +280,91 @@ function KanbanShowcaseBoard(): React.ReactElement {
             </TableCell>
           </TableBody>
         </TableCol>
+
+        <TableCol>
+          <TableHeader
+            actions={
+              <Button variant="ghost" size="icon-sm" aria-label="Действия">
+                <Icon icon={MoreVertical} size="sm" />
+              </Button>
+            }
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 03 ]
+            </Text>
+            <StatusDot tone="danger" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              ОТКАЗ (REJECTED)
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              1
+            </Badge>
+          </TableHeader>
+          <TableBody scrollable snapScroll padding="none" gap="none">
+            <TableCell padding="none">
+              <Card matchScore={42} interactive>
+                <CardBody>
+                  <CardHeader
+                    overline="Meta"
+                    overlineHref="https://linkedin.com/jobs/view/109"
+                    title="Software Engineer — Infra Tooling"
+                    selectable
+                  />
+                  <div className={showcaseStyles.metaRow}>
+                    <Badge variant="solid" size="xs" tone="danger" icon={<Icon icon={Award} size="2xs" />}>
+                      42%
+                    </Badge>
+                    <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
+                      London, UK
+                    </Text>
+                  </div>
+                  <TokenList>
+                    {['C++', 'Rust', 'Linux'].map((t) => (
+                      <Badge key={t} size="xs" variant="chip">
+                        {t}
+                      </Badge>
+                    ))}
+                  </TokenList>
+                </CardBody>
+                <CardFooter
+                  metaSlot={
+                    <Text variant="caption" tone="muted">
+                      5 нояб.
+                    </Text>
+                  }
+                  actionsSlot={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      tone="accent"
+                      onClick={() => undefined}
+                      startIcon={<Icon icon={RotateCcw} size="xs" />}
+                    >
+                      Восстановить
+                    </Button>
+                  }
+                />
+              </Card>
+            </TableCell>
+          </TableBody>
+        </TableCol>
+
+        {/* Add Column Rail */}
+        <div data-fixed-rail className={showcaseStyles.addColumnCol}>
+          <button
+            type="button"
+            className={showcaseStyles.addColumnBtn}
+            onClick={() => undefined}
+            aria-label="Добавить колонку"
+          >
+            <span className={showcaseStyles.addColumnText}>
+              <Icon icon={Plus} size="xs" />
+              <Text variant="mono" tone="inherit">
+                ДОБАВИТЬ КОЛОНКУ
+              </Text>
+            </span>
+          </button>
+        </div>
       </Table>
     </DashboardLayout>
   );

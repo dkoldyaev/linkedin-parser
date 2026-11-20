@@ -33,16 +33,23 @@ export const KanbanColumnsLayout: Story = {
       <Table layout="columns" snapScroll bordered>
         <TableCol gridUnits={10}>
           <TableHeader
-            index="[ 01 ]"
-            indicatorColor="blue"
-            title="Backlog"
-            badge="2"
             actions={
               <Button variant="ghost" size="icon-sm" aria-label="More actions">
                 <Icon icon={MoreVertical} size="sm" />
               </Button>
             }
-          />
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 01 ]
+            </Text>
+            <StatusDot palette="blue" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              Backlog
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              2
+            </Badge>
+          </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
               <Card title="Senior Frontend Engineer" subtitle="Datadog • Paris" matchScore={84} />
@@ -55,16 +62,23 @@ export const KanbanColumnsLayout: Story = {
 
         <TableCol gridUnits={10}>
           <TableHeader
-            index="[ 02 ]"
-            indicatorColor="cyan"
-            title="Applied"
-            badge="1"
             actions={
               <Button variant="ghost" size="icon-sm" aria-label="More actions">
                 <Icon icon={MoreVertical} size="sm" />
               </Button>
             }
-          />
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 02 ]
+            </Text>
+            <StatusDot palette="cyan" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              Applied
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              1
+            </Badge>
+          </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
               <Card title="Staff UI Architect" subtitle="Stripe • Remote" matchScore={91} />
@@ -74,16 +88,23 @@ export const KanbanColumnsLayout: Story = {
 
         <TableCol gridUnits={10}>
           <TableHeader
-            index="[ 03 ]"
-            indicatorColor="amber"
-            title="Screening"
-            badge="0"
             actions={
               <Button variant="ghost" size="icon-sm" aria-label="More actions">
                 <Icon icon={MoreVertical} size="sm" />
               </Button>
             }
-          />
+          >
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 03 ]
+            </Text>
+            <StatusDot palette="amber" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              Screening
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              0
+            </Badge>
+          </TableHeader>
           <TableBody
             scrollable
             snapScroll

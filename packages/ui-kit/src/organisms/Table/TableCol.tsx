@@ -5,12 +5,17 @@ import styles from './Table.module.css';
 export type TableColGridUnits = 6 | 8 | 10 | 12 | 14 | 16;
 
 export interface TableColProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Column width in grid units (32px cells). If number is passed, calculates width dynamically based on --ui-grid-cell. */
   readonly gridUnits?: TableColGridUnits | number;
+  /** When true, column expands to take maximum available space (flex: 1 1 0). */
   readonly fluid?: boolean;
   readonly isDragOver?: boolean;
   readonly children: React.ReactNode;
   readonly className?: string;
+  readonly style?: React.CSSProperties;
 }
+
+const KNOWN_UNITS = new Set([6, 8, 10, 12, 14, 16]);
 
 /**
  * Vertical column container for flex Table.
@@ -24,29 +29,32 @@ export const TableCol = React.forwardRef<HTMLDivElement, TableColProps>(
       isDragOver = false,
       children,
       className,
+      style,
       ...restProps
     },
     ref
   ): React.ReactElement {
-    const knownUnitsClass =
-      gridUnits === 6
-        ? styles.colUnits6
-        : gridUnits === 8
-          ? styles.colUnits8
-          : gridUnits === 10
-            ? styles.colUnits10
-            : gridUnits === 12
-              ? styles.colUnits12
-              : gridUnits === 14
-                ? styles.colUnits14
-                : gridUnits === 16
-                  ? styles.colUnits16
-                  : styles.colUnits10;
+    const isKnownUnit = !fluid && typeof gridUnits === 'number' && KNOWN_UNITS.has(gridUnits);
+    const knownUnitsClass = isKnownUnit
+      ? styles[`colUnits${gridUnits}`]
+      : undefined;
+
+    const customGridStyle: React.CSSProperties | undefined =
+      !fluid && typeof gridUnits === 'number' && !isKnownUnit
+        ? {
+            flex: `0 0 calc(${gridUnits} * var(--ui-grid-cell))`,
+            width: `calc(${gridUnits} * var(--ui-grid-cell))`,
+            minWidth: `calc(${gridUnits} * var(--ui-grid-cell))`,
+            maxWidth: `calc(${gridUnits} * var(--ui-grid-cell))`,
+            ...style,
+          }
+        : style;
 
     return (
       <div
         ref={ref}
         role="region"
+        style={customGridStyle}
         className={cn(
           styles.col,
           fluid ? styles.colFluid : knownUnitsClass,
