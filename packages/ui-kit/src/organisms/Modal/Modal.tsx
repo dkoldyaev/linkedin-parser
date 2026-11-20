@@ -93,15 +93,7 @@ export function Modal({
     <ModalContext.Provider value={contextValue}>
       <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay
-            className={styles.overlay}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                e.stopPropagation();
-                onClose();
-              }
-            }}
-          >
+          <DialogPrimitive.Overlay className={styles.overlay}>
             <DialogPrimitive.Content
               ref={setContentRef}
               className={cn(
@@ -109,15 +101,6 @@ export function Modal({
                 size !== 'custom' && styles[`size-${size}`],
                 className
               )}
-              onPointerDownOutside={(e) => {
-                e.preventDefault();
-              }}
-              onInteractOutside={(e) => {
-                e.preventDefault();
-              }}
-              onCloseAutoFocus={(e) => {
-                e.preventDefault();
-              }}
               {...rest}
             >
               {isShorthandMode ? (

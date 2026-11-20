@@ -28,6 +28,7 @@ import { useMenu } from '../components/menuContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { STATUS_REJECTED } from '../constants/columns';
 import { trackEvent, EVENTS } from '../utils/analytics';
+import { useDisclosure } from '../utils/useDisclosure';
 
 export default function HomePage({ user, onLogout, onUserUpdated }) {
   const { t } = useTranslation();
@@ -71,19 +72,21 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState(null);
-  const lastModalClosedAt = useRef(0);
+
+  const vacancyDisclosure = useDisclosure({
+    onClose: () => {
+      setSelectedVacancy(null);
+    },
+  });
 
   const handleCloseVacancyModal = useCallback(() => {
-    lastModalClosedAt.current = Date.now();
-    setSelectedVacancy(null);
-  }, []);
+    vacancyDisclosure.close();
+  }, [vacancyDisclosure]);
 
   const handleCardClick = useCallback((vacancy) => {
-    if (Date.now() - lastModalClosedAt.current < 300) {
-      return;
-    }
     setSelectedVacancy(vacancy);
-  }, []);
+    vacancyDisclosure.open();
+  }, [vacancyDisclosure]);
 
   // Attention highlight for "Add Vacancies" button when arriving from landing tour
   const location = useLocation();
@@ -628,6 +631,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
   const handleVacancyDelete = (deletedId) => {
     setVacancies(prev => prev.filter(v => v.id !== deletedId));
+    vacancyDisclosure.close();
     setSelectedVacancy(null);
     fetchTags();
     fetchCountries();
@@ -1008,7 +1012,7 @@ export default function HomePage({ user, onLogout, onUserUpdated }) {
 
       <VacancyModal
         vacancy={selectedVacancy}
-        isOpen={Boolean(selectedVacancy)}
+        isOpen={vacancyDisclosure.isOpen && Boolean(selectedVacancy)}
         columns={columns}
         onClose={handleCloseVacancyModal}
         onUpdate={handleVacancyUpdate}
