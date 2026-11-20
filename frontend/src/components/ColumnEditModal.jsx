@@ -142,15 +142,17 @@ export default function ColumnEditModal({ isOpen, onClose, column, onSave }) {
               id="edit-modal-has-lanes"
               checked={hasLanes}
               onChange={(e) => setHasLanes(e.target.checked)}
+              label={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <Text variant="body" weight="medium" startIcon={<Icon icon={Layers} size="xs" tone="accent" />}>
+                    {t('kanban.enable_stages')}
+                  </Text>
+                  <Text variant="caption" tone="muted">
+                    {t('kanban.enable_stages_hint')}
+                  </Text>
+                </div>
+              }
             />
-            <label htmlFor="edit-modal-has-lanes" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <Text variant="body" weight="medium" startIcon={<Icon icon={Layers} size="xs" tone="accent" />}>
-                {t('kanban.enable_stages')}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {t('kanban.enable_stages_hint')}
-              </Text>
-            </label>
           </div>
         </form>
       </ModalBody>

@@ -11,7 +11,6 @@ const LINKS = [
   { to: '/cv', key: 'cv', icon: FileText, auth: true },
   { to: '/stat', key: 'stat', icon: BarChart3, auth: true },
   { to: '/apikeys', key: 'apikeys', icon: Key, auth: true },
-  { to: '/admin', key: 'admin', icon: Shield, auth: true, adminOnly: true },
   { to: '/howtouse', key: 'howtouse', icon: BookOpen },
   { to: '/about', key: 'about', icon: Info },
 ];

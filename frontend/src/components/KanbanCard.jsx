@@ -206,7 +206,6 @@ export default function KanbanCard({
       closedLabel={t('kanban.closed')}
       pendingAiLabel={t('kanban.ai_pending')}
       checkboxAriaLabel={t('kanban.select_card')}
-      className={`kanban-card ${isRejected ? 'is-rejected' : ''} ${vacancy.is_closed ? 'is-closed' : ''}`}
     />
   );
 }

@@ -325,31 +325,52 @@ export default function KanbanBoard({
 
                     {/* Column Action Menu */}
                     {isMenuOpen && (
-                      <div className="column-menu-dropdown" onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100 }}>
-                        <button
-                          type="button"
-                          className="column-menu-item"
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          zIndex: 100,
+                          minWidth: '180px',
+                          padding: 'var(--ui-space-1)',
+                          backgroundColor: 'var(--ui-bg-surface)',
+                          border: '1px solid var(--ui-border-strong)',
+                          boxShadow: 'var(--ui-shadow-md)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 'var(--ui-space-1)',
+                        }}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          justify="start"
+                          startIcon={<Icon icon={Edit2} size="xs" tone="accent" />}
                           onClick={() => {
                             setActiveMenuColId(null);
                             setEditingColumn(col);
                           }}
+                          style={{ width: '100%' }}
                         >
-                          <Edit2 size={13} color="var(--ui-primary, #2563eb)" />
-                          <span>{t('kanban.edit_column')}</span>
-                        </button>
+                          {t('kanban.edit_column')}
+                        </Button>
 
                         {!isBase && (
-                          <button
-                            type="button"
-                            className="column-menu-item danger"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            tone="danger"
+                            justify="start"
+                            startIcon={<Icon icon={Trash2} size="xs" />}
                             onClick={() => {
                               setActiveMenuColId(null);
                               setDeletingColumn(col);
                             }}
+                            style={{ width: '100%' }}
                           >
-                            <Trash2 size={13} />
-                            <span>{t('kanban.delete_column')}</span>
-                          </button>
+                            {t('kanban.delete_column')}
+                          </Button>
                         )}
                       </div>
                     )}
@@ -420,14 +441,18 @@ export default function KanbanBoard({
         </TableCol>
       </Table>
 
-      {/* Bottom Rejection Block */}
+      {/* Bottom Rejection Row */}
       <div
         ref={rejectedRef}
-        className={`kanban-rejected-block ${dragOverColumn === rejectedStatusId ? 'drag-over' : ''} ${isRejectedCollapsed ? 'is-collapsed' : ''}`}
         onDragOver={(e) => handleDragOver(e, rejectedStatusId)}
         onDragLeave={(e) => handleDragLeave(e, rejectedStatusId)}
         onDrop={(e) => handleDrop(e, rejectedStatusId)}
-        style={{ flexShrink: 0, borderTop: '1px solid var(--ui-pixel-line)', backgroundColor: 'var(--ui-bg-surface)' }}
+        style={{
+          flexShrink: 0,
+          borderTop: '1px solid var(--ui-pixel-line)',
+          backgroundColor: dragOverColumn === rejectedStatusId ? 'var(--ui-danger-subtle)' : 'var(--ui-bg-surface)',
+          transition: 'background-color var(--ui-transition-fast)',
+        }}
       >
         <TableHeader
           size="sm"
@@ -438,7 +463,6 @@ export default function KanbanBoard({
             trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
             setIsRejectedCollapsed(prev => !prev);
           }}
-          className="kanban-rejected-header"
           style={{ cursor: 'pointer' }}
           actions={
             <Button
@@ -458,7 +482,7 @@ export default function KanbanBoard({
         />
 
         {!isRejectedCollapsed && (
-          <div className="kanban-rejected-content" style={{ maxHeight: 'calc(10 * var(--ui-grid-cell))', overflowX: 'auto', overflowY: 'hidden' }}>
+          <div style={{ maxHeight: 'calc(10 * var(--ui-grid-cell))', overflowX: 'auto', overflowY: 'hidden' }}>
             {rejectedVacancies.length === 0 ? (
               <div style={{ padding: 'var(--ui-space-4)' }}>
                 <EmptyState
@@ -467,7 +491,7 @@ export default function KanbanBoard({
                 />
               </div>
             ) : (
-              <div className="kanban-rejected-cards" style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 0, padding: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 'var(--ui-space-2)', padding: 'var(--ui-space-2) var(--ui-space-3)' }}>
                 {rejectedVacancies.map(vacancy => (
                   <div key={vacancy.id} style={{ width: 'calc(10 * var(--ui-grid-cell))', minWidth: 'calc(10 * var(--ui-grid-cell))', flexShrink: 0 }}>
                     <KanbanCard
