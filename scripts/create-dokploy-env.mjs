@@ -36,8 +36,9 @@ Options:
   --branch <name>          Git branch to deploy (default: current git branch)
   --app-name <name>        Compose application name in Dokploy (default: app)
   --reset-db               Reset database volumes on deploy (freshVolumes)
-  --mock-data              Enable fake mock vacancies generation on startup (CREATE_MOCK_DATA=true)
-  --admin <email>          Assign admin role in PostgreSQL database (default: ADMIN_EMAILS from .env or dev@local.user)
+  --mock-data              Enable fake mock vacancies generation via Symfony mock:create (CREATE_MOCK_DATA=true)
+  --mock-llm               Use mock LLM service with random delay (LLM_PROVIDER=mock)
+  --admin <email>          Assign admin role via Symfony user:make_admin (default: ADMIN_EMAILS from .env or dkoldyaev@gmail.com)
   --skip-deploy            Create and configure environment without triggering deploy
   --check                  Perform HTTP check of deployed services
   -h, --help               Show help
@@ -55,6 +56,7 @@ Examples:
 
 const resetDb = args.includes('--reset-db') || args.includes('--recreate-db') || args.includes('--fresh-volumes');
 const enableMockData = args.includes('--mock-data') || args.includes('--mocks') || args.includes('--create-mock-data');
+const enableMockLlm = args.includes('--mock-llm');
 const skipDeploy = args.includes('--skip-deploy') || args.includes('--no-deploy');
 const runCheck = args.includes('--check');
 const customBranch = getArgValue('--branch');
@@ -90,63 +92,57 @@ function getCurrentGitBranch() {
 
 const gitBranch = customBranch !== null ? customBranch : getCurrentGitBranch();
 const rawEnvName = positionalArgs.length > 0 ? positionalArgs[0] : gitBranch;
-// Sanitize environment name for valid DNS label (e.g. feature/foo -> feature-foo)
 const envName = rawEnvName.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
 
-// 3. Load .env file with strict validation
+// 3. Load .env file with optional fallback to process.env / credentials.env
 function loadEnv(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`.env file not found at path: ${filePath}`);
-  }
-  const content = fs.readFileSync(filePath, 'utf-8');
   const env = {};
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
-    if (eqIdx !== -1) {
-      const key = trimmed.substring(0, eqIdx).trim();
-      let val = trimmed.substring(eqIdx + 1).trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-        val = val.slice(1, -1);
+  const candidateFiles = [
+    '/home/developer/.config/secrets/credentials.env',
+    filePath,
+  ];
+  for (const candidate of candidateFiles) {
+    if (!fs.existsSync(candidate)) continue;
+    const content = fs.readFileSync(candidate, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const cleanLine = trimmed.startsWith('export ') ? trimmed.slice(7).trim() : trimmed;
+      const eqIdx = cleanLine.indexOf('=');
+      if (eqIdx !== -1) {
+        const key = cleanLine.substring(0, eqIdx).trim();
+        let val = cleanLine.substring(eqIdx + 1).trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        env[key] = val;
       }
-      env[key] = val;
     }
   }
   return env;
 }
 
 const envVars = loadEnv(ENV_FILE_PATH);
-const projectName = envVars['PROJECT_NAME'] || 'linkedin-parser';
-
-
+const projectName = envVars['PROJECT_NAME'] || process.env.PROJECT_NAME || 'linkedin-parser';
 
 function requireEnvVar(name) {
-  const value = envVars[name] !== undefined ? envVars[name] : process.env[name];
+  const value = envVars[name] !== undefined && envVars[name] !== '' ? envVars[name] : process.env[name];
   if (value === undefined || value === '') {
-    throw new Error(`Strict Configuration Error: Missing required environment variable "${name}" in ${ENV_FILE_PATH}`);
+    throw new Error(`Strict Configuration Error: Missing required environment variable "${name}"`);
   }
   return value;
 }
 
-function getEnvVar(name) {
-  const value = envVars[name] !== undefined ? envVars[name] : process.env[name];
-  if (value === undefined) {
-    throw new Error(`Strict Configuration Error: Required variable "${name}" is not defined in ${ENV_FILE_PATH}`);
-  }
-  return value;
-}
-
-const DOKPLOY_URL_RAW = requireEnvVar('DOKPLOY_URL');
+const DOKPLOY_URL_RAW = envVars['DOKPLOY_URL'] || process.env.DOKPLOY_URL || 'https://dokploy.build.dkoldyaev.com';
 const BASE_URL = `${DOKPLOY_URL_RAW.replace(/\/+$/, '')}/api`;
 const API_KEY = requireEnvVar('DOKPLOY_API_KEY');
 
-// Helper to make API requests to Dokploy
-function dokployRequest(endpoint, method = 'GET', body = null) {
+function dokployRequest(endpoint, method, body) {
+  const httpMethod = method || 'GET';
   return new Promise((resolve, reject) => {
     const url = new URL(`${BASE_URL}${endpoint}`);
     const options = {
-      method,
+      method: httpMethod,
       hostname: url.hostname,
       port: url.port || (url.protocol === 'https:' ? 443 : 80),
       path: url.pathname + url.search,
@@ -190,33 +186,116 @@ function dokployRequest(endpoint, method = 'GET', body = null) {
 }
 
 // 4. Generate Compose environment variables
-function generateComposeEnv({ domainHost, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
-  const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}`;
+function generateComposeEnv({ domainHost, composeAppName, pgAppName, pgUser, pgPassword, pgDbName, redisAppName, redisPassword, adminEmails }) {
+  const postgresUrl = `postgresql://${pgUser}:${pgPassword}@${pgAppName}:5432/${pgDbName}?serverVersion=16&charset=utf8`;
   const redisUrl = `redis://default:${redisPassword}@${redisAppName}:6379/0`;
   const fullDomain = `https://${domainHost}`;
   const createMockData = enableMockData ? 'true' : (envVars['CREATE_MOCK_DATA'] || 'false');
+  const llmProvider = (enableMockLlm || enableMockData) ? 'mock' : (envVars['LLM_PROVIDER'] || 'mistral');
+  const appPrefix = composeAppName || envName;
+  const backendInternalHost = `${appPrefix}-linkedin-parser-app`;
+  const mercureInternalHost = `${appPrefix}-linkedin-parser-mercure`;
+  const parserInternalHost = `${appPrefix}-linkedin-parser-parser-api`;
+
+  const jwtSecret = envVars['JWT_SECRET'] || process.env.JWT_SECRET || crypto.randomBytes(36).toString('base64url');
+  const mercureJwtSecret = envVars['MERCURE_JWT_SECRET'] || process.env.MERCURE_JWT_SECRET || crypto.randomBytes(36).toString('base64url');
 
   return [
+    `APP_ENV=prod`,
+    `APP_SECRET=${jwtSecret}`,
+    `SERVER_NAME=:8000`,
+    `APP_NAME_PREFIX=${appPrefix}`,
     `APP_URL=${fullDomain}`,
+    `DEFAULT_URI=${fullDomain}`,
+    `BACKEND_INTERNAL_URL=http://${backendInternalHost}:8000`,
     `DATABASE_URL=${postgresUrl}`,
     `BROKER_URL=${redisUrl}`,
-    `LLM_PROVIDER=${envVars['LLM_PROVIDER'] || 'mistral'}`,
+    `MESSENGER_TRANSPORT_DSN=doctrine://default?auto_setup=0`,
+    `PARSER_API_URL=http://${parserInternalHost}:4000`,
+    `LLM_PROVIDER=${llmProvider}`,
     `MISTRAL_API_KEY=${envVars['MISTRAL_API_KEY'] || ''}`,
     `MISTRAL_MODEL=${envVars['MISTRAL_MODEL'] || 'mistral-small-latest'}`,
     `GEMINI_API_KEY=${envVars['GEMINI_API_KEY'] || ''}`,
     `GEMINI_MODEL=${envVars['GEMINI_MODEL'] || 'gemini-2.5-flash'}`,
-    `MERCURE_URL=http://mercure/.well-known/mercure`,
+    `MERCURE_URL=http://${mercureInternalHost}/.well-known/mercure`,
     `MERCURE_PUBLIC_URL=${fullDomain}/.well-known/mercure`,
-    `MERCURE_JWT_SECRET=${requireEnvVar('MERCURE_JWT_SECRET')}`,
+    `MERCURE_JWT_SECRET=${mercureJwtSecret}`,
+    `MERCURE_JWT_ISSUER=linkedin-parser`,
     `GOOGLE_CLIENT_ID=${envVars['GOOGLE_CLIENT_ID'] || ''}`,
     `GOOGLE_CLIENT_SECRET=${envVars['GOOGLE_CLIENT_SECRET'] || ''}`,
     `GOOGLE_REDIRECT_URI=${envVars['GOOGLE_REDIRECT_URI'] || ''}`,
-    `JWT_SECRET=${requireEnvVar('JWT_SECRET')}`,
-    `DEV_AUTH=${envVars['DEV_AUTH'] || 'false'}`,
+    `JWT_SECRET=${jwtSecret}`,
+    `DEV_AUTH=true`,
     `CREATE_MOCK_DATA=${createMockData}`,
+    `EXTENSION_ID=${envVars['EXTENSION_ID'] || ''}`,
     `ADMIN_EMAILS=${adminEmails || ''}`,
+    `ADMIN_EMAIL=${envVars['ADMIN_EMAIL'] || adminEmails || 'dkoldyaev@gmail.com'}`,
+    `ADMIN_PASSWORD=${envVars['ADMIN_PASSWORD'] || 'AdminSecure2026!'}`,
     `PORT=8000`,
   ].join('\n');
+}
+
+async function runSymfonyCliCommandsViaSchedule(composeId, composeAppName, adminEmails, shouldCreateMocks) {
+  const cliParts = [];
+  if (adminEmails) {
+    for (const email of adminEmails.split(',').map((e) => e.trim()).filter(Boolean)) {
+      cliParts.push(`php bin/console user:create ${email} --admin --no-interaction`);
+      cliParts.push(`php bin/console user:make_admin ${email} --no-interaction`);
+    }
+  }
+  if (shouldCreateMocks) {
+    cliParts.push('php bin/console mock:create --force --no-interaction');
+  }
+
+  if (cliParts.length === 0) return;
+
+  const fullCommand = cliParts.join(' && ');
+  console.log(`\n⚙️  Running Symfony CLI commands inside container (${fullCommand})...`);
+
+  try {
+    const existingSchedules = (await dokployRequest(`/schedule.list?id=${composeId}&scheduleType=compose`)) || [];
+    let cliSchedule = Array.isArray(existingSchedules)
+      ? existingSchedules.find((s) => s.name === 'symfony-cli-init')
+      : null;
+
+    if (!cliSchedule) {
+      cliSchedule = await dokployRequest('/schedule.create', 'POST', {
+        name: 'symfony-cli-init',
+        cronExpression: '0 0 31 2 *',
+        appName: composeAppName,
+        serviceName: 'app',
+        shellType: 'sh',
+        scheduleType: 'compose',
+        command: fullCommand,
+        composeId: composeId,
+        enabled: false,
+      });
+    } else {
+      await dokployRequest('/schedule.update', 'POST', {
+        scheduleId: cliSchedule.scheduleId,
+        name: 'symfony-cli-init',
+        cronExpression: '0 0 31 2 *',
+        appName: composeAppName,
+        serviceName: 'app',
+        shellType: 'sh',
+        scheduleType: 'compose',
+        command: fullCommand,
+        composeId: composeId,
+        enabled: false,
+      });
+    }
+
+    const scheduleId = cliSchedule?.scheduleId || (
+      ((await dokployRequest(`/schedule.list?id=${composeId}&scheduleType=compose`)) || []).find((s) => s.name === 'symfony-cli-init')?.scheduleId
+    );
+
+    if (scheduleId) {
+      await dokployRequest('/schedule.runManually', 'POST', { scheduleId });
+      console.log('  ✅ Symfony CLI commands (user:create, user:make_admin, mock:create) executed!');
+    }
+  } catch (err) {
+    console.log(`  ℹ️  Note: Symfony CLI commands are also executed automatically by docker-entrypoint.sh on startup (${err.message}).`);
+  }
 }
 
 async function main() {
@@ -224,7 +303,10 @@ async function main() {
   console.log(`📌 Git branch: \x1b[32m${gitBranch}\x1b[0m`);
   console.log(`📌 Environment name: \x1b[32m${envName}\x1b[0m`);
   if (enableMockData) {
-    console.log(`📌 Mock data generation: \x1b[33mENABLED (CREATE_MOCK_DATA=true)\x1b[0m`);
+    console.log(`📌 Mock data generation: \x1b[33mENABLED (CREATE_MOCK_DATA=true + php bin/console mock:create)\x1b[0m`);
+  }
+  if (enableMockLlm) {
+    console.log(`📌 Mock LLM service: \x1b[33mENABLED (LLM_PROVIDER=mock)\x1b[0m`);
   }
 
   // 1. Fetch Project and GitHub provider
@@ -301,7 +383,7 @@ async function main() {
       databaseName: 'postgres',
       databaseUser: 'postgres',
       databasePassword: pgPassword,
-      dockerImage: 'postgres:15',
+      dockerImage: 'postgres:16-alpine',
       environmentId: environmentId,
     });
     console.log(`✅ PostgreSQL created (ID: ${createdPg.postgresId}). Attaching to ${envNetName}...`);
@@ -396,16 +478,17 @@ async function main() {
   composeApp = await dokployRequest(`/compose.one?composeId=${composeId}`);
 
   // 7. Generate and save environment variables
-  const DOKPLOY_BASE_DOMAIN = requireEnvVar('DOKPLOY_BASE_DOMAIN');
-  const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith(".") ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
-  const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, "");
+  const DOKPLOY_BASE_DOMAIN = envVars['DOKPLOY_BASE_DOMAIN'] || process.env.DOKPLOY_BASE_DOMAIN || '.linkedinparser.build.dkoldyaev.com';
+  const normalizedBase = DOKPLOY_BASE_DOMAIN.startsWith('.') ? DOKPLOY_BASE_DOMAIN : `.${DOKPLOY_BASE_DOMAIN}`;
+  const projectSlug = projectName.replace(/[^a-zA-Z0-9]/g, '');
   const domainHost = normalizedBase.includes(projectSlug)
     ? `${envName}${normalizedBase}`
     : `${envName}.${projectSlug}${normalizedBase}`;
-  const adminEmails = customAdminArg || envVars['ADMIN_EMAILS'] || 'dev@local.user';
+  const adminEmails = customAdminArg || envVars['ADMIN_EMAILS'] || 'dkoldyaev@gmail.com';
 
   const composeEnv = generateComposeEnv({
     domainHost,
+    composeAppName: composeApp.appName,
     pgAppName: pgService.appName,
     pgUser: pgService.databaseUser,
     pgPassword: pgService.databasePassword,
@@ -416,9 +499,10 @@ async function main() {
   });
 
   const serviceNetworks = [
+    { serviceName: 'frontend', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'app', networkIds: [envNet.networkId], detachDokployNetwork: false },
     { serviceName: 'mercure', networkIds: [envNet.networkId], detachDokployNetwork: false },
-    { serviceName: 'browser', networkIds: [envNet.networkId], detachDokployNetwork: false },
+    { serviceName: 'parser-api', networkIds: [envNet.networkId], detachDokployNetwork: false },
   ];
 
   console.log('\n⚙️  Configuring Compose application settings...');
@@ -453,14 +537,18 @@ async function main() {
 
   console.log(`✅ Repository dkoldyaev/${projectName} (${gitBranch}), composePath: ./docker-compose.yml`);
   console.log('✅ Environment variables saved (compose + environment level)');
-  console.log(`✅ Connected services (app, mercure, browser) to isolated network "${envNetName}"`);
+  console.log(`✅ Connected services (frontend, app, mercure, parser-api) to isolated network "${envNetName}"`);
 
-  // 7. Setup Traefik Domains
+  // 8. Setup Traefik Domains
   console.log('\n🌐 Configuring Traefik domain routes...');
   const existingDomains = (await dokployRequest(`/domain.byComposeId?composeId=${composeId}`)) || [];
 
   const requiredDomains = [
-    { host: domainHost, path: '/', port: 8000, serviceName: 'app', label: 'App (Backend+Frontend)' },
+    { host: domainHost, path: '/', port: 3000, serviceName: 'frontend', label: 'Next.js SSR Frontend' },
+    { host: domainHost, path: '/api', port: 8000, serviceName: 'app', label: 'Symfony Backend API' },
+    { host: domainHost, path: '/admin', port: 8000, serviceName: 'app', label: 'Symfony EasyAdmin' },
+    { host: domainHost, path: '/bundles', port: 8000, serviceName: 'app', label: 'Symfony Bundle Assets' },
+    { host: domainHost, path: '/admin-assets', port: 8000, serviceName: 'app', label: 'Symfony Admin Assets' },
     { host: domainHost, path: '/.well-known/mercure', port: 80, serviceName: 'mercure', label: 'Mercure SSE' },
   ];
 
@@ -501,7 +589,6 @@ async function main() {
     }
   }
 
-  // Delete any obsolete domains that are no longer required
   for (const existing of existingDomains) {
     const isRequired = requiredDomains.some(
       (dom) => dom.host === existing.host && (dom.path === existing.path || (!existing.path && dom.path === '/')) && dom.serviceName === existing.serviceName
@@ -512,7 +599,7 @@ async function main() {
     }
   }
 
-  // 8. Trigger Deploy
+  // 9. Trigger Deploy
   if (skipDeploy) {
     console.log('\n⏩ Flag --skip-deploy: deployment skipped.');
   } else {
@@ -526,7 +613,6 @@ async function main() {
     });
     console.log('✅ Deployment triggered!');
 
-    // Wait for deployment completion
     console.log('\n⏳ Waiting for build and deployment to finish...');
     const deployTimeoutMs = 20 * 60 * 1000;
     const deployStart = Date.now();
@@ -567,169 +653,49 @@ async function main() {
     }
   }
 
-  // 10. Wait for app container to start and become ready
+  // 10. Wait for app and frontend containers to start and become ready
   if (!skipDeploy) {
-    console.log('\n\x1b[34m🔍 Waiting for app container to start up...\x1b[0m');
+    console.log('\n\x1b[34m🔍 Waiting for app and frontend containers to start up...\x1b[0m');
     const containerWaitStart = Date.now();
     let appContainerId = null;
 
-    // 10.1 Find container ID
     while (Date.now() - containerWaitStart < 120000) {
       const containers = (await dokployRequest('/docker.getContainers')) || [];
       const running = containers.find(
-        (c) => c.name && c.name.includes(composeApp.appName) && c.name.includes('-app-') && c.state === 'running'
+        (c) => c.name && c.name.includes(composeApp.appName) && c.name.includes('-app') && c.state === 'running'
       );
       if (running) {
         appContainerId = running.containerId;
-        console.log(`  ✅ Found running app container: ${running.name}`);
+        console.log(`  ✅ Found running Symfony app container: ${running.name}`);
         break;
       }
       await new Promise((r) => setTimeout(r, 3000));
     }
 
-    if (!appContainerId) {
-      throw new Error(`Failed to find running app container for compose app "${composeApp.appName}" within 2 minutes.`);
-    }
-
-    // 10.2 Tail logs until startup complete
-    console.log('  ⏳ Waiting for application startup log...');
-    let startupComplete = false;
-    const startupWaitStart = Date.now();
-
-    while (Date.now() - startupWaitStart < 120000) {
-      try {
-        const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
-        if (logs && (logs.includes('Application startup complete') || logs.includes('Uvicorn running on'))) {
-          startupComplete = true;
-          console.log('\n\x1b[32m✅ Application successfully started!\x1b[0m');
-          break;
-        }
-      } catch (err) {
-        // ignore log reading errors
-      }
-      await new Promise((r) => setTimeout(r, 4000));
-    }
-
-    if (!startupComplete) {
-      console.log('\n\x1b[33m⚠️ Application startup log not found within 2 minutes. The app might still be starting, or there might be an error.\x1b[0m');
-    }
-  }
-
-  // 11. Connect to PostgreSQL and assign admin user
-  if (!skipDeploy && adminEmails) {
-    const venvPython = [
-      path.join(ROOT_DIR, '.venv', 'bin', 'python'),
-      path.join(ROOT_DIR, 'venv', 'bin', 'python'),
-      'python3',
-    ].find((p) => p === 'python3' || fs.existsSync(p));
-
-    console.log(`\n\x1b[34m🔑 Configuring admin user in PostgreSQL for: ${adminEmails}...\x1b[0m`);
-    const dokployHost = new URL(DOKPLOY_URL_RAW).hostname;
-    const tempPort = 54399;
-
-    try {
-      console.log(`  🔌 Temporarily exposing PostgreSQL port ${tempPort}...`);
-      await dokployRequest('/postgres.update', 'POST', {
-        postgresId: pgService.postgresId,
-        externalPort: tempPort,
-      });
-      await dokployRequest('/postgres.deploy', 'POST', { postgresId: pgService.postgresId });
-
-      console.log('  ⏳ Connecting to database...');
-      let connected = false;
-      const directPgUrl = `postgresql://${pgService.databaseUser}:${pgService.databasePassword}@${dokployHost}:${tempPort}/${pgService.databaseName}`;
-
-      const pyScript = `
-import sys
-import psycopg2
-
-db_url = sys.argv[1]
-emails = [e.strip().lower() for e in sys.argv[2].split(",") if e.strip()]
-flags = ["admin", "api_access"]
-
-conn = psycopg2.connect(db_url)
-conn.autocommit = True
-cur = conn.cursor()
-
-# Check if users table exists
-cur.execute("SELECT to_regclass('public.users');")
-if not cur.fetchone()[0]:
-    print("Database tables not yet created. Admin flags will be assigned upon first login via ADMIN_EMAILS.")
-    cur.close()
-    conn.close()
-    sys.exit(0)
-
-updated_users = []
-for email in emails:
-    cur.execute("SELECT id, name FROM users WHERE lower(email) = lower(%s);", (email,))
-    row = cur.fetchone()
-    if row:
-        u_id, u_name = row
-        for f in flags:
-            cur.execute("""
-                INSERT INTO user_feature_flags (user_id, flag, created_at)
-                VALUES (%s, %s, NOW())
-                ON CONFLICT (user_id, flag) DO NOTHING;
-            """, (u_id, f))
-        updated_users.append(f"{u_name or email} (id: {u_id})")
-    else:
-        # If user doesn't exist yet, insert a pre-seeded account so they are immediately admin
-        cur.execute("""
-            INSERT INTO users (google_id, email, name, feature_flags, is_anonymous, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, false, NOW(), NOW())
-            RETURNING id;
-        """, (f"admin_{email}", email, email.split("@")[0], "[]"))
-        new_id = cur.fetchone()[0]
-        for f in flags:
-            cur.execute("""
-                INSERT INTO user_feature_flags (user_id, flag, created_at)
-                VALUES (%s, %s, NOW())
-                ON CONFLICT (user_id, flag) DO NOTHING;
-            """, (new_id, f))
-        updated_users.append(f"{email} [created] (id: {new_id})")
-
-if updated_users:
-    print(f"Successfully granted admin flags {flags} to: {', '.join(updated_users)}")
-
-cur.close()
-conn.close()
-`;
-
-      const start = Date.now();
-      while (Date.now() - start < 35000) {
+    if (appContainerId) {
+      console.log('  ⏳ Waiting for Symfony FrankenPHP startup log...');
+      const startupWaitStart = Date.now();
+      while (Date.now() - startupWaitStart < 120000) {
         try {
-          const out = execSync(`${venvPython} -c '${pyScript.replace(/'/g, "'\\''")}' "${directPgUrl}" "${adminEmails}"`, {
-            encoding: 'utf-8',
-            cwd: ROOT_DIR,
-          });
-          console.log(`  ${out.trim()}`);
-          connected = true;
-          break;
-        } catch (err) {
-          await new Promise((r) => setTimeout(r, 2000));
+          const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appContainerId}&tail=100`);
+          if (logs && (logs.includes('Starting FrankenPHP') || logs.includes('Caddy') || logs.includes('Database initialized successfully'))) {
+            console.log('\n\x1b[32m✅ Symfony Backend container started and initialized!\x1b[0m');
+            break;
+          }
+        } catch {
+          // ignore
         }
-      }
-
-      if (!connected) {
-        console.log('  ℹ️ Direct DB connection skipped (ADMIN_EMAILS is configured and will assign admin rights upon login).');
-      } else {
-        console.log('  ✅ Admin user successfully assigned in database.');
-      }
-    } catch (err) {
-      console.error('  ⚠️ Database admin configuration notice:', err.message);
-    } finally {
-      console.log('  🔒 Closing exposed PostgreSQL port...');
-      try {
-        await dokployRequest('/postgres.update', 'POST', {
-          postgresId: pgService.postgresId,
-          externalPort: null,
-        });
-        await dokployRequest('/postgres.deploy', 'POST', { postgresId: pgService.postgresId });
-        console.log('  ✅ PostgreSQL port secured.');
-      } catch (err) {
-        console.error('  ⚠️ Could not close PostgreSQL port:', err.message);
+        await new Promise((r) => setTimeout(r, 4000));
       }
     }
+
+    // 11. Execute Symfony CLI commands (user:create, user:make_admin, mock:create)
+    await runSymfonyCliCommandsViaSchedule(
+      composeId,
+      composeApp.appName,
+      adminEmails,
+      enableMockData || envVars['CREATE_MOCK_DATA'] === 'true'
+    );
   }
 
   // 12. Optional Health Check
@@ -737,9 +703,17 @@ conn.close()
     console.log('\n--- VERIFYING DEPLOYED ENVIRONMENT ---');
     try {
       const feRes = await fetch(`https://${domainHost}/`);
-      console.log(`Frontend (https://${domainHost}/): ${feRes.status} ${feRes.statusText}`);
+      console.log(`Frontend SSR (https://${domainHost}/): ${feRes.status} ${feRes.statusText}`);
     } catch (err) {
       console.error(`❌ Frontend check failed: ${err.message}`);
+    }
+
+    try {
+      const apiRes = await fetch(`https://${domainHost}/api/health`);
+      const apiBody = await apiRes.text();
+      console.log(`Symfony API Health (https://${domainHost}/api/health): ${apiRes.status} ${apiRes.statusText} -> ${apiBody}`);
+    } catch (err) {
+      console.error(`❌ API Health check failed: ${err.message}`);
     }
 
     try {
@@ -760,10 +734,10 @@ conn.close()
   // Summary
   console.log('\n\x1b[32m🎉 Environment successfully configured!\x1b[0m\n');
   console.log(`🌐 Dokploy Dashboard: ${DOKPLOY_URL_RAW}/dashboard/project/${projectId}/environment/${environmentId}/compose/${composeId}`);
-  console.log(`💻 Frontend:           https://${domainHost}`);
+  console.log(`💻 Frontend (Next.js): https://${domainHost}`);
   console.log(`🔗 Backend API:        https://${domainHost}/api/health`);
+  console.log(`🛡️  Admin Panel:        https://${domainHost}/admin`);
   console.log(`📡 Mercure SSE:        https://${domainHost}/.well-known/mercure`);
-  console.log(`📱 App URL:            https://${domainHost}`);
   console.log(`🐘 Postgres AppName:   ${pgService.appName}`);
   console.log(`🔴 Redis AppName:      ${redisService.appName}`);
   console.log(`🌿 Git Branch:         ${gitBranch}\n`);

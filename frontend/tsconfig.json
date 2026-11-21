@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -17,11 +21,38 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@blueprint/ui-kit": ["../packages/ui-kit/src/index.ts"],
-      "@blueprint/ui-kit/*": ["../packages/ui-kit/src/*"],
-      "@ui-kit": ["../packages/ui-kit/src/index.ts"],
-      "@ui-kit/*": ["../packages/ui-kit/src/*"]
-    }
+      "@blueprint/ui-kit": [
+        "../packages/ui-kit/src/index.ts"
+      ],
+      "@blueprint/ui-kit/*": [
+        "../packages/ui-kit/src/*"
+      ],
+      "@ui-kit": [
+        "../packages/ui-kit/src/index.ts"
+      ],
+      "@ui-kit/*": [
+        "../packages/ui-kit/src/*"
+      ]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["../packages/ui-kit/src"]
+  "include": [
+    "src",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "../packages/ui-kit/src/**/*.stories.tsx",
+    "../packages/ui-kit/src/**/*.test.tsx",
+    "../packages/ui-kit/src/**/*.test.ts"
+  ]
 }

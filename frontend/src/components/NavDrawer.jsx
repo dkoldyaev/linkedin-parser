@@ -1,5 +1,8 @@
+'use client';
+
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BarChart3, BookOpen, Info, Languages, FileText, Key, Shield } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from './menuContext';
@@ -19,6 +22,7 @@ const LINKS = [
 export default function NavDrawer({ user }) {
   const { t, locale, setLocale } = useTranslation();
   const { open, close } = useMenu();
+  const pathname = usePathname() || '/';
   const drawerRef = useRef(null);
   const snapScroll = useGridScroll();
   useLayoutEffect(() => {
@@ -55,7 +59,7 @@ export default function NavDrawer({ user }) {
     trackEvent(EVENTS.LANGUAGE_CHANGE, { locale: targetLocale });
     if (user) {
       try {
-        await fetch('/api/settings', {
+        await fetch('/api/v2/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ locale: targetLocale }),
@@ -74,22 +78,24 @@ export default function NavDrawer({ user }) {
           <span className="drawer-tag">Navigation</span>
         </div>
         <nav className="drawer-links" onScroll={snapScroll}>
-          {links.map(({ to, key, end, icon: Icon }, idx) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              id={`nav-link-${key}`}
-              onClick={close}
-              tabIndex={open ? 0 : -1}
-              className={({ isActive }) => `drawer-link ${isActive ? 'active' : ''}`}
-            >
-              <span className="drawer-index">{String(idx + 1).padStart(2, '0')}</span>
-              <Icon className="drawer-link-icon" size={18} aria-hidden="true" />
-              <span className="drawer-link-text">{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : key}</span>
-              <span className="drawer-link-arrow">→</span>
-            </NavLink>
-          ))}
+          {links.map(({ to, key, end, icon: Icon }, idx) => {
+            const isActive = end ? pathname === to : pathname.startsWith(to);
+            return (
+              <Link
+                key={to}
+                href={to}
+                id={`nav-link-${key}`}
+                onClick={close}
+                tabIndex={open ? 0 : -1}
+                className={`drawer-link ${isActive ? 'active' : ''}`}
+              >
+                <span className="drawer-index">{String(idx + 1).padStart(2, '0')}</span>
+                <Icon className="drawer-link-icon" size={18} aria-hidden="true" />
+                <span className="drawer-link-text">{t(`pages.nav.${key}`) !== `pages.nav.${key}` ? t(`pages.nav.${key}`) : key}</span>
+                <span className="drawer-link-arrow">→</span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="drawer-footer">
           <div className="drawer-sys-status">

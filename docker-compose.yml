@@ -1,50 +1,76 @@
 services:
-  app:
+  frontend:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-frontend
     build:
       context: .
       dockerfile: Dockerfile
+      target: frontend-runner
+      args:
+        - APP_URL=${APP_URL}
+        - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - PORT=3000
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
       args:
         - APP_URL=${APP_URL}
     restart: unless-stopped
     volumes:
       - ./data:/app/data
     environment:
+      - APP_ENV=prod
+      - APP_SECRET=${JWT_SECRET}
+      - SERVER_NAME=:8000
       - APP_URL=${APP_URL}
+      - DEFAULT_URI=${APP_URL}
       - DATA_DIR=/app/data
-      - SQL_DIAGNOSTICS=${SQL_DIAGNOSTICS:-false}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:8000}
-      - DATABASE_URL=${DATABASE_URL:-}
+      - DATABASE_URL=${DATABASE_URL}
       - BROKER_URL=${BROKER_URL}
-      - STATIC_DIR=/app/static
-      - LLM_PROVIDER=${LLM_PROVIDER:-mistral}
-      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
-      - MISTRAL_MODEL=${MISTRAL_MODEL:-mistral-small-latest}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - MERCURE_URL=${MERCURE_URL:-http://mercure/.well-known/mercure}
-      - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL:-/.well-known/mercure}
+      - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - MISTRAL_MODEL=${MISTRAL_MODEL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - MERCURE_URL=${MERCURE_URL}
+      - MERCURE_PUBLIC_URL=${MERCURE_PUBLIC_URL}
       - MERCURE_JWT_SECRET=${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
-      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+      - MERCURE_JWT_ISSUER=${MERCURE_JWT_ISSUER}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
       - JWT_SECRET=${JWT_SECRET:?Set a random JWT_SECRET}
-      - DEV_AUTH=${DEV_AUTH:-false}
-      - CREATE_MOCK_DATA=${CREATE_MOCK_DATA:-false}
-      - EXTENSION_ID=${EXTENSION_ID:-}
-      - PARSER_API_URL=${PARSER_API_URL:-http://parser-api:4000}
-      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
-      - ALLRATESTODAY_API_KEY=${ALLRATESTODAY_API_KEY:-}
+      - DEV_AUTH=${DEV_AUTH}
+      - CREATE_MOCK_DATA=${CREATE_MOCK_DATA}
+      - EXTENSION_ID=${EXTENSION_ID}
+      - PARSER_API_URL=${PARSER_API_URL}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       - mercure
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/ | grep -q '<div id=\"root\"></div>'"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health | grep -q 'ok'"]
       interval: 5s
       timeout: 5s
       retries: 3
       start_period: 15s
 
   mercure:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-mercure
     image: dunglas/mercure:v0.16
     restart: unless-stopped
     environment:
@@ -52,9 +78,10 @@ services:
       MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
       MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set a random MERCURE_JWT_SECRET}
       MERCURE_EXTRA_DIRECTIVES: |
-        cors_origins ${APP_URL:-http://localhost:8000}
+        cors_origins ${APP_URL}
 
   parser-api:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-parser-api
     build:
       context: .
       dockerfile: services/parser-api/Dockerfile

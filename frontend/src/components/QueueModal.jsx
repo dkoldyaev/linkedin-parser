@@ -38,11 +38,11 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch('/api/queue/tasks');
+      const res = await fetch('/api/v2/queue/links');
       if (!res.ok) throw new Error('Failed to fetch queue tasks');
       const data = await res.json();
-      setTasks(data);
-      if (data.length === 0 && queueRemaining > 0) {
+      setTasks(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length === 0 && queueRemaining > 0) {
         onRefreshQueue?.();
       }
       setError('');
@@ -55,8 +55,8 @@ export default function QueueModal({ isOpen, onClose, queueRemaining, onRefreshQ
 
   const handleCancelTask = async (taskId) => {
     try {
-      setTasks((prev) => prev.filter((t) => t.task_id !== taskId));
-      const res = await fetch(`/api/queue/tasks/${taskId}`, { method: 'DELETE' });
+      setTasks((prev) => prev.filter((t) => (t.task_id || t.id) !== taskId));
+      const res = await fetch(`/api/v2/queue/links/${taskId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to cancel task');
       onRefreshQueue?.();
     } catch (err) {

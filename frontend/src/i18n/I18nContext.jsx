@@ -1,10 +1,20 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { translations } from './translations';
 
 const I18nContext = createContext(null);
 
-export function I18nProvider({ children }) {
+export function I18nProvider({
+  children,
+  initialLocale,
+  initialSalaryFormat,
+  initialSalaryCurrency,
+}) {
   const [locale, setLocaleState] = useState(() => {
+    if (initialLocale === 'en' || initialLocale === 'ru') {
+      return initialLocale;
+    }
     try {
       const saved = localStorage.getItem('app_locale');
       if (saved && (saved === 'ru' || saved === 'en')) {
@@ -17,6 +27,9 @@ export function I18nProvider({ children }) {
   });
 
   const [salaryDisplayFormat, setSalaryDisplayFormatState] = useState(() => {
+    if (initialSalaryFormat) {
+      return initialSalaryFormat;
+    }
     try {
       const saved = localStorage.getItem('app_salary_format');
       if (saved) return saved;
@@ -27,6 +40,9 @@ export function I18nProvider({ children }) {
   });
 
   const [salaryTargetCurrency, setSalaryTargetCurrencyState] = useState(() => {
+    if (initialSalaryCurrency !== undefined && initialSalaryCurrency !== null) {
+      return initialSalaryCurrency;
+    }
     try {
       const saved = localStorage.getItem('app_salary_currency');
       if (saved) return saved;
@@ -46,11 +62,22 @@ export function I18nProvider({ children }) {
     return {};
   });
 
+  useEffect(() => {
+    if (initialLocale === 'en' || initialLocale === 'ru') {
+      setLocaleState(initialLocale);
+      try {
+        localStorage.setItem('app_locale', initialLocale);
+      } catch {
+        // ignore
+      }
+    }
+  }, [initialLocale]);
+
   // Fetch exchange rates once and cache in localStorage
   useEffect(() => {
-    fetch('/api/exchange-rates')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
+    fetch('/api/v2/exchange-rates')
+      .then((res) => (res && res.ok ? res.json() : null))
+      .then((data) => {
         if (data && data.rates) {
           setExchangeRatesState(data.rates);
           try {
@@ -60,17 +87,17 @@ export function I18nProvider({ children }) {
           }
         }
       })
-      .catch(err => console.debug('Could not fetch exchange rates', err));
+      .catch((err) => console.debug('Could not fetch exchange rates', err));
   }, []);
 
-  // Sync with /api/settings on initial mount if authenticated
+  // Sync with /api/v2/settings on initial mount if not already provided
   useEffect(() => {
-    fetch('/api/settings')
-      .then(res => {
-        if (!res.ok) return null;
+    fetch('/api/v2/settings')
+      .then((res) => {
+        if (!res || !res.ok) return null;
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         if (data && data.locale && (data.locale === 'ru' || data.locale === 'en')) {
           setLocaleState(data.locale);
           try {
@@ -97,7 +124,7 @@ export function I18nProvider({ children }) {
           }
         }
       })
-      .catch(err => console.debug('Could not fetch settings', err));
+      .catch((err) => console.debug('Could not fetch settings', err));
   }, []);
 
   const setLocale = useCallback((newLocale) => {
@@ -129,26 +156,15 @@ export function I18nProvider({ children }) {
     }
   }, []);
 
-  const t = useCallback((path, params = {}) => {
-    if (!path) return '';
-    const keys = path.split('.');
-    
-    // 1. Try current locale
-    let current = translations[locale];
-    let found = true;
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key in current) {
-        current = current[key];
-      } else {
-        found = false;
-        break;
-      }
-    }
+  const t = useCallback(
+    (path, params) => {
+      if (!path) return '';
+      const templateParams = params || {};
+      const keys = path.split('.');
 
-    // 2. Fallback to 'ru' if not found in current locale
-    if (!found) {
-      current = translations.ru;
-      found = true;
+      // 1. Try current locale
+      let current = translations[locale];
+      let found = true;
       for (const key of keys) {
         if (current && typeof current === 'object' && key in current) {
           current = current[key];
@@ -157,45 +173,66 @@ export function I18nProvider({ children }) {
           break;
         }
       }
-    }
 
-    if (!found || typeof current !== 'string') {
-      if (path.startsWith('kanban.columns.')) {
-        return path.replace('kanban.columns.', '');
+      // 2. Fallback to 'ru' if not found in current locale
+      if (!found) {
+        current = translations.ru;
+        found = true;
+        for (const key of keys) {
+          if (current && typeof current === 'object' && key in current) {
+            current = current[key];
+          } else {
+            found = false;
+            break;
+          }
+        }
       }
-      return path;
-    }
 
-    // Replace template variables {var}
-    let result = current;
-    for (const [k, v] of Object.entries(params)) {
-      result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), v !== undefined && v !== null ? v : '');
-    }
-    return result;
-  }, [locale]);
+      if (!found || typeof current !== 'string') {
+        if (path.startsWith('kanban.columns.')) {
+          return path.replace('kanban.columns.', '');
+        }
+        return path;
+      }
 
-  const formatDate = useCallback((dateValue, options = { day: 'numeric', month: 'short' }) => {
-    if (!dateValue) return '';
-    try {
-      const d = new Date(dateValue);
-      return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'ru-RU', options);
-    } catch {
-      return String(dateValue);
-    }
-  }, [locale]);
+      // Replace template variables {var}
+      let result = current;
+      for (const [k, v] of Object.entries(templateParams)) {
+        result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), v !== undefined && v !== null ? v : '');
+      }
+      return result;
+    },
+    [locale]
+  );
+
+  const formatDate = useCallback(
+    (dateValue, options) => {
+      if (!dateValue) return '';
+      const fmtOptions = options || { day: 'numeric', month: 'short' };
+      try {
+        const d = new Date(dateValue);
+        return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'ru-RU', fmtOptions);
+      } catch {
+        return String(dateValue);
+      }
+    },
+    [locale]
+  );
 
   return (
-    <I18nContext.Provider value={{
-      locale,
-      setLocale,
-      t,
-      formatDate,
-      salaryDisplayFormat,
-      setSalaryDisplayFormat,
-      salaryTargetCurrency,
-      setSalaryTargetCurrency,
-      exchangeRates
-    }}>
+    <I18nContext.Provider
+      value={{
+        locale,
+        setLocale,
+        t,
+        formatDate,
+        salaryDisplayFormat,
+        setSalaryDisplayFormat,
+        salaryTargetCurrency,
+        setSalaryTargetCurrency,
+        exchangeRates,
+      }}
+    >
       {children}
     </I18nContext.Provider>
   );

@@ -70,7 +70,8 @@ export default function KanbanCard({
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
 
-  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : undefined;
+  const rawScore = vacancy.calculated_score ?? vacancy.match_score;
+  const matchScore = rawScore != null ? Math.round(rawScore) : undefined;
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('text/plain', vacancy.id.toString());

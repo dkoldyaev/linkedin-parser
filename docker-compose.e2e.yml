@@ -1,25 +1,47 @@
 # Standalone stack. Never merges developer mounts or working database volumes.
 services:
+  frontend:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-frontend-test
+    image: linkedinparser_frontend:latest
+    ports:
+      - '127.0.0.1:13001:3000'
+    environment:
+      PORT: '3000'
+      BACKEND_INTERNAL_URL: http://${APP_NAME_PREFIX}-linkedin-parser-app-test:8000
+      NEXT_TELEMETRY_DISABLED: '1'
+    depends_on:
+      app:
+        condition: service_started
+
   app:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-app-test
     image: linkedinparser_app:latest
     ports:
       - '127.0.0.1:18000:8000'
     environment:
+      APP_ENV: prod
+      APP_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      SERVER_NAME: ':8000'
       APP_URL: http://localhost:18000
-      DATABASE_URL: postgresql://audit:audit@postgres:5432/audit_e2e
-      BROKER_URL: redis://redis:6379/0
+      DEFAULT_URI: http://localhost:18000
+      DATABASE_URL: postgresql://audit:audit@${APP_NAME_PREFIX}-linkedin-parser-postgres-test:5432/audit_e2e
+      BROKER_URL: redis://${APP_NAME_PREFIX}-linkedin-parser-redis-test:6379/0
+      MESSENGER_TRANSPORT_DSN: doctrine://default
       DATA_DIR: /tmp/audit-data
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       MERCURE_JWT_SECRET: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
-      MERCURE_URL: http://mercure/.well-known/mercure
+      MERCURE_JWT_ISSUER: linkedin-parser
+      MERCURE_URL: http://${APP_NAME_PREFIX}-linkedin-parser-mercure-test:80/.well-known/mercure
       MERCURE_PUBLIC_URL: http://localhost:13000/.well-known/mercure
       DEV_AUTH: 'true'
       CREATE_MOCK_DATA: 'false'
       SQL_DIAGNOSTICS: 'true'
-      PARSER_API_URL: http://parser-api:4000
+      PARSER_API_URL: http://${APP_NAME_PREFIX}-linkedin-parser-parser-api-test:4000
       LLM_PROVIDER: mistral
       MISTRAL_API_KEY: ''
+      MISTRAL_MODEL: mistral-small-latest
       GEMINI_API_KEY: ''
+      GEMINI_MODEL: gemini-2.5-flash
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +49,9 @@ services:
         condition: service_started
       mercure:
         condition: service_started
+
   postgres:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-postgres-test
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: audit_e2e
@@ -40,10 +64,14 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+
   redis:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-redis-test
     image: redis:7-alpine
     command: ['redis-server', '--save', '', '--appendonly', 'no']
+
   mercure:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-mercure-test
     image: dunglas/mercure:v0.16
     ports:
       - '127.0.0.1:13000:80'
@@ -53,5 +81,7 @@ services:
       MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:?Set MERCURE_JWT_SECRET}
       MERCURE_EXTRA_DIRECTIVES: |
         cors_origins http://localhost:18000
+
   parser-api:
+    container_name: ${APP_NAME_PREFIX}-linkedin-parser-parser-api-test
     image: linkedinparser_parser-api:latest

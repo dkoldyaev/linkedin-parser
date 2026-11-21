@@ -11,6 +11,9 @@ import {
   Button,
   Icon,
   EmptyState,
+  Text,
+  StatusDot,
+  Badge,
 } from '@blueprint/ui-kit';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
@@ -192,7 +195,7 @@ export default function KanbanBoard({
   };
 
   const handleCreateColumn = async (newColData) => {
-    const res = await fetch('/api/columns', {
+    const res = await fetch('/api/v2/columns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newColData)
@@ -206,7 +209,7 @@ export default function KanbanBoard({
   };
 
   const handleSaveColumn = async (colId, updateData) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updateData)
@@ -220,7 +223,7 @@ export default function KanbanBoard({
   };
 
   const handleDeleteColumn = async (colId, migrateTo) => {
-    const res = await fetch(`/api/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
+    const res = await fetch(`/api/v2/columns/${encodeURIComponent(colId)}?migrate_to=${encodeURIComponent(migrateTo)}`, {
       method: 'DELETE'
     });
     if (!res.ok) {
@@ -304,10 +307,6 @@ export default function KanbanBoard({
             >
               <TableHeader
                 size="sm"
-                index={`[ ${String(colIndex + 1).padStart(2, '0')} ]`}
-                indicatorColor={mapColorToPalette(col.color)}
-                title={columnName}
-                badge={columnVacancies.length}
                 actions={
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <Button
@@ -376,7 +375,18 @@ export default function KanbanBoard({
                     )}
                   </div>
                 }
-              />
+              >
+                <Text as="span" variant="mono" weight="semibold" tone="accent">
+                  {`[ ${String(colIndex + 1).padStart(2, '0')} ]`}
+                </Text>
+                <StatusDot color={col.color || '#2563eb'} size="md" />
+                <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+                  {columnName}
+                </Text>
+                <Badge variant="counter" size="xs" tone="neutral">
+                  {columnVacancies.length}
+                </Badge>
+              </TableHeader>
 
               <TableBody
                 scrollable
@@ -456,9 +466,6 @@ export default function KanbanBoard({
       >
         <TableHeader
           size="sm"
-          indicatorColor="danger"
-          title={rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
-          badge={rejectedVacancies.length}
           onClick={() => {
             trackEvent(EVENTS.REJECTED_TOGGLE, { collapsed: !isRejectedCollapsed });
             setIsRejectedCollapsed(prev => !prev);
@@ -479,7 +486,15 @@ export default function KanbanBoard({
               {isRejectedCollapsed ? t('kanban.rejected_expand') : t('kanban.rejected_collapse')}
             </Button>
           }
-        />
+        >
+          <StatusDot tone="danger" size="md" />
+          <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+            {rejectedColumn && rejectedColumn.id !== STATUS_REJECTED ? rejectedColumn.id : t('kanban.rejected_title')}
+          </Text>
+          <Badge variant="counter" size="xs" tone="neutral">
+            {rejectedVacancies.length}
+          </Badge>
+        </TableHeader>
 
         {!isRejectedCollapsed && (
           <div style={{ maxHeight: 'calc(10 * var(--ui-grid-cell))', overflowX: 'auto', overflowY: 'hidden' }}>

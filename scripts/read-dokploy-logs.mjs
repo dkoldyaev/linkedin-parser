@@ -3,19 +3,27 @@ import path from 'node:path';
 import https from 'node:https';
 
 const envPath = path.resolve(process.cwd(), '.env');
-const envContent = fs.readFileSync(envPath, 'utf-8');
 const envVars = {};
-for (const line of envContent.split('\n')) {
-  const trimmed = line.trim();
-  if (!trimmed || trimmed.startsWith('#')) continue;
-  const eq = trimmed.indexOf('=');
-  if (eq !== -1) {
-    envVars[trimmed.substring(0, eq).trim()] = trimmed.substring(eq + 1).trim();
+for (const candidate of ['/home/developer/.config/secrets/credentials.env', envPath]) {
+  if (!fs.existsSync(candidate)) continue;
+  const envContent = fs.readFileSync(candidate, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const clean = trimmed.startsWith('export ') ? trimmed.slice(7).trim() : trimmed;
+    const eq = clean.indexOf('=');
+    if (eq !== -1) {
+      let val = clean.substring(eq + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      envVars[clean.substring(0, eq).trim()] = val;
+    }
   }
 }
 
-const API_KEY = envVars.DOKPLOY_API_KEY;
-const BASE_URL = (envVars.DOKPLOY_URL || 'https://dokploy.dkoldyaev.com').replace(/\/+$/, '');
+const API_KEY = envVars.DOKPLOY_API_KEY || process.env.DOKPLOY_API_KEY;
+const BASE_URL = (envVars.DOKPLOY_URL || process.env.DOKPLOY_URL || 'https://dokploy.build.dkoldyaev.com').replace(/\/+$/, '');
 
 function dokployRequest(endpoint, method = 'GET', body = null) {
   return new Promise((resolve, reject) => {
@@ -90,15 +98,21 @@ async function main() {
   const allContainers = await dokployRequest('/docker.getContainers');
   console.log('Available containers:', allContainers.map(c => c.name).filter(n => n.includes(composeAppName)));
 
-  const appC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-app-\d+/));
-  const mercureC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-mercure-\d+/));
-  const browserC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.match(/-browser-\d+/));
+  const appC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-app'));
+  const frontendC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-frontend'));
+  const mercureC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-mercure'));
+  const parserC = allContainers.find(c => c.name?.includes(composeAppName) && c.name?.includes('-parser-api'));
 
   if (appC) {
     const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${appC.containerId}&tail=50`);
-    console.log('--- App Logs ---\n', logs);
+    console.log('--- Symfony App Logs ---\n', logs);
   } else {
     console.log('App container not found.');
+  }
+
+  if (frontendC) {
+    const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${frontendC.containerId}&tail=50`);
+    console.log('--- Next.js Frontend Logs ---\n', logs);
   }
 
   if (mercureC) {
@@ -106,9 +120,9 @@ async function main() {
     console.log('--- Mercure Logs ---\n', logs);
   }
 
-  if (browserC) {
-    const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${browserC.containerId}&tail=50`);
-    console.log('--- Browser Logs ---\n', logs);
+  if (parserC) {
+    const logs = await dokployRequest(`/compose.readLogs?composeId=${composeId}&containerId=${parserC.containerId}&tail=50`);
+    console.log('--- Parser API Logs ---\n', logs);
   }
 }
 

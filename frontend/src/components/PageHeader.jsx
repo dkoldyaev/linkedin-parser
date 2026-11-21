@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { Header, Button, Icon } from '@blueprint/ui-kit';
 import SettingsModal from './SettingsModal';
@@ -32,7 +34,7 @@ export default function PageHeader({ user, onLogout, onUserUpdated }) {
         title={t('nav.title')}
         subtitle={t('nav.subtitle')}
         brand={
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
             <Header.Brand
               title={t('nav.title')}
               subtitle={t('nav.subtitle')}

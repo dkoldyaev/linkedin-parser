@@ -44,7 +44,7 @@ export default function BatchImportModal({ isOpen, onClose, onImportComplete, qu
     });
 
     try {
-      const res = await fetch('/api/vacancies/batch', {
+      const res = await fetch('/api/v2/vacancies/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,0 +1,58 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
+            security: false
+
+        api_public:
+            pattern: ^/(api/health|api/v2/health|api/v2/auth/dev-login|api/v2/auth/config|api/auth/config|api/v2/auth/google|api/auth/google|api/v2/auth/refresh$|api/auth/refresh$|api/v2/auth/me$|api/auth/me$|api/v2/exchange-rates|api/extension/changelog|api/v2/extension/changelog|api/extension/log|api/v2/extension/log)
+            security: false
+
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: app_user_provider
+            custom_authenticators:
+                - App\Security\ApiKeyAuthenticator
+            jwt: ~
+
+        admin:
+            pattern: ^/admin
+            lazy: true
+            provider: app_user_provider
+            entry_point: App\Security\AdminJwtCookieAuthenticator
+            access_denied_handler: App\Security\AdminAccessDeniedHandler
+            custom_authenticators:
+                - App\Security\AdminJwtCookieAuthenticator
+            logout:
+                path: admin_logout
+
+        main:
+            lazy: true
+            provider: app_user_provider
+
+    access_control:
+        - { path: ^/api/(health|v2/health), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/config|v2/auth/config), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/google|v2/auth/google), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/refresh|v2/auth/refresh), roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/auth/dev-login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/auth/logout, roles: PUBLIC_ACCESS }
+        - { path: ^/api/(auth/me|v2/auth/me), roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/exchange-rates, roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/changelog|v2/extension/changelog), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/log|v2/extension/log), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(config|mercure-config|v2/mercure-config), roles: PUBLIC_ACCESS }
+        - { path: ^/api/(extension/mercure_config|v2/extension/mercure_config), roles: PUBLIC_ACCESS }
+        - { path: ^/admin/login, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

@@ -1,0 +1,14 @@
+lexik_jwt_authentication:
+    secret_key: '%env(JWT_SECRET)%'
+    token_ttl: 3600
+    encoder:
+        signature_algorithm: HS256
+    user_id_claim: sub
+    token_extractors:
+        authorization_header:
+            enabled: true
+            prefix: Bearer
+            name: Authorization
+        cookie:
+            enabled: true
+            name: access_token

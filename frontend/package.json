@@ -4,15 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "oxlint && npm --prefix ../packages/ui-kit run lint",
     "lint:boundaries": "npm --prefix ../packages/ui-kit run lint:boundaries",
     "typecheck": "npm --prefix ../packages/ui-kit run typecheck",
-    "test": "npm --prefix ../packages/ui-kit run test",
+    "test": "vitest run && node --test src/utils/anonymizer.test.js src/utils/cvIndexedDB.test.js",
     "storybook": "npm --prefix ../packages/ui-kit run storybook",
     "storybook:build": "npm --prefix ../packages/ui-kit run storybook:build",
-    "preview": "vite preview",
     "test:api": "node test_api.mjs"
   },
   "dependencies": {
@@ -25,10 +25,10 @@
     "@radix-ui/react-tooltip": "^1.4.1",
     "compromise": "^14.19.0",
     "lucide-react": "^1.42.0",
+    "next": "^16.4.5",
     "pdfjs-dist": "^6.5.438",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.4"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.7",
@@ -38,6 +38,7 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.9",
+    "@types/node": "26.6.6",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@typescript-eslint/eslint-plugin": "^8.72.2",

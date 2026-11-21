@@ -20,9 +20,16 @@ export default function VacancyModal({
   onUpdate,
   onDelete,
   columns = DEFAULT_COLUMNS,
+  initialHistory,
+  initialCompatibility,
 }) {
   const { t, locale, formatDate, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
   const [status, setStatus] = useState(vacancy?.status || STATUS_NOT_CONTACTED);
+  const [historyList, setHistoryList] = useState(() => {
+    if (Array.isArray(initialHistory)) return initialHistory;
+    if (Array.isArray(vacancy?.history)) return vacancy.history;
+    return [];
+  });
 
   const modalColumns = Array.isArray(columns) && columns.length > 0
     ? columns.map(c => typeof c === 'string' ? { id: c, name: c } : c)
@@ -65,7 +72,7 @@ export default function VacancyModal({
   const [savedDescSuccess, setSavedDescSuccess] = useState(false);
 
   // CV Compatibility Analysis state
-  const [compatibility, setCompatibility] = useState(null);
+  const [compatibility, setCompatibility] = useState(initialCompatibility !== undefined ? initialCompatibility : null);
   const [loadingCompatibility, setLoadingCompatibility] = useState(false);
   const [analyzingCompatibility, setAnalyzingCompatibility] = useState(false);
   const [compatError, setCompatError] = useState(null);
@@ -87,19 +94,34 @@ export default function VacancyModal({
       setSalaryPeriod(vacancy.salary_period || 'month');
       setWorkplaceType(vacancy.workplace_type || '');
       setIsClosed(Boolean(vacancy.is_closed));
-      setCompatibility(null);
       setCompatError(null);
 
-      if (vacancy.id) {
+      if (Array.isArray(initialHistory)) {
+        setHistoryList(initialHistory);
+      } else if (Array.isArray(vacancy.history)) {
+        setHistoryList(vacancy.history);
+      } else if (vacancy.id) {
+        fetch(`/api/v2/vacancies/${vacancy.id}/history`)
+          .then((res) => (res && res.ok ? res.json() : []))
+          .then((data) => {
+            if (Array.isArray(data)) setHistoryList(data);
+          })
+          .catch((err) => console.warn('Failed to load history:', err));
+      }
+
+      if (initialCompatibility !== undefined && initialCompatibility !== null) {
+        setCompatibility(initialCompatibility);
+      } else if (vacancy.id) {
+        setCompatibility(null);
         setLoadingCompatibility(true);
-        fetch(`/api/vacancies/${vacancy.id}/compatibility`)
-          .then((res) => (res.ok ? res.json() : null))
+        fetch(`/api/v2/vacancies/${vacancy.id}/compatibility`)
+          .then((res) => (res && res.ok ? res.json() : null))
           .then((data) => setCompatibility(data))
           .catch((err) => console.warn('Failed to load compatibility:', err))
           .finally(() => setLoadingCompatibility(false));
       }
     }
-  }, [vacancy]);
+  }, [vacancy, initialHistory, initialCompatibility]);
 
   if (!isOpen || !vacancy) return null;
 
@@ -112,7 +134,7 @@ export default function VacancyModal({
       method: 'modal_button',
     });
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -132,7 +154,7 @@ export default function VacancyModal({
     const val = newType || null;
     setWorkplaceType(val || '');
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workplace_type: val }),
@@ -147,7 +169,7 @@ export default function VacancyModal({
     const nextVal = !isClosed;
     setIsClosed(nextVal);
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_closed: nextVal }),
@@ -171,7 +193,7 @@ export default function VacancyModal({
       setSalaryMax(salaryData.max);
       setSalaryCurrency(salaryData.currency);
       setSalaryPeriod(salaryData.period);
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -191,7 +213,7 @@ export default function VacancyModal({
 
   const handleSaveTitle = async () => {
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
@@ -208,7 +230,7 @@ export default function VacancyModal({
     setSavingNotes(true);
     setNotes(nextNotes);
     try {
-      await fetch(`/api/vacancies/${vacancy.id}`, {
+      await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: nextNotes }),
@@ -227,7 +249,7 @@ export default function VacancyModal({
     setSavingDesc(true);
     setDescription(nextDesc);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: nextDesc }),
@@ -247,7 +269,7 @@ export default function VacancyModal({
   const handleTechStackChange = async (nextTech) => {
     setTechStack(nextTech);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tech_stack: nextTech }),
@@ -261,7 +283,7 @@ export default function VacancyModal({
   const handleTagsChange = async (nextTags) => {
     setTags(nextTags);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: nextTags }),
@@ -274,12 +296,15 @@ export default function VacancyModal({
 
   const handleSaveHistoryComment = async (historyId, comment) => {
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: comment.trim() || null }),
       });
-      if (res.ok) onUpdate(await res.json());
+      if (res.ok) {
+        const updatedHistory = await res.json();
+        setHistoryList((prev) => prev.map((h) => (String(h.id) === String(historyId) ? updatedHistory : h)));
+      }
     } catch (err) {
       console.error('Failed to save history comment', err);
     }
@@ -287,12 +312,15 @@ export default function VacancyModal({
 
   const handleDeleteHistoryComment = async (historyId) => {
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/history/${historyId}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/history/${historyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comment: null }),
       });
-      if (res.ok) onUpdate(await res.json());
+      if (res.ok) {
+        const updatedHistory = await res.json();
+        setHistoryList((prev) => prev.map((h) => (String(h.id) === String(historyId) ? updatedHistory : h)));
+      }
     } catch (err) {
       console.error('Failed to delete history comment', err);
     }
@@ -301,7 +329,7 @@ export default function VacancyModal({
   const handleResummarize = async () => {
     setResummarizing(true);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/resummarize?language=${locale}`, {
         method: 'POST',
       });
       if (res.ok) onUpdate(await res.json());
@@ -317,7 +345,7 @@ export default function VacancyModal({
     setReparseError(null);
     setReparseSuccess(false);
     try {
-      const res = await fetch(`/api/vacancies/${vacancy.id}/reparse`, { method: 'POST' });
+      const res = await fetch(`/api/v2/vacancies/${vacancy.id}/reparse`, { method: 'POST' });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.detail || t('common.error'));
@@ -336,13 +364,16 @@ export default function VacancyModal({
     setAnalyzingCompatibility(true);
     setCompatError(null);
     try {
-      const url = `/api/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
+      const url = `/api/v2/vacancies/${vacancy.id}/compatibility${force ? '?force=true' : ''}`;
       const res = await fetch(url, { method: 'POST' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || 'Analysis failed');
       }
-      setCompatibility(await res.json());
+      const data = await res.json();
+      if (data && data.status !== 'queued') {
+        setCompatibility(data);
+      }
     } catch (err) {
       setCompatError(err.message);
     } finally {
@@ -352,7 +383,8 @@ export default function VacancyModal({
 
   const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
-  const matchScore = vacancy.match_score != null ? Math.round(vacancy.match_score) : undefined;
+  const rawScore = vacancy.calculated_score ?? vacancy.match_score;
+  const matchScore = rawScore != null ? Math.round(rawScore) : undefined;
 
   const stageOptions = modalColumns.map((col) => ({
     value: col.id,
@@ -366,7 +398,7 @@ export default function VacancyModal({
     { value: 'on-site', label: t('workplace.full_onsite') },
   ];
 
-  const historyItems = (vacancy.history || []).map((h, idx) => ({
+  const historyItems = (historyList || []).map((h, idx) => ({
     id: String(h.id || idx),
     label: getStageLabel(h.to_status, h.to_lane),
     fromLabel: h.from_status ? getStageLabel(h.from_status, h.from_lane) : undefined,
@@ -465,7 +497,7 @@ export default function VacancyModal({
       sourceUrl={vacancy.url}
       location={vacancy.location}
       workplace={workplaceType}
-      workplaceLabel={workplaceInfo.label}
+      workplaceLabel={workplaceInfo?.label || t('vacancyModal.not_specified')}
       workplaceOptions={workplaceOptions}
       onWorkplaceChange={handleWorkplaceTypeChange}
       isClosed={isClosed}
@@ -507,7 +539,7 @@ export default function VacancyModal({
       salaryPeriodLabel={t('vacancyModal.period')}
       aiSummaryTitle={t('vacancyModal.ai_summary_title')}
       aiSummary={vacancy.ai_summary}
-      companyDescription={vacancy.company_description}
+      companyDescription={vacancy.company_info || vacancy.company_description}
       companyInfoLabel={t('vacancyModal.about_company') + ' '}
       onResummarize={handleResummarize}
       resummarizing={resummarizing}

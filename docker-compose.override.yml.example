@@ -1,0 +1,99 @@
+services:
+  traefik:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-traefik
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`com.docker.compose.project`, `linkedinparser`)"
+      - "--entrypoints.web.address=:${PORT}"
+    ports:
+      - "127.0.0.1:${PORT}:8000"
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  frontend:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-frontend
+    environment:
+      PORT: 3000
+      BACKEND_INTERNAL_URL: http://${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app:8000
+      NEXT_TELEMETRY_DISABLED: 1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedinparser-frontend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.linkedinparser-frontend.entrypoints=web"
+      - "traefik.http.services.linkedinparser-frontend.loadbalancer.server.port=3000"
+
+  app:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      SERVER_NAME: ":8000"
+      APP_URL: http://localhost:${PORT}
+      DEFAULT_URI: http://localhost:${PORT}
+      DATABASE_URL: postgresql://postgres:postgres@${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-postgres:5432/linkedin_tracker?serverVersion=16&charset=utf8
+      BROKER_URL: redis://${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-redis:6379/0
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+      MERCURE_URL: http://${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-mercure/.well-known/mercure
+      MERCURE_PUBLIC_URL: http://localhost:${PORT}/.well-known/mercure
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedinparser-app.rule=PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/bundles`) || PathPrefix(`/admin-assets`)"
+      - "traefik.http.routers.linkedinparser-app.entrypoints=web"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.server.port=8000"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.timeout=3s"
+
+  mercure:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-mercure
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedinparser-mercure.rule=PathPrefix(`/.well-known/mercure`)"
+      - "traefik.http.routers.linkedinparser-mercure.entrypoints=web"
+      - "traefik.http.services.linkedinparser-mercure.loadbalancer.server.port=80"
+
+  parser-api:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-parser-api
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  postgres:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: linkedin_tracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d linkedin_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
