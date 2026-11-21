@@ -56,16 +56,41 @@ class InitDatabaseCommand extends Command
         try {
             $conn = $this->entityManager->getConnection();
             $conn->executeStatement("DO \$\$ BEGIN 
+                BEGIN ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE users SET is_admin = false WHERE is_admin IS NULL; END;
+                BEGIN ALTER TABLE users ADD COLUMN roles JSON DEFAULT '[\"ROLE_USER\"]' NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE users SET roles = '[\"ROLE_USER\"]' WHERE roles IS NULL; END;
                 BEGIN ALTER TABLE users ADD COLUMN is_anonymous BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE users SET is_anonymous = false WHERE is_anonymous IS NULL; END;
                 BEGIN ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP WITH TIME ZONE NULL; EXCEPTION WHEN duplicate_column THEN NULL; END;
                 BEGIN ALTER TABLE users ADD COLUMN last_board_interaction_at TIMESTAMP WITH TIME ZONE NULL; EXCEPTION WHEN duplicate_column THEN NULL; END;
                 BEGIN ALTER TABLE vacancy_cv_analyses ADD COLUMN is_outdated BOOLEAN DEFAULT false NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE vacancy_cv_analyses SET is_outdated = false WHERE is_outdated IS NULL; END;
+                BEGIN ALTER TABLE processing_queue_items ADD COLUMN priority INTEGER DEFAULT 0 NOT NULL; EXCEPTION WHEN duplicate_column THEN UPDATE processing_queue_items SET priority = 0 WHERE priority IS NULL; END;
+                IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'uq_user_vacancy_analysis' AND table_name = 'vacancy_cv_analyses') THEN
+                    ALTER TABLE vacancy_cv_analyses DROP CONSTRAINT uq_user_vacancy_analysis;
+                END IF;
+            END \$\$;");
+            // Sync all sequence values to prevent duplicate key errors on auto-increment IDs
+            $conn->executeStatement("DO \$\$
+            DECLARE
+                seq RECORD;
+            BEGIN
+                FOR seq IN 
+                    SELECT table_name, column_name, pg_get_serial_sequence(quote_ident(table_name), quote_ident(column_name)) AS seq_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' 
+                      AND column_default LIKE 'nextval%'
+                LOOP
+                    IF seq.seq_name IS NOT NULL THEN
+                        EXECUTE format('SELECT setval(%L, COALESCE((SELECT MAX(%I) FROM %I), 1))', seq.seq_name, seq.column_name, seq.table_name);
+                    END IF;
+                END LOOP;
             END \$\$;");
         } catch (\Throwable) {
             try {
                 $conn = $this->entityManager->getConnection();
+                $conn->executeStatement("UPDATE users SET is_admin = false WHERE is_admin IS NULL");
+                $conn->executeStatement("UPDATE users SET roles = '[\"ROLE_USER\"]' WHERE roles IS NULL");
                 $conn->executeStatement("UPDATE users SET is_anonymous = 0 WHERE is_anonymous IS NULL");
                 $conn->executeStatement("UPDATE vacancy_cv_analyses SET is_outdated = 0 WHERE is_outdated IS NULL");
+                $conn->executeStatement("UPDATE processing_queue_items SET priority = 0 WHERE priority IS NULL");
             } catch (\Throwable) {
             }
         }

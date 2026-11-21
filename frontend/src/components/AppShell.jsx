@@ -9,6 +9,7 @@ import PageHeader from './PageHeader';
 import { MenuContext } from './menuContext';
 import { useGridScroll } from '../utils/useGridScroll';
 import { setAnalyticsUser, trackEvent, EVENTS } from '../utils/analytics';
+import { PageLayout } from '@blueprint/ui-kit';
 
 export const AuthContext = createContext({
   user: null,
@@ -136,8 +137,7 @@ export function AppShell({ children, initialUser }) {
   return (
     <AuthContext.Provider value={{ user, authLoading, checkAuth, handleLogout, setUser }}>
       <MenuContext.Provider value={menu}>
-        <div className="app-shell">
-          {showPageHeader && <PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />}
+        <PageLayout header={<PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
           <div
             className={`app-shell-content${landingRoute ? ' is-landing' : ''}`}
             onScroll={user || pathname === '/' || landingRoute ? snapScroll : undefined}
@@ -159,7 +159,7 @@ export function AppShell({ children, initialUser }) {
             )}
           </div>
           <NavDrawer user={user} />
-        </div>
+        </PageLayout>
       </MenuContext.Provider>
     </AuthContext.Provider>
   );

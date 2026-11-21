@@ -3,8 +3,8 @@ services:
     container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-frontend
     build:
       context: .
-      dockerfile: Dockerfile
-      target: frontend-runner
+      dockerfile: frontend/Dockerfile
+      target: ${FRONTEND_TARGET:-runner}
       args:
         - APP_URL=${APP_URL}
         - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
@@ -23,8 +23,8 @@ services:
     container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app
     build:
       context: .
-      dockerfile: Dockerfile
-      target: backend
+      dockerfile: backend-symfony/Dockerfile
+      target: ${BACKEND_TARGET:-runner}
       args:
         - APP_URL=${APP_URL}
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
     depends_on:
       - mercure
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health | grep -q 'ok'"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/v2/health | grep -q 'ok'"]
       interval: 5s
       timeout: 5s
       retries: 3

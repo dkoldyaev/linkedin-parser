@@ -5,6 +5,8 @@ import '../App.css';
 import { I18nProvider } from '../i18n/I18nContext';
 import { AppShell } from '../components/AppShell';
 import { fetchServerApi } from '../utils/serverApi';
+import { Header } from '@blueprint/ui-kit';
+import PageHeader from '../components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
