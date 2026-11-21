@@ -1,6 +1,12 @@
+import path from 'node:path';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  outputFileTracingRoot: path.resolve(import.meta.dirname, '..'),
+  turbopack: {
+    root: path.resolve(import.meta.dirname, '..'),
+  },
   reactStrictMode: false,
   transpilePackages: ['@blueprint/ui-kit'],
   async rewrites() {
