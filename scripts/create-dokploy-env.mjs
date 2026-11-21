@@ -619,7 +619,14 @@ async function main() {
     let finishedDeployment = null;
 
     while (Date.now() - deployStart < deployTimeoutMs) {
-      const deployments = await dokployRequest(`/deployment.allByCompose?composeId=${composeId}`);
+      let deployments = null;
+      try {
+        deployments = await dokployRequest(`/deployment.allByCompose?composeId=${composeId}`);
+      } catch (pollErr) {
+        process.stdout.write(`  ... waiting for Dokploy API during heavy build (${Math.round((Date.now() - deployStart) / 1000)}s): ${pollErr.message.slice(0, 60)}\r`);
+        await new Promise((r) => setTimeout(r, 5000));
+        continue;
+      }
       const latest = deployments?.[0];
 
       if (latest && new Date(latest.createdAt).getTime() >= deployTriggerTime) {
