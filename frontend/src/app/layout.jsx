@@ -1,5 +1,4 @@
 import React from 'react';
-import '@blueprint/ui-kit/tokens.css';
 import '../index.css';
 import '../design-system.css';
 import '../App.css';
