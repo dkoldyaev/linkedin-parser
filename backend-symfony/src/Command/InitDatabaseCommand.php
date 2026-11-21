@@ -199,6 +199,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'EUR',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'Backend services at Initech. Stack: Python, PostgreSQL, Docker.',
+                        'description' => "Initech is hiring a Senior Backend Engineer to build scalable APIs and background processing pipelines.\n\nRequirements:\n- 4+ years of backend development experience with Python (FastAPI) and PostgreSQL.\n- Experience with Docker, Redis, and automated testing with Pytest.",
                         'techStack' => ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
                         'status' => 'Еще не написал',
                         'tags' => ['priority', 'backend'],
@@ -221,6 +222,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'EUR',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'Fullstack web development at Acme Corp. Stack: React, TypeScript, FastAPI.',
+                        'description' => "Acme Corp is looking for a Fullstack Developer to build customer-facing dashboards and backend APIs.\n\nRequirements:\n- 3+ years of fullstack experience with React, TypeScript, and modern CSS.\n- Solid backend experience with Python (FastAPI) or Node.js and PostgreSQL.",
                         'techStack' => ['React', 'TypeScript', 'Python', 'FastAPI'],
                         'status' => 'Написал',
                         'tags' => ['fullstack'],
@@ -243,6 +245,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'GBP',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'Kubernetes, Terraform, CI/CD pipelines.',
+                        'description' => "Globex Corporation seeks a DevOps / Platform Engineer to scale our multi-region Kubernetes infrastructure.\n\nRequirements:\n- 4+ years in DevOps, SRE, or Platform Engineering roles.\n- Strong hands-on experience with Kubernetes, Docker, Terraform, and AWS.",
                         'techStack' => ['Kubernetes', 'Terraform', 'Docker', 'AWS'],
                         'status' => 'Собеседование',
                         'tags' => ['devops', 'infra'],
@@ -265,6 +268,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'USD',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'High-load architectures and distributed databases.',
+                        'description' => "Stark Industries is hiring a Lead Python Developer to lead our real-time telemetry and distributed data platform.\n\nRequirements:\n- 6+ years of software engineering experience with deep expertise in Python.\n- Proven experience designing high-load distributed systems with Kafka, Redis, and PostgreSQL.",
                         'techStack' => ['Python', 'PostgreSQL', 'Redis', 'Kafka'],
                         'status' => 'Тестовое',
                         'tags' => ['lead', 'architecture'],
@@ -287,6 +291,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'USD',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'LLM evaluation, RAG pipelines, fine-tuning.',
+                        'description' => "Wayne Enterprises is seeking a Senior Machine Learning Engineer to build production LLM agents and retrieval-augmented generation (RAG) pipelines.\n\nRequirements:\n- 5+ years in ML engineering or data science with strong Python and PyTorch skills.\n- Hands-on experience with LLMs, RAG architectures, vector databases, and vLLM/HuggingFace.",
                         'techStack' => ['PyTorch', 'Python', 'vLLM', 'HuggingFace'],
                         'status' => 'Оффер',
                         'tags' => ['ai', 'ml'],
@@ -309,6 +314,7 @@ class InitDatabaseCommand extends Command
                         'salaryCurrency' => 'EUR',
                         'salaryPeriod' => 'month',
                         'aiSummary' => 'QA at Hooli.',
+                        'description' => "Hooli is looking for a Junior QA Engineer to join our quality assurance team in Berlin.\n\nRequirements:\n- 1+ year of experience in QA automation or manual/automated testing with Python, Pytest, and Selenium.",
                         'techStack' => ['Python', 'Pytest', 'Selenium'],
                         'status' => 'Отказ',
                         'tags' => [],
@@ -341,6 +347,7 @@ class InitDatabaseCommand extends Command
                     $v->setSalaryCurrency($mv['salaryCurrency']);
                     $v->setSalaryPeriod($mv['salaryPeriod']);
                     $v->setAiSummary($mv['aiSummary']);
+                    $v->setDescription($mv['description']);
                     $v->setSortOrder($mv['sortOrder']);
 
                     $this->entityManager->persist($v);

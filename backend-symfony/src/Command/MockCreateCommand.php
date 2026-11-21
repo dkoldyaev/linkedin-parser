@@ -97,6 +97,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://www.linkedin.com/jobs/view/stripe-staff-001',
                 'title' => 'Staff Backend Engineer — Payment Infrastructure',
                 'company' => 'Stripe',
+                'companyInfo' => 'Stripe is a financial infrastructure platform for businesses.',
                 'jobId' => 'job-stripe-001',
                 'source' => 'LinkedIn',
                 'location' => 'Dublin, Ireland',
@@ -109,6 +110,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'EUR',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'Distributed payment ledger and high-throughput settlement pipelines in Go and Ruby.',
+                'description' => "We are looking for a Staff Backend Engineer to architect and scale Stripe's core payment settlement and distributed ledger systems.\n\nResponsibilities:\n- Design and operate mission-critical distributed services processing millions of transactions per minute with 99.999% availability.\n- Lead technical architecture across Go, PostgreSQL, and Kafka event-driven pipelines.\n- Collaborate with product, risk, and treasury teams to deliver low-latency global settlement capabilities.\n\nRequirements:\n- 7+ years of production backend engineering experience in Go, Java, C++, or Ruby.\n- Deep expertise in relational databases (PostgreSQL), distributed transactions, idempotency, and event streaming (Kafka).\n- Proven track record of running high-throughput microservices on Kubernetes and AWS.",
                 'techStack' => ['Go', 'PostgreSQL', 'Kafka', 'Kubernetes'],
                 'status' => 'Еще не написал',
                 'tags' => ['fintech', 'priority'],
@@ -119,6 +121,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/1',
                 'title' => 'Senior Backend Engineer',
                 'company' => 'Initech',
+                'companyInfo' => 'Enterprise SaaS platform for B2B workflow automation.',
                 'jobId' => 'job-001',
                 'source' => 'LinkedIn',
                 'location' => 'Berlin, Germany',
@@ -131,6 +134,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'EUR',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'Backend services at Initech. Stack: Python, PostgreSQL, Docker.',
+                'description' => "Initech is hiring a Senior Backend Engineer to build scalable APIs and background processing pipelines.\n\nResponsibilities:\n- Develop and maintain RESTful and asynchronous services using Python (FastAPI) and PostgreSQL.\n- Optimize SQL queries, indexing strategies, and Redis caching layers.\n- Containerize applications with Docker and maintain automated CI/CD workflows.\n\nRequirements:\n- 4+ years of backend development experience with Python (FastAPI, Django, or asyncio).\n- Strong knowledge of PostgreSQL, relational schema design, and query optimization.\n- Experience with Docker, Redis, and automated testing with Pytest.",
                 'techStack' => ['Python', 'FastAPI', 'PostgreSQL', 'Docker'],
                 'status' => 'Еще не написал',
                 'tags' => ['priority', 'backend'],
@@ -141,6 +145,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/2',
                 'title' => 'Fullstack Developer',
                 'company' => 'Acme Corp',
+                'companyInfo' => 'Cloud-native e-commerce and analytics platform.',
                 'jobId' => 'job-002',
                 'source' => 'LinkedIn',
                 'location' => 'Amsterdam, Netherlands',
@@ -153,6 +158,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'EUR',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'Fullstack web development at Acme Corp. Stack: React, TypeScript, FastAPI.',
+                'description' => "Acme Corp is looking for a Fullstack Developer to build customer-facing dashboards and backend APIs.\n\nResponsibilities:\n- Build responsive web interfaces using React, TypeScript, and Next.js.\n- Implement backend endpoints and data integrations using Python and FastAPI.\n- Write unit and end-to-end tests and participate in code reviews.\n\nRequirements:\n- 3+ years of fullstack experience with React, TypeScript, and modern CSS.\n- Solid backend experience with Python (FastAPI) or Node.js and PostgreSQL.\n- Familiarity with Git, Docker, and agile product delivery.",
                 'techStack' => ['React', 'TypeScript', 'Python', 'FastAPI'],
                 'status' => 'Написал',
                 'tags' => ['fullstack'],
@@ -163,6 +169,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/3',
                 'title' => 'DevOps / Platform Engineer',
                 'company' => 'Globex Corporation',
+                'companyInfo' => 'Global cloud infrastructure and developer platform provider.',
                 'jobId' => 'job-003',
                 'source' => 'LinkedIn',
                 'location' => 'London, UK',
@@ -175,6 +182,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'GBP',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'Kubernetes, Terraform, CI/CD pipelines.',
+                'description' => "Globex Corporation seeks a DevOps / Platform Engineer to scale our multi-region Kubernetes infrastructure.\n\nResponsibilities:\n- Manage AWS infrastructure as code using Terraform and Helm.\n- Operate production Kubernetes (EKS) clusters, observability stacks (Prometheus, Grafana), and GitOps pipelines.\n- Improve deployment reliability, security hardening, and developer experience.\n\nRequirements:\n- 4+ years in DevOps, SRE, or Platform Engineering roles.\n- Strong hands-on experience with Kubernetes, Docker, Terraform, and AWS.\n- Proficiency in Linux systems administration, Bash/Python scripting, and CI/CD automation.",
                 'techStack' => ['Kubernetes', 'Terraform', 'Docker', 'AWS'],
                 'status' => 'Собеседование',
                 'tags' => ['devops', 'infra'],
@@ -185,6 +193,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/4',
                 'title' => 'Lead Python Developer',
                 'company' => 'Stark Industries',
+                'companyInfo' => 'Advanced defense, clean energy, and high-performance computing R&D.',
                 'jobId' => 'job-004',
                 'source' => 'Indeed',
                 'location' => 'New York, USA',
@@ -197,6 +206,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'USD',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'High-load architectures and distributed databases.',
+                'description' => "Stark Industries is hiring a Lead Python Developer to lead our real-time telemetry and distributed data platform.\n\nResponsibilities:\n- Architect low-latency data ingestion services using Python, Kafka, and Redis.\n- Mentor a team of 6 engineers, establish architectural standards, and drive technical roadmaps.\n- Design horizontally scalable PostgreSQL storage and partitioning strategies.\n\nRequirements:\n- 6+ years of software engineering experience with deep expertise in Python.\n- Proven experience designing high-load distributed systems with Kafka, Redis, and PostgreSQL.\n- Prior technical leadership or staff/lead engineering experience.",
                 'techStack' => ['Python', 'PostgreSQL', 'Redis', 'Kafka'],
                 'status' => 'Тестовое',
                 'tags' => ['lead', 'architecture'],
@@ -207,6 +217,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/5',
                 'title' => 'Senior Machine Learning Engineer',
                 'company' => 'Wayne Enterprises',
+                'companyInfo' => 'Applied AI research and enterprise intelligence systems.',
                 'jobId' => 'job-005',
                 'source' => 'LinkedIn',
                 'location' => 'Austin, USA',
@@ -219,6 +230,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'USD',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'LLM evaluation, RAG pipelines, fine-tuning.',
+                'description' => "Wayne Enterprises is seeking a Senior Machine Learning Engineer to build production LLM agents and retrieval-augmented generation (RAG) pipelines.\n\nResponsibilities:\n- Design, evaluate, and deploy fine-tuned LLMs and embedding pipelines using PyTorch, vLLM, and HuggingFace.\n- Build low-latency inference services and automated evaluation benchmarks.\n- Partner with product engineering teams to integrate AI capabilities into core workflows.\n\nRequirements:\n- 5+ years in ML engineering or data science with strong Python and PyTorch skills.\n- Hands-on experience with LLMs, RAG architectures, vector databases, and vLLM/HuggingFace.\n- Experience deploying ML models to production on GPU Kubernetes clusters.",
                 'techStack' => ['PyTorch', 'Python', 'vLLM', 'HuggingFace'],
                 'status' => 'Оффер',
                 'tags' => ['ai', 'ml'],
@@ -229,6 +241,7 @@ class MockCreateCommand extends Command
                 'url' => 'https://example.com/jobs/6',
                 'title' => 'Junior QA Engineer',
                 'company' => 'Hooli',
+                'companyInfo' => 'Consumer cloud services and software ecosystem.',
                 'jobId' => 'job-006',
                 'source' => 'hh.ru',
                 'location' => 'Berlin, Germany',
@@ -241,6 +254,7 @@ class MockCreateCommand extends Command
                 'salaryCurrency' => 'EUR',
                 'salaryPeriod' => 'month',
                 'aiSummary' => 'QA at Hooli.',
+                'description' => "Hooli is looking for a Junior QA Engineer to join our quality assurance team in Berlin.\n\nResponsibilities:\n- Write and maintain automated UI and API tests using Python, Pytest, and Selenium.\n- Execute regression testing, report defects, and verify bug fixes alongside developers.\n\nRequirements:\n- 1+ year of experience in QA automation or manual/automated testing.\n- Basic proficiency in Python, Pytest, Selenium/Playwright, and REST API testing.\n- Attention to detail and strong communication skills.",
                 'techStack' => ['Python', 'Pytest', 'Selenium'],
                 'status' => 'Отказ',
                 'tags' => [],
@@ -255,14 +269,22 @@ class MockCreateCommand extends Command
             $userVacancyCount = $vacancyRepo->count(['user' => $user]);
             if ($userVacancyCount === 0 || $force) {
                 foreach ($mockVacancies as $mv) {
+                    /** @var Vacancy|null $existing */
                     $existing = $vacancyRepo->findOneBy(['user' => $user, 'url' => $mv['url']]);
                     if ($existing !== null) {
+                        if ($existing->getDescription() === null || trim((string)$existing->getDescription()) === '') {
+                            $existing->setDescription($mv['description']);
+                        }
+                        if ($existing->getCompanyInfo() === null || trim((string)$existing->getCompanyInfo()) === '') {
+                            $existing->setCompanyInfo($mv['companyInfo']);
+                        }
                         continue;
                     }
                     $v = new Vacancy();
                     $v->setUrl($mv['url']);
                     $v->setTitle($mv['title']);
                     $v->setCompany($mv['company']);
+                    $v->setCompanyInfo($mv['companyInfo']);
                     $v->setStatus($mv['status']);
                     $v->setIsClosed($mv['isClosed']);
                     $v->setLane($mv['lane']);
@@ -282,6 +304,7 @@ class MockCreateCommand extends Command
                     $v->setSalaryCurrency($mv['salaryCurrency']);
                     $v->setSalaryPeriod($mv['salaryPeriod']);
                     $v->setAiSummary($mv['aiSummary']);
+                    $v->setDescription($mv['description']);
                     $v->setSortOrder($mv['sortOrder']);
 
                     $this->entityManager->persist($v);

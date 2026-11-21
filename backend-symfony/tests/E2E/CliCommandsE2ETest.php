@@ -82,5 +82,9 @@ class CliCommandsE2ETest extends ApiTestCase
 
         $vacancies = $this->entityManager->getRepository(Vacancy::class)->findBy(['user' => $owner]);
         $this->assertGreaterThanOrEqual(6, count($vacancies));
+        foreach ($vacancies as $v) {
+            $this->assertNotNull($v->getDescription());
+            $this->assertNotSame('', trim((string)$v->getDescription()));
+        }
     }
 }
