@@ -17,11 +17,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    setupFiles: ['../packages/ui-kit/src/vitest-env.d.ts'],
     include: [
-      'src/middleware.test.js',
-      'src/app/**/*.test.{js,jsx,ts,tsx}',
-      'src/api_v2_mercure_seam.test.jsx',
-      '../packages/ui-kit/src/**/*.test.{ts,tsx}',
+      'src/**/*.test.{ts,tsx}',
     ],
     globals: true,
   },

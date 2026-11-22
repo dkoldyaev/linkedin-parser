@@ -7,10 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint && npm --prefix ../packages/ui-kit run lint",
+    "lint": "oxlint src/ && npm --prefix ../packages/ui-kit run lint",
     "lint:boundaries": "npm --prefix ../packages/ui-kit run lint:boundaries",
-    "typecheck": "npm --prefix ../packages/ui-kit run typecheck",
-    "test": "vitest run && node --test src/utils/anonymizer.test.js src/utils/cvIndexedDB.test.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix ../packages/ui-kit run typecheck",
+    "test": "vitest run",
     "storybook": "npm --prefix ../packages/ui-kit run storybook",
     "storybook:build": "npm --prefix ../packages/ui-kit run storybook:build",
     "test:api": "node test_api.mjs"

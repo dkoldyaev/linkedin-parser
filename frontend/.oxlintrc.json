@@ -1,8 +1,49 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "oxc"],
+  "plugins": [
+    "react",
+    "typescript",
+    "unicorn",
+    "import",
+    "oxc"
+  ],
   "rules": {
+    "react/no-multi-comp": ["error", { "ignoreStateless": false }],
+    "react/jsx-max-depth": ["error", { "max": 5 }],
+    "react/jsx-no-useless-fragment": "error",
+    "react/jsx-boolean-value": ["error", "never"],
+    "react/jsx-pascal-case": "error",
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "react/exhaustive-deps": "warn",
+    "complexity": ["error", { "max": 7 }],
+    "max-depth": ["error", { "max": 3 }],
+    "max-nested-callbacks": ["error", { "max": 3 }],
+    "max-lines-per-function": [
+      "error",
+      {
+        "max": 80,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "max-params": ["error", { "max": 4 }],
+    "no-nested-ternary": "error",
+    "unicorn/no-nested-ternary": "error",
+    "no-unused-vars": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/i18n/translations*.ts",
+        "src/views/landingPresets*.ts"
+      ],
+      "rules": {
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "max-nested-callbacks": "off"
+      }
+    }
+  ]
 }
