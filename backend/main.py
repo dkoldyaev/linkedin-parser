@@ -414,7 +414,7 @@ app.mount("/api/v1", public_app)
 
 # API v2 (Unified Public & Private API) and Legacy API (legacy extension support) routers
 api_v2 = APIRouter(prefix="/api/v2")
-legacy_api = APIRouter(prefix="/api")
+legacy_api = APIRouter(prefix="/api", include_in_schema=False)
 
 OPENAPI_V2_TAGS = [
     {
