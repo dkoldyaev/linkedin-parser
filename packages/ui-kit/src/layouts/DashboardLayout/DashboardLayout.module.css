@@ -2,7 +2,7 @@
   .dashboard {
     min-height: 100vh;
     height: 100vh;
-    width: round(down, 100%, var(--ui-grid-cell));
+    /* width: round(down, 100%, var(--ui-grid-cell)); */
     display: flex;
     flex-direction: column;
     background-color: var(--ui-bg-main);
