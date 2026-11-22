@@ -331,9 +331,57 @@ public_app = FastAPI(
 
 from .public_api import router as public_router
 from .auth import get_current_user_with_api_access
-from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+import json
+
+def get_swagger_ui_html_with_standalone(
+    *,
+    openapi_url: str,
+    title: str,
+    urls: Optional[List[Dict[str, str]]] = None,
+    primary_name: Optional[str] = None,
+) -> HTMLResponse:
+    """Swagger UI with full StandaloneLayout and Topbar support for multiple OpenAPI specs."""
+    urls_attr = ""
+    primary_name_attr = ""
+    if urls:
+        urls_json = json.dumps(urls)
+        urls_attr = f"urls: {urls_json},"
+        if primary_name:
+            primary_name_attr = f"'urls.primaryName': {json.dumps(primary_name)},"
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="shortcut icon" href="https://fastapi.tiangolo.com/img/favicon.png">
+    <title>{title}</title>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+    const ui = SwaggerUIBundle({{
+        url: '{openapi_url}',
+        dom_id: '#swagger-ui',
+        layout: 'StandaloneLayout',
+        deepLinking: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        {urls_attr}
+        {primary_name_attr}
+        presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+        ],
+    }});
+    window.ui = ui;
+    </script>
+</body>
+</html>"""
+    return HTMLResponse(html)
 
 public_app.include_router(public_router)
 
@@ -351,17 +399,14 @@ def get_public_openapi_json(current_user: User = Depends(get_current_user_with_a
 @public_app.get("/docs", include_in_schema=False)
 def get_public_docs_html(current_user: User = Depends(get_current_user_with_api_access)):
     """Swagger UI protected by api_access feature flag."""
-    return get_swagger_ui_html(
+    return get_swagger_ui_html_with_standalone(
         openapi_url="/api/v1/openapi.json",
         title=f"{public_app.title} - Swagger UI",
-        swagger_ui_parameters={
-            "layout": "StandaloneLayout",
-            "urls": [
-                {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
-                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
-            ],
-            "urls.primaryName": "API v1 (Public)",
-        },
+        urls=[
+            {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
+            {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
+        ],
+        primary_name="API v1 (Public)",
     )
 
 # Mount public API at /api/v1 (legacy public API)
@@ -416,17 +461,14 @@ def get_v2_openapi_json(current_user: User = Depends(get_current_user_with_api_a
 
 @api_v2.get("/docs", include_in_schema=False)
 def get_v2_docs_html(current_user: User = Depends(get_current_user_with_api_access)):
-    return get_swagger_ui_html(
+    return get_swagger_ui_html_with_standalone(
         openapi_url="/api/v2/openapi.json",
         title="Job Vacancies Unified API v2 - Swagger UI",
-        swagger_ui_parameters={
-            "layout": "StandaloneLayout",
-            "urls": [
-                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
-                {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
-            ],
-            "urls.primaryName": "API v2 (Unified)",
-        },
+        urls=[
+            {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
+            {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
+        ],
+        primary_name="API v2 (Unified)",
     )
 
 # Convenience redirects for root docs/openapi pointing directly to the Unified API v2 documentation
