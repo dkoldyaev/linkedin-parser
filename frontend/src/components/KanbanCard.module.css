@@ -1,0 +1,16 @@
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-1-5) var(--ui-space-3);
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+
+.techStackMore {
+  opacity: 0.6;
+}

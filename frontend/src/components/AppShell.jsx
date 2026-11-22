@@ -137,9 +137,10 @@ export function AppShell({ children, initialUser }) {
   return (
     <AuthContext.Provider value={{ user, authLoading, checkAuth, handleLogout, setUser }}>
       <MenuContext.Provider value={menu}>
-        <PageLayout header={<PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />}>
+        <div style={{ height: '100vh', overflow: 'hidden' }}>
           <div
             className={`app-shell-content${landingRoute ? ' is-landing' : ''}`}
+            style={{ height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
             onScroll={user || pathname === '/' || landingRoute ? snapScroll : undefined}
           >
             {authLoading ? (
@@ -159,7 +160,7 @@ export function AppShell({ children, initialUser }) {
             )}
           </div>
           <NavDrawer user={user} />
-        </PageLayout>
+        </div>
       </MenuContext.Provider>
     </AuthContext.Provider>
   );

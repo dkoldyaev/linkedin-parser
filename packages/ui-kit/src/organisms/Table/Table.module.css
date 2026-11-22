@@ -25,11 +25,19 @@
     width: auto;
   }
 
-  .tableQuantizedColumns > .col {
-    flex: 0 0 var(--col-grid-width, calc(10 * var(--ui-grid-cell)));
-    width: var(--col-grid-width, calc(10 * var(--ui-grid-cell)));
-    min-width: var(--col-grid-width, calc(10 * var(--ui-grid-cell)));
-    max-width: var(--col-grid-width, calc(10 * var(--ui-grid-cell)));
+  .tableQuantizedColumns > .col:not([data-fixed-rail]),
+  .tableQuantizedColumns > [role="region"]:not([data-fixed-rail]) {
+    flex: 0 0 var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
+    width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
+    min-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
+    max-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
+  }
+
+  .tableQuantizedColumns > [data-fixed-rail] {
+    flex: 1 0 var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell))) !important;
+    width: var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell))) !important;
+    min-width: calc(2 * var(--ui-grid-cell)) !important;
+    max-width: none;
   }
 
   .tableLayoutRows {

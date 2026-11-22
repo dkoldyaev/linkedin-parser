@@ -1,5 +1,33 @@
 import React from 'react';
-import { VacancyCard } from '@blueprint/ui-kit';
+import {
+  Award,
+  Ban,
+  Banknote,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  History,
+  Home,
+  MapPin,
+  RotateCcw,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Icon,
+  Paragraph,
+  StatusDot,
+  Text,
+  TokenList,
+} from '@blueprint/ui-kit';
 import { getSalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
@@ -12,6 +40,7 @@ import {
   STATUS_OFFER,
   STATUS_REJECTED,
 } from '../constants/columns';
+import styles from './KanbanCard.module.css';
 
 const DEFAULT_COLUMNS = [
   STATUS_NOT_CONTACTED,
@@ -28,7 +57,8 @@ export default function KanbanCard({
   isSelected,
   onToggleSelect,
   columns = DEFAULT_COLUMNS,
-  laneColumns = new Set([STATUS_INTERVIEW, STATUS_ASSESSMENT])
+  laneColumns = new Set([STATUS_INTERVIEW, STATUS_ASSESSMENT]),
+  compact: propCompact,
 }) {
   const { t, formatDate, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
 
@@ -43,6 +73,8 @@ export default function KanbanCard({
   const initialStatusId = initialColumn ? (typeof initialColumn === 'string' ? initialColumn : initialColumn.id) : STATUS_NOT_CONTACTED;
 
   const isRejected = vacancy.status === rejectedStatusId || vacancy.status === 'rejected' || vacancy.status === STATUS_REJECTED;
+  const isCompact = propCompact ?? isRejected;
+
   const linearColumns = (Array.isArray(columns) && columns.length > 0)
     ? columns.map(c => typeof c === 'string' ? c : c.id).filter(id => id !== rejectedStatusId)
     : DEFAULT_COLUMNS;
@@ -167,46 +199,229 @@ export default function KanbanCard({
           return undefined;
         })();
 
+  const workplaceKey = String(workplaceInfo?.key || 'remote').toLowerCase();
+  const workplaceIcon =
+    workplaceKey === 'remote'
+      ? Globe
+      : workplaceKey === 'hybrid'
+        ? Home
+        : Building2;
+  const workplaceTone =
+    workplaceKey === 'remote'
+      ? 'accent'
+      : workplaceKey === 'hybrid'
+        ? 'warning'
+        : 'secondary';
+  const resolvedWorkplaceLabel =
+    workplaceInfo?.key === 'remote'
+      ? 'Remote'
+      : (workplaceInfo?.label || 'Remote');
+
+  const scoreTone =
+    matchScore === undefined
+      ? 'neutral'
+      : matchScore >= 75
+        ? 'success'
+        : matchScore >= 50
+          ? 'warning'
+          : 'danger';
+
+  const isClosed = Boolean(vacancy.is_closed);
+
+  const statusIndicators = (stageLabel !== undefined || isClosed) ? (
+    <>
+      {stageLabel !== undefined && (
+        <Badge variant="outline" size="xs" tone="info">
+          {stageLabel}
+        </Badge>
+      )}
+      {isClosed && (
+        <Badge
+          variant="solid"
+          size="xs"
+          tone="danger"
+          icon={<Icon icon={Ban} size="2xs" />}
+        >
+          {t('kanban.closed')}
+        </Badge>
+      )}
+    </>
+  ) : undefined;
+
+  const techStack = vacancy.tech_stack || [];
+  const tags = vacancy.tags || [];
+
   return (
-    <VacancyCard
-      title={vacancy.title}
-      company={vacancy.company}
-      sourceUrl={vacancy.url}
+    <Card
+      compact={isCompact}
       matchScore={matchScore}
-      workplace={workplaceInfo?.key || 'remote'}
-      workplaceLabel={workplaceInfo?.key === 'remote' ? 'Remote' : (workplaceInfo?.label || 'Remote')}
-      location={vacancy.location}
-      salary={salaryInfo.hasSalary ? salaryInfo.formatted : undefined}
-      summary={vacancy.ai_summary}
-      aiPending={!vacancy.ai_summary}
-      techStack={vacancy.tech_stack || []}
-      tags={vacancy.tags || []}
-      date={formatDate(vacancy.created_at)}
-      historyCount={hasHistory ? vacancy.history.length : undefined}
-      hasHistoryComment={hasHistoryComments}
-      isClosed={Boolean(vacancy.is_closed)}
-      isRejected={isRejected}
-      stageLabel={stageLabel}
       selected={isSelected}
-      selectable
-      onToggleSelect={() => onToggleSelect && onToggleSelect(vacancy.id)}
+      interactive
       onClick={handleCardClick}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      canMoveLeft={currentIndex > 0}
-      canMoveRight={currentIndex < linearColumns.length - 1}
-      onMoveLeft={handleMoveLeft}
-      onMoveRight={handleMoveRight}
-      onMoveRejected={handleMoveRejected}
-      onRestoreRejected={handleRestoreRejected}
-      leftLabel={t('kanban.move_left')}
-      rightLabel={t('kanban.move_right')}
-      rejectLabel={t('kanban.move_to_rejected')}
-      restoreLabel={t('kanban.rejected_restore')}
-      closedLabel={t('kanban.closed')}
-      pendingAiLabel={t('kanban.ai_pending')}
+      data-bp-card="true"
+      title={vacancy.title}
+      overline={vacancy.company}
+      overlineHref={vacancy.url}
+      selectable
+      checked={isSelected}
+      onCheckedChange={() => onToggleSelect && onToggleSelect(vacancy.id)}
       checkboxAriaLabel={t('kanban.select_card')}
-    />
+      statusIndicators={statusIndicators}
+      footer={<CardFooter
+            metaSlot={
+              <div className={styles.footerRow}>
+                {vacancy.created_at !== undefined && (
+                  <Text variant="caption" tone="muted">
+                    {formatDate(vacancy.created_at)}
+                  </Text>
+                )}
+                {hasHistory && vacancy.history.length > 0 && (
+                  <Text
+                    variant="caption"
+                    tone="muted"
+                    startIcon={<Icon icon={History} size="2xs" />}
+                    endIcon={
+                      hasHistoryComments ? (
+                        <StatusDot tone="info" size="xs" />
+                      ) : undefined
+                    }
+                  >
+                    {vacancy.history.length}
+                  </Text>
+                )}
+              </div>
+            }
+            actionsSlot={
+              isRejected ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  tone="accent"
+                  onClick={handleRestoreRejected}
+                  startIcon={<Icon icon={RotateCcw} size="xs" />}
+                >
+                  {t('kanban.rejected_restore')}
+                </Button>
+              ) : (
+                <ButtonGroup>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={currentIndex <= 0}
+                    onClick={handleMoveLeft}
+                    aria-label={t('kanban.move_left')}
+                    title={t('kanban.move_left')}
+                  >
+                    <Icon icon={ChevronLeft} size="sm" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    tone="danger"
+                    onClick={handleMoveRejected}
+                    aria-label={t('kanban.move_to_rejected')}
+                    title={t('kanban.move_to_rejected')}
+                  >
+                    <Icon icon={X} size="sm" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={currentIndex >= linearColumns.length - 1}
+                    onClick={handleMoveRight}
+                    aria-label={t('kanban.move_right')}
+                    title={t('kanban.move_right')}
+                  >
+                    <Icon icon={ChevronRight} size="sm" />
+                  </Button>
+                </ButtonGroup>
+              )
+            }
+          />}
+    >
+      {(matchScore !== undefined || workplaceKey || vacancy.location !== undefined || salaryInfo.hasSalary) && (
+        <div className={styles.metaRow}>
+          {matchScore !== undefined && (
+            <Badge
+              variant="solid"
+              size="xs"
+              tone={scoreTone}
+              icon={<Icon icon={Award} size="2xs" />}
+            >
+              {matchScore}%
+            </Badge>
+          )}
+          {workplaceKey && (
+            <Text
+              variant="caption"
+              tone={workplaceTone}
+              startIcon={<Icon icon={workplaceIcon} size="xs" />}
+            >
+              {resolvedWorkplaceLabel}
+            </Text>
+          )}
+          {vacancy.location !== undefined && (
+            <Text
+              variant="caption"
+              tone="secondary"
+              startIcon={<Icon icon={MapPin} size="xs" />}
+            >
+              {vacancy.location}
+            </Text>
+          )}
+          {salaryInfo.hasSalary && (
+            <Text
+              variant="mono"
+              tone="success"
+              startIcon={<Icon icon={Banknote} size="xs" />}
+            >
+              {salaryInfo.formatted}
+            </Text>
+          )}
+        </div>
+      )}
+
+      {vacancy.ai_summary !== undefined && vacancy.ai_summary !== null ? (
+        <Paragraph size="sm" tone="secondary">
+          {vacancy.ai_summary}
+        </Paragraph>
+      ) : !vacancy.ai_summary ? (
+        <Text
+          variant="caption"
+          tone="muted"
+          startIcon={<Icon icon={Sparkles} size="xs" />}
+        >
+          {t('kanban.ai_pending')}
+        </Text>
+      ) : null}
+
+      {techStack.length > 0 && (
+        <TokenList>
+          {techStack.slice(0, 4).map((tech) => (
+            <Badge key={tech} size="xs" variant="chip">
+              {tech}
+            </Badge>
+          ))}
+          {techStack.length > 4 && (
+            <Badge size="xs" variant="chip" tone="neutral" className={styles.techStackMore}>
+              +{techStack.length - 4}
+            </Badge>
+          )}
+        </TokenList>
+      )}
+
+      {tags.length > 0 && (
+        <TokenList>
+          {tags.map((tag) => (
+            <Badge key={tag} size="xs" variant="chip" tone="neutral">
+              #{tag}
+            </Badge>
+          ))}
+        </TokenList>
+      )}
+    </Card>
   );
 }

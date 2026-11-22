@@ -94,7 +94,6 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
                     <span className={styles.compactTitle}>{title}</span>
                   )}
                 </span>
-                {children}
               </div>
             </div>
           </div>
@@ -282,6 +281,10 @@ export interface CardProps
   readonly subtitle?: React.ReactNode;
   readonly overline?: React.ReactNode;
   readonly overlineHref?: string;
+  readonly selectable?: boolean;
+  readonly checked?: boolean;
+  readonly onCheckedChange?: (checked: boolean) => void;
+  readonly checkboxAriaLabel?: string;
   readonly headerActions?: React.ReactNode;
   readonly statusIndicators?: React.ReactNode;
   readonly footer?: React.ReactNode;
@@ -449,6 +452,10 @@ export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(
       subtitle,
       overline,
       overlineHref,
+      selectable = false,
+      checked = false,
+      onCheckedChange,
+      checkboxAriaLabel = 'Select card',
       headerActions,
       statusIndicators,
       accentTone,
@@ -496,11 +503,13 @@ export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(
           subtitle={subtitle}
           overline={overline}
           overlineHref={overlineHref}
+          selectable={selectable}
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          checkboxAriaLabel={checkboxAriaLabel}
           headerActions={headerActions}
           statusIndicators={statusIndicators}
-        >
-          {children}
-        </CardHeader>
+        />
       </div>
     );
   }

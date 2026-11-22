@@ -69,10 +69,6 @@ export {
   type ReportSectionGroup,
 } from './ReportAccordion';
 export {
-  VacancyCard,
-  type VacancyCardProps,
-} from './VacancyCard';
-export {
   VacancyDetailsModal,
   type VacancyDetailsModalProps,
   type VacancyHistoryItem,

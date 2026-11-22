@@ -4,7 +4,7 @@
     min-height: calc(2 * var(--ui-grid-cell));
     max-height: calc(2 * var(--ui-grid-cell));
     width: 100%;
-    width: round(down, 100%, var(--ui-grid-cell));
+    /* width: round(down, 100%, var(--ui-grid-cell)); */
     padding: 0 var(--ui-space-6);
     background-color: var(--ui-bg-surface);
     border: 0;

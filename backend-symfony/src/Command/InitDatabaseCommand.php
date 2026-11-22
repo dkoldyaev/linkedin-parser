@@ -73,14 +73,14 @@ class InitDatabaseCommand extends Command
                 seq RECORD;
             BEGIN
                 FOR seq IN 
-                    SELECT table_name, column_name, pg_get_serial_sequence(quote_ident(table_name), quote_ident(column_name)) AS seq_name
-                    FROM information_schema.columns
-                    WHERE table_schema = 'public' 
-                      AND column_default LIKE 'nextval%'
+                    SELECT s.relname AS seq_name, t.relname AS table_name, a.attname AS column_name
+                    FROM pg_class s
+                    JOIN pg_depend d ON d.objid = s.oid AND d.classid = 'pg_class'::regclass AND d.refclassid = 'pg_class'::regclass
+                    JOIN pg_class t ON t.oid = d.refobjid
+                    JOIN pg_attribute a ON a.attrelid = d.refobjid AND a.attnum = d.refobjsubid
+                    WHERE s.relkind = 'S'
                 LOOP
-                    IF seq.seq_name IS NOT NULL THEN
-                        EXECUTE format('SELECT setval(%L, COALESCE((SELECT MAX(%I) FROM %I), 1))', seq.seq_name, seq.column_name, seq.table_name);
-                    END IF;
+                    EXECUTE format('SELECT setval(%L, COALESCE((SELECT MAX(%I) FROM %I), 1))', seq.seq_name, seq.column_name, seq.table_name);
                 END LOOP;
             END \$\$;");
         } catch (\Throwable) {

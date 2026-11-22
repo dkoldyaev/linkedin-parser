@@ -14,7 +14,9 @@ import {
   Text,
   StatusDot,
   Badge,
+  TableCell,
 } from '@blueprint/ui-kit';
+import styles from './KanbanBoard.module.css';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import ColumnCreateModal from './ColumnCreateModal';
 import ColumnEditModal from './ColumnEditModal';
@@ -60,8 +62,7 @@ export default function KanbanBoard({
     if (!wrapper || !rejected) return;
     const update = () => {
       const available = wrapper.clientHeight - rejected.offsetHeight;
-      const minimum = window.innerHeight * 0.7;
-      const height = Math.max(32, Math.floor(Math.max(available, minimum) / 32) * 32);
+      const height = Math.max(32, Math.floor(available / 32) * 32);
       setBoardHeight(previous => previous === height ? previous : height);
     };
     const observer = new ResizeObserver(update);
@@ -76,7 +77,7 @@ export default function KanbanBoard({
   const [dropIndex, setDropIndex] = useState(null);
   const [dragOverLane, setDragOverLane] = useState(0);
   const [draggingId, setDraggingId] = useState(null);
-  const [isRejectedCollapsed, setIsRejectedCollapsed] = useState(false);
+  const [isRejectedCollapsed, setIsRejectedCollapsed] = useState(true);
 
   // Column management modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -240,11 +241,12 @@ export default function KanbanBoard({
       <Table
         ref={boardRef}
         layout="columns"
+        bordered
         snapScroll
-        fullHeight
-        className="kanban-board-table"
+        fullHeight={!boardHeight}
+        quantizeColumns
+        style={boardHeight ? { height: boardHeight, flex: 'none' } : undefined}
         onScroll={event => snapScroll(event, 'x')}
-        style={boardHeight ? { height: boardHeight, flex: 1 } : { flex: 1 }}
         onDragStart={(e) => {
           const id = parseInt(e.dataTransfer.getData('text/plain'), 10);
           setDraggingId(Number.isNaN(id) ? null : id);
@@ -298,7 +300,6 @@ export default function KanbanBoard({
           return (
             <TableCol
               key={col.id}
-              gridUnits={10}
               isDragOver={dragOverColumn === col.id}
               onDragOver={(e) => handleDragOver(e, col.id)}
               onDragLeave={(e) => handleDragLeave(e, col.id)}
@@ -436,32 +437,36 @@ export default function KanbanBoard({
         })}
 
         {/* Add column quick button at the end of board */}
-        <TableCol gridUnits={6} className="kanban-add-column-col" style={{ display: 'flex', flexDirection: 'column', minWidth: 'calc(6 * var(--ui-grid-cell))', maxWidth: 'calc(6 * var(--ui-grid-cell))' }}>
-          <div style={{ height: 'var(--ui-grid-cell)', display: 'flex', alignItems: 'center', padding: '0 var(--ui-space-2)', borderBottom: '1px solid var(--ui-pixel-line)' }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsCreateOpen(true)}
-              startIcon={<Icon icon={Plus} size="xs" />}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
-            >
-              {t('kanban.add_column')}
-            </Button>
-          </div>
-        </TableCol>
+        <div data-fixed-rail className={styles.addColumnCol}>
+          <button
+            type="button"
+            className={styles.addColumnBtn}
+            onClick={() => setIsCreateOpen(true)}
+            aria-label={t('kanban.add_column')}
+          >
+            <span className={styles.addColumnText}>
+              <Icon icon={Plus} size="xs" />
+              <Text variant="mono" tone="inherit">
+                {t('kanban.add_column').toUpperCase()}
+              </Text>
+            </span>
+          </button>
+        </div>
       </Table>
 
       {/* Bottom Rejection Row */}
-      <div
+      <Table
+        bordered
+        fullHeight={false}
+        layout="rows"
         ref={rejectedRef}
         onDragOver={(e) => handleDragOver(e, rejectedStatusId)}
         onDragLeave={(e) => handleDragLeave(e, rejectedStatusId)}
         onDrop={(e) => handleDrop(e, rejectedStatusId)}
         style={{
-          flexShrink: 0,
-          borderTop: '1px solid var(--ui-pixel-line)',
-          backgroundColor: dragOverColumn === rejectedStatusId ? 'var(--ui-danger-subtle)' : 'var(--ui-bg-surface)',
-          transition: 'background-color var(--ui-transition-fast)',
+          flex: '0 0 auto',
+          height: 'auto',
+          minHeight: 'auto',
         }}
       >
         <TableHeader
@@ -497,34 +502,30 @@ export default function KanbanBoard({
         </TableHeader>
 
         {!isRejectedCollapsed && (
-          <div style={{ maxHeight: 'calc(10 * var(--ui-grid-cell))', overflowX: 'auto', overflowY: 'hidden' }}>
+          <div style={{ overflowX: 'auto', overflowY: 'hidden', display: 'flex', flexWrap: 'wrap', flex: '0 0 auto', height: 'auto', minHeight: 'auto' }}>
             {rejectedVacancies.length === 0 ? (
-              <div style={{ padding: 'var(--ui-space-4)' }}>
+              <div style={{ padding: 'var(--ui-space-3)', width: '100%' }}>
                 <EmptyState
                   icon={<Icon icon={Ban} size="md" />}
                   title={t('kanban.rejected_empty')}
                 />
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 'var(--ui-space-2)', padding: 'var(--ui-space-2) var(--ui-space-3)' }}>
-                {rejectedVacancies.map(vacancy => (
-                  <div key={vacancy.id} style={{ width: 'calc(10 * var(--ui-grid-cell))', minWidth: 'calc(10 * var(--ui-grid-cell))', flexShrink: 0 }}>
-                    <KanbanCard
-                      vacancy={vacancy}
-                      onClick={onCardClick}
-                      onStatusChange={onStatusChange}
-                      isSelected={selectedIds.includes(vacancy.id)}
-                      onToggleSelect={onToggleSelect}
-                      columns={boardColumns}
-                      laneColumns={laneColumnIds}
-                    />
-                  </div>
-                ))}
+            ) : rejectedVacancies.map(vacancy => (
+              <div key={vacancy.id} style={{ maxWidth: 'calc(10 * var(--ui-grid-cell))' }}>
+                <KanbanCard
+                  compact
+                  vacancy={vacancy}
+                  onClick={onCardClick}
+                  onStatusChange={onStatusChange}
+                  isSelected={selectedIds.includes(vacancy.id)}
+                  columns={boardColumns}
+                  laneColumns={laneColumnIds}
+                />
               </div>
-            )}
+            ))}
           </div>
         )}
-      </div>
+      </Table>
 
       {/* Column Modals */}
       <ColumnCreateModal

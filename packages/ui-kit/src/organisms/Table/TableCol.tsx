@@ -24,7 +24,7 @@ const KNOWN_UNITS = new Set([6, 8, 10, 12, 14, 16]);
 export const TableCol = React.forwardRef<HTMLDivElement, TableColProps>(
   function TableCol(
     {
-      gridUnits = 10,
+      gridUnits,
       fluid = false,
       isDragOver = false,
       children,
@@ -34,18 +34,19 @@ export const TableCol = React.forwardRef<HTMLDivElement, TableColProps>(
     },
     ref
   ): React.ReactElement {
-    const isKnownUnit = !fluid && typeof gridUnits === 'number' && KNOWN_UNITS.has(gridUnits);
+    const effectiveUnits = gridUnits ?? (fluid ? undefined : 10);
+    const isKnownUnit = !fluid && typeof effectiveUnits === 'number' && KNOWN_UNITS.has(effectiveUnits);
     const knownUnitsClass = isKnownUnit
-      ? styles[`colUnits${gridUnits}`]
+      ? styles[`colUnits${effectiveUnits}`]
       : undefined;
 
     const customGridStyle: React.CSSProperties | undefined =
-      !fluid && typeof gridUnits === 'number' && !isKnownUnit
+      !fluid && typeof effectiveUnits === 'number' && !isKnownUnit
         ? {
-            flex: `0 0 calc(${gridUnits} * var(--ui-grid-cell))`,
-            width: `calc(${gridUnits} * var(--ui-grid-cell))`,
-            minWidth: `calc(${gridUnits} * var(--ui-grid-cell))`,
-            maxWidth: `calc(${gridUnits} * var(--ui-grid-cell))`,
+            flex: `0 0 calc(${effectiveUnits} * var(--ui-grid-cell))`,
+            width: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
+            minWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
+            maxWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
             ...style,
           }
         : style;

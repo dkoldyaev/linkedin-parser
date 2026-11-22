@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { VacancyCard } from '../../index';
+import { VacancyCard } from '../../organisms/VacancyCard/VacancyCard';
 import layoutStyles from '../StoryLayout.module.css';
 
 const meta: Meta<typeof VacancyCard> = {

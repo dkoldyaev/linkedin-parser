@@ -255,9 +255,9 @@
   .addColumnCol {
     display: flex;
     flex-direction: column;
-    flex: 1 0 var(--rail-extra-width, var(--ui-grid-cell));
+    flex: 1 0 var(--bp-rail-extra-width, var(--ui-grid-cell));
     width: auto;
-    min-width: var(--rail-extra-width, var(--ui-grid-cell));
+    min-width: var(--bp-rail-extra-width, var(--ui-grid-cell));
     max-width: none;
     border: 0;
     box-shadow: inset -1px 0 0 0 var(--ui-pixel-line);

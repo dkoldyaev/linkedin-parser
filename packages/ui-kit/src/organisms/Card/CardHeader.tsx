@@ -86,7 +86,6 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
                     <span className={styles.compactTitle}>{title}</span>
                   )}
                 </span>
-                {children}
               </div>
             </div>
           </div>

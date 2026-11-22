@@ -74,20 +74,21 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
 
       const totalWidth = tableEl.clientWidth;
       const totalUnits = Math.floor(totalWidth / grid);
-      // Reserve at least 1 unit for trailing add-column rail if present
+      // Reserve at least 2 units for trailing add-column rail if present
       const hasRail = Boolean(tableEl.querySelector('[data-fixed-rail]'));
-      const reservedRailUnits = hasRail ? 1 : 0;
-      const availUnits = totalUnits - reservedRailUnits;
+      const minRailUnits = hasRail ? 2 : 0;
+      const availUnits = totalUnits - minRailUnits;
 
       if (availUnits >= count * minColGridUnits) {
         const unitsPerCol = Math.floor(availUnits / count);
-        tableEl.style.setProperty('--col-grid-width', `${unitsPerCol * grid}px`);
+        tableEl.style.setProperty('--bp-col-grid-width', `${unitsPerCol * grid}px`);
         const usedUnits = unitsPerCol * count;
-        const remainderPx = (totalUnits - usedUnits) * grid;
-        tableEl.style.setProperty('--rail-extra-width', `${Math.max(0, remainderPx)}px`);
+        const remainderUnits = totalUnits - usedUnits;
+        const railUnits = hasRail ? Math.max(minRailUnits, remainderUnits) : 0;
+        tableEl.style.setProperty('--bp-rail-extra-width', `${railUnits * grid}px`);
       } else {
-        tableEl.style.setProperty('--col-grid-width', `${minColGridUnits * grid}px`);
-        tableEl.style.setProperty('--rail-extra-width', `${grid}px`);
+        tableEl.style.setProperty('--bp-col-grid-width', `${minColGridUnits * grid}px`);
+        tableEl.style.setProperty('--bp-rail-extra-width', `${Math.max(minRailUnits, totalUnits - count * minColGridUnits) * grid}px`);
       }
     };
 

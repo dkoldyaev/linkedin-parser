@@ -1064,7 +1064,6 @@ export default function HomePage({
       }
       filterBar={filterBarSlot}
       toolbar={guestToolbar}
-      style={{ minHeight: '100%', height: '100%' }}
     >
       <KanbanBoard
         vacancies={vacancies}
