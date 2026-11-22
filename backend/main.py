@@ -355,10 +355,12 @@ def get_public_docs_html(current_user: User = Depends(get_current_user_with_api_
         openapi_url="/api/v1/openapi.json",
         title=f"{public_app.title} - Swagger UI",
         swagger_ui_parameters={
+            "layout": "StandaloneLayout",
             "urls": [
-                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
                 {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
-            ]
+                {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
+            ],
+            "urls.primaryName": "API v1 (Public)",
         },
     )
 
@@ -418,10 +420,12 @@ def get_v2_docs_html(current_user: User = Depends(get_current_user_with_api_acce
         openapi_url="/api/v2/openapi.json",
         title="Job Vacancies Unified API v2 - Swagger UI",
         swagger_ui_parameters={
+            "layout": "StandaloneLayout",
             "urls": [
                 {"url": "/api/v2/openapi.json", "name": "API v2 (Unified)"},
                 {"url": "/api/v1/openapi.json", "name": "API v1 (Public)"},
-            ]
+            ],
+            "urls.primaryName": "API v2 (Unified)",
         },
     )
 
