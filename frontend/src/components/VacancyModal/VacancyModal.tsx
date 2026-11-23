@@ -145,10 +145,10 @@ export default function VacancyModal({
 
         {ctrl.activeTab === 'raw_data' && (
           <VacancyRawDataTab
-            salaryMin={ctrl.draft.salaryMin}
-            salaryMax={ctrl.draft.salaryMax}
-            salaryCurrency={ctrl.draft.salaryCurrency}
-            salaryPeriod={ctrl.draft.salaryPeriod}
+            salaryMin={vacancy.salary_min}
+            salaryMax={vacancy.salary_max}
+            salaryCurrency={vacancy.salary_currency}
+            salaryPeriod={vacancy.salary_period}
             onSaveSalary={ctrl.handleSaveSalary}
             savingSalary={ctrl.savingSalary}
             savedSalarySuccess={ctrl.savedSalarySuccess}

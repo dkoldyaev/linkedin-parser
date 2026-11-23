@@ -20,11 +20,11 @@ export interface BoardColumn {
 
 export interface VacancyHistoryItem {
   id?: number | string;
-  from_status?: string | null;
+  from_status?: string;
   to_status: string;
-  from_lane?: number | null;
-  to_lane?: number | null;
-  comment?: string | null;
+  from_lane?: number;
+  to_lane?: number;
+  comment?: string;
   created_at?: string;
 }
 
@@ -85,29 +85,32 @@ export interface Vacancy {
   city?: string;
   source?: string;
   status: string;
-  lane?: number | null;
-  sort_order?: number | null;
-  salary_min?: number | string | null;
-  salary_max?: number | string | null;
-  salary_currency?: string | null;
-  salary_period?: string | null;
-  workplace_type?: string | null;
+  lane?: number;
+  sort_order?: number;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  salary_period?: string;
+  workplace_type?: string;
   is_closed?: boolean;
-  calculated_score?: number | null;
-  match_score?: number | null;
-  ai_summary?: string | null;
-  ai_summary_en?: string | null;
-  company_info?: string | null;
-  company_description?: string | null;
-  description?: string | null;
-  notes?: string | null;
+  calculated_score?: number;
+  match_score?: number;
+  ai_summary?: string;
+  company_info?: string;
+  company_description?: string;
+  description?: string;
+  notes?: string;
   tech_stack?: string[];
   tags?: string[];
   created_at?: string;
-  created_at_en?: string;
   history?: VacancyHistoryItem[];
   history_count?: number;
   has_comment?: boolean;
+}
+
+export interface LandingVacancy extends Vacancy {
+  ai_summary_en?: string;
+  created_at_en?: string;
 }
 
 export interface QueueTask {
@@ -125,5 +128,5 @@ export interface ApiKeyItem {
   name: string;
   key_prefix: string;
   created_at: string;
-  last_used_at?: string | null;
+  last_used_at?: string;
 }

@@ -261,10 +261,10 @@ function useMetaFieldSaveHandlers(
 
   const handleWorkplaceTypeChange = async (newType: string) => {
     if (!vacancy) return;
-    const val = newType || null;
+    const val = newType || undefined;
     setDraft((prev) => ({ ...prev, workplaceType: val || '' }));
     try {
-      await patchVacancyFields(vacancy.id, { workplace_type: val });
+      await patchVacancyFields(vacancy.id, { workplace_type: val ?? null });
       onUpdate({ ...vacancy, workplace_type: val });
     } catch (err) {
       console.error('Failed to update workplace type', err);
@@ -287,11 +287,16 @@ function useMetaFieldSaveHandlers(
     if (!vacancy) return;
     setSavingSalary(true);
     try {
-      const payload = {
-        salary_min: salaryData.min !== '' ? parseFloat(String(salaryData.min)) : null,
-        salary_max: salaryData.max !== '' ? parseFloat(String(salaryData.max)) : null,
-        salary_currency: salaryData.currency || null,
-        salary_period: salaryData.period || null,
+      const sMin = salaryData.min !== '' ? parseFloat(String(salaryData.min)) : undefined;
+      const sMax = salaryData.max !== '' ? parseFloat(String(salaryData.max)) : undefined;
+      const sCurr = salaryData.currency || undefined;
+      const sPeriod = salaryData.period || undefined;
+
+      const patchPayload = {
+        salary_min: sMin ?? null,
+        salary_max: sMax ?? null,
+        salary_currency: sCurr ?? null,
+        salary_period: sPeriod ?? null,
       };
       setDraft((prev) => ({
         ...prev,
@@ -300,8 +305,14 @@ function useMetaFieldSaveHandlers(
         salaryCurrency: salaryData.currency,
         salaryPeriod: salaryData.period,
       }));
-      await patchVacancyFields(vacancy.id, payload);
-      onUpdate({ ...vacancy, ...payload });
+      await patchVacancyFields(vacancy.id, patchPayload);
+      onUpdate({
+        ...vacancy,
+        salary_min: sMin,
+        salary_max: sMax,
+        salary_currency: sCurr,
+        salary_period: sPeriod,
+      });
       setSavedSalarySuccess(true);
       setTimeout(() => setSavedSalarySuccess(false), 2000);
     } catch (err) {

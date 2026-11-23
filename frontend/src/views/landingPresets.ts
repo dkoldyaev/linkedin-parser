@@ -10,7 +10,7 @@
  * 6. product     - Senior / Lead Product Manager (Roadmap, A/B Experiments, Checkout Conversion, P&L)
  */
 
-import type { Vacancy } from '../types/models';
+import type { LandingVacancy } from '../types/models';
 
 export interface LandingExtractedLink {
   id: string;
@@ -35,7 +35,7 @@ export interface LandingBloatItem {
 
 export type BloatItemPreset = LandingBloatItem;
 
-export interface LandingVacancyPreset extends Omit<Vacancy, 'status' | 'tech_stack' | 'ai_summary' | 'created_at'> {
+export interface LandingVacancyPreset extends Omit<LandingVacancy, 'status' | 'tech_stack' | 'ai_summary' | 'created_at'> {
   status?: string;
   tech_stack: string[];
   ai_summary: string;
