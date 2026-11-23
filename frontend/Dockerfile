@@ -14,6 +14,7 @@ COPY packages/ui-kit /app/packages/ui-kit
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci && rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
+RUN cd /app/packages/ui-kit && npm run build
 COPY frontend/ ./
 RUN npm run build
 
@@ -54,6 +55,7 @@ COPY packages/ui-kit ./packages/ui-kit
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci && rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
+RUN cd /app/packages/ui-kit && npm run build
 COPY frontend/ ./
 
 EXPOSE 3000

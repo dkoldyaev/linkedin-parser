@@ -1,7 +1,10 @@
+import { Building, Home, Layers, LucideIcon } from "lucide-react";
+
 export interface WorkplaceTypeConfig {
   label: string;
   className: string;
   fullLabel: string;
+  icon: LucideIcon;
 }
 
 export interface WorkplaceInfo extends WorkplaceTypeConfig {
@@ -15,16 +18,19 @@ export const WORKPLACE_CONFIG: Record<string, WorkplaceTypeConfig> = {
     label: 'Удаленка',
     className: 'remote',
     fullLabel: 'Удаленка (Remote)',
+    icon: Home,
   },
   hybrid: {
     label: 'Гибрид',
     className: 'hybrid',
     fullLabel: 'Гибрид (Hybrid)',
+    icon: Layers,
   },
   'on-site': {
     label: 'On-site',
     className: 'onsite',
     fullLabel: 'On-site (В офисе)',
+    icon: Building,
   },
 };
 

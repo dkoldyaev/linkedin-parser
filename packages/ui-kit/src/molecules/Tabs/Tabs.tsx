@@ -12,6 +12,7 @@ export interface TabItem {
   readonly icon?: React.ReactNode;
   readonly disabled?: boolean;
   readonly content?: React.ReactNode;
+  readonly align?: 'left' | 'right';
 }
 
 export interface TabsProps
@@ -69,7 +70,10 @@ export function Tabs({
             value={item.value}
             disabled={item.disabled}
             data-bp-snap-width=""
-            className={styles.trigger}
+            className={cn(
+              styles.trigger,
+              item.align === 'right' && styles.alignRight
+            )}
             onClick={() => {
               if (!item.disabled && onValueChange !== undefined) {
                 onValueChange(item.value);

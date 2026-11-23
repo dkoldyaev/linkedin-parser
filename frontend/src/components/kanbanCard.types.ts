@@ -26,7 +26,6 @@ export interface CardHandlerOptions {
   linearColumns: string[];
   rejectedStatusId: string;
   initialStatusId: string;
-  hasSalary: boolean;
   onClick: (v: Vacancy) => void;
   onStatusChange: (id: number, to: string) => void;
 }

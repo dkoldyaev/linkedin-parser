@@ -54,6 +54,10 @@
       box-shadow var(--ui-transition-fast);
   }
 
+  .alignRight {
+    margin-left: auto;
+  }
+
   .tabLabel {
     color: inherit;
     font-size: inherit;

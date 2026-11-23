@@ -1,12 +1,12 @@
 import React from 'react';
 import BatchImportModal from '../components/BatchImportModal';
-import VacancyModal from '../components/VacancyModal';
 import QueueModal from '../components/QueueModal';
 import LoginModal from '../components/LoginModal';
 import type { useHomeVacanciesData } from './useHomeVacanciesData';
 import type { useHomeModalController } from './useHomeModalController';
 import type { useVacancyBoardActions } from './useVacancyBoardActions';
 import type { User } from '../types/models';
+import VacancyModal from '../components/VacancyModal/VacancyModal';
 
 export interface HomeModalsContainerProps {
   modals: ReturnType<typeof useHomeModalController>;

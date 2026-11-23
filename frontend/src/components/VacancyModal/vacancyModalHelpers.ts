@@ -1,7 +1,7 @@
 import {
   STATUS_REJECTED,
   DEFAULT_COLUMNS,
-} from '../constants/columns';
+} from '../../constants/columns';
 import type {
   BoardColumn,
   CompatibilityAnalysis,
@@ -10,9 +10,9 @@ import type {
   MissingRequirement,
   Vacancy,
   VacancyHistoryItem,
-} from '../types/models';
-import type { FormatDateFn, TranslateFn } from '../i18n/I18nContext';
-import type { ReportSectionGroup } from '@blueprint/ui-kit';
+} from '../../types/models';
+import type { FormatDateFn, TranslateFn } from '../../i18n/I18nContext';
+import type { ReportSectionGroup, SemanticTone } from '@blueprint/ui-kit';
 
 export function normalizeModalColumns(columns?: Array<BoardColumn | string>): BoardColumn[] {
   if (!Array.isArray(columns) || columns.length === 0) return DEFAULT_COLUMNS;
@@ -184,8 +184,9 @@ export function resolveCompatibilityDisplayScore(
 }
 
 export function resolveCompatScoreTone(
-  displayScore: number | undefined
-): 'neutral' | 'success' | 'warning' | 'danger' {
+  displayScore: number | undefined | null
+): SemanticTone {
+  console.log({displayScore})
   if (displayScore == null) return 'neutral';
   if (displayScore >= 70) return 'success';
   if (displayScore >= 45) return 'warning';

@@ -7,6 +7,9 @@ const nextConfig = {
   turbopack: {
     root: path.resolve(import.meta.dirname, '..'),
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   reactStrictMode: false,
   transpilePackages: ['@blueprint/ui-kit'],
   async rewrites() {

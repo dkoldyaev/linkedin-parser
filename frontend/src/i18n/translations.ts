@@ -164,6 +164,7 @@ export const translations: Record<'ru' | 'en', Record<string, TranslationNode>> 
     },
     vacancyModal: {
       tab_details: "Описание и детали",
+      tab_raw_data: "Исходные данные",
       tab_cv_compatibility: "Совместимость с CV",
       compat_title: "Совместимость с CV",
       compat_compare: "Сравнить с моим CV",
@@ -234,6 +235,7 @@ export const translations: Record<'ru' | 'en', Record<string, TranslationNode>> 
       save_notes: "Сохранить заметки",
       saved_notes: "Сохранено!",
       notes_placeholder: "Ваши комментарии, контакты рекрутера, этапы, вопросы к интервью...",
+      raw_desc_title: "Оригинальное описание вакансии",
       orig_description_title: "Оригинальное описание вакансии",
       show_full: "Показать полностью",
       collapse: "Свернуть",
@@ -764,6 +766,7 @@ export const translations: Record<'ru' | 'en', Record<string, TranslationNode>> 
     },
     vacancyModal: {
       tab_details: "Details & Notes",
+      tab_raw_data: "Raw Data",
       tab_cv_compatibility: "CV Compatibility",
       compat_title: "CV Compatibility Match",
       compat_compare: "Compare with My CV",
@@ -834,6 +837,7 @@ export const translations: Record<'ru' | 'en', Record<string, TranslationNode>> 
       save_notes: "Save notes",
       saved_notes: "Saved!",
       notes_placeholder: "Your comments, recruiter contacts, stages, interview questions...",
+      raw_desc_title: "Original Job Description",
       orig_description_title: "Original Job Description",
       show_full: "Show full description",
       collapse: "Collapse",

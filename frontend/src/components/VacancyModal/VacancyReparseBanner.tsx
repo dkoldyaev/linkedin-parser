@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertBanner } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { useTranslation } from '../../i18n/I18nContext';
 
 export interface VacancyReparseBannerProps {
   error: string | null;

@@ -35,6 +35,7 @@ export const PERIOD_SUFFIXES: Record<string, string> = {
   day: '/ день',
 };
 
+// @todo: Тут какой-то бардак. Одно переводится в другое
 const RUB_CODES = new Set(['RUB', 'RUR', '₽', 'РУБ', 'РУБ.']);
 const USD_CODES = new Set(['USD', '$']);
 const EUR_CODES = new Set(['EUR', '€']);
@@ -113,7 +114,7 @@ function resolveCurrencyConversion(
   const rate = findExchangeRate(normOrigCurr, normTargetCurr, exchangeRates);
 
   if (rate === null || !normTargetCurr) {
-    return { displayCurr: origCurr, currRate: 1 };
+    return { displayCurr: CURRENCY_SYMBOLS[origCurr] ||origCurr, currRate: 1 };
   }
   return {
     displayCurr: CURRENCY_SYMBOLS[normTargetCurr] || normTargetCurr,

@@ -241,6 +241,12 @@ const DEFAULT_PERIOD_OPTIONS: readonly SelectOption[] = [
   { value: 'hour', label: 'в час' },
 ];
 
+/**
+ * 
+ * @deprecated Should be deleted. Do not use it!!
+ * @param param0
+ * @returns 
+ */
 export function VacancyDetailsModal({
   isOpen,
   onClose,
@@ -790,7 +796,7 @@ export function VacancyDetailsModal({
             </Section>
 
             {/* Tags Section */}
-            <Section>
+            <Section padding="lg">
               <Section.Header
                 title={tagsTitle}
                 accessory={
@@ -806,7 +812,7 @@ export function VacancyDetailsModal({
                   ) : undefined
                 }
               />
-              <Section.Body padding="sm">
+              <Section.Body padding="none">
                 <TagsList
                   value={tags}
                   onChange={onTagsChange}

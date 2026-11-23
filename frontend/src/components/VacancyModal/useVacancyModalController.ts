@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import { STATUS_NOT_CONTACTED } from '../constants/columns';
-import { vacancyService } from '../services/vacancyService';
+import { trackEvent, EVENTS } from '../../utils/analytics';
+import { STATUS_NOT_CONTACTED } from '../../constants/columns';
+import { vacancyService } from '../../services/vacancyService';
 import type {
   CompatibilityAnalysis,
   Vacancy,
   VacancyHistoryItem,
-} from '../types/models';
-import type { TranslateFn } from '../i18n/I18nContext';
+} from '../../types/models';
+import type { TranslateFn } from '../../i18n/I18nContext';
 
 export interface SalaryFormPayload {
   min: string | number;

@@ -4,7 +4,6 @@ import React from 'react';
 import { Card } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { getWorkplaceInfo } from '../utils/workplace';
-import { getSalaryDisplay } from '../utils/salary';
 import KanbanCardTokens from './KanbanCardTokens';
 import KanbanCardMetaRow from './KanbanCardMetaRow';
 import KanbanCardFooterContent from './KanbanCardFooterContent';
@@ -36,7 +35,6 @@ function createCardHandlers(opts: CardHandlerOptions) {
     linearColumns,
     rejectedStatusId,
     initialStatusId,
-    hasSalary,
     onClick,
     onStatusChange,
   } = opts;
@@ -62,7 +60,7 @@ function createCardHandlers(opts: CardHandlerOptions) {
       e.dataTransfer.setData('application/json', JSON.stringify({
         id: vacancy.id,
         currentStatus: vacancy.status,
-        hasSalary,
+        // hasSalary,
       }));
       e.dataTransfer.effectAllowed = 'move';
     },
@@ -119,10 +117,9 @@ export default function KanbanCard({
   laneColumns = DEFAULT_LANE_COLUMNS,
   compact: propCompact,
 }: KanbanCardProps): React.ReactElement {
-  const { t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates } = useTranslation();
+  const { t } = useTranslation();
   const cardState = deriveCardState(vacancy, columns, laneColumns, t);
   const isCompact = propCompact ?? cardState.isRejected;
-  const salaryInfo = getSalaryDisplay(vacancy, t, salaryDisplayFormat, salaryTargetCurrency, exchangeRates);
   const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
   const matchScore = computeMatchScore(vacancy);
 
@@ -132,7 +129,6 @@ export default function KanbanCard({
     linearColumns: cardState.linearColumns,
     rejectedStatusId: cardState.rejectedStatusId,
     initialStatusId: cardState.initialStatusId,
-    hasSalary: salaryInfo.hasSalary,
     onClick,
     onStatusChange,
   });
@@ -177,9 +173,12 @@ export default function KanbanCard({
     >
       <KanbanCardMetaRow
         matchScore={matchScore}
-        workplaceInfo={workplaceInfo}
+        workplaceType={vacancy.workplace_type}
         location={vacancy.location}
-        salaryInfo={salaryInfo}
+        salaryMin={vacancy.salary_min}
+        salaryMax={vacancy.salary_max}
+        salaryCurrency={vacancy.salary_currency}
+        salaryPeriod={vacancy.salary_period}
       />
       <KanbanCardSummary summary={vacancy.ai_summary} />
       <KanbanCardTokens techStack={vacancy.tech_stack} tags={vacancy.tags} />

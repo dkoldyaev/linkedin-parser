@@ -1,0 +1,8 @@
+services:
+  frontend:
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+      - /app/frontend/.next
+      - ./packages/ui-kit:/app/packages/ui-kit
+      - /app/packages/ui-kit/node_modules
