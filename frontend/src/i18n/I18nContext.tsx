@@ -28,6 +28,7 @@ export interface I18nProviderProps {
   initialLocale?: string;
   initialSalaryFormat?: string;
   initialSalaryCurrency?: string;
+  initialExchangeRates?: Record<string, number>;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -72,7 +73,10 @@ function resolveInitialCurrency(initialSalaryCurrency?: string): string {
   return safeGetStorageItem('app_salary_currency') || '';
 }
 
-function resolveInitialRates(): Record<string, number> {
+function resolveInitialRates(initialRates?: Record<string, number>): Record<string, number> {
+  if (initialRates && Object.keys(initialRates).length > 0) {
+    return initialRates;
+  }
   const saved = safeGetStorageItem('app_exchange_rates');
   if (!saved) return {};
   try {
@@ -154,11 +158,14 @@ function isSupportedRemoteLocale(val?: string | null): val is LocaleCode {
 
 function useI18nEffects(
   initialLocale: string | undefined,
+  initialExchangeRates: Record<string, number> | undefined,
   setLocaleState: (loc: LocaleCode) => void,
   setSalaryDisplayFormatState: (fmt: string) => void,
   setSalaryTargetCurrencyState: (curr: string) => void
 ): Record<string, number> {
-  const [exchangeRates, setExchangeRatesState] = useState<Record<string, number>>(resolveInitialRates);
+  const [exchangeRates, setExchangeRatesState] = useState<Record<string, number>>(() =>
+    resolveInitialRates(initialExchangeRates)
+  );
 
   useEffect(() => {
     if (isSupportedLocale(initialLocale)) {
@@ -198,7 +205,8 @@ function useI18nEffects(
 function useI18nController(
   initialLocale?: string,
   initialSalaryFormat?: string,
-  initialSalaryCurrency?: string
+  initialSalaryCurrency?: string,
+  initialExchangeRates?: Record<string, number>
 ): I18nContextValue {
   const [locale, setLocaleState] = useState<LocaleCode>(() => resolveInitialLocale(initialLocale));
   const [salaryDisplayFormat, setSalaryDisplayFormatState] = useState<string>(() =>
@@ -210,6 +218,7 @@ function useI18nController(
 
   const exchangeRates = useI18nEffects(
     initialLocale,
+    initialExchangeRates,
     setLocaleState,
     setSalaryDisplayFormatState,
     setSalaryTargetCurrencyState
@@ -269,8 +278,14 @@ export function I18nProvider({
   initialLocale,
   initialSalaryFormat,
   initialSalaryCurrency,
+  initialExchangeRates,
 }: I18nProviderProps): React.ReactElement {
-  const value = useI18nController(initialLocale, initialSalaryFormat, initialSalaryCurrency);
+  const value = useI18nController(
+    initialLocale,
+    initialSalaryFormat,
+    initialSalaryCurrency,
+    initialExchangeRates
+  );
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

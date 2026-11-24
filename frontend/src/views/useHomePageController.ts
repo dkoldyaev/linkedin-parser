@@ -15,6 +15,8 @@ export interface HomePageControllerProps {
   initialSelectedVacancy?: Vacancy | null;
   initialVacancyHistory?: VacancyHistoryItem[];
   initialVacancyCompatibility?: CompatibilityAnalysis | null;
+  initialFilters?: Partial<HomeFilterState>;
+  isFilteredSSR?: boolean;
   onLogout?: () => void;
   onUserUpdated?: (user: User | null) => void;
 }
@@ -30,6 +32,8 @@ export function useHomePageController(props: HomePageControllerProps, t: Transla
     initialVacancies: props.initialVacancies,
     initialColumns: props.initialColumns,
     fetchBoardInBackground: Boolean(props.fetchBoardInBackground),
+    initialFilters: props.initialFilters,
+    isFilteredSSR: Boolean(props.isFilteredSSR),
   });
 
   const modals = useHomeModalController({
@@ -62,7 +66,6 @@ export function useHomePageController(props: HomePageControllerProps, t: Transla
 
   useMercureRealtime(user, {
     fetchTags: data.fetchTags,
-    fetchVacancies: data.fetchVacancies,
     fetchColumns: data.fetchColumns,
     fetchCountries: data.fetchCountries,
     fetchCities: data.fetchCities,

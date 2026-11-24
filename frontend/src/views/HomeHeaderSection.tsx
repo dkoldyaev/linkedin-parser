@@ -16,6 +16,7 @@ export interface HomeHeaderSectionProps {
   user?: User | null;
   search: string;
   onSearchChange: (val: string) => void;
+  onSearchSubmit?: (val: string) => void;
   queueRemaining?: number;
   onOpenQueue: () => void;
   onAddVacanciesClick: () => void;
@@ -63,7 +64,13 @@ export default function HomeHeaderSection(props: HomeHeaderSectionProps): React.
         }
         menuOpen={menuOpen}
         onMenuToggle={toggleMenu}
-        search={<HomeSearchBar search={props.search} onSearchChange={props.onSearchChange} />}
+        search={
+          <HomeSearchBar
+            search={props.search}
+            onSearchChange={props.onSearchChange}
+            onSearchSubmit={props.onSearchSubmit}
+          />
+        }
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
             <HomeGuestPromotionButton

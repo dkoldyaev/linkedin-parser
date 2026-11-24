@@ -65,7 +65,7 @@
 
   .headerTop {
     display: flex;
-    align-items: center;
+    align-items: start;
     justify-content: space-between;
     gap: var(--ui-space-4);
     width: 100%;

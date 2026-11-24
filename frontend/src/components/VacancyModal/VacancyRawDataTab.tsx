@@ -1,25 +1,17 @@
 import React from 'react';
-import { VacancySalarySection } from './VacancySalarySection';
+import { VacancySalarySection, type SalaryData } from './VacancySalarySection';
 import { VacancyDescriptionSection } from './VacancyDescriptionSection';
 import type { Vacancy } from '../../types/models';
+import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyRawDataTabProps {
   salaryMin?: Vacancy['salary_min'];
   salaryMax?: Vacancy['salary_max'];
   salaryCurrency?: Vacancy['salary_currency'];
   salaryPeriod?: Vacancy['salary_period'];
-  onSaveSalary?: (salary: {
-    min: string;
-    max: string;
-    currency: string;
-    period: string;
-  }) => void | Promise<void>;
-  savingSalary?: boolean;
-  savedSalarySuccess?: boolean;
+  onSaveSalary?: (salary: SalaryData) => Promise<void>;
   description?: string;
-  onSaveDescription?: (description: string) => void;
-  savingDescription?: boolean;
-  descriptionSaved?: boolean;
+  onSaveDescription?: (description: string) => Promise<void>;
 }
 
 export function VacancyRawDataTab({
@@ -28,30 +20,22 @@ export function VacancyRawDataTab({
   salaryCurrency,
   salaryPeriod,
   onSaveSalary,
-  savingSalary,
-  savedSalarySuccess,
   description,
   onSaveDescription,
-  savingDescription,
-  descriptionSaved,
 }: VacancyRawDataTabProps): React.ReactElement {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <VacancyTabContent>
       <VacancySalarySection
         salaryMin={salaryMin}
         salaryMax={salaryMax}
         salaryCurrency={salaryCurrency}
         salaryPeriod={salaryPeriod}
         onSaveSalary={onSaveSalary}
-        savingSalary={savingSalary}
-        savedSalarySuccess={savedSalarySuccess}
       />
       <VacancyDescriptionSection
         description={description}
         onSaveDescription={onSaveDescription}
-        savingDescription={savingDescription}
-        descriptionSaved={descriptionSaved}
       />
-    </div>
+    </VacancyTabContent>
   );
 }

@@ -23,6 +23,7 @@ export type { KanbanCardProps };
 
 const DEFAULT_CARD_COLUMNS: ColumnLike[] = [];
 const DEFAULT_LANE_COLUMNS: Set<string> = new Set<string>();
+const HIDDEN_CARD_STYLE: React.CSSProperties = { display: 'none' };
 
 function isVacancyRejected(status?: string, rejectedId?: string): boolean {
   return status === rejectedId || status === 'rejected';
@@ -116,6 +117,7 @@ export default function KanbanCard({
   columns = DEFAULT_CARD_COLUMNS,
   laneColumns = DEFAULT_LANE_COLUMNS,
   compact: propCompact,
+  isHidden = false,
 }: KanbanCardProps): React.ReactElement {
   const { t } = useTranslation();
   const cardState = deriveCardState(vacancy, columns, laneColumns, t);
@@ -152,6 +154,7 @@ export default function KanbanCard({
       checked={isSelected}
       onCheckedChange={() => onToggleSelect?.(vacancy.id)}
       checkboxAriaLabel={t('kanban.select_card')}
+      style={isHidden ? HIDDEN_CARD_STYLE : undefined}
       statusIndicators={
         <KanbanCardStatusIndicators
           stageLabel={cardState.stageLabel}

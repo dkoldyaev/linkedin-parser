@@ -47,7 +47,18 @@ export function buildVacanciesUrl(filters: HomeFilterState): string {
   return query ? `/api/v2/vacancies?${query}` : '/api/v2/vacancies';
 }
 
-export function hasAnyNonSearchFilter(filters: HomeFilterState): boolean {
+export const defaultFilterState: HomeFilterState = {
+  search: '',
+  selectedTag: '',
+  selectedCountry: '',
+  selectedCity: '',
+  selectedWorkplaceType: '',
+  selectedSource: '',
+  selectedClosed: '',
+};
+
+export function hasAnyNonSearchFilter(filters?: Partial<HomeFilterState>): boolean {
+  if (!filters) return false;
   const values = [
     filters.selectedTag,
     filters.selectedCountry,
@@ -56,11 +67,12 @@ export function hasAnyNonSearchFilter(filters: HomeFilterState): boolean {
     filters.selectedSource,
     filters.selectedClosed,
   ];
-  return values.some((val) => val !== '');
+  return values.some((val) => typeof val === 'string' && val.trim() !== '');
 }
 
-export function hasAnyActiveFilter(filters: HomeFilterState): boolean {
-  if (filters.search.trim() !== '') return true;
+export function hasAnyActiveFilter(filters?: Partial<HomeFilterState>): boolean {
+  if (!filters) return false;
+  if (typeof filters.search === 'string' && filters.search.trim() !== '') return true;
   return hasAnyNonSearchFilter(filters);
 }
 
@@ -204,6 +216,98 @@ export function matchesClosedFilter(vacancy: Vacancy, selectedClosed: string): b
   if (selectedClosed === 'false') return !vacancy.is_closed;
   if (selectedClosed === 'true') return Boolean(vacancy.is_closed);
   return true;
+}
+
+export function matchesFilters(vacancy: Vacancy, filters: Partial<HomeFilterState>): boolean {
+  if (!vacancy) return false;
+  const {
+    search,
+    selectedTag,
+    selectedCountry,
+    selectedCity,
+    selectedWorkplaceType,
+    selectedSource,
+    selectedClosed,
+  } = filters || {};
+
+  if (selectedClosed !== undefined && selectedClosed !== '') {
+    if (!matchesClosedFilter(vacancy, selectedClosed)) return false;
+  }
+
+  if (selectedTag && selectedTag.trim() !== '') {
+    const tags = Array.isArray(vacancy.tags) ? vacancy.tags : [];
+    if (!tags.includes(selectedTag.trim())) return false;
+  }
+
+  if (selectedCountry && selectedCountry.trim() !== '') {
+    if ((vacancy.country || '').trim().toLowerCase() !== selectedCountry.trim().toLowerCase()) {
+      return false;
+    }
+  }
+
+  if (selectedCity && selectedCity.trim() !== '') {
+    if ((vacancy.city || '').trim().toLowerCase() !== selectedCity.trim().toLowerCase()) {
+      return false;
+    }
+  }
+
+  if (selectedWorkplaceType && selectedWorkplaceType.trim() !== '') {
+    if ((vacancy.workplace_type || '').trim().toLowerCase() !== selectedWorkplaceType.trim().toLowerCase()) {
+      return false;
+    }
+  }
+
+  if (selectedSource && selectedSource.trim() !== '') {
+    if ((vacancy.source || '').trim().toLowerCase() !== selectedSource.trim().toLowerCase()) {
+      return false;
+    }
+  }
+
+  if (search && search.trim() !== '') {
+    const q = search.trim().toLowerCase();
+    const title = (vacancy.title || '').toLowerCase();
+    const company = (vacancy.company || '').toLowerCase();
+    const loc = (vacancy.location || '').toLowerCase();
+    const city = (vacancy.city || '').toLowerCase();
+    const country = (vacancy.country || '').toLowerCase();
+    const desc = (vacancy.description || '').toLowerCase();
+    const summary = (vacancy.ai_summary || '').toLowerCase();
+    const src = (vacancy.source || '').toLowerCase();
+    const tagsStr = Array.isArray(vacancy.tags) ? vacancy.tags.join(' ').toLowerCase() : '';
+    const stackStr = Array.isArray(vacancy.tech_stack) ? vacancy.tech_stack.join(' ').toLowerCase() : '';
+    if (
+      !title.includes(q) &&
+      !company.includes(q) &&
+      !loc.includes(q) &&
+      !city.includes(q) &&
+      !country.includes(q) &&
+      !desc.includes(q) &&
+      !summary.includes(q) &&
+      !src.includes(q) &&
+      !tagsStr.includes(q) &&
+      !stackStr.includes(q)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function computeHiddenVacancyIds(
+  vacancies: Vacancy[],
+  filters?: Partial<HomeFilterState>
+): Set<number> {
+  if (!filters || !hasAnyActiveFilter(filters)) {
+    return new Set<number>();
+  }
+  const hidden = new Set<number>();
+  for (const v of vacancies) {
+    if (!matchesFilters(v, filters)) {
+      hidden.add(v.id);
+    }
+  }
+  return hidden;
 }
 
 export function upsertVacancyInList(list: Vacancy[], incoming: Vacancy): Vacancy[] {

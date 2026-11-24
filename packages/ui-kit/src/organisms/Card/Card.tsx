@@ -525,6 +525,10 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(
       subtitle,
       overline,
       overlineHref,
+      selectable = false,
+      checked = false,
+      onCheckedChange,
+      checkboxAriaLabel = 'Select card',
       headerActions,
       statusIndicators,
       footer,
@@ -587,6 +591,7 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(
               {(title !== undefined ||
                 subtitle !== undefined ||
                 overline !== undefined ||
+                selectable ||
                 headerActions !== undefined ||
                 statusIndicators !== undefined) && (
                 <CardHeader
@@ -594,6 +599,10 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(
                   subtitle={subtitle}
                   overline={overline}
                   overlineHref={overlineHref}
+                  selectable={selectable}
+                  checked={checked}
+                  onCheckedChange={onCheckedChange}
+                  checkboxAriaLabel={checkboxAriaLabel}
                   headerActions={headerActions}
                   statusIndicators={statusIndicators}
                 />

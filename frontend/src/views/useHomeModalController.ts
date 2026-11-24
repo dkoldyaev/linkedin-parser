@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { useDisclosure } from '../utils/useDisclosure';
 import { vacancyService } from '../services/vacancyService';
@@ -36,17 +36,26 @@ function readSessionFlag(key: string): boolean {
   }
 }
 
-function pushVacancyHistoryUrl(vacancyId: number) {
-  if (typeof window !== 'undefined' && window.history?.pushState) {
-    window.history.pushState({}, '', `/vacancies/${vacancyId}`);
-  }
+function pushVacancyHistoryUrl(
+  vacancyId: number,
+  router: ReturnType<typeof useRouter>,
+  searchParams: URLSearchParams
+) {
+  const qs = searchParams.toString();
+  const targetUrl = qs ? `/vacancies/${vacancyId}?${qs}` : `/vacancies/${vacancyId}`;
+  router.push(targetUrl, { scroll: false });
 }
 
-function resetRootHistoryUrl(pathname: string, router: ReturnType<typeof useRouter>) {
+function resetRootHistoryUrl(
+  router: ReturnType<typeof useRouter>,
+  searchParams: URLSearchParams
+) {
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/vacancies/')) {
-    window.history.pushState({}, '', '/');
-  } else if (pathname && pathname.startsWith('/vacancies/')) {
-    router.push('/', { scroll: false });
+    router.back();
+  } else {
+    const qs = searchParams.toString();
+    const targetUrl = qs ? `/?${qs}` : '/';
+    router.push(targetUrl, { scroll: false });
   }
 }
 
@@ -74,14 +83,18 @@ async function fetchVacancyDetailResult(
   }
 }
 
-function replaceVacancyNotFoundHistory() {
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/vacancies/')) {
-    window.history.replaceState({}, '', '/');
-  }
+function replaceVacancyNotFoundHistory(
+  router: ReturnType<typeof useRouter>,
+  searchParams: URLSearchParams
+) {
+  const qs = searchParams.toString();
+  const targetUrl = qs ? `/?${qs}` : '/';
+  router.replace(targetUrl, { scroll: false });
 }
 
 function useVacancyDetailModal({
   locale,
+  vacancies,
   setVacancies,
   initialSelectedVacancy,
   initialVacancyHistory,
@@ -89,6 +102,7 @@ function useVacancyDetailModal({
   showToast,
 }: {
   locale: string;
+  vacancies: Vacancy[];
   setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>;
   initialSelectedVacancy: Vacancy | null | undefined;
   initialVacancyHistory: VacancyHistoryItem[] | undefined;
@@ -97,6 +111,12 @@ function useVacancyDetailModal({
 }) {
   const router = useRouter();
   const pathname = usePathname() || '/';
+  const searchParams = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(
     initialSelectedVacancy || null
   );
@@ -107,13 +127,17 @@ function useVacancyDetailModal({
     initialVacancyCompatibility
   );
 
+  const isNavigatingHistoryRef = useRef(false);
+
   const vacancyDisclosure = useDisclosure({
     defaultIsOpen: Boolean(initialSelectedVacancy),
     onClose: () => {
       setSelectedVacancy(null);
       setSelectedVacancyHistory(undefined);
       setSelectedVacancyCompat(undefined);
-      resetRootHistoryUrl(pathname, router);
+      if (!isNavigatingHistoryRef.current) {
+        resetRootHistoryUrl(router, searchParamsRef.current);
+      }
     },
   });
 
@@ -122,14 +146,16 @@ function useVacancyDetailModal({
   }, [vacancyDisclosure]);
 
   const openVacancyDetail = useCallback(
-    (v: Vacancy) => {
+    (v: Vacancy, pushUrl = true) => {
       setSelectedVacancy(v);
       setSelectedVacancyHistory(undefined);
       setSelectedVacancyCompat(undefined);
       vacancyDisclosure.open();
-      pushVacancyHistoryUrl(v.id);
+      if (pushUrl) {
+        pushVacancyHistoryUrl(v.id, router, searchParamsRef.current);
+      }
     },
-    [vacancyDisclosure]
+    [vacancyDisclosure, router]
   );
 
   const handleCardClick = useCallback(
@@ -140,13 +166,55 @@ function useVacancyDetailModal({
         const msg = locale === 'en' ? '404 Vacancy not found' : '404 Вакансия не найдена';
         showToast(msg, 'error');
         setVacancies((prev) => prev.filter((v) => v.id !== vacancy.id));
-        replaceVacancyNotFoundHistory();
+        replaceVacancyNotFoundHistory(router, searchParamsRef.current);
         return;
       }
-      openVacancyDetail(result.vacancy);
+      openVacancyDetail(result.vacancy, true);
     },
-    [locale, showToast, setVacancies, openVacancyDetail]
+    [locale, showToast, setVacancies, openVacancyDetail, router]
   );
+
+  const vacanciesRef = useRef(vacancies);
+  useEffect(() => {
+    vacanciesRef.current = vacancies;
+  }, [vacancies]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handlePopState = async () => {
+      isNavigatingHistoryRef.current = true;
+      try {
+        const path = window.location.pathname;
+        const match = path.match(/^\/vacancies\/(\d+)/);
+        if (match) {
+          const id = Number(match[1]);
+          const existing = vacanciesRef.current.find((v) => v.id === id);
+          if (existing) {
+            openVacancyDetail(existing, false);
+          } else {
+            try {
+              const fetched = await vacancyService.getVacancy(id);
+              if (fetched) {
+                openVacancyDetail(fetched, false);
+              }
+            } catch {
+              vacancyDisclosure.close();
+            }
+          }
+        } else {
+          vacancyDisclosure.close();
+        }
+      } finally {
+        isNavigatingHistoryRef.current = false;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [openVacancyDetail, vacancyDisclosure]);
 
   return {
     selectedVacancy,
@@ -179,6 +247,7 @@ export function useHomeModalController({
 
   const detailModal = useVacancyDetailModal({
     locale,
+    vacancies,
     setVacancies,
     initialSelectedVacancy,
     initialVacancyHistory,

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import type { User, Vacancy, BoardColumn, QueueTask } from '../types/models';
-import type { HomeFilterState } from './homeFilterHelpers';
+import {
+  type HomeFilterState,
+  computeHiddenVacancyIds,
+} from './homeFilterHelpers';
 import { vacancyService } from '../services/vacancyService';
-import type { VacancyFilterParams } from '../services/vacancy.types';
 import { columnService } from '../services/columnService';
 import { queueService } from '../services/queueService';
 
@@ -14,6 +17,8 @@ export interface UseHomeVacanciesDataArgs {
   initialVacancies: Vacancy[] | undefined;
   initialColumns: BoardColumn[] | undefined;
   fetchBoardInBackground: boolean;
+  initialFilters?: Partial<HomeFilterState>;
+  isFilteredSSR?: boolean;
 }
 
 function extractQueueRemainingCount(data: unknown): number | null {
@@ -29,16 +34,66 @@ function extractQueueRemainingCount(data: unknown): number | null {
   return null;
 }
 
-function useHomeFilterState() {
-  const [search, setSearch] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
-  const [selectedWorkplaceType, setSelectedWorkplaceType] = useState('');
-  const [selectedSource, setSelectedSource] = useState('');
-  const [selectedClosed, setSelectedClosed] = useState('');
+function syncFiltersToHistory(
+  filters: HomeFilterState,
+  router: ReturnType<typeof useRouter>,
+  replace = false
+) {
+  if (typeof window === 'undefined') return;
+  const currentUrl = new URL(window.location.href);
+  const sp = currentUrl.searchParams;
 
-  const filters: HomeFilterState = {
+  const setOrDel = (key: string, val: string) => {
+    if (val && val.trim() !== '') {
+      sp.set(key, val.trim());
+    } else {
+      sp.delete(key);
+    }
+  };
+
+  setOrDel('search', filters.search);
+  setOrDel('tag', filters.selectedTag);
+  setOrDel('country', filters.selectedCountry);
+  setOrDel('city', filters.selectedCity);
+  setOrDel('workplace_type', filters.selectedWorkplaceType);
+  setOrDel('source', filters.selectedSource);
+  setOrDel('is_closed', filters.selectedClosed);
+
+  const qs = sp.toString();
+  const targetUrl = qs ? `${currentUrl.pathname}?${qs}` : currentUrl.pathname;
+
+  if (replace) {
+    router.replace(targetUrl, { scroll: false });
+  } else {
+    router.push(targetUrl, { scroll: false });
+  }
+}
+
+function useHomeFilterState(initial?: Partial<HomeFilterState>) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [search, setSearch] = useState(initial?.search || '');
+  const [selectedTag, setSelectedTag] = useState(initial?.selectedTag || '');
+  const [selectedCountry, setSelectedCountry] = useState(initial?.selectedCountry || '');
+  const [selectedCity, setSelectedCity] = useState(initial?.selectedCity || '');
+  const [selectedWorkplaceType, setSelectedWorkplaceType] = useState(initial?.selectedWorkplaceType || '');
+  const [selectedSource, setSelectedSource] = useState(initial?.selectedSource || '');
+  const [selectedClosed, setSelectedClosed] = useState(initial?.selectedClosed || '');
+
+  // Synchronize internal filter state whenever searchParams changes (Next.js navigation / back / forward)
+  useEffect(() => {
+    if (!searchParams) return;
+    setSearch(searchParams.get('search') || '');
+    setSelectedTag(searchParams.get('tag') || '');
+    setSelectedCountry(searchParams.get('country') || '');
+    setSelectedCity(searchParams.get('city') || '');
+    setSelectedWorkplaceType(searchParams.get('workplace_type') || '');
+    setSelectedSource(searchParams.get('source') || '');
+    setSelectedClosed(searchParams.get('is_closed') || '');
+  }, [searchParams]);
+
+  const filters: HomeFilterState = useMemo(() => ({
     search,
     selectedTag,
     selectedCountry,
@@ -46,9 +101,10 @@ function useHomeFilterState() {
     selectedWorkplaceType,
     selectedSource,
     selectedClosed,
-  };
+  }), [search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
 
   return {
+    router,
     filters,
     search,
     setSearch,
@@ -140,114 +196,33 @@ function useMetadataFetchers(user: User | null | undefined) {
   };
 }
 
-function useHomeVacanciesEffects({
-  user,
-  initialColumns,
-  initialVacancies,
-  fetchBoardInBackground,
-  selectedCountry,
-  fetchColumns,
-  fetchVacancies,
-  fetchTags,
-  fetchCountries,
-  fetchCities,
-  fetchSources,
-  fetchQueueStatus,
-  vacancyRequest,
-}: {
-  user: User | null | undefined;
-  initialColumns: BoardColumn[] | undefined;
-  initialVacancies: Vacancy[] | undefined;
-  fetchBoardInBackground: boolean;
-  selectedCountry: string;
-  fetchColumns: () => void;
-  fetchVacancies: () => void;
-  fetchTags: () => void;
-  fetchCountries: () => void;
-  fetchCities: (c: string) => void;
-  fetchSources: () => void;
-  fetchQueueStatus: () => void;
-  vacancyRequest: React.MutableRefObject<number>;
-}) {
-  useEffect(() => {
-    if (!user) return;
-    if (!Array.isArray(initialColumns) || initialColumns.length === 0) {
-      fetchColumns();
-    }
-    fetchTags();
-    fetchCountries();
-    fetchCities(selectedCountry);
-    fetchSources();
-    fetchQueueStatus();
-  }, [
-    user,
-    initialColumns,
-    fetchColumns,
-    fetchTags,
-    fetchCountries,
-    fetchCities,
-    fetchSources,
-    fetchQueueStatus,
-    selectedCountry,
-  ]);
-
-  const hasMountedFilterRef = useRef(false);
-  useEffect(() => {
-    if (!hasMountedFilterRef.current) {
-      hasMountedFilterRef.current = true;
-      if (fetchBoardInBackground || !Array.isArray(initialVacancies)) {
-        fetchVacancies();
-      }
-      return undefined;
-    }
-    const timer = setTimeout(fetchVacancies, 150);
-    return () => {
-      clearTimeout(timer);
-      vacancyRequest.current += 1;
-    };
-  }, [fetchVacancies, fetchBoardInBackground, initialVacancies, vacancyRequest]);
-}
-
-function toOptionalFilter(val: string): string | undefined {
-  const trimmed = val.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function buildVacancyFilterParams(f: HomeFilterState): VacancyFilterParams {
-  return {
-    search: toOptionalFilter(f.search),
-    tag: toOptionalFilter(f.selectedTag),
-    country: toOptionalFilter(f.selectedCountry),
-    city: toOptionalFilter(f.selectedCity),
-    workplace_type: toOptionalFilter(f.selectedWorkplaceType),
-    source: toOptionalFilter(f.selectedSource),
-    is_closed: toOptionalFilter(f.selectedClosed),
-  };
-}
-
 export function useHomeVacanciesData({
   user,
   initialVacancies,
   initialColumns,
   fetchBoardInBackground,
+  initialFilters,
+  isFilteredSSR,
 }: UseHomeVacanciesDataArgs) {
-  const [vacancies, setVacancies] = useState<Vacancy[]>(Array.isArray(initialVacancies) ? initialVacancies : []);
-  const [columns, setColumns] = useState<BoardColumn[]>(Array.isArray(initialColumns) ? initialColumns : []);
-  const filterState = useHomeFilterState();
+  const [vacancies, setVacancies] = useState<Vacancy[]>(
+    Array.isArray(initialVacancies) ? initialVacancies : []
+  );
+  const [columns, setColumns] = useState<BoardColumn[]>(
+    Array.isArray(initialColumns) ? initialColumns : []
+  );
+
+  const filterState = useHomeFilterState(initialFilters);
   const meta = useMetadataFetchers(user);
 
-  const vacancyRequest = useRef(0);
   const fetchVacancies = useCallback(async () => {
-    const requestId = ++vacancyRequest.current;
     if (!user) return;
     try {
-      const params = buildVacancyFilterParams(filterState.filters);
-      const data = await vacancyService.getVacancies(params);
-      if (requestId === vacancyRequest.current && data) setVacancies(data);
+      const data = await vacancyService.getVacancies();
+      if (data) setVacancies(data);
     } catch (err) {
       console.error('Failed to fetch vacancies', err);
     }
-  }, [user, filterState.filters]);
+  }, [user]);
 
   const fetchColumns = useCallback(async () => {
     if (!user) return;
@@ -259,14 +234,137 @@ export function useHomeVacanciesData({
     }
   }, [user]);
 
+  // Initial effect for metadata and background full board loading
+  useEffect(() => {
+    if (!user) return;
+    if (!Array.isArray(initialColumns) || initialColumns.length === 0) {
+      fetchColumns();
+    }
+    meta.fetchTags();
+    meta.fetchCountries();
+    meta.fetchCities(filterState.selectedCountry);
+    meta.fetchSources();
+    meta.fetchQueueStatus();
+  }, [user, initialColumns, fetchColumns]);
+
+  // Two-stage hydration swap:
+  // If SSR rendered a pre-filtered list OR fetchBoardInBackground was set (e.g. permalink page),
+  // seamlessly fetch the full board in the background on client mount without query parameters!
+  useEffect(() => {
+    if (fetchBoardInBackground || isFilteredSSR || !Array.isArray(initialVacancies)) {
+      fetchVacancies();
+    }
+  }, [fetchBoardInBackground, isFilteredSSR, initialVacancies, fetchVacancies]);
+
+  // Discrete filter change handlers: router.push to browser history
   const handleCountryChange = useCallback(
     (country: string) => {
       trackEvent(EVENTS.FILTER_COUNTRY, { country: country || 'all' });
       filterState.setSelectedCountry(country);
       filterState.setSelectedCity('');
       meta.fetchCities(country);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedCountry: country,
+          selectedCity: '',
+        },
+        filterState.router,
+        false
+      );
     },
     [filterState, meta]
+  );
+
+  const handleCityChange = useCallback(
+    (city: string) => {
+      filterState.setSelectedCity(city);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedCity: city,
+        },
+        filterState.router,
+        false
+      );
+    },
+    [filterState]
+  );
+
+  const handleWorkplaceChange = useCallback(
+    (wp: string) => {
+      filterState.setSelectedWorkplaceType(wp);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedWorkplaceType: wp,
+        },
+        filterState.router,
+        false
+      );
+    },
+    [filterState]
+  );
+
+  const handleSourceChange = useCallback(
+    (src: string) => {
+      filterState.setSelectedSource(src);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedSource: src,
+        },
+        filterState.router,
+        false
+      );
+    },
+    [filterState]
+  );
+
+  const handleClosedChange = useCallback(
+    (cl: string) => {
+      filterState.setSelectedClosed(cl);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedClosed: cl,
+        },
+        filterState.router,
+        false
+      );
+    },
+    [filterState]
+  );
+
+  const handleTagChange = useCallback(
+    (tag: string) => {
+      filterState.setSelectedTag(tag);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          selectedTag: tag,
+        },
+        filterState.router,
+        false
+      );
+    },
+    [filterState]
+  );
+
+  // Search input handler: router.replace in history to not pollute history stack
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      filterState.setSearch(val);
+      syncFiltersToHistory(
+        {
+          ...filterState.filters,
+          search: val,
+        },
+        filterState.router,
+        true
+      );
+    },
+    [filterState]
   );
 
   const resetAllFilters = useCallback(() => {
@@ -279,16 +377,44 @@ export function useHomeVacanciesData({
     filterState.setSelectedClosed('');
     filterState.setSearch('');
     meta.fetchCities('');
+    syncFiltersToHistory(
+      {
+        search: '',
+        selectedTag: '',
+        selectedCountry: '',
+        selectedCity: '',
+        selectedWorkplaceType: '',
+        selectedSource: '',
+        selectedClosed: '',
+      },
+      filterState.router,
+      false
+    );
   }, [filterState, meta]);
 
-  useHomeVacanciesEffects({
-    user, initialColumns, initialVacancies, fetchBoardInBackground,
-    selectedCountry: filterState.selectedCountry,
-    fetchColumns, fetchVacancies,
-    fetchTags: meta.fetchTags, fetchCountries: meta.fetchCountries,
-    fetchCities: meta.fetchCities, fetchSources: meta.fetchSources,
-    fetchQueueStatus: meta.fetchQueueStatus, vacancyRequest,
-  });
+  // Pure in-memory CSS-based hidden cards calculation
+  const hiddenVacancyIds = useMemo(
+    () => computeHiddenVacancyIds(vacancies, filterState.filters),
+    [vacancies, filterState.filters]
+  );
 
-  return { vacancies, setVacancies, columns, setColumns, ...filterState, ...meta, fetchVacancies, fetchColumns, handleCountryChange, resetAllFilters };
+  return {
+    vacancies,
+    setVacancies,
+    columns,
+    setColumns,
+    hiddenVacancyIds,
+    ...filterState,
+    ...meta,
+    fetchVacancies,
+    fetchColumns,
+    handleCountryChange,
+    handleCityChange,
+    handleWorkplaceChange,
+    handleSourceChange,
+    handleClosedChange,
+    handleTagChange,
+    handleSearchChange,
+    resetAllFilters,
+  };
 }

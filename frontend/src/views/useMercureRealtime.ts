@@ -12,7 +12,6 @@ import {
 
 export interface MercureRealtimeCallbacks {
   fetchTags: () => void;
-  fetchVacancies: () => void;
   fetchColumns: () => void;
   fetchCountries: () => void;
   fetchCities: (country: string) => void;
@@ -83,7 +82,6 @@ function handleVacancyCreatedEvent(
 ) {
   if (!incoming) return;
   cb.setVacancies((prev) => {
-    if (cb.hasFilters) return prev;
     if (!matchesClosedFilter(incoming, cb.selectedClosed)) return prev;
     return upsertVacancyInList(prev, incoming);
   });
@@ -104,7 +102,6 @@ function handleVacancyUpdatedEvent(
 ) {
   if (!incoming) return;
   cb.setVacancies((prev) => {
-    if (cb.hasFilters) return prev;
     if (!matchesClosedFilter(incoming, cb.selectedClosed)) {
       return prev.filter((v) => v.id !== incoming.id);
     }
@@ -241,7 +238,6 @@ export function useMercureRealtime(
       reconcileTimer = setTimeout(() => {
         if (!isSubscribed) return;
         const cb = callbacksRef.current;
-        cb.fetchVacancies();
         cb.fetchTags();
         cb.fetchCountries();
         cb.fetchCities(cb.selectedCountry);

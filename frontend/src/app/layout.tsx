@@ -1,4 +1,5 @@
 import React from 'react';
+import Script from 'next/script';
 import '@blueprint/ui-kit/styles.css';
 import '../index.css';
 import '../design-system.css';
@@ -25,6 +26,7 @@ interface SsrLayoutResolution {
   initialLocale: Locale;
   initialSalaryFormat: SalaryFormat;
   initialSalaryCurrency: string;
+  initialExchangeRates: Record<string, number>;
 }
 
 function isSupportedLocale(val: unknown): val is Locale {
@@ -51,10 +53,21 @@ function applySettingsOverrides(
 }
 
 async function loadSsrSettings(state: SsrLayoutResolution): Promise<void> {
-  const settingsRes = await fetchServerApi('/api/v2/settings', {});
+  const [settingsRes, ratesRes] = await Promise.all([
+    fetchServerApi('/api/v2/settings', {}),
+    fetchServerApi('/api/v2/exchange-rates', {}),
+  ]);
+
   if (settingsRes && settingsRes.ok) {
     const settings = await settingsRes.json();
     applySettingsOverrides(settings, state);
+  }
+
+  if (ratesRes && ratesRes.ok) {
+    const data = await ratesRes.json();
+    if (data && typeof data === 'object' && data.rates) {
+      state.initialExchangeRates = data.rates;
+    }
   }
 }
 
@@ -64,6 +77,7 @@ async function resolveSsrLayoutState(): Promise<SsrLayoutResolution> {
     initialLocale: 'en',
     initialSalaryFormat: 'month',
     initialSalaryCurrency: '',
+    initialExchangeRates: {},
   };
 
   try {
@@ -94,12 +108,15 @@ export default async function RootLayout({
     initialLocale,
     initialSalaryFormat,
     initialSalaryCurrency,
+    initialExchangeRates,
   } = await resolveSsrLayoutState();
 
   return (
     <html lang={initialLocale} data-theme="dark" suppressHydrationWarning>
       <head>
-        <script
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('workspace-theme');document.documentElement.dataset.theme=t==='light'?'light':'dark';}catch(e){document.documentElement.dataset.theme='dark';}`,
           }}
@@ -116,6 +133,7 @@ export default async function RootLayout({
           initialLocale={initialLocale}
           initialSalaryFormat={initialSalaryFormat}
           initialSalaryCurrency={initialSalaryCurrency}
+          initialExchangeRates={initialExchangeRates}
         >
           <AppShell initialUser={initialUser}>{children}</AppShell>
         </I18nProvider>

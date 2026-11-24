@@ -1,7 +1,8 @@
 import React from 'react';
-import { Icon, Section, TagsList } from '@blueprint/ui-kit';
+import { TagsList } from '@blueprint/ui-kit';
 import { Layers, Tag } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
+import { VacancySection } from './VacancySection';
 
 export interface VacancySkillsSectionProps {
   techStack?: readonly string[];
@@ -20,39 +21,33 @@ export function VacancySkillsSection({
 
   return (
     <>
-      <Section>
-        <Section.Header
-          title={t('vacancyModal.tech_stack_title')}
-          icon={<Icon icon={Layers} size="xs" />}
+      <VacancySection
+        title={t('vacancyModal.tech_stack_title')}
+        icon={Layers}
+      >
+        <TagsList
+          value={techStack}
+          onChange={onTechStackChange}
+          addable={Boolean(onTechStackChange)}
+          deletable={Boolean(onTechStackChange)}
+          placeholder={t('vacancyModal.add_token_placeholder')}
+          tone="accent"
         />
-        <Section.Body padding="md">
-          <TagsList
-            value={techStack}
-            onChange={onTechStackChange}
-            addable={Boolean(onTechStackChange)}
-            deletable={Boolean(onTechStackChange)}
-            placeholder={t('vacancyModal.add_token_placeholder')}
-            tone="accent"
-          />
-        </Section.Body>
-      </Section>
+      </VacancySection>
 
-      <Section>
-        <Section.Header
-          title={t('vacancyModal.tags_title')}
-          icon={<Icon icon={Tag} size="xs" />}
+      <VacancySection
+        title={t('vacancyModal.tags_title')}
+        icon={Tag}
+      >
+        <TagsList
+          value={tags}
+          onChange={onTagsChange}
+          addable={Boolean(onTagsChange)}
+          deletable={Boolean(onTagsChange)}
+          placeholder={t('vacancyModal.add_tag_placeholder')}
+          tone="neutral"
         />
-        <Section.Body padding="md">
-          <TagsList
-            value={tags}
-            onChange={onTagsChange}
-            addable={Boolean(onTagsChange)}
-            deletable={Boolean(onTagsChange)}
-            placeholder={t('vacancyModal.add_tag_placeholder')}
-            tone="neutral"
-          />
-        </Section.Body>
-      </Section>
+      </VacancySection>
     </>
   );
 }

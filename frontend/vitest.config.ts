@@ -5,15 +5,20 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      react: path.resolve(import.meta.dirname, 'node_modules/react'),
-      'react-dom': path.resolve(import.meta.dirname, 'node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(import.meta.dirname, 'node_modules/react/jsx-runtime'),
-      'react/jsx-dev-runtime': path.resolve(import.meta.dirname, 'node_modules/react/jsx-dev-runtime'),
-      '@blueprint/ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src/index.ts'),
-      '@ui-kit': path.resolve(import.meta.dirname, '../packages/ui-kit/src/index.ts'),
-    },
+    alias: [
+      { find: /^react$/, replacement: path.resolve(import.meta.dirname, 'node_modules/react/index.js') },
+      { find: /^react-dom$/, replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/index.js') },
+      { find: /^react-dom\/(.*)$/, replacement: path.resolve(import.meta.dirname, 'node_modules/react-dom/$1') },
+      { find: /^react\/(.*)$/, replacement: path.resolve(import.meta.dirname, 'node_modules/react/$1') },
+      { find: '@blueprint/ui-kit', replacement: path.resolve(import.meta.dirname, '../packages/ui-kit/src/index.ts') },
+      { find: '@ui-kit', replacement: path.resolve(import.meta.dirname, '../packages/ui-kit/src/index.ts') },
+    ],
     dedupe: ['react', 'react-dom'],
+  },
+  server: {
+    deps: {
+      inline: [/@blueprint\/ui-kit/, /lucide-react/, /@radix-ui/],
+    },
   },
   test: {
     environment: 'jsdom',

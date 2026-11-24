@@ -19,6 +19,7 @@ import {
   resolveSeniorityInfo,
 } from './vacancyModalHelpers';
 import type { CompatibilityAnalysis, Vacancy } from '../../types/models';
+import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyCompatibilityTabProps {
   vacancy: Vacancy;
@@ -59,7 +60,7 @@ export function VacancyCompatibilityTab({
   const isLoading = Boolean(analyzingCompatibility || loadingCompatibility);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <VacancyTabContent>
       {isCvOutdated && (
         <AlertBanner tone="warning">{cvOutdatedMessage}</AlertBanner>
       )}
@@ -131,6 +132,6 @@ export function VacancyCompatibilityTab({
           </div>
         </div>
       )}
-    </div>
+    </VacancyTabContent>
   );
 }

@@ -27,10 +27,10 @@ export default function HomeFilterSection({
     },
     {
       onCountryChange: data.handleCountryChange,
-      onCityChange: data.setSelectedCity,
-      onWorkplaceChange: data.setSelectedWorkplaceType,
-      onSourceChange: data.setSelectedSource,
-      onClosedChange: data.setSelectedClosed,
+      onCityChange: data.handleCityChange,
+      onWorkplaceChange: data.handleWorkplaceChange,
+      onSourceChange: data.handleSourceChange,
+      onClosedChange: data.handleClosedChange,
     },
     t
   );
@@ -45,7 +45,7 @@ export default function HomeFilterSection({
       onToggleTag={(tag: string) => {
         const next = data.selectedTag === tag ? '' : tag;
         trackEvent(EVENTS.FILTER_TAG, { tag: next || 'all' });
-        data.setSelectedTag(next);
+        data.handleTagChange(next);
       }}
       tagPrefix="#"
       hasActiveFilters={hasAnyActiveFilter(data.filters)}

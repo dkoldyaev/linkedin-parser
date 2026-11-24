@@ -18,6 +18,7 @@ export interface KanbanCardProps {
   columns?: ColumnLike[];
   laneColumns?: Set<string>;
   compact?: boolean;
+  isHidden?: boolean;
 }
 
 export interface CardHandlerOptions {

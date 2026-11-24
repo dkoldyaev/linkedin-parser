@@ -57,7 +57,7 @@ function resolveRejectedHeaderTitle(
 const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSectionProps>(
   function KanbanRejectedSection(props, ref): React.ReactElement {
     const { t } = useTranslation();
-    const { isRejectedCollapsed, rejectedStatusId, rejectedVacancies } = props;
+    const { isRejectedCollapsed, rejectedStatusId, rejectedVacancies, hiddenVacancyIds = new Set<number>() } = props;
 
     const toggleLabel = isRejectedCollapsed
       ? t('kanban.rejected_expand')
@@ -74,6 +74,11 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
       <Button variant="ghost" size="sm" onClick={handleToggle} title={toggleLabel} endIcon={toggleIcon}>
         {toggleLabel}
       </Button>
+    );
+
+    const visibleRejectedCount = rejectedVacancies.reduce(
+      (acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1),
+      0
     );
 
     const title = resolveRejectedHeaderTitle(props.rejectedColumn, t('kanban.rejected_title'));
@@ -101,7 +106,7 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
               {title.toUpperCase()}
             </Text>
             <Badge variant="subtle" size="sm">
-              {props.rejectedVacancies.length}
+              {visibleRejectedCount}
             </Badge>
           </div>
         </TableHeader>
@@ -114,7 +119,14 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
               </div>
             ) : (
               rejectedVacancies.map((vacancy) => (
-                <div key={vacancy.id} style={{ maxWidth: 'calc(10 * var(--ui-grid-cell))' }}>
+                <div
+                  key={vacancy.id}
+                  style={
+                    hiddenVacancyIds.has(vacancy.id)
+                      ? { display: 'none' }
+                      : { maxWidth: 'calc(10 * var(--ui-grid-cell))' }
+                  }
+                >
                   <KanbanCard
                     compact
                     vacancy={vacancy}
@@ -123,6 +135,7 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
                     isSelected={props.selectedIds.includes(vacancy.id)}
                     columns={props.boardColumns}
                     laneColumns={props.laneColumnIds}
+                    isHidden={hiddenVacancyIds.has(vacancy.id)}
                   />
                 </div>
               ))

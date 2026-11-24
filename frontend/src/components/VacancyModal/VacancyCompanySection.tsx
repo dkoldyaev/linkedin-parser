@@ -1,7 +1,8 @@
 import React from 'react';
-import { Icon, Paragraph, Section } from '@blueprint/ui-kit';
+import { Paragraph } from '@blueprint/ui-kit';
 import { Building2 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
+import { VacancySection } from './VacancySection';
 
 export interface VacancyCompanySectionProps {
   companyDescription?: string;
@@ -17,14 +18,11 @@ export function VacancyCompanySection({
   }
 
   return (
-    <Section>
-      <Section.Header
-        title={t('vacancyModal.about_company')}
-        icon={<Icon icon={Building2} size="xs" />}
-      />
-      <Section.Body padding="md">
-        <Paragraph size="sm">{companyDescription}</Paragraph>
-      </Section.Body>
-    </Section>
+    <VacancySection
+      title={t('vacancyModal.about_company')}
+      icon={Building2}
+    >
+      <Paragraph size="sm">{companyDescription}</Paragraph>
+    </VacancySection>
   );
 }

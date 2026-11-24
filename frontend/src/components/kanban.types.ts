@@ -16,6 +16,7 @@ export interface KanbanBoardProps {
     lane: number,
     movedId: number | null
   ) => void;
+  hiddenVacancyIds?: Set<number>;
 }
 
 export interface KanbanDragState {
@@ -61,6 +62,7 @@ export interface KanbanFunnelColumnProps {
   onDrop: (e: React.DragEvent<HTMLElement>, colId: string, lane?: number) => void;
   onLaneDragOver: (e: React.DragEvent<HTMLElement>, colId: string, lane: number) => void;
   snapScroll: (event: React.UIEvent<HTMLElement>, axis?: 'x' | 'y') => void;
+  hiddenVacancyIds?: Set<number>;
 }
 
 export interface KanbanRejectedSectionProps {
@@ -77,4 +79,5 @@ export interface KanbanRejectedSectionProps {
   onDragOver: (e: React.DragEvent<HTMLElement>, colId: string, lane?: number) => void;
   onDragLeave: (e: React.DragEvent<HTMLElement>, colId: string) => void;
   onDrop: (e: React.DragEvent<HTMLElement>, colId: string, lane?: number) => void;
+  hiddenVacancyIds?: Set<number>;
 }

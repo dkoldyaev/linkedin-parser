@@ -37,13 +37,15 @@ function buildCardsWithIndicator(
   props: KanbanFunnelColumnProps
 ): React.ReactNode[] {
   const cardsWithIndicator: React.ReactNode[] = [];
+  const hiddenVacancyIds = props.hiddenVacancyIds || new Set<number>();
   let visibleIndex = 0;
   const pushIndicator = () =>
     cardsWithIndicator.push(<div key="drop-indicator" className="drop-indicator" />);
 
   columnVacancies.forEach((vacancy) => {
     const isDragged = vacancy.id === props.draggingId;
-    if (showIndicator && !isDragged && props.dropIndex === visibleIndex) {
+    const isHidden = hiddenVacancyIds.has(vacancy.id);
+    if (showIndicator && !isDragged && !isHidden && props.dropIndex === visibleIndex) {
       pushIndicator();
     }
     cardsWithIndicator.push(
@@ -56,9 +58,10 @@ function buildCardsWithIndicator(
         onToggleSelect={props.onToggleSelect}
         columns={props.boardColumns}
         laneColumns={props.laneColumnIds}
+        isHidden={isHidden}
       />
     );
-    if (!isDragged) visibleIndex += 1;
+    if (!isDragged && !isHidden) visibleIndex += 1;
   });
 
   if (showIndicator && (props.dropIndex ?? 0) >= visibleIndex) {
@@ -96,6 +99,11 @@ export default function KanbanFunnelColumn(
   const isLaneColumn = laneColumnIds.has(col.id);
   const columnVacancies = prepareColumnVacancies(props.vacancies, col.id, isLaneColumn);
   const isDragOverThis = dragOverColumn === col.id;
+  const hiddenVacancyIds = props.hiddenVacancyIds || new Set<number>();
+  const visibleColumnCount = columnVacancies.reduce(
+    (acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1),
+    0
+  );
   const { showIndicator, showLanesOverlay } = computeFunnelColumnVisibility(
     isLaneColumn,
     isDragOverThis,
@@ -131,7 +139,7 @@ export default function KanbanFunnelColumn(
             {columnName}
           </Text>
           <Badge variant="subtle" size="sm">
-            {columnVacancies.length}
+            {visibleColumnCount}
           </Badge>
         </div>
       </TableHeader>

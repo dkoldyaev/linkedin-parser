@@ -33,7 +33,7 @@ export default function HomePage(props: HomePageProps): React.ReactElement {
         <HomeHeaderSection
           user={user}
           search={data.search}
-          onSearchChange={data.setSearch}
+          onSearchChange={data.handleSearchChange}
           queueRemaining={data.queueRemaining}
           onOpenQueue={() => modals.setIsQueueOpen(true)}
           onAddVacanciesClick={modals.handleAddVacanciesClick}
@@ -67,6 +67,7 @@ export default function HomePage(props: HomePageProps): React.ReactElement {
         onToggleSelect={actions.toggleSelect}
         onStatusChangeMulti={actions.handleStatusChangeMulti}
         onReorder={actions.handleReorder}
+        hiddenVacancyIds={data.hiddenVacancyIds}
       />
 
       <HomeModalsContainer

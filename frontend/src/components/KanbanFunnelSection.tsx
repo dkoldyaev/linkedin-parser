@@ -25,6 +25,7 @@ export interface KanbanFunnelSectionProps {
   onToggleSelect?: (vacancyId: number) => void;
   onOpenCreate: () => void;
   snapScroll: (event: React.UIEvent<HTMLElement>, axis?: 'x' | 'y') => void;
+  hiddenVacancyIds?: Set<number>;
 }
 
 const PLUS_ICON = <Icon icon={Plus} size="xs" />;
@@ -47,6 +48,7 @@ export default function KanbanFunnelSection({
   onToggleSelect,
   onOpenCreate,
   snapScroll,
+  hiddenVacancyIds,
 }: KanbanFunnelSectionProps): React.ReactElement {
   const { t } = useTranslation();
   const addColLabel = t('kanban.add_column');
@@ -89,6 +91,7 @@ export default function KanbanFunnelSection({
           onDrop={dnd.handleDrop}
           onLaneDragOver={dnd.handleLaneDragOver}
           snapScroll={snapScroll}
+          hiddenVacancyIds={hiddenVacancyIds}
         />
       ))}
 

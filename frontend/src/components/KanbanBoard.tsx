@@ -26,7 +26,13 @@ const WRAPPER_STYLE: React.CSSProperties = {
 };
 
 export default function KanbanBoard(props: KanbanBoardProps): React.ReactElement {
-  const { vacancies, columns = DEFAULT_BOARD_COLUMNS, onColumnsChange, selectedIds = [] } = props;
+  const {
+    vacancies,
+    columns = DEFAULT_BOARD_COLUMNS,
+    onColumnsChange,
+    selectedIds = [],
+    hiddenVacancyIds = new Set<number>(),
+  } = props;
   const snapScroll = useGridScroll();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -65,6 +71,7 @@ export default function KanbanBoard(props: KanbanBoardProps): React.ReactElement
         onToggleSelect={props.onToggleSelect}
         onOpenCreate={() => modals.setIsCreateOpen(true)}
         snapScroll={snapScroll}
+        hiddenVacancyIds={hiddenVacancyIds}
       />
 
       <KanbanRejectedSection
@@ -82,6 +89,7 @@ export default function KanbanBoard(props: KanbanBoardProps): React.ReactElement
         onDragOver={dnd.handleDragOver}
         onDragLeave={dnd.handleDragLeave}
         onDrop={dnd.handleDrop}
+        hiddenVacancyIds={hiddenVacancyIds}
       />
 
       <ColumnCreateModal

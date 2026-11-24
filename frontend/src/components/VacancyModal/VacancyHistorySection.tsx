@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   Icon,
-  Section,
   Stepper,
   Text,
   Textarea,
@@ -12,6 +11,7 @@ import {
 import { Check, Edit3, History, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../i18n/I18nContext';
 import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
+import { VacancySection } from './VacancySection';
 
 export interface VacancyHistorySectionProps {
   items: readonly UiVacancyHistoryItem[];
@@ -127,23 +127,20 @@ export function VacancyHistorySection({
   });
 
   return (
-    <Section>
-      <Section.Header
-        title={t('vacancyModal.history_timeline_title')}
-        icon={<Icon icon={History} size="xs" />}
-        accessory={
-          <Badge variant="counter" size="xs" tone="neutral">
-            {items.length}
-          </Badge>
-        }
+    <VacancySection
+      title={t('vacancyModal.history_timeline_title')}
+      icon={History}
+      badge={
+        <Badge variant="counter" size="xs" tone="neutral">
+          {items.length}
+        </Badge>
+      }
+    >
+      <Stepper
+        items={stepperItems}
+        emptyTitle={t('vacancyModal.history_empty_title')}
+        emptyDescription={t('vacancyModal.history_empty_description')}
       />
-      <Section.Body padding="sm">
-        <Stepper
-          items={stepperItems}
-          emptyTitle={t('vacancyModal.history_empty_title')}
-          emptyDescription={t('vacancyModal.history_empty_description')}
-        />
-      </Section.Body>
-    </Section>
+    </VacancySection>
   );
 }
