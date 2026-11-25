@@ -1,5 +1,3 @@
-'use client';
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { translations, type TranslationNode } from './translations';
 import { settingsService } from '../services/settingsService';
@@ -21,6 +19,7 @@ export interface I18nContextValue {
   salaryTargetCurrency: string;
   setSalaryTargetCurrency: (currency: string) => void;
   exchangeRates: Record<string, number>;
+  refreshRemoteSettings: () => Promise<void>;
 }
 
 export interface I18nProviderProps {
@@ -159,9 +158,7 @@ function isSupportedRemoteLocale(val?: string | null): val is LocaleCode {
 function useI18nEffects(
   initialLocale: string | undefined,
   initialExchangeRates: Record<string, number> | undefined,
-  setLocaleState: (loc: LocaleCode) => void,
-  setSalaryDisplayFormatState: (fmt: string) => void,
-  setSalaryTargetCurrencyState: (curr: string) => void
+  locale: LocaleCode
 ): Record<string, number> {
   const [exchangeRates, setExchangeRatesState] = useState<Record<string, number>>(() =>
     resolveInitialRates(initialExchangeRates)
@@ -172,6 +169,12 @@ function useI18nEffects(
       safeSetStorageItem('app_locale', initialLocale);
     }
   }, [initialLocale]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale;
+    }
+  }, [locale]);
 
   useEffect(() => {
     settingsService
@@ -185,28 +188,14 @@ function useI18nEffects(
       .catch((err) => console.debug('Could not fetch exchange rates', err));
   }, []);
 
-  useEffect(() => {
-    settingsService
-      .getSettings()
-      .then((data: RemoteSettingsData | null) =>
-        applyFetchedSettings(
-          data,
-          setLocaleState,
-          setSalaryDisplayFormatState,
-          setSalaryTargetCurrencyState
-        )
-      )
-      .catch((err) => console.debug('Could not fetch settings', err));
-  }, [setLocaleState, setSalaryDisplayFormatState, setSalaryTargetCurrencyState]);
-
   return exchangeRates;
 }
 
 function useI18nController(
-  initialLocale?: string,
-  initialSalaryFormat?: string,
-  initialSalaryCurrency?: string,
-  initialExchangeRates?: Record<string, number>
+  initialLocale: string | undefined,
+  initialSalaryFormat: string | undefined,
+  initialSalaryCurrency: string | undefined,
+  initialExchangeRates: Record<string, number> | undefined
 ): I18nContextValue {
   const [locale, setLocaleState] = useState<LocaleCode>(() => resolveInitialLocale(initialLocale));
   const [salaryDisplayFormat, setSalaryDisplayFormatState] = useState<string>(() =>
@@ -216,13 +205,21 @@ function useI18nController(
     resolveInitialCurrency(initialSalaryCurrency)
   );
 
-  const exchangeRates = useI18nEffects(
-    initialLocale,
-    initialExchangeRates,
-    setLocaleState,
-    setSalaryDisplayFormatState,
-    setSalaryTargetCurrencyState
-  );
+  const exchangeRates = useI18nEffects(initialLocale, initialExchangeRates, locale);
+
+  const refreshRemoteSettings = useCallback(async () => {
+    try {
+      const data: RemoteSettingsData | null = await settingsService.getSettings();
+      applyFetchedSettings(
+        data,
+        setLocaleState,
+        setSalaryDisplayFormatState,
+        setSalaryTargetCurrencyState
+      );
+    } catch (err) {
+      console.debug('Could not fetch settings', err);
+    }
+  }, []);
 
   const setLocale = useCallback((newLocale: string) => {
     const loc: LocaleCode = newLocale === 'en' ? 'en' : 'ru';
@@ -270,6 +267,7 @@ function useI18nController(
     salaryTargetCurrency,
     setSalaryTargetCurrency,
     exchangeRates,
+    refreshRemoteSettings,
   };
 }
 

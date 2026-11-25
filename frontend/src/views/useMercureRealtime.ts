@@ -1,31 +1,21 @@
-'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { User, Vacancy, QueueTask } from '../types/models';
 import { realtimeService } from '../services/realtimeService';
 import { queueService } from '../services/queueService';
-import {
-  matchesClosedFilter,
-  upsertVacancyInList,
-  type TranslateFn,
-} from './homeFilterHelpers';
+import { upsertVacancyInList, type TranslateFn } from './homeFilterHelpers';
+
+export type BoardModalRealtimeEvent =
+  | { type: 'vacancy_updated'; vacancy: Vacancy }
+  | { type: 'compatibility_analyzed'; vacancyId: number; score: number }
+  | { type: 'vacancy_deleted'; vacancyId: number };
 
 export interface MercureRealtimeCallbacks {
-  fetchTags: () => void;
-  fetchColumns: () => void;
-  fetchCountries: () => void;
-  fetchCities: (country: string) => void;
-  fetchSources: () => void;
-  selectedCountry: string;
-  selectedClosed: string;
-  hasFilters: boolean;
   fetchQueueStatus: () => void;
   showToast: (msg: string, type: 'success' | 'error') => void;
   t: TranslateFn;
   setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>;
-  setSelectedVacancy: React.Dispatch<React.SetStateAction<Vacancy | null>>;
-  setSelectedIds: React.Dispatch<React.SetStateAction<number[]>>;
   setQueueRemaining: React.Dispatch<React.SetStateAction<number>>;
+  onModalRealtimeEvent?: (event: BoardModalRealtimeEvent) => void;
 }
 
 interface ParsedMercurePayload {
@@ -81,14 +71,11 @@ function handleVacancyCreatedEvent(
   scheduleRefresh: () => void
 ) {
   if (!incoming) return;
-  cb.setVacancies((prev) => {
-    if (!matchesClosedFilter(incoming, cb.selectedClosed)) return prev;
-    return upsertVacancyInList(prev, incoming);
-  });
+  cb.setVacancies((prev) => upsertVacancyInList(prev, incoming));
   cb.showToast(
     cb.t('mercure.vacancy_created', {
       title: incoming.title,
-      company: incoming.company || '',
+      company: incoming.company ? incoming.company : '',
     }),
     'success'
   );
@@ -101,13 +88,8 @@ function handleVacancyUpdatedEvent(
   scheduleRefresh: () => void
 ) {
   if (!incoming) return;
-  cb.setVacancies((prev) => {
-    if (!matchesClosedFilter(incoming, cb.selectedClosed)) {
-      return prev.filter((v) => v.id !== incoming.id);
-    }
-    return upsertVacancyInList(prev, incoming);
-  });
-  cb.setSelectedVacancy((prev) => (prev && prev.id === incoming.id ? incoming : prev));
+  cb.setVacancies((prev) => upsertVacancyInList(prev, incoming));
+  cb.onModalRealtimeEvent?.({ type: 'vacancy_updated', vacancy: incoming });
   cb.showToast(cb.t('mercure.vacancy_updated', { title: incoming.title }), 'success');
   scheduleRefresh();
 }
@@ -130,11 +112,11 @@ function handleCompatibilityAnalyzedEvent(
       v.id === matchedId ? { ...v, calculated_score: newScore, match_score: newScore } : v
     )
   );
-  cb.setSelectedVacancy((prev) =>
-    prev && prev.id === matchedId
-      ? { ...prev, calculated_score: newScore, match_score: newScore }
-      : prev
-  );
+  cb.onModalRealtimeEvent?.({
+    type: 'compatibility_analyzed',
+    vacancyId: matchedId,
+    score: newScore,
+  });
 }
 
 function resolveDeletedVacancyId(
@@ -155,8 +137,7 @@ function handleVacancyDeletedEvent(
   const delId = resolveDeletedVacancyId(payload, incoming);
   if (!delId) return;
   cb.setVacancies((prev) => prev.filter((v) => v.id !== delId));
-  cb.setSelectedVacancy((prev) => (prev && prev.id === delId ? null : prev));
-  cb.setSelectedIds((prev) => prev.filter((id) => id !== delId));
+  cb.onModalRealtimeEvent?.({ type: 'vacancy_deleted', vacancyId: delId });
   const delTitle = payload.title || incoming?.title;
   if (delTitle) {
     cb.showToast(cb.t('mercure.vacancy_deleted', { title: delTitle }), 'success');
@@ -172,7 +153,7 @@ function handleTaskFailedEvent(
     ? cb.t(`mercure.errors.${payload.error_code}`)
     : payload.error || cb.t('mercure.errors.ERR_UNKNOWN');
   cb.showToast(
-    cb.t('mercure.task_failed', { error: errText, url: payload.url || '' }),
+    cb.t('mercure.task_failed', { error: errText, url: payload.url ? payload.url : '' }),
     'error'
   );
 }
@@ -226,8 +207,10 @@ export function useMercureRealtime(
     callbacksRef.current = callbacks;
   });
 
+  const userId = user?.id;
+
   useEffect(() => {
-    if (!user) return undefined;
+    if (!userId) return undefined;
     let eventSource: EventSource | null = null;
     let isSubscribed = true;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -237,12 +220,7 @@ export function useMercureRealtime(
       clearTimeout(reconcileTimer);
       reconcileTimer = setTimeout(() => {
         if (!isSubscribed) return;
-        const cb = callbacksRef.current;
-        cb.fetchTags();
-        cb.fetchCountries();
-        cb.fetchCities(cb.selectedCountry);
-        cb.fetchSources();
-        cb.fetchQueueStatus();
+        callbacksRef.current.fetchQueueStatus();
       }, 1000);
     };
 
@@ -292,7 +270,7 @@ export function useMercureRealtime(
       clearTimeout(reconcileTimer);
       if (eventSource) eventSource.close();
     };
-  }, [user]);
+  }, [userId]);
 
   return { mercureStatus };
 }

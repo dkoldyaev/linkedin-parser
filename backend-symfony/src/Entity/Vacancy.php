@@ -31,10 +31,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
             order: ['updatedAt' => 'DESC', 'id' => 'DESC']
         ),
         new Get(normalizationContext: ['groups' => ['vacancy:read', 'vacancy:detail']]),
-        new Post(status: 200, normalizationContext: ['groups' => ['vacancy:read']], denormalizationContext: ['groups' => ['vacancy:write']]),
+        new Post(status: 200, normalizationContext: ['groups' => ['vacancy:read', 'vacancy:detail']], denormalizationContext: ['groups' => ['vacancy:write']]),
         new Patch(
             inputFormats: ['json' => ['application/merge-patch+json', 'application/json']],
-            normalizationContext: ['groups' => ['vacancy:read']],
+            normalizationContext: ['groups' => ['vacancy:read', 'vacancy:detail']],
             denormalizationContext: ['groups' => ['vacancy:write']]
         ),
         new Delete(),
@@ -83,7 +83,7 @@ class Vacancy implements UserOwnedInterface
     private ?string $companyUrl = null;
 
     #[ORM\Column(name: 'company_info', type: Types::TEXT, nullable: true)]
-    #[Groups(['vacancy:read', 'vacancy:write'])]
+    #[Groups(['vacancy:detail', 'vacancy:write'])]
     private ?string $companyInfo = null;
 
     #[ORM\Column(type: Types::STRING, length: 64, nullable: true)]
@@ -103,7 +103,7 @@ class Vacancy implements UserOwnedInterface
     private ?string $country = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['vacancy:read', 'vacancy:write'])]
+    #[Groups(['vacancy:detail', 'vacancy:write'])]
     private ?string $description = null;
 
     #[ORM\Column(name: 'workplace_type', type: Types::STRING, length: 32, nullable: true)]
@@ -164,7 +164,7 @@ class Vacancy implements UserOwnedInterface
     private array $tags = [];
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Groups(['vacancy:read', 'vacancy:write'])]
+    #[Groups(['vacancy:detail', 'vacancy:write'])]
     private ?string $notes = null;
 
     #[ORM\Column(type: Types::INTEGER)]
@@ -188,7 +188,7 @@ class Vacancy implements UserOwnedInterface
      */
     #[ORM\OneToMany(targetEntity: VacancyStatusHistory::class, mappedBy: 'vacancy', cascade: ['remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
-    #[Groups(['vacancy:read', 'vacancy:detail'])]
+    #[Groups(['vacancy:detail'])]
     private Collection $history;
 
     public function __construct()

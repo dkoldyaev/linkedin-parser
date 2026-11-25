@@ -1,7 +1,5 @@
-'use client';
-
 import React, { useState, useCallback } from 'react';
-import { STATUS_REJECTED } from '../constants/columns';
+import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import type { Vacancy, BoardColumn } from '../types/models';
 import { vacancyService } from '../services/vacancyService';
@@ -11,21 +9,19 @@ export interface UseVacancyBoardActionsArgs {
   vacancies: Vacancy[];
   setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>;
   columns: BoardColumn[];
-  selectedVacancy: Vacancy | null;
-  setSelectedVacancy: React.Dispatch<React.SetStateAction<Vacancy | null>>;
+  hiddenVacancyIds: Set<number>;
+  onOpenVacancyPatched: (updated: Vacancy) => void;
   closeVacancyModal: () => void;
-  selectedCountry: string;
-  selectedClosed: string;
-  fetchVacancies: () => void;
-  fetchTags: () => void;
-  fetchCountries: () => void;
-  fetchCities: (country: string) => void;
-  fetchSources: () => void;
+  fetchVacancies: () => Promise<void>;
   showToast: (msg: string, type: 'success' | 'error') => void;
   t: TranslateFn;
 }
 
-function resolveTargetLane(columns: BoardColumn[], newStatus: string, lane: number | undefined): number {
+function resolveTargetLane(
+  columns: BoardColumn[],
+  newStatus: string,
+  lane: number | undefined
+): number {
   const targetCol = columns.find((c) => c.id === newStatus);
   return targetCol?.has_lanes ? lane || 0 : 0;
 }
@@ -55,8 +51,11 @@ function computeReorderedVacancy(v: Vacancy, opts: ReorderComputeOptions): Vacan
   };
 }
 
-async function patchVacancyStatusList(vacancyIds: number[], payload: Record<string, unknown>) {
-  await Promise.all(vacancyIds.map((vid) => vacancyService.patchDetail(vid, payload)));
+async function patchVacancyStatusList(
+  vacancyIds: number[],
+  payload: Record<string, unknown>
+): Promise<Vacancy[]> {
+  return Promise.all(vacancyIds.map((vid) => vacancyService.patchDetail(vid, payload)));
 }
 
 async function patchBulkVacancyTag(
@@ -64,89 +63,125 @@ async function patchBulkVacancyTag(
   vacancies: Vacancy[],
   tagName: string,
   mode: 'add' | 'remove'
-) {
-  await Promise.all(
+): Promise<Vacancy[]> {
+  const results = await Promise.all(
     selectedIds.map(async (id) => {
       const v = vacancies.find((x) => x.id === id);
-      if (!v) return;
+      if (!v) return null;
       const tags = new Set(v.tags || []);
       if (mode === 'add') {
         tags.add(tagName);
       } else {
         tags.delete(tagName);
       }
-      await vacancyService.patchDetail(id, { tags: Array.from(tags) });
+      return vacancyService.patchDetail(id, { tags: Array.from(tags) });
     })
   );
+  return results.filter((item): item is Vacancy => item !== null);
 }
 
-async function requestPatchVacancyStatus(
-  vacancyId: number,
-  newStatus: string,
-  targetLane: number
-): Promise<Vacancy> {
-  return vacancyService.patchDetail(vacancyId, { status: newStatus, lane: targetLane });
+function mergeUpdatedVacanciesInMemory(
+  prev: Vacancy[],
+  updatedItems: Vacancy[]
+): Vacancy[] {
+  if (updatedItems.length === 0) return prev;
+  const byId = new Map(updatedItems.map((u) => [u.id, u]));
+  return prev.map((v) => {
+    const incoming = byId.get(v.id);
+    return incoming ? { ...v, ...incoming } : v;
+  });
 }
 
-async function requestReorderVacancies(
-  status: string,
-  ids: number[],
-  lane: number,
-  movedId: number | null
-): Promise<Vacancy[]> {
-  return vacancyService.reorder(status, ids, lane, movedId);
-}
-
-function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
-  const handleStatusChange = async (vacancyId: number, newStatus: string, lane?: number) => {
-    const targetLane = resolveTargetLane(args.columns, newStatus, lane);
-    args.setVacancies((prev) => prev.map((v) => (v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v)));
-    args.setSelectedVacancy((prev) => (prev && prev.id === vacancyId ? { ...prev, status: newStatus, lane: targetLane } : prev));
-
-    try {
-      const updatedVacancy = await requestPatchVacancyStatus(vacancyId, newStatus, targetLane);
-      args.setVacancies((prev) => prev.map((v) => (v.id === vacancyId ? updatedVacancy : v)));
-      args.setSelectedVacancy((prev) => (prev && prev.id === vacancyId ? updatedVacancy : prev));
-      args.showToast(args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }), 'success');
-    } catch (err) {
-      console.error('Failed to update status', err);
-      args.fetchVacancies();
-      args.showToast(args.t('nav.update_status_failed'), 'error');
-    }
-  };
-
-  const handleReorder = async (status: string, ids: number[], lane?: number, movedId?: number | null) => {
+function createReorderHandler(args: UseVacancyBoardActionsArgs) {
+  return async (
+    status: string,
+    ids: number[],
+    lane?: number,
+    movedId?: number | null
+  ) => {
     const resolvedLane = lane || 0;
     const resolvedMovedId = movedId !== undefined ? movedId : null;
     const positions = new Map(ids.map((id, i) => [id, i]));
     const hasLanes = Boolean(args.columns.find((c) => c.id === status)?.has_lanes);
 
     args.setVacancies((prev) =>
-      prev.map((v) => computeReorderedVacancy(v, { status, positions, hasLanes, lane: resolvedLane, movedId: resolvedMovedId }))
+      prev.map((v) =>
+        computeReorderedVacancy(v, {
+          status,
+          positions,
+          hasLanes,
+          lane: resolvedLane,
+          movedId: resolvedMovedId,
+        })
+      )
     );
 
     try {
-      const updated = await requestReorderVacancies(status, ids, resolvedLane, resolvedMovedId);
-      const byId = new Map(updated.map((v) => [v.id, v]));
-      args.setVacancies((prev) => prev.map((v) => byId.get(v.id) || v));
-      args.setSelectedVacancy((prev) => (prev && byId.get(prev.id)) || prev);
+      const updated = await vacancyService.reorder(status, ids, resolvedLane, resolvedMovedId);
+      args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
     } catch (err) {
       console.error('Failed to reorder vacancies', err);
-      args.fetchVacancies();
+      void args.fetchVacancies();
+      args.showToast(args.t('nav.update_status_failed'), 'error');
+    }
+  };
+}
+
+function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
+  const handleStatusChange = async (
+    vacancyId: number,
+    newStatus: string,
+    lane?: number
+  ) => {
+    const targetLane = resolveTargetLane(args.columns, newStatus, lane);
+    args.setVacancies((prev) =>
+      prev.map((v) => (v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v))
+    );
+
+    try {
+      const updatedVacancy = await vacancyService.patchDetail(vacancyId, {
+        status: newStatus,
+        lane: targetLane,
+      });
+      args.setVacancies((prev) => applyVacancyUpdateToList(prev, updatedVacancy));
+      args.onOpenVacancyPatched(updatedVacancy);
+      args.showToast(
+        args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }),
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to update status', err);
+      void args.fetchVacancies();
       args.showToast(args.t('nav.update_status_failed'), 'error');
     }
   };
 
-  const handleStatusChangeMulti = async (vacancyIds: number[], newStatus: string, lane?: number) => {
+  const handleReorder = createReorderHandler(args);
+
+  const handleStatusChangeMulti = async (
+    vacancyIds: number[],
+    newStatus: string,
+    lane?: number
+  ) => {
     const targetLane = resolveTargetLane(args.columns, newStatus, lane);
-    args.setVacancies((prev) => prev.map((v) => (vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v)));
+    args.setVacancies((prev) =>
+      prev.map((v) =>
+        vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v
+      )
+    );
     try {
-      await patchVacancyStatusList(vacancyIds, { status: newStatus, lane: targetLane });
-      args.fetchVacancies();
-      args.showToast(args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }), 'success');
+      const updated = await patchVacancyStatusList(vacancyIds, {
+        status: newStatus,
+        lane: targetLane,
+      });
+      args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
+      args.showToast(
+        args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }),
+        'success'
+      );
     } catch (err) {
       console.error('Failed to update status', err);
-      args.fetchVacancies();
+      void args.fetchVacancies();
       args.showToast(args.t('nav.update_status_failed'), 'error');
     }
   };
@@ -168,10 +203,9 @@ function useBulkSelectionHandlers(args: UseVacancyBoardActionsArgs) {
     const trimmed = bulkTagInput.trim();
     if (!trimmed) return;
     try {
-      await patchBulkVacancyTag(selectedIds, args.vacancies, trimmed, 'add');
+      const updated = await patchBulkVacancyTag(selectedIds, args.vacancies, trimmed, 'add');
+      args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
       setBulkTagInput('');
-      args.fetchVacancies();
-      args.fetchTags();
       args.showToast(args.t('kanban.bulk_tags_added'), 'success');
     } catch (e) {
       console.error(e);
@@ -182,10 +216,9 @@ function useBulkSelectionHandlers(args: UseVacancyBoardActionsArgs) {
     const trimmed = bulkTagInput.trim();
     if (!trimmed) return;
     try {
-      await patchBulkVacancyTag(selectedIds, args.vacancies, trimmed, 'remove');
+      const updated = await patchBulkVacancyTag(selectedIds, args.vacancies, trimmed, 'remove');
+      args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
       setBulkTagInput('');
-      args.fetchVacancies();
-      args.fetchTags();
       args.showToast(args.t('kanban.bulk_tags_removed'), 'success');
     } catch (e) {
       console.error(e);
@@ -198,11 +231,10 @@ function useBulkSelectionHandlers(args: UseVacancyBoardActionsArgs) {
     });
     if (!window.confirm(confirmMsg)) return;
     try {
+      const toDelete = new Set(selectedIds);
       await Promise.all(selectedIds.map((id) => vacancyService.deleteVacancy(id)));
       setSelectedIds([]);
-      args.fetchVacancies();
-      args.fetchTags();
-      args.fetchSources();
+      args.setVacancies((prev) => prev.filter((v) => !toDelete.has(v.id)));
       args.showToast(args.t('kanban.bulk_deleted'), 'success');
     } catch (e) {
       console.error(e);
@@ -217,13 +249,23 @@ function useBulkSelectionHandlers(args: UseVacancyBoardActionsArgs) {
       } else {
         await vacancyService.reparseAll();
       }
-      args.fetchVacancies();
+      await args.fetchVacancies();
     } catch (e) {
       console.error(e);
     }
   };
 
-  return { selectedIds, setSelectedIds, bulkTagInput, setBulkTagInput, toggleSelect, handleBulkAddTag, handleBulkRemoveTag, handleBulkDeleteSelected, handleRefreshVacancies };
+  return {
+    selectedIds,
+    setSelectedIds,
+    bulkTagInput,
+    setBulkTagInput,
+    toggleSelect,
+    handleBulkAddTag,
+    handleBulkRemoveTag,
+    handleBulkDeleteSelected,
+    handleRefreshVacancies,
+  };
 }
 
 export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
@@ -231,15 +273,14 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
   const dragHandlers = useBoardDragHandlers(args);
   const bulkHandlers = useBulkSelectionHandlers(args);
 
-  const refreshMetadataLists = () => {
-    args.fetchTags();
-    args.fetchCountries();
-    args.fetchCities(args.selectedCountry);
-    args.fetchSources();
-  };
-
   const handleMoveAllClosedToRejected = async () => {
-    const targets = args.vacancies.filter((v) => v.status !== STATUS_REJECTED);
+    const rejectedStatusId = resolveRejectedStatusId(args.columns);
+    const targets = args.vacancies.filter(
+      (v) =>
+        Boolean(v.is_closed) &&
+        v.status !== rejectedStatusId &&
+        !args.hiddenVacancyIds.has(v.id)
+    );
     if (targets.length === 0) return;
     const confirmMsg = args.t('nav.move_all_to_rejected_confirm', {
       count: targets.length,
@@ -251,17 +292,17 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
     try {
       const ids = targets.map((v) => v.id);
       args.setVacancies((prev) =>
-        prev.map((v) => (ids.includes(v.id) ? { ...v, status: STATUS_REJECTED } : v))
+        prev.map((v) => (ids.includes(v.id) ? { ...v, status: rejectedStatusId } : v))
       );
-      await patchVacancyStatusList(ids, { status: STATUS_REJECTED });
-      args.fetchVacancies();
+      const updated = await patchVacancyStatusList(ids, { status: rejectedStatusId });
+      args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
       args.showToast(
         args.t('nav.move_all_to_rejected_success', { count: targets.length }),
         'success'
       );
     } catch (err) {
       console.error('Failed to move all to rejected', err);
-      args.fetchVacancies();
+      void args.fetchVacancies();
       args.showToast(args.t('nav.update_status_failed'), 'error');
     } finally {
       setIsMovingAllRejected(false);
@@ -269,11 +310,8 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
   };
 
   const handleVacancyUpdate = (updatedVacancy: Vacancy) => {
-    args.setVacancies((prev) =>
-      applyVacancyUpdateToList(prev, updatedVacancy, args.selectedClosed)
-    );
-    args.setSelectedVacancy(updatedVacancy);
-    refreshMetadataLists();
+    args.setVacancies((prev) => applyVacancyUpdateToList(prev, updatedVacancy));
+    args.onOpenVacancyPatched(updatedVacancy);
   };
 
   const handleVacancyDelete = async (deletedId: number) => {
@@ -284,14 +322,10 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
     }
     args.setVacancies((prev) => prev.filter((v) => v.id !== deletedId));
     args.closeVacancyModal();
-    args.setSelectedVacancy(null);
-    refreshMetadataLists();
     args.showToast(args.t('nav.vacancy_deleted'), 'success');
   };
 
   const handleImportComplete = () => {
-    args.fetchVacancies();
-    refreshMetadataLists();
     args.showToast(args.t('nav.batch_import_completed'), 'success');
   };
 

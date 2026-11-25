@@ -5,16 +5,9 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       target: ${FRONTEND_TARGET:-runner}
-      args:
-        - APP_URL=${APP_URL}
-        - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
     restart: unless-stopped
     expose:
       - "3000"
-    environment:
-      - PORT=3000
-      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL}
-      - NEXT_TELEMETRY_DISABLED=1
     depends_on:
       app:
         condition: service_healthy

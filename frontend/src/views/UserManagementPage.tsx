@@ -1,10 +1,9 @@
-'use client';
-
 import {
   PageLayout,
   AlertBanner,
   Spinner,
 } from '@blueprint/ui-kit';
+import { useAuth } from '../components/AppShell';
 import { useTranslation } from '../i18n/I18nContext';
 import type { User } from '../types/models';
 import { useUserManagement, filterUsersByQuery } from './useUserManagement';
@@ -24,9 +23,18 @@ function buildAvailableFlags(t: (key: string) => string): AvailableFeatureFlag[]
   ];
 }
 
+function hasAdminFeatureFlag(
+  propUser: User | null | undefined,
+  authUser: User | null
+): boolean {
+  const resolved = propUser !== undefined ? propUser : authUser;
+  return Boolean(resolved?.feature_flags?.includes('admin'));
+}
+
 export default function UserManagementPage({ user }: UserManagementPageProps) {
+  const auth = useAuth();
   const { t, locale } = useTranslation();
-  const hasAccess = Boolean(user?.feature_flags?.includes('admin'));
+  const hasAccess = hasAdminFeatureFlag(user, auth.user);
 
   const {
     users,

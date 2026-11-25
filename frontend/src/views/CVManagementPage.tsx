@@ -1,7 +1,6 @@
-'use client';
-
 import React from 'react';
 import { PageLayout, AlertBanner } from '@blueprint/ui-kit';
+import { useAuth } from '../components/AppShell';
 import { useTranslation } from '../i18n/I18nContext';
 import { useCVManagement } from './useCVManagement';
 import CVPageHeader from './CVPageHeader';
@@ -9,6 +8,8 @@ import CVEditorSection from './CVEditorSection';
 import type { CVPageProps } from './cv.types';
 
 export default function CVManagementPage({ user }: CVPageProps): React.ReactElement {
+  const auth = useAuth();
+  const resolvedUser = user !== undefined ? user : auth.user;
   const { locale } = useTranslation();
   const {
     sourceText,
@@ -25,7 +26,7 @@ export default function CVManagementPage({ user }: CVPageProps): React.ReactElem
     handleSaveToServer,
     handleDeleteServerCV,
     handleClearLocal,
-  } = useCVManagement(user);
+  } = useCVManagement(resolvedUser);
 
   return (
     <PageLayout

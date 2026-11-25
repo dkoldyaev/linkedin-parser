@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "lint": "oxlint src/ && npm --prefix ../packages/ui-kit run lint",
     "lint:boundaries": "npm --prefix ../packages/ui-kit run lint:boundaries",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix ../packages/ui-kit run typecheck",
@@ -25,10 +25,10 @@
     "@radix-ui/react-tooltip": "^1.4.1",
     "compromise": "^14.19.0",
     "lucide-react": "^1.42.0",
-    "next": "^16.4.5",
     "pdfjs-dist": "^6.5.438",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^10.6.7",

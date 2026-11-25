@@ -4,7 +4,7 @@ import {
   computeHiddenVacancyIds,
   defaultFilterState,
 } from './homeFilterHelpers';
-import { Vacancy } from '@/types/vacancy';
+import type { Vacancy } from '../types/models';
 
 const mockVacancies: Vacancy[] = [
   {

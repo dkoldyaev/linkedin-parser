@@ -1,420 +1,222 @@
-'use client';
-
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'react-router-dom';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import type { User, Vacancy, BoardColumn, QueueTask } from '../types/models';
+import type { User, Vacancy, BoardColumn } from '../types/models';
 import {
   type HomeFilterState,
+  defaultFilterState,
   computeHiddenVacancyIds,
 } from './homeFilterHelpers';
-import { vacancyService } from '../services/vacancyService';
-import { columnService } from '../services/columnService';
-import { queueService } from '../services/queueService';
+import {
+  useOptionalBoardStore,
+  useBoardStoreState,
+  type BoardStoreValue,
+} from '../store/BoardStoreContext';
+import {
+  deriveAllTags,
+  deriveAllCountries,
+  deriveAllCities,
+  deriveAllSources,
+} from '../store/boardMetadataHelpers';
 
 export interface UseHomeVacanciesDataArgs {
   user: User | null | undefined;
-  initialVacancies: Vacancy[] | undefined;
-  initialColumns: BoardColumn[] | undefined;
-  fetchBoardInBackground: boolean;
-  initialFilters?: Partial<HomeFilterState>;
-  isFilteredSSR?: boolean;
+  initialVacancies?: Vacancy[];
+  initialColumns?: BoardColumn[];
 }
 
-function extractQueueRemainingCount(data: unknown): number | null {
-  if (Array.isArray(data)) {
-    return (data as QueueTask[]).filter(
-      (i) => i.status === 'pending' || i.status === 'processing'
-    ).length;
-  }
-  if (data && typeof data === 'object' && 'total_remaining' in data) {
-    const val = (data as { total_remaining?: number }).total_remaining;
-    return typeof val === 'number' ? val : null;
-  }
-  return null;
+const SEARCH_BURST_MS = 500;
+
+function getSearchParamString(sp: URLSearchParams, key: string): string {
+  const val = sp.get(key);
+  return val ? val : '';
 }
 
-function syncFiltersToHistory(
-  filters: HomeFilterState,
-  router: ReturnType<typeof useRouter>,
-  replace = false
-) {
-  if (typeof window === 'undefined') return;
-  const currentUrl = new URL(window.location.href);
-  const sp = currentUrl.searchParams;
+function readFiltersFromSearchParams(sp: URLSearchParams): HomeFilterState {
+  return {
+    search: getSearchParamString(sp, 'search'),
+    selectedTag: getSearchParamString(sp, 'tag'),
+    selectedCountry: getSearchParamString(sp, 'country'),
+    selectedCity: getSearchParamString(sp, 'city'),
+    selectedWorkplaceType: getSearchParamString(sp, 'workplace_type'),
+    selectedSource: getSearchParamString(sp, 'source'),
+    selectedClosed: getSearchParamString(sp, 'is_closed'),
+  };
+}
 
-  const setOrDel = (key: string, val: string) => {
-    if (val && val.trim() !== '') {
-      sp.set(key, val.trim());
+function buildSearchParamsFromFilters(
+  currentSp: URLSearchParams,
+  nextFilters: HomeFilterState
+): URLSearchParams {
+  const sp = new URLSearchParams(currentSp);
+  const entries: Array<[string, string]> = [
+    ['search', nextFilters.search],
+    ['tag', nextFilters.selectedTag],
+    ['country', nextFilters.selectedCountry],
+    ['city', nextFilters.selectedCity],
+    ['workplace_type', nextFilters.selectedWorkplaceType],
+    ['source', nextFilters.selectedSource],
+    ['is_closed', nextFilters.selectedClosed],
+  ];
+
+  for (const [key, val] of entries) {
+    const trimmed = val.trim();
+    if (trimmed !== '') {
+      sp.set(key, trimmed);
     } else {
       sp.delete(key);
     }
-  };
-
-  setOrDel('search', filters.search);
-  setOrDel('tag', filters.selectedTag);
-  setOrDel('country', filters.selectedCountry);
-  setOrDel('city', filters.selectedCity);
-  setOrDel('workplace_type', filters.selectedWorkplaceType);
-  setOrDel('source', filters.selectedSource);
-  setOrDel('is_closed', filters.selectedClosed);
-
-  const qs = sp.toString();
-  const targetUrl = qs ? `${currentUrl.pathname}?${qs}` : currentUrl.pathname;
-
-  if (replace) {
-    router.replace(targetUrl, { scroll: false });
-  } else {
-    router.push(targetUrl, { scroll: false });
   }
+  return sp;
 }
 
-function useHomeFilterState(initial?: Partial<HomeFilterState>) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+function useUrlFilterController() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlFilters = useMemo(() => readFiltersFromSearchParams(searchParams), [searchParams]);
 
-  const [search, setSearch] = useState(initial?.search || '');
-  const [selectedTag, setSelectedTag] = useState(initial?.selectedTag || '');
-  const [selectedCountry, setSelectedCountry] = useState(initial?.selectedCountry || '');
-  const [selectedCity, setSelectedCity] = useState(initial?.selectedCity || '');
-  const [selectedWorkplaceType, setSelectedWorkplaceType] = useState(initial?.selectedWorkplaceType || '');
-  const [selectedSource, setSelectedSource] = useState(initial?.selectedSource || '');
-  const [selectedClosed, setSelectedClosed] = useState(initial?.selectedClosed || '');
+  const [searchDraft, setSearchDraft] = useState<string>(urlFilters.search);
+  const lastCommittedSearchRef = useRef<string>(urlFilters.search);
+  const isTypingBurstRef = useRef<boolean>(false);
+  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Synchronize internal filter state whenever searchParams changes (Next.js navigation / back / forward)
   useEffect(() => {
-    if (!searchParams) return;
-    setSearch(searchParams.get('search') || '');
-    setSelectedTag(searchParams.get('tag') || '');
-    setSelectedCountry(searchParams.get('country') || '');
-    setSelectedCity(searchParams.get('city') || '');
-    setSelectedWorkplaceType(searchParams.get('workplace_type') || '');
-    setSelectedSource(searchParams.get('source') || '');
-    setSelectedClosed(searchParams.get('is_closed') || '');
-  }, [searchParams]);
+    if (urlFilters.search !== lastCommittedSearchRef.current) {
+      lastCommittedSearchRef.current = urlFilters.search;
+      setSearchDraft(urlFilters.search);
+      isTypingBurstRef.current = false;
+      clearTimeout(burstTimerRef.current);
+    }
+  }, [urlFilters.search]);
 
-  const filters: HomeFilterState = useMemo(() => ({
-    search,
-    selectedTag,
-    selectedCountry,
-    selectedCity,
-    selectedWorkplaceType,
-    selectedSource,
-    selectedClosed,
-  }), [search, selectedTag, selectedCountry, selectedCity, selectedWorkplaceType, selectedSource, selectedClosed]);
+  useEffect(() => () => clearTimeout(burstTimerRef.current), []);
+
+  const filters: HomeFilterState = useMemo(
+    () => ({ ...urlFilters, search: searchDraft }),
+    [urlFilters, searchDraft]
+  );
+
+  const commitFiltersToUrl = useCallback(
+    (nextFilters: HomeFilterState, replaceHistory: boolean) => {
+      const nextSp = buildSearchParamsFromFilters(searchParams, nextFilters);
+      if (nextSp.toString() === searchParams.toString()) return;
+      setSearchParams(nextSp, { replace: replaceHistory });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const breakSearchBurst = useCallback(() => {
+    isTypingBurstRef.current = false;
+    clearTimeout(burstTimerRef.current);
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      setSearchDraft(val);
+      lastCommittedSearchRef.current = val.trim();
+      const shouldReplace = isTypingBurstRef.current;
+      isTypingBurstRef.current = true;
+      clearTimeout(burstTimerRef.current);
+      burstTimerRef.current = setTimeout(() => {
+        isTypingBurstRef.current = false;
+      }, SEARCH_BURST_MS);
+      commitFiltersToUrl({ ...filters, search: val }, shouldReplace);
+    },
+    [filters, commitFiltersToUrl]
+  );
+
+  const resetAllFilters = useCallback(() => {
+    breakSearchBurst();
+    trackEvent(EVENTS.FILTERS_RESET);
+    setSearchDraft('');
+    lastCommittedSearchRef.current = '';
+    commitFiltersToUrl(defaultFilterState, false);
+  }, [breakSearchBurst, commitFiltersToUrl]);
+
+  return { filters, commitFiltersToUrl, breakSearchBurst, handleSearchChange, resetAllFilters };
+}
+
+function useDiscreteFilterHandlers(
+  filters: HomeFilterState,
+  commitFiltersToUrl: (nextFilters: HomeFilterState, replaceHistory: boolean) => void,
+  breakSearchBurst: () => void
+) {
+  const applySelectPatch = useCallback(
+    (patch: Partial<HomeFilterState>) => {
+      breakSearchBurst();
+      commitFiltersToUrl({ ...filters, ...patch }, false);
+    },
+    [filters, commitFiltersToUrl, breakSearchBurst]
+  );
+
+  const handleCountryChange = useCallback(
+    (country: string) => {
+      trackEvent(EVENTS.FILTER_COUNTRY, { country: country ? country : 'all' });
+      applySelectPatch({ selectedCountry: country, selectedCity: '' });
+    },
+    [applySelectPatch]
+  );
 
   return {
-    router,
-    filters,
-    search,
-    setSearch,
-    selectedTag,
-    setSelectedTag,
-    selectedCountry,
-    setSelectedCountry,
-    selectedCity,
-    setSelectedCity,
-    selectedWorkplaceType,
-    setSelectedWorkplaceType,
-    selectedSource,
-    setSelectedSource,
-    selectedClosed,
-    setSelectedClosed,
+    handleCountryChange,
+    handleCityChange: useCallback((city: string) => applySelectPatch({ selectedCity: city }), [applySelectPatch]),
+    handleWorkplaceChange: useCallback((wp: string) => applySelectPatch({ selectedWorkplaceType: wp }), [applySelectPatch]),
+    handleSourceChange: useCallback((src: string) => applySelectPatch({ selectedSource: src }), [applySelectPatch]),
+    handleClosedChange: useCallback((cl: string) => applySelectPatch({ selectedClosed: cl }), [applySelectPatch]),
+    handleTagChange: useCallback((tag: string) => applySelectPatch({ selectedTag: tag }), [applySelectPatch]),
   };
 }
 
-function useMetadataFetchers(user: User | null | undefined) {
-  const [allTags, setAllTags] = useState<string[]>([]);
-  const [allCountries, setAllCountries] = useState<string[]>([]);
-  const [allCities, setAllCities] = useState<string[]>([]);
-  const [allSources, setAllSources] = useState<string[]>([]);
-  const [queueRemaining, setQueueRemaining] = useState(0);
+function useResolvedBoardStore(args: UseHomeVacanciesDataArgs): BoardStoreValue {
+  const contextStore = useOptionalBoardStore();
+  const hasExplicitSeeds =
+    Array.isArray(args.initialVacancies) || Array.isArray(args.initialColumns);
+  const fallbackUser = contextStore && !hasExplicitSeeds ? null : args.user;
+  const fallbackStore = useBoardStoreState(
+    fallbackUser,
+    args.initialVacancies,
+    args.initialColumns
+  );
+  return contextStore && !hasExplicitSeeds ? contextStore : fallbackStore;
+}
 
-  const fetchTags = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await vacancyService.getTags();
-      if (data) setAllTags(data);
-    } catch (err) {
-      console.error('Failed to fetch tags', err);
-    }
-  }, [user]);
+export function useHomeVacanciesData(args: UseHomeVacanciesDataArgs) {
+  const store = useResolvedBoardStore(args);
+  const urlCtrl = useUrlFilterController();
+  const discreteHandlers = useDiscreteFilterHandlers(
+    urlCtrl.filters,
+    urlCtrl.commitFiltersToUrl,
+    urlCtrl.breakSearchBurst
+  );
 
-  const fetchCountries = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await vacancyService.getCountries();
-      if (data) setAllCountries(data);
-    } catch (err) {
-      console.error('Failed to fetch countries', err);
-    }
-  }, [user]);
-
-  const fetchCities = useCallback(async (countryFilter: string) => {
-    if (!user) return;
-    try {
-      const data = await vacancyService.getCities(countryFilter || undefined);
-      if (data) setAllCities(data);
-    } catch (err) {
-      console.error('Failed to fetch cities', err);
-    }
-  }, [user]);
-
-  const fetchSources = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await vacancyService.getSources();
-      if (data) setAllSources(data);
-    } catch (err) {
-      console.error('Failed to fetch sources', err);
-    }
-  }, [user]);
-
-  const fetchQueueStatus = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await queueService.getTasks();
-      const count = extractQueueRemainingCount(data);
-      if (count !== null) setQueueRemaining(count);
-    } catch (err) {
-      console.debug('Failed to fetch queue status', err);
-    }
-  }, [user]);
+  const allTags = useMemo(() => deriveAllTags(store.vacancies), [store.vacancies]);
+  const allCountries = useMemo(() => deriveAllCountries(store.vacancies), [store.vacancies]);
+  const allCities = useMemo(
+    () => deriveAllCities(store.vacancies, urlCtrl.filters.selectedCountry),
+    [store.vacancies, urlCtrl.filters.selectedCountry]
+  );
+  const allSources = useMemo(() => deriveAllSources(store.vacancies), [store.vacancies]);
+  const hiddenVacancyIds = useMemo(
+    () => computeHiddenVacancyIds(store.vacancies, urlCtrl.filters),
+    [store.vacancies, urlCtrl.filters]
+  );
 
   return {
+    ...store,
+    filters: urlCtrl.filters,
+    search: urlCtrl.filters.search,
+    selectedTag: urlCtrl.filters.selectedTag,
+    selectedCountry: urlCtrl.filters.selectedCountry,
+    selectedCity: urlCtrl.filters.selectedCity,
+    selectedWorkplaceType: urlCtrl.filters.selectedWorkplaceType,
+    selectedSource: urlCtrl.filters.selectedSource,
+    selectedClosed: urlCtrl.filters.selectedClosed,
     allTags,
     allCountries,
     allCities,
     allSources,
-    queueRemaining,
-    setQueueRemaining,
-    fetchTags,
-    fetchCountries,
-    fetchCities,
-    fetchSources,
-    fetchQueueStatus,
-  };
-}
-
-export function useHomeVacanciesData({
-  user,
-  initialVacancies,
-  initialColumns,
-  fetchBoardInBackground,
-  initialFilters,
-  isFilteredSSR,
-}: UseHomeVacanciesDataArgs) {
-  const [vacancies, setVacancies] = useState<Vacancy[]>(
-    Array.isArray(initialVacancies) ? initialVacancies : []
-  );
-  const [columns, setColumns] = useState<BoardColumn[]>(
-    Array.isArray(initialColumns) ? initialColumns : []
-  );
-
-  const filterState = useHomeFilterState(initialFilters);
-  const meta = useMetadataFetchers(user);
-
-  const fetchVacancies = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await vacancyService.getVacancies();
-      if (data) setVacancies(data);
-    } catch (err) {
-      console.error('Failed to fetch vacancies', err);
-    }
-  }, [user]);
-
-  const fetchColumns = useCallback(async () => {
-    if (!user) return;
-    try {
-      const data = await columnService.getColumns();
-      if (data && data.length > 0) setColumns(data);
-    } catch (err) {
-      console.error('Failed to fetch columns', err);
-    }
-  }, [user]);
-
-  // Initial effect for metadata and background full board loading
-  useEffect(() => {
-    if (!user) return;
-    if (!Array.isArray(initialColumns) || initialColumns.length === 0) {
-      fetchColumns();
-    }
-    meta.fetchTags();
-    meta.fetchCountries();
-    meta.fetchCities(filterState.selectedCountry);
-    meta.fetchSources();
-    meta.fetchQueueStatus();
-  }, [user, initialColumns, fetchColumns]);
-
-  // Two-stage hydration swap:
-  // If SSR rendered a pre-filtered list OR fetchBoardInBackground was set (e.g. permalink page),
-  // seamlessly fetch the full board in the background on client mount without query parameters!
-  useEffect(() => {
-    if (fetchBoardInBackground || isFilteredSSR || !Array.isArray(initialVacancies)) {
-      fetchVacancies();
-    }
-  }, [fetchBoardInBackground, isFilteredSSR, initialVacancies, fetchVacancies]);
-
-  // Discrete filter change handlers: router.push to browser history
-  const handleCountryChange = useCallback(
-    (country: string) => {
-      trackEvent(EVENTS.FILTER_COUNTRY, { country: country || 'all' });
-      filterState.setSelectedCountry(country);
-      filterState.setSelectedCity('');
-      meta.fetchCities(country);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedCountry: country,
-          selectedCity: '',
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState, meta]
-  );
-
-  const handleCityChange = useCallback(
-    (city: string) => {
-      filterState.setSelectedCity(city);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedCity: city,
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState]
-  );
-
-  const handleWorkplaceChange = useCallback(
-    (wp: string) => {
-      filterState.setSelectedWorkplaceType(wp);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedWorkplaceType: wp,
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState]
-  );
-
-  const handleSourceChange = useCallback(
-    (src: string) => {
-      filterState.setSelectedSource(src);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedSource: src,
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState]
-  );
-
-  const handleClosedChange = useCallback(
-    (cl: string) => {
-      filterState.setSelectedClosed(cl);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedClosed: cl,
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState]
-  );
-
-  const handleTagChange = useCallback(
-    (tag: string) => {
-      filterState.setSelectedTag(tag);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          selectedTag: tag,
-        },
-        filterState.router,
-        false
-      );
-    },
-    [filterState]
-  );
-
-  // Search input handler: router.replace in history to not pollute history stack
-  const handleSearchChange = useCallback(
-    (val: string) => {
-      filterState.setSearch(val);
-      syncFiltersToHistory(
-        {
-          ...filterState.filters,
-          search: val,
-        },
-        filterState.router,
-        true
-      );
-    },
-    [filterState]
-  );
-
-  const resetAllFilters = useCallback(() => {
-    trackEvent(EVENTS.FILTERS_RESET);
-    filterState.setSelectedTag('');
-    filterState.setSelectedCountry('');
-    filterState.setSelectedCity('');
-    filterState.setSelectedWorkplaceType('');
-    filterState.setSelectedSource('');
-    filterState.setSelectedClosed('');
-    filterState.setSearch('');
-    meta.fetchCities('');
-    syncFiltersToHistory(
-      {
-        search: '',
-        selectedTag: '',
-        selectedCountry: '',
-        selectedCity: '',
-        selectedWorkplaceType: '',
-        selectedSource: '',
-        selectedClosed: '',
-      },
-      filterState.router,
-      false
-    );
-  }, [filterState, meta]);
-
-  // Pure in-memory CSS-based hidden cards calculation
-  const hiddenVacancyIds = useMemo(
-    () => computeHiddenVacancyIds(vacancies, filterState.filters),
-    [vacancies, filterState.filters]
-  );
-
-  return {
-    vacancies,
-    setVacancies,
-    columns,
-    setColumns,
     hiddenVacancyIds,
-    ...filterState,
-    ...meta,
-    fetchVacancies,
-    fetchColumns,
-    handleCountryChange,
-    handleCityChange,
-    handleWorkplaceChange,
-    handleSourceChange,
-    handleClosedChange,
-    handleTagChange,
-    handleSearchChange,
-    resetAllFilters,
+    ...discreteHandlers,
+    handleSearchChange: urlCtrl.handleSearchChange,
+    resetAllFilters: urlCtrl.resetAllFilters,
   };
 }

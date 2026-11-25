@@ -1,31 +1,25 @@
-'use client';
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent, EVENTS } from '../utils/analytics';
-import { useDisclosure } from '../utils/useDisclosure';
-import { vacancyService } from '../services/vacancyService';
-import { ApiError } from '../services/apiClient';
-import type {
-  User,
-  Vacancy,
-  VacancyHistoryItem,
-  CompatibilityAnalysis,
-} from '../types/models';
+import {
+  useVacancyDetailLoader,
+  buildResolvedModalVacancy,
+  stripCachedDetailFields,
+} from '../components/VacancyModal/useVacancyDetailLoader';
+import { upsertVacancyInList } from './homeFilterHelpers';
+import type { BoardModalEventListener, BoardToastState } from '../store/BoardStoreContext';
+import type { User, Vacancy } from '../types/models';
 
-export interface ToastState {
-  message: string;
-  type: 'success' | 'error';
-}
+export type ToastState = BoardToastState;
 
 export interface UseHomeModalControllerArgs {
   user: User | null | undefined;
-  locale: string;
   vacancies: Vacancy[];
   setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>;
-  initialSelectedVacancy: Vacancy | null | undefined;
-  initialVacancyHistory: VacancyHistoryItem[] | undefined;
-  initialVacancyCompatibility: CompatibilityAnalysis | null | undefined;
+  toast: BoardToastState | null;
+  setToast: React.Dispatch<React.SetStateAction<BoardToastState | null>>;
+  showToast: (message: string, type: 'success' | 'error') => void;
+  subscribeModalEvents?: (listener: BoardModalEventListener) => () => void;
 }
 
 function readSessionFlag(key: string): boolean {
@@ -36,27 +30,17 @@ function readSessionFlag(key: string): boolean {
   }
 }
 
-function pushVacancyHistoryUrl(
-  vacancyId: number,
-  router: ReturnType<typeof useRouter>,
-  searchParams: URLSearchParams
-) {
-  const qs = searchParams.toString();
-  const targetUrl = qs ? `/vacancies/${vacancyId}?${qs}` : `/vacancies/${vacancyId}`;
-  router.push(targetUrl, { scroll: false });
-}
-
-function resetRootHistoryUrl(
-  router: ReturnType<typeof useRouter>,
-  searchParams: URLSearchParams
-) {
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/vacancies/')) {
-    router.back();
-  } else {
-    const qs = searchParams.toString();
-    const targetUrl = qs ? `/?${qs}` : '/';
-    router.push(targetUrl, { scroll: false });
+function parseUrlVacancyParam(rawId: string | undefined): {
+  activeVacancyId: number | null;
+  isInvalidUrlId: boolean;
+} {
+  if (rawId === undefined) {
+    return { activeVacancyId: null, isInvalidUrlId: false };
   }
+  if (!/^[1-9]\d*$/.test(rawId)) {
+    return { activeVacancyId: null, isInvalidUrlId: true };
+  }
+  return { activeVacancyId: Number(rawId), isInvalidUrlId: false };
 }
 
 function shouldTriggerGuestAuthPrompt(
@@ -69,191 +53,96 @@ function shouldTriggerGuestAuthPrompt(
   return prevCount !== null && currentCount > prevCount;
 }
 
-async function fetchVacancyDetailResult(
-  vacancy: Vacancy
-): Promise<{ notFound: true } | { notFound: false; vacancy: Vacancy }> {
-  try {
-    const fullVacancy = await vacancyService.getVacancy(vacancy.id);
-    return { notFound: false, vacancy: fullVacancy };
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      return { notFound: true };
-    }
-    return { notFound: false, vacancy };
-  }
-}
-
-function replaceVacancyNotFoundHistory(
-  router: ReturnType<typeof useRouter>,
-  searchParams: URLSearchParams
+function useUrlDrivenVacancyModal(
+  vacancies: Vacancy[],
+  setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>,
+  subscribeModalEvents: ((listener: BoardModalEventListener) => () => void) | undefined
 ) {
-  const qs = searchParams.toString();
-  const targetUrl = qs ? `/?${qs}` : '/';
-  router.replace(targetUrl, { scroll: false });
-}
+  const params = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-function useVacancyDetailModal({
-  locale,
-  vacancies,
-  setVacancies,
-  initialSelectedVacancy,
-  initialVacancyHistory,
-  initialVacancyCompatibility,
-  showToast,
-}: {
-  locale: string;
-  vacancies: Vacancy[];
-  setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>;
-  initialSelectedVacancy: Vacancy | null | undefined;
-  initialVacancyHistory: VacancyHistoryItem[] | undefined;
-  initialVacancyCompatibility: CompatibilityAnalysis | null | undefined;
-  showToast: (msg: string, type: 'success' | 'error') => void;
-}) {
-  const router = useRouter();
-  const pathname = usePathname() || '/';
-  const searchParams = useSearchParams();
-  const searchParamsRef = useRef(searchParams);
-  useEffect(() => {
-    searchParamsRef.current = searchParams;
-  }, [searchParams]);
-
-  const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(
-    initialSelectedVacancy || null
-  );
-  const [selectedVacancyHistory, setSelectedVacancyHistory] = useState(
-    initialVacancyHistory
-  );
-  const [selectedVacancyCompat, setSelectedVacancyCompat] = useState(
-    initialVacancyCompatibility
+  const { activeVacancyId, isInvalidUrlId } = useMemo(
+    () => parseUrlVacancyParam(params.id),
+    [params.id]
   );
 
-  const isNavigatingHistoryRef = useRef(false);
+  const isRouteModalOpen = activeVacancyId !== null;
 
-  const vacancyDisclosure = useDisclosure({
-    defaultIsOpen: Boolean(initialSelectedVacancy),
-    onClose: () => {
-      setSelectedVacancy(null);
-      setSelectedVacancyHistory(undefined);
-      setSelectedVacancyCompat(undefined);
-      if (!isNavigatingHistoryRef.current) {
-        resetRootHistoryUrl(router, searchParamsRef.current);
-      }
-    },
+  const baseCard = useMemo(() => {
+    if (activeVacancyId === null) return null;
+    return vacancies.find((v) => v.id === activeVacancyId) || null;
+  }, [vacancies, activeVacancyId]);
+
+  const detailLoader = useVacancyDetailLoader({
+    vacancyId: activeVacancyId,
+    isOpen: isRouteModalOpen,
+    subscribeModalEvents,
   });
 
-  const handleCloseVacancyModal = useCallback(() => {
-    vacancyDisclosure.close();
-  }, [vacancyDisclosure]);
+  useEffect(() => {
+    if (!detailLoader.detail) return;
+    const cardSummary = stripCachedDetailFields(detailLoader.detail);
+    setVacancies((prev) => {
+      if (prev.length === 0) return prev;
+      return upsertVacancyInList(prev, cardSummary);
+    });
+  }, [detailLoader.detail, setVacancies]);
 
-  const openVacancyDetail = useCallback(
-    (v: Vacancy, pushUrl = true) => {
-      setSelectedVacancy(v);
-      setSelectedVacancyHistory(undefined);
-      setSelectedVacancyCompat(undefined);
-      vacancyDisclosure.open();
-      if (pushUrl) {
-        pushVacancyHistoryUrl(v.id, router, searchParamsRef.current);
-      }
-    },
-    [vacancyDisclosure, router]
+  const selectedVacancy = useMemo(
+    () => buildResolvedModalVacancy(activeVacancyId, baseCard, detailLoader.detail),
+    [activeVacancyId, baseCard, detailLoader.detail]
   );
 
   const handleCardClick = useCallback(
-    async (vacancy: Vacancy) => {
+    (vacancy: Vacancy) => {
       if (!vacancy || !vacancy.id) return;
-      const result = await fetchVacancyDetailResult(vacancy);
-      if (result.notFound) {
-        const msg = locale === 'en' ? '404 Vacancy not found' : '404 Вакансия не найдена';
-        showToast(msg, 'error');
-        setVacancies((prev) => prev.filter((v) => v.id !== vacancy.id));
-        replaceVacancyNotFoundHistory(router, searchParamsRef.current);
-        return;
-      }
-      openVacancyDetail(result.vacancy, true);
+      navigate(
+        { pathname: `/vacancies/${vacancy.id}`, search: location.search },
+        { replace: false }
+      );
     },
-    [locale, showToast, setVacancies, openVacancyDetail, router]
+    [navigate, location.search]
   );
 
-  const vacanciesRef = useRef(vacancies);
-  useEffect(() => {
-    vacanciesRef.current = vacancies;
-  }, [vacancies]);
+  const handleCloseVacancyModal = useCallback(() => {
+    navigate(
+      { pathname: '/', search: location.search },
+      { replace: false }
+    );
+  }, [navigate, location.search]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const handlePopState = async () => {
-      isNavigatingHistoryRef.current = true;
-      try {
-        const path = window.location.pathname;
-        const match = path.match(/^\/vacancies\/(\d+)/);
-        if (match) {
-          const id = Number(match[1]);
-          const existing = vacanciesRef.current.find((v) => v.id === id);
-          if (existing) {
-            openVacancyDetail(existing, false);
-          } else {
-            try {
-              const fetched = await vacancyService.getVacancy(id);
-              if (fetched) {
-                openVacancyDetail(fetched, false);
-              }
-            } catch {
-              vacancyDisclosure.close();
-            }
-          }
-        } else {
-          vacancyDisclosure.close();
-        }
-      } finally {
-        isNavigatingHistoryRef.current = false;
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [openVacancyDetail, vacancyDisclosure]);
+  const isVacancyNotFound = isInvalidUrlId || detailLoader.notFound;
+  const isVacancyModalOpen = isRouteModalOpen && !isVacancyNotFound && Boolean(selectedVacancy);
 
   return {
     selectedVacancy,
-    setSelectedVacancy,
-    selectedVacancyHistory,
-    selectedVacancyCompat,
-    isVacancyModalOpen: vacancyDisclosure.isOpen && Boolean(selectedVacancy),
-    handleCloseVacancyModal,
+    loadingVacancyDetails: detailLoader.loadingDetails,
+    isVacancyModalOpen,
+    isVacancyNotFound,
+    mergePatchedDetail: detailLoader.mergePatchedDetail,
     handleCardClick,
+    handleCloseVacancyModal,
   };
 }
 
 export function useHomeModalController({
   user,
-  locale,
   vacancies,
   setVacancies,
-  initialSelectedVacancy,
-  initialVacancyHistory,
-  initialVacancyCompatibility,
+  toast,
+  setToast,
+  showToast,
+  subscribeModalEvents,
 }: UseHomeModalControllerArgs) {
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
-  const [toast, setToast] = useState<ToastState | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  }, []);
-
-  const detailModal = useVacancyDetailModal({
-    locale,
+  const detailModal = useUrlDrivenVacancyModal(
     vacancies,
     setVacancies,
-    initialSelectedVacancy,
-    initialVacancyHistory,
-    initialVacancyCompatibility,
-    showToast,
-  });
+    subscribeModalEvents
+  );
 
   const [shouldHighlightAdd, setShouldHighlightAdd] = useState(() =>
     readSessionFlag('highlight_add_vacancy')
@@ -266,9 +155,6 @@ export function useHomeModalController({
         sessionStorage.removeItem('highlight_add_vacancy');
       } catch {
         /* ignore */
-      }
-      if (window.history?.replaceState) {
-        window.history.replaceState({}, document.title);
       }
     }
     trackEvent(EVENTS.BATCH_IMPORT_OPEN);
@@ -308,5 +194,19 @@ export function useHomeModalController({
     }
   }, []);
 
-  return { ...detailModal, isBatchOpen, setIsBatchOpen, isQueueOpen, setIsQueueOpen, toast, setToast, showToast, handleAddVacanciesClick, isGuestAuthModalOpen, setIsGuestAuthModalOpen, guestBannerDismissed, dismissGuestBanner };
+  return {
+    ...detailModal,
+    isBatchOpen,
+    setIsBatchOpen,
+    isQueueOpen,
+    setIsQueueOpen,
+    toast,
+    setToast,
+    showToast,
+    handleAddVacanciesClick,
+    isGuestAuthModalOpen,
+    setIsGuestAuthModalOpen,
+    guestBannerDismissed,
+    dismissGuestBanner,
+  };
 }

@@ -11,6 +11,7 @@ export interface VacancyRawDataTabProps {
   salaryPeriod?: Vacancy['salary_period'];
   onSaveSalary?: (salary: SalaryData) => Promise<void>;
   description?: string;
+  loadingDescription?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ export function VacancyRawDataTab({
   salaryPeriod,
   onSaveSalary,
   description,
+  loadingDescription = false,
   onSaveDescription,
 }: VacancyRawDataTabProps): React.ReactElement {
   return (
@@ -34,6 +36,7 @@ export function VacancyRawDataTab({
       />
       <VacancyDescriptionSection
         description={description}
+        loading={loadingDescription}
         onSaveDescription={onSaveDescription}
       />
     </VacancyTabContent>

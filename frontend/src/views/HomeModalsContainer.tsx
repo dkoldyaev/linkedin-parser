@@ -33,9 +33,8 @@ export default function HomeModalsContainer({
       <VacancyModal
         vacancy={modals.selectedVacancy}
         isOpen={modals.isVacancyModalOpen}
+        loadingDetails={modals.loadingVacancyDetails}
         columns={data.columns}
-        initialHistory={modals.selectedVacancyHistory}
-        initialCompatibility={modals.selectedVacancyCompat}
         onClose={modals.handleCloseVacancyModal}
         onUpdate={actions.handleVacancyUpdate}
         onDelete={actions.handleVacancyDelete}

@@ -1,4 +1,3 @@
-'use client';
 
 import { Key } from 'lucide-react';
 import {

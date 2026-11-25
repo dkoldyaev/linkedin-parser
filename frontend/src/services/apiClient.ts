@@ -14,7 +14,9 @@ export class ApiError extends Error {
   }
 }
 
-function buildQueryString(params?: Record<string, string | number | boolean | undefined | null>): string {
+function buildQueryString(
+  params: Record<string, string | number | boolean | undefined | null> | undefined
+): string {
   if (!params) return '';
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -61,11 +63,11 @@ async function handleResponseError(res: Response): Promise<never> {
   } catch {
     /* ignore json parse error */
   }
-  const message = detail || `Request failed with status ${res.status}`;
+  const message = detail ? detail : `Request failed with status ${res.status}`;
   throw new ApiError(message, res.status, detail, data);
 }
 
-function resolveHeaders(initHeaders?: HeadersInit, hasBody?: boolean): Headers {
+function resolveHeaders(initHeaders: HeadersInit | undefined, hasBody: boolean): Headers {
   const headers = new Headers(initHeaders);
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json');
@@ -76,6 +78,47 @@ function resolveHeaders(initHeaders?: HeadersInit, hasBody?: boolean): Headers {
   return headers;
 }
 
+function shouldAttemptSilentRefresh(path: string): boolean {
+  if (path.includes('/auth/refresh')) return false;
+  if (path.includes('/auth/logout')) return false;
+  if (path.includes('/auth/dev-login')) return false;
+  if (path.includes('/auth/me')) return false;
+  return true;
+}
+
+let activeRefreshPromise: Promise<boolean> | null = null;
+
+function executeSilentTokenRefresh(): Promise<boolean> {
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
+  }
+  activeRefreshPromise = fetch('/api/v2/auth/refresh', {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    credentials: 'same-origin',
+  })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => {
+      activeRefreshPromise = null;
+    });
+
+  return activeRefreshPromise;
+}
+
+async function fetchWithAuthRetry(
+  url: string,
+  path: string,
+  init: RequestInit
+): Promise<Response> {
+  const res = await fetch(url, init);
+  if (res.status !== 401 || !shouldAttemptSilentRefresh(path)) {
+    return res;
+  }
+  const refreshed = await executeSilentTokenRefresh();
+  return refreshed ? fetch(url, init) : res;
+}
+
 export class ApiClient {
   async request<T>(path: string, options?: RequestOptions): Promise<T> {
     const qs = buildQueryString(options?.params);
@@ -84,12 +127,13 @@ export class ApiClient {
     const headers = resolveHeaders(options?.headers, Boolean(body));
 
     const init: RequestInit = {
+      credentials: 'same-origin',
       ...options,
       headers,
       body,
     };
 
-    const res = await fetch(url, init);
+    const res = await fetchWithAuthRetry(url, path, init);
     if (!res.ok) {
       await handleResponseError(res);
     }

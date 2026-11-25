@@ -1,6 +1,7 @@
 import React from 'react';
 import { FilterBar } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
+import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
 import { trackEvent, EVENTS } from '../utils/analytics';
 import { buildFilterSelects, hasAnyActiveFilter } from './homeFilterHelpers';
 import HomeMoveClosedButton from './HomeMoveClosedButton';
@@ -35,7 +36,13 @@ export default function HomeFilterSection({
     t
   );
 
-  const nonRejectedCount = data.vacancies.filter((v) => v.is_closed && v.status !== 'rejected').length;
+  const rejectedStatusId = resolveRejectedStatusId(data.columns);
+  const nonRejectedCount = data.vacancies.filter(
+    (v) =>
+      Boolean(v.is_closed) &&
+      v.status !== rejectedStatusId &&
+      !data.hiddenVacancyIds.has(v.id)
+  ).length;
 
   return (
     <FilterBar
@@ -44,7 +51,7 @@ export default function HomeFilterSection({
       selectedTags={data.selectedTag ? [data.selectedTag] : []}
       onToggleTag={(tag: string) => {
         const next = data.selectedTag === tag ? '' : tag;
-        trackEvent(EVENTS.FILTER_TAG, { tag: next || 'all' });
+        trackEvent(EVENTS.FILTER_TAG, { tag: next ? next : 'all' });
         data.handleTagChange(next);
       }}
       tagPrefix="#"

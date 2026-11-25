@@ -61,7 +61,12 @@ function resolveBaseKeyAndClass(rawType: string): { baseKey: string; className: 
 export function getWorkplaceInfo(type?: string | null, t?: TranslateFn): WorkplaceInfo | null {
   if (!type) return null;
   const { baseKey, className } = resolveBaseKeyAndClass(type);
-  const defaultConf = WORKPLACE_CONFIG[baseKey] || { label: type, fullLabel: type, className: 'onsite' };
+  const defaultConf: WorkplaceTypeConfig = WORKPLACE_CONFIG[baseKey] || {
+    label: type,
+    fullLabel: type,
+    className: 'onsite',
+    icon: Building,
+  };
   const label = t ? t(`workplace.${baseKey}`) : defaultConf.label;
   const fullLabelKey = baseKey === 'on-site' ? 'workplace.full_onsite' : `workplace.full_${baseKey}`;
   const fullLabel = t ? t(fullLabelKey) : defaultConf.fullLabel;
@@ -71,5 +76,6 @@ export function getWorkplaceInfo(type?: string | null, t?: TranslateFn): Workpla
     label,
     fullLabel,
     className,
+    icon: defaultConf.icon,
   };
 }

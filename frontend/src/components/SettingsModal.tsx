@@ -1,4 +1,3 @@
-'use client';
 
 import React, { useState } from 'react';
 import { Settings, Globe, Columns3 } from 'lucide-react';

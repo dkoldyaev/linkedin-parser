@@ -1,19 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import nextConfig from '../next.config.mjs';
+import { MemoryRouter } from 'react-router-dom';
 import { I18nProvider } from './i18n/I18nContext';
 import HomePage from './views/HomePage';
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-  }),
-  usePathname: () => '/',
-  useSearchParams: () => new URLSearchParams(),
-}));
 
 interface MockEventSourceInstance {
   url: string;
@@ -24,11 +14,8 @@ interface MockEventSourceInstance {
   close: () => void;
 }
 
-describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime Integration', () => {
-  const originalEnv = process.env.BACKEND_INTERNAL_URL;
-
+describe('Symfony /api/v2 + Mercure Realtime SPA Integration', () => {
   beforeEach(() => {
-    process.env.BACKEND_INTERNAL_URL = 'http://app:8000';
     vi.clearAllMocks();
     globalThis.ResizeObserver = class {
       observe() {}
@@ -37,31 +24,7 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
     } as unknown as typeof ResizeObserver;
   });
 
-  afterEach(() => {
-    process.env.BACKEND_INTERNAL_URL = originalEnv;
-  });
-
-  it('configures Next.js rewrites to proxy /api/*, /admin*, /bundles/*, /admin-assets/*, /extension.zip and /.well-known/* to BACKEND_INTERNAL_URL and fails fast if missing', async () => {
-    const rewritesFn = nextConfig.rewrites as () => Promise<Array<{ source: string; destination: string }>>;
-    const rules = await rewritesFn();
-    const sources = rules.map((r) => r.source);
-
-    expect(sources).toContain('/api/:path*');
-    expect(sources).toContain('/admin');
-    expect(sources).toContain('/admin/:path*');
-    expect(sources).toContain('/bundles/:path*');
-    expect(sources).toContain('/admin-assets/:path*');
-    expect(sources).toContain('/extension.zip');
-    expect(sources).toContain('/.well-known/:path*');
-
-    const apiRule = rules.find((r) => r.source === '/api/:path*');
-    expect(apiRule?.destination).toBe('http://app:8000/api/:path*');
-
-    delete process.env.BACKEND_INTERNAL_URL;
-    await expect(rewritesFn()).rejects.toThrow(/BACKEND_INTERNAL_URL/);
-  });
-
-  it('connects to Mercure via /api/v2/mercure-config, triggers /api/v2/queue/sync on open, and updates board state on Symfony Mercure events', async () => {
+  it('connects to Mercure via /api/v2/mercure-config, triggers /api/v2/queue/sync on open, and retains all cards (including closed) in memory', async () => {
     let activeEventSource: MockEventSourceInstance | null = null;
     globalThis.EventSource = class implements MockEventSourceInstance {
       url: string;
@@ -103,13 +66,15 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
     ];
 
     render(
-      <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
-        <HomePage
-          user={{ id: 7, email: 'user7@test.local', is_anonymous: false }}
-          initialColumns={cols}
-          initialVacancies={[]}
-        />
-      </I18nProvider>
+      <MemoryRouter initialEntries={['/?is_closed=false']}>
+        <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
+          <HomePage
+            user={{ id: 7, email: 'user7@test.local', is_anonymous: false }}
+            initialColumns={cols}
+            initialVacancies={[]}
+          />
+        </I18nProvider>
+      </MemoryRouter>
     );
 
     await waitFor(() => {
@@ -119,7 +84,6 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
     const es = activeEventSource as unknown as MockEventSourceInstance;
     expect(es.url).toContain('topic=vacancies%3A7');
 
-    // Simulate EventSource open -> triggers POST /api/v2/queue/sync
     await act(async () => {
       es.onopen?.();
     });
@@ -128,7 +92,7 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
       requestedUrls.some((r) => r.url === '/api/v2/queue/sync' && r.method === 'POST')
     ).toBe(true);
 
-    // Simulate Symfony Mercure vacancy_created event (root payload format)
+    // 1. Open card arrives via Mercure -> visible on board
     await act(async () => {
       es.onmessage?.({
         data: JSON.stringify({
@@ -138,6 +102,7 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
           company: 'Fly.io',
           url: 'https://linkedin.com/jobs/view/777',
           status: 'Еще не написал',
+          is_closed: false,
           calculated_score: 95,
           ai_summary: 'Realtime created card via Mercure.',
         }),
@@ -147,7 +112,7 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
     expect(screen.getByText('Realtime Mercure Rust Engineer')).toBeInTheDocument();
     expect(screen.getByText('95%')).toBeInTheDocument();
 
-    // Simulate compatibility_analyzed event with calculated_score
+    // 2. Compatibility analyzed updates score
     await act(async () => {
       es.onmessage?.({
         data: JSON.stringify({
@@ -161,5 +126,25 @@ describe('Seam 4: Next.js Rewrites Proxy & Symfony /api/v2 + Mercure Realtime In
     await waitFor(() => {
       expect(screen.getByText('99%')).toBeInTheDocument();
     });
+
+    // 3. Card becomes closed while ?is_closed=false is active -> stays in DOM with display: none!
+    await act(async () => {
+      es.onmessage?.({
+        data: JSON.stringify({
+          type: 'vacancy_updated',
+          id: 777,
+          title: 'Realtime Mercure Rust Engineer',
+          company: 'Fly.io',
+          url: 'https://linkedin.com/jobs/view/777',
+          status: 'Еще не написал',
+          is_closed: true,
+          calculated_score: 99,
+        }),
+      });
+    });
+
+    const cardEl = document.querySelector('[data-bp-card="true"][data-id="777"]') as HTMLElement;
+    expect(cardEl).toBeInTheDocument();
+    expect(cardEl.style.display).toBe('none');
   });
 });

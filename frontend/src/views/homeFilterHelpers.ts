@@ -28,25 +28,6 @@ export interface HomeFilterHandlers {
   onClosedChange: (val: string) => void;
 }
 
-function appendParamIfNonEmpty(params: URLSearchParams, key: string, value: string) {
-  if (value !== '') {
-    params.append(key, value);
-  }
-}
-
-export function buildVacanciesUrl(filters: HomeFilterState): string {
-  const params = new URLSearchParams();
-  appendParamIfNonEmpty(params, 'search', filters.search.trim());
-  appendParamIfNonEmpty(params, 'tag', filters.selectedTag);
-  appendParamIfNonEmpty(params, 'country', filters.selectedCountry);
-  appendParamIfNonEmpty(params, 'city', filters.selectedCity);
-  appendParamIfNonEmpty(params, 'workplace_type', filters.selectedWorkplaceType);
-  appendParamIfNonEmpty(params, 'source', filters.selectedSource);
-  appendParamIfNonEmpty(params, 'is_closed', filters.selectedClosed);
-  const query = params.toString();
-  return query ? `/api/v2/vacancies?${query}` : '/api/v2/vacancies';
-}
-
 export const defaultFilterState: HomeFilterState = {
   search: '',
   selectedTag: '',
@@ -57,7 +38,7 @@ export const defaultFilterState: HomeFilterState = {
   selectedClosed: '',
 };
 
-export function hasAnyNonSearchFilter(filters?: Partial<HomeFilterState>): boolean {
+export function hasAnyNonSearchFilter(filters: Partial<HomeFilterState> | undefined): boolean {
   if (!filters) return false;
   const values = [
     filters.selectedTag,
@@ -70,7 +51,7 @@ export function hasAnyNonSearchFilter(filters?: Partial<HomeFilterState>): boole
   return values.some((val) => typeof val === 'string' && val.trim() !== '');
 }
 
-export function hasAnyActiveFilter(filters?: Partial<HomeFilterState>): boolean {
+export function hasAnyActiveFilter(filters: Partial<HomeFilterState> | undefined): boolean {
   if (!filters) return false;
   if (typeof filters.search === 'string' && filters.search.trim() !== '') return true;
   return hasAnyNonSearchFilter(filters);
@@ -98,10 +79,19 @@ interface DynamicListSelectConfig {
   t: TranslateFn;
 }
 
+function buildSelectOptionItems(items: string[], selectedValue: string): string[] {
+  const trimmedSelected = selectedValue.trim();
+  if (trimmedSelected === '' || items.includes(trimmedSelected)) {
+    return items;
+  }
+  return [trimmedSelected, ...items];
+}
+
 function buildDynamicListSelect(cfg: DynamicListSelectConfig) {
   if (cfg.items.length === 0 && !cfg.selectedValue) return null;
   const baseLabel = cfg.t(cfg.labelKey);
   const allLabel = `${baseLabel} [${cfg.items.length}]`;
+  const optionItems = buildSelectOptionItems(cfg.items, cfg.selectedValue);
   return {
     id: cfg.id,
     ariaLabel: baseLabel,
@@ -109,7 +99,7 @@ function buildDynamicListSelect(cfg: DynamicListSelectConfig) {
     value: cfg.selectedValue,
     options: [
       { value: '', label: allLabel },
-      ...cfg.items.map((item) => ({ value: item, label: item })),
+      ...optionItems.map((item) => ({ value: item, label: item })),
     ],
     onChange: cfg.onChange,
   };
@@ -132,7 +122,7 @@ function buildWorkplaceSelect(
       { value: 'on-site', label: t('workplace.on-site') },
     ],
     onChange: (val: string) => {
-      trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: val || 'all' });
+      trackEvent(EVENTS.FILTER_WORKPLACE, { workplace_type: val ? val : 'all' });
       onWorkplaceChange(val);
     },
   };
@@ -154,7 +144,7 @@ function buildClosedSelect(
       { value: 'true', label: t('nav.filter_closed') },
     ],
     onChange: (val: string) => {
-      trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val || 'all' });
+      trackEvent(EVENTS.FILTER_CLOSED, { is_closed: val ? val : 'all' });
       onClosedChange(val);
     },
   };
@@ -180,7 +170,7 @@ export function buildFilterSelects(
     items: meta.allCities,
     selectedValue: filters.selectedCity,
     onChange: (val: string) => {
-      trackEvent(EVENTS.FILTER_CITY, { city: val || 'all' });
+      trackEvent(EVENTS.FILTER_CITY, { city: val ? val : 'all' });
       handlers.onCityChange(val);
     },
     t,
@@ -196,7 +186,7 @@ export function buildFilterSelects(
     items: meta.allSources,
     selectedValue: filters.selectedSource,
     onChange: (val: string) => {
-      trackEvent(EVENTS.FILTER_SOURCE, { source: val || 'all' });
+      trackEvent(EVENTS.FILTER_SOURCE, { source: val ? val : 'all' });
       handlers.onSourceChange(val);
     },
     t,
@@ -218,85 +208,68 @@ export function matchesClosedFilter(vacancy: Vacancy, selectedClosed: string): b
   return true;
 }
 
-export function matchesFilters(vacancy: Vacancy, filters: Partial<HomeFilterState>): boolean {
+function matchesCaseInsensitiveField(
+  fieldValue: string | null | undefined,
+  filterValue: string | undefined
+): boolean {
+  if (!filterValue || filterValue.trim() === '') return true;
+  const actual = (fieldValue ? fieldValue : '').trim().toLowerCase();
+  return actual === filterValue.trim().toLowerCase();
+}
+
+function matchesTagFilter(vacancy: Vacancy, selectedTag: string | undefined): boolean {
+  if (!selectedTag || selectedTag.trim() === '') return true;
+  const tags = Array.isArray(vacancy.tags) ? vacancy.tags : [];
+  return tags.includes(selectedTag.trim());
+}
+
+function buildSearchableCardHaystack(vacancy: Vacancy): string {
+  const parts: Array<string | null | undefined> = [
+    vacancy.title,
+    vacancy.company,
+    vacancy.ai_summary,
+    vacancy.location,
+    vacancy.city,
+    vacancy.country,
+    vacancy.source,
+    Array.isArray(vacancy.tags) ? vacancy.tags.join(' ') : '',
+    Array.isArray(vacancy.tech_stack) ? vacancy.tech_stack.join(' ') : '',
+  ];
+  return parts
+    .filter((p): p is string => typeof p === 'string' && p !== '')
+    .join('\n')
+    .toLowerCase();
+}
+
+function matchesSearchQuery(vacancy: Vacancy, search: string | undefined): boolean {
+  if (!search || search.trim() === '') return true;
+  const query = search.trim().toLowerCase();
+  return buildSearchableCardHaystack(vacancy).includes(query);
+}
+
+function matchesSelectFilters(vacancy: Vacancy, filters: Partial<HomeFilterState>): boolean {
+  const closedVal = filters.selectedClosed ? filters.selectedClosed : '';
+  if (!matchesClosedFilter(vacancy, closedVal)) return false;
+  if (!matchesTagFilter(vacancy, filters.selectedTag)) return false;
+  if (!matchesCaseInsensitiveField(vacancy.country, filters.selectedCountry)) return false;
+  if (!matchesCaseInsensitiveField(vacancy.city, filters.selectedCity)) return false;
+  if (!matchesCaseInsensitiveField(vacancy.workplace_type, filters.selectedWorkplaceType)) return false;
+  return matchesCaseInsensitiveField(vacancy.source, filters.selectedSource);
+}
+
+export function matchesFilters(
+  vacancy: Vacancy,
+  filters: Partial<HomeFilterState> | undefined
+): boolean {
   if (!vacancy) return false;
-  const {
-    search,
-    selectedTag,
-    selectedCountry,
-    selectedCity,
-    selectedWorkplaceType,
-    selectedSource,
-    selectedClosed,
-  } = filters || {};
-
-  if (selectedClosed !== undefined && selectedClosed !== '') {
-    if (!matchesClosedFilter(vacancy, selectedClosed)) return false;
-  }
-
-  if (selectedTag && selectedTag.trim() !== '') {
-    const tags = Array.isArray(vacancy.tags) ? vacancy.tags : [];
-    if (!tags.includes(selectedTag.trim())) return false;
-  }
-
-  if (selectedCountry && selectedCountry.trim() !== '') {
-    if ((vacancy.country || '').trim().toLowerCase() !== selectedCountry.trim().toLowerCase()) {
-      return false;
-    }
-  }
-
-  if (selectedCity && selectedCity.trim() !== '') {
-    if ((vacancy.city || '').trim().toLowerCase() !== selectedCity.trim().toLowerCase()) {
-      return false;
-    }
-  }
-
-  if (selectedWorkplaceType && selectedWorkplaceType.trim() !== '') {
-    if ((vacancy.workplace_type || '').trim().toLowerCase() !== selectedWorkplaceType.trim().toLowerCase()) {
-      return false;
-    }
-  }
-
-  if (selectedSource && selectedSource.trim() !== '') {
-    if ((vacancy.source || '').trim().toLowerCase() !== selectedSource.trim().toLowerCase()) {
-      return false;
-    }
-  }
-
-  if (search && search.trim() !== '') {
-    const q = search.trim().toLowerCase();
-    const title = (vacancy.title || '').toLowerCase();
-    const company = (vacancy.company || '').toLowerCase();
-    const loc = (vacancy.location || '').toLowerCase();
-    const city = (vacancy.city || '').toLowerCase();
-    const country = (vacancy.country || '').toLowerCase();
-    const desc = (vacancy.description || '').toLowerCase();
-    const summary = (vacancy.ai_summary || '').toLowerCase();
-    const src = (vacancy.source || '').toLowerCase();
-    const tagsStr = Array.isArray(vacancy.tags) ? vacancy.tags.join(' ').toLowerCase() : '';
-    const stackStr = Array.isArray(vacancy.tech_stack) ? vacancy.tech_stack.join(' ').toLowerCase() : '';
-    if (
-      !title.includes(q) &&
-      !company.includes(q) &&
-      !loc.includes(q) &&
-      !city.includes(q) &&
-      !country.includes(q) &&
-      !desc.includes(q) &&
-      !summary.includes(q) &&
-      !src.includes(q) &&
-      !tagsStr.includes(q) &&
-      !stackStr.includes(q)
-    ) {
-      return false;
-    }
-  }
-
-  return true;
+  if (!filters) return true;
+  if (!matchesSelectFilters(vacancy, filters)) return false;
+  return matchesSearchQuery(vacancy, filters.search);
 }
 
 export function computeHiddenVacancyIds(
   vacancies: Vacancy[],
-  filters?: Partial<HomeFilterState>
+  filters: Partial<HomeFilterState> | undefined
 ): Set<number> {
   if (!filters || !hasAnyActiveFilter(filters)) {
     return new Set<number>();
@@ -313,18 +286,11 @@ export function computeHiddenVacancyIds(
 export function upsertVacancyInList(list: Vacancy[], incoming: Vacancy): Vacancy[] {
   const exists = list.some((v) => v.id === incoming.id);
   if (exists) {
-    return list.map((v) => (v.id === incoming.id ? incoming : v));
+    return list.map((v) => (v.id === incoming.id ? { ...v, ...incoming } : v));
   }
   return [incoming, ...list];
 }
 
-export function applyVacancyUpdateToList(
-  list: Vacancy[],
-  updated: Vacancy,
-  selectedClosed: string
-): Vacancy[] {
-  if (!matchesClosedFilter(updated, selectedClosed)) {
-    return list.filter((v) => v.id !== updated.id);
-  }
-  return list.map((v) => (v.id === updated.id ? updated : v));
+export function applyVacancyUpdateToList(list: Vacancy[], updated: Vacancy): Vacancy[] {
+  return list.map((v) => (v.id === updated.id ? { ...v, ...updated } : v));
 }

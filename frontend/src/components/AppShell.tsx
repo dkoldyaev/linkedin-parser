@@ -1,11 +1,12 @@
-'use client';
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import LoginModal from './LoginModal';
 import NavDrawer from './NavDrawer';
+import PageHeader from './PageHeader';
 import { MenuContext } from './menuContext';
+import { BoardStoreProvider } from '../store/BoardStoreContext';
+import { useTranslation } from '../i18n/I18nContext';
 import { useGridScroll } from '../utils/useGridScroll';
 import { setAnalyticsUser, trackEvent, EVENTS } from '../utils/analytics';
 import type { User } from '../types/models';
@@ -110,10 +111,9 @@ function useModalGridAlignment(): void {
   }, []);
 }
 
-function useAuthState(initialUser?: User | null) {
+function useAuthState(initialUser: User | null | undefined, onUserResolved: () => void) {
   const [user, setUser] = useState<User | null>(initialUser !== undefined ? initialUser : null);
   const [authLoading, setAuthLoading] = useState<boolean>(initialUser === undefined);
-  const router = useRouter();
 
   const checkAuth = useCallback(async () => {
     try {
@@ -122,6 +122,7 @@ function useAuthState(initialUser?: User | null) {
       if (userData) {
         setUser(userData);
         setAnalyticsUser(userData);
+        onUserResolved();
       } else {
         setUser(null);
         setAnalyticsUser(null);
@@ -133,15 +134,18 @@ function useAuthState(initialUser?: User | null) {
     } finally {
       setAuthLoading(false);
     }
-  }, []);
+  }, [onUserResolved]);
 
   useEffect(() => {
     if (initialUser !== undefined) {
       setAnalyticsUser(initialUser);
+      if (initialUser) {
+        onUserResolved();
+      }
     } else {
       void checkAuth();
     }
-  }, [initialUser, checkAuth]);
+  }, [initialUser, checkAuth, onUserResolved]);
 
   const handleLogout = useCallback(async () => {
     trackEvent(EVENTS.LOGOUT);
@@ -151,14 +155,20 @@ function useAuthState(initialUser?: User | null) {
       console.error('Logout failed', err);
     }
     await checkAuth();
-    router.refresh();
-  }, [checkAuth, router]);
+  }, [checkAuth]);
 
-  return { user, setUser, authLoading, checkAuth, handleLogout, router };
+  return { user, setUser, authLoading, checkAuth, handleLogout };
 }
 
+const SHELL_OUTER_STYLE: React.CSSProperties = {
+  height: '100vh',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
 const SHELL_CONTENT_STYLE: React.CSSProperties = {
-  height: '100%',
+  flex: 1,
   minHeight: 0,
   overflow: 'hidden',
   display: 'flex',
@@ -178,21 +188,43 @@ function isPublicPathname(pathname: string): boolean {
   return isLandingPathname(pathname) || pathname === '/about';
 }
 
-function resolveShellRouteFlags(pathname: string, user: User | null, authLoading: boolean) {
-  const landingRoute = isLandingPathname(pathname);
-  const requiresLoginModal = !authLoading && !user && !isPublicPathname(pathname);
-  const shouldSnapScroll = Boolean(user) || pathname === '/' || landingRoute;
-  const contentClassName = `app-shell-content${landingRoute ? ' is-landing' : ''}`;
-  return { requiresLoginModal, shouldSnapScroll, contentClassName };
+function isBoardPathname(pathname: string): boolean {
+  return pathname === '/' || pathname.startsWith('/vacancies/');
 }
 
+function isAuthRequiredForRoute(
+  pathname: string,
+  user: User | null,
+  authLoading: boolean
+): boolean {
+  if (authLoading || user) return false;
+  return !isPublicPathname(pathname);
+}
 
+function resolveShellRouteFlags(pathname: string, user: User | null, authLoading: boolean) {
+  const landingRoute = isLandingPathname(pathname);
+  const boardRoute = isBoardPathname(pathname);
+  const requiresLoginModal = isAuthRequiredForRoute(pathname, user, authLoading);
+  const showPageHeader = !authLoading && !requiresLoginModal && !boardRoute;
+  const shouldSnapScroll = Boolean(user || boardRoute || landingRoute);
+  const contentClassName = landingRoute ? 'app-shell-content is-landing' : 'app-shell-content';
+  return { requiresLoginModal, showPageHeader, shouldSnapScroll, contentClassName };
+}
 
 export function AppShell({ children, initialUser }: AppShellProps): React.ReactElement {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname() || '/';
+  const { pathname } = useLocation();
   const snapScroll = useGridScroll();
-  const { user, setUser, authLoading, checkAuth, handleLogout, router } = useAuthState(initialUser);
+  const { refreshRemoteSettings } = useTranslation();
+
+  const handleUserResolved = useCallback(() => {
+    void refreshRemoteSettings();
+  }, [refreshRemoteSettings]);
+
+  const { user, setUser, authLoading, checkAuth, handleLogout } = useAuthState(
+    initialUser,
+    handleUserResolved
+  );
 
   useModalGridAlignment();
 
@@ -206,16 +238,13 @@ export function AppShell({ children, initialUser }: AppShellProps): React.ReactE
     [user, authLoading, checkAuth, handleLogout, setUser]
   );
 
-  const { requiresLoginModal, shouldSnapScroll, contentClassName } = resolveShellRouteFlags(
-    pathname,
-    user,
-    authLoading
-  );
+  const { requiresLoginModal, showPageHeader, shouldSnapScroll, contentClassName } =
+    resolveShellRouteFlags(pathname, user, authLoading);
 
   const handleLoginSuccess = (userData: User) => {
     setAnalyticsUser(userData);
     setUser(userData);
-    router.refresh();
+    void refreshRemoteSettings();
   };
 
   let bodyContent = children;
@@ -231,18 +260,23 @@ export function AppShell({ children, initialUser }: AppShellProps): React.ReactE
 
   return (
     <AuthContext.Provider value={authValue}>
-      <MenuContext.Provider value={menu}>
-        <div style={{ height: '100vh', overflow: 'hidden' }}>
-          <div
-            className={contentClassName}
-            style={SHELL_CONTENT_STYLE}
-            onScroll={shouldSnapScroll ? snapScroll : undefined}
-          >
-            {bodyContent}
+      <BoardStoreProvider user={user}>
+        <MenuContext.Provider value={menu}>
+          <div style={SHELL_OUTER_STYLE}>
+            {showPageHeader && (
+              <PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />
+            )}
+            <div
+              className={contentClassName}
+              style={SHELL_CONTENT_STYLE}
+              onScroll={shouldSnapScroll ? snapScroll : undefined}
+            >
+              {bodyContent}
+            </div>
+            <NavDrawer user={user} />
           </div>
-          <NavDrawer user={user} />
-        </div>
-      </MenuContext.Provider>
+        </MenuContext.Provider>
+      </BoardStoreProvider>
     </AuthContext.Provider>
   );
 }

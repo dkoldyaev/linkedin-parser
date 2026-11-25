@@ -1,4 +1,3 @@
-'use client';
 
 import type { CompatibilityPreset } from './landingPresets';
 import SkeletonBar from './SkeletonBar';

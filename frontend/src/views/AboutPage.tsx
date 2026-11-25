@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Sparkles, Columns3, Flame, Puzzle, ArrowRight } from 'lucide-react';
 import {
   PageLayout,
@@ -52,7 +50,7 @@ export default function AboutPage() {
       </div>
       <div>
         <Button asChild variant="primary" size="sm">
-          <Link href="/howtouse" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Link to="/howtouse" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <span>{t('pages.about.cta')}</span>
             {ARROW_RIGHT_ICON}
           </Link>
@@ -78,7 +76,7 @@ export default function AboutPage() {
         </section>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--ui-space-4)' }}>
           <Button asChild variant="secondary" size="md">
-            <Link href="/howtouse" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Link to="/howtouse" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <span>{t('pages.about.cta')}</span>
               {ARROW_RIGHT_ICON}
             </Link>

@@ -1,4 +1,3 @@
-'use client';
 
 import React from 'react';
 import { Flame, Trophy, CalendarCheck, PlusCircle } from 'lucide-react';

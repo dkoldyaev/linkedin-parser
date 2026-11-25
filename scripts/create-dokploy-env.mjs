@@ -544,11 +544,12 @@ async function main() {
   const existingDomains = (await dokployRequest(`/domain.byComposeId?composeId=${composeId}`)) || [];
 
   const requiredDomains = [
-    { host: domainHost, path: '/', port: 3000, serviceName: 'frontend', label: 'Next.js SSR Frontend' },
+    { host: domainHost, path: '/', port: 3000, serviceName: 'frontend', label: 'Vite SPA Frontend' },
     { host: domainHost, path: '/api', port: 8000, serviceName: 'app', label: 'Symfony Backend API' },
     { host: domainHost, path: '/admin', port: 8000, serviceName: 'app', label: 'Symfony EasyAdmin' },
     { host: domainHost, path: '/bundles', port: 8000, serviceName: 'app', label: 'Symfony Bundle Assets' },
     { host: domainHost, path: '/admin-assets', port: 8000, serviceName: 'app', label: 'Symfony Admin Assets' },
+    { host: domainHost, path: '/extension.zip', port: 8000, serviceName: 'app', label: 'Browser Extension Zip' },
     { host: domainHost, path: '/.well-known/mercure', port: 80, serviceName: 'mercure', label: 'Mercure SSE' },
   ];
 
@@ -710,7 +711,7 @@ async function main() {
     console.log('\n--- VERIFYING DEPLOYED ENVIRONMENT ---');
     try {
       const feRes = await fetch(`https://${domainHost}/`);
-      console.log(`Frontend SSR (https://${domainHost}/): ${feRes.status} ${feRes.statusText}`);
+      console.log(`Frontend SPA (https://${domainHost}/): ${feRes.status} ${feRes.statusText}`);
     } catch (err) {
       console.error(`❌ Frontend check failed: ${err.message}`);
     }
@@ -741,7 +742,7 @@ async function main() {
   // Summary
   console.log('\n\x1b[32m🎉 Environment successfully configured!\x1b[0m\n');
   console.log(`🌐 Dokploy Dashboard: ${DOKPLOY_URL_RAW}/dashboard/project/${projectId}/environment/${environmentId}/compose/${composeId}`);
-  console.log(`💻 Frontend (Next.js): https://${domainHost}`);
+  console.log(`💻 Frontend (SPA):     https://${domainHost}`);
   console.log(`🔗 Backend API:        https://${domainHost}/api/health`);
   console.log(`🛡️  Admin Panel:        https://${domainHost}/admin`);
   console.log(`📡 Mercure SSE:        https://${domainHost}/.well-known/mercure`);

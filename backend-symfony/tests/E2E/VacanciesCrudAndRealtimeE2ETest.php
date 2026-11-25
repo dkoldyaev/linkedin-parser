@@ -21,6 +21,13 @@ class VacanciesCrudAndRealtimeE2ETest extends ApiTestCase
         $items1 = isset($data1['items']) ? $data1['items'] : $data1;
         $this->assertIsArray($items1);
         $this->assertCount(6, $items1);
+        $firstItem = $items1[0];
+        $this->assertArrayHasKey('title', $firstItem);
+        $this->assertArrayHasKey('ai_summary', $firstItem);
+        $this->assertArrayNotHasKey('description', $firstItem);
+        $this->assertArrayNotHasKey('company_info', $firstItem);
+        $this->assertArrayNotHasKey('notes', $firstItem);
+        $this->assertArrayNotHasKey('history', $firstItem);
 
         // 2. User 2 vacancies (tenant isolation)
         $this->authenticateClientAs($this->client, 'user2@local.user', 'Regular User');
@@ -45,6 +52,10 @@ class VacanciesCrudAndRealtimeE2ETest extends ApiTestCase
         $this->assertSame(200, $res1->getStatusCode());
         $data1 = $this->parseJsonResponse($res1);
         $this->assertSame('Senior Backend Engineer', $data1['title']);
+        $this->assertArrayHasKey('description', $data1);
+        $this->assertArrayHasKey('company_info', $data1);
+        $this->assertArrayHasKey('notes', $data1);
+        $this->assertArrayHasKey('history', $data1);
 
         // Cross-tenant vacancy 101 belonging to User 2 -> 404
         $this->client->request('GET', '/api/v2/vacancies/101');

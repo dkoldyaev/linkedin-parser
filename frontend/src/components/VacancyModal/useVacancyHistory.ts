@@ -2,65 +2,63 @@ import { useState, useEffect, useCallback } from 'react';
 import { vacancyService } from '../../services/vacancyService';
 import type { Vacancy, VacancyHistoryItem } from '../../types/models';
 
-export function useVacancyHistory(vacancy: Vacancy | null, initialHistory?: VacancyHistoryItem[]) {
-  const [historyList, setHistoryList] = useState<VacancyHistoryItem[]>(() => {
-    if (Array.isArray(initialHistory)) return initialHistory;
-    if (Array.isArray(vacancy?.history)) return vacancy.history;
-    return [];
-  });
+export function useVacancyHistory(
+  vacancy: Vacancy | null,
+  isOpen: boolean,
+  loadingDetails: boolean
+) {
+  const [historyList, setHistoryList] = useState<VacancyHistoryItem[]>([]);
+  const vacancyId = vacancy?.id;
+  const vacancyHistory = vacancy?.history;
 
   useEffect(() => {
-    if (!vacancy) return;
-    if (Array.isArray(initialHistory)) {
-      setHistoryList(initialHistory);
-    } else if (Array.isArray(vacancy.history)) {
-      setHistoryList(vacancy.history);
-    } else if (vacancy.id) {
-      vacancyService
-        .getHistory(vacancy.id)
-        .then((items) => {
-          if (Array.isArray(items)) setHistoryList(items);
-        })
-        .catch(() => {});
+    if (!isOpen || !vacancyId || loadingDetails) {
+      return undefined;
     }
-  }, [vacancy?.id, initialHistory]);
+    if (Array.isArray(vacancyHistory)) {
+      setHistoryList(vacancyHistory);
+      return undefined;
+    }
+    let cancelled = false;
+    vacancyService
+      .getHistory(vacancyId)
+      .then((items) => {
+        if (!cancelled && Array.isArray(items)) setHistoryList(items);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, vacancyId, vacancyHistory, loadingDetails]);
 
   const handleSaveComment = useCallback(
     async (historyId: string, comment: string) => {
-      if (!vacancy) return;
-      try {
-        const updated = await vacancyService.updateHistoryComment(vacancy.id, historyId, comment);
-        if (updated) {
-          setHistoryList((prev) =>
-            prev.map((item) => (String(item.id) === historyId ? { ...item, comment } : item))
-          );
-        }
-      } catch (err) {
-        console.error('Failed to save history comment', err);
-        throw err;
+      if (!vacancyId) return;
+      const updated = await vacancyService.updateHistoryComment(vacancyId, historyId, comment);
+      if (updated) {
+        setHistoryList((prev) =>
+          prev.map((item) => (String(item.id) === historyId ? { ...item, comment } : item))
+        );
       }
     },
-    [vacancy?.id]
+    [vacancyId]
   );
 
   const handleDeleteComment = useCallback(
     async (historyId: string) => {
-      if (!vacancy) return;
-      try {
-        await vacancyService.updateHistoryComment(vacancy.id, historyId, null);
-        setHistoryList((prev) =>
-          prev.map((item) => (String(item.id) === historyId ? { ...item, comment: '' } : item))
-        );
-      } catch (err) {
-        console.error('Failed to delete history comment', err);
-        throw err;
-      }
+      if (!vacancyId) return;
+      await vacancyService.updateHistoryComment(vacancyId, historyId, null);
+      setHistoryList((prev) =>
+        prev.map((item) => (String(item.id) === historyId ? { ...item, comment: '' } : item))
+      );
     },
-    [vacancy?.id]
+    [vacancyId]
   );
 
+  const effectiveHistory = isOpen && vacancyId && !loadingDetails ? historyList : [];
+
   return {
-    historyList,
+    historyList: effectiveHistory,
     handleSaveComment,
     handleDeleteComment,
   };

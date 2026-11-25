@@ -1,8 +1,5 @@
-'use client';
-
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   BarChart3,
@@ -90,7 +87,7 @@ async function persistLocaleOnServer(targetLocale: string, hasUser: boolean): Pr
 export default function NavDrawer({ user }: NavDrawerProps): React.ReactElement {
   const { t, locale, setLocale } = useTranslation();
   const { open, close } = useMenu();
-  const pathname = usePathname() || '/';
+  const { pathname } = useLocation();
   const drawerRef = useRef<HTMLElement | null>(null);
   const snapScroll = useGridScroll();
 
@@ -121,11 +118,12 @@ export default function NavDrawer({ user }: NavDrawerProps): React.ReactElement 
         </div>
         <nav className="drawer-links" onScroll={snapScroll}>
           {links.map(({ to, key, end, icon: IconComponent }, idx) => {
-            const isActive = end ? pathname === to : pathname.startsWith(to);
+            const isBoardPath = pathname === '/' || pathname.startsWith('/vacancies/');
+            const isActive = end ? isBoardPath : pathname.startsWith(to);
             return (
               <Link
                 key={to}
-                href={to}
+                to={to}
                 id={`nav-link-${key}`}
                 onClick={close}
                 tabIndex={itemTabIndex}

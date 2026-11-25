@@ -5,7 +5,6 @@ interface PdfTextItem {
 
 async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import('pdfjs-dist');
-  // @ts-expect-error Vite/Bundler ?url import
   const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
   const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() });

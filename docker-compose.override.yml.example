@@ -16,10 +16,6 @@ services:
 
   frontend:
     container_name: ${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-frontend
-    environment:
-      PORT: 3000
-      BACKEND_INTERNAL_URL: http://${APP_NAME_PREFIX:?Set APP_NAME_PREFIX}-linkedin-parser-app:8000
-      NEXT_TELEMETRY_DISABLED: 1
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.linkedinparser-frontend.rule=PathPrefix(`/`)"
@@ -46,7 +42,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.linkedinparser-app.rule=PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/bundles`) || PathPrefix(`/admin-assets`)"
+      - "traefik.http.routers.linkedinparser-app.rule=PathPrefix(`/api`) || PathPrefix(`/admin`) || PathPrefix(`/bundles`) || PathPrefix(`/admin-assets`) || Path(`/extension.zip`)"
       - "traefik.http.routers.linkedinparser-app.entrypoints=web"
       - "traefik.http.services.linkedinparser-app.loadbalancer.server.port=8000"
       - "traefik.http.services.linkedinparser-app.loadbalancer.healthcheck.path=/api/v2/health"

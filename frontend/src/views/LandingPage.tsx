@@ -1,7 +1,5 @@
-'use client';
-
 import { useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Inbox } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 import { resolveRolePreset } from './landingPresets';
@@ -160,11 +158,11 @@ function renderStageCanvas(args: {
 
 export default function LandingPage({ onFinish }: LandingPageProps) {
   const { t, locale } = useTranslation();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEn = locale === 'en';
 
-  const roleParam = searchParams ? searchParams.get('role') : null;
+  const roleParam = searchParams.get('role');
   const activePreset = resolveRolePreset(roleParam);
 
   const finishToBoard = useCallback(() => {
@@ -174,8 +172,8 @@ export default function LandingPage({ onFinish }: LandingPageProps) {
       /* ignore */
     }
     onFinish?.();
-    router.replace('/');
-  }, [router, onFinish]);
+    navigate('/', { replace: true });
+  }, [navigate, onFinish]);
 
   const { pageRef, scrollState, scrollToSubScreen } =
     useLandingScrollController(finishToBoard);

@@ -1,6 +1,5 @@
-'use client';
-
 import { PageLayout } from '@blueprint/ui-kit';
+import { useAuth } from '../components/AppShell';
 import { useTranslation } from '../i18n/I18nContext';
 import type { User } from '../types/models';
 import { useApiKeys } from './useApiKeys';
@@ -14,8 +13,10 @@ export interface ApiKeysPageProps {
 }
 
 export default function ApiKeysPage({ user }: ApiKeysPageProps) {
+  const auth = useAuth();
+  const resolvedUser = user !== undefined ? user : auth.user;
   const { locale } = useTranslation();
-  const hasApiAccess = Boolean(user?.feature_flags?.includes('api_access'));
+  const hasApiAccess = Boolean(resolvedUser?.feature_flags?.includes('api_access'));
 
   const {
     apiKeys,

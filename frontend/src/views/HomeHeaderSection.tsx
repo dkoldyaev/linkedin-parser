@@ -1,7 +1,5 @@
-'use client';
-
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Header } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import { useMenu } from '../components/menuContext';
@@ -58,7 +56,7 @@ export default function HomeHeaderSection(props: HomeHeaderSectionProps): React.
         title={t('nav.title')}
         subtitle={t('nav.subtitle')}
         brand={
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
             <Header.Brand title={t('nav.title')} subtitle={t('nav.subtitle')} />
           </Link>
         }
@@ -88,7 +86,16 @@ export default function HomeHeaderSection(props: HomeHeaderSectionProps): React.
         }
         showThemeToggle
         theme={theme}
-        onThemeToggle={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+        onThemeToggle={() => {
+          const next: 'light' | 'dark' = theme === 'light' ? 'dark' : 'light';
+          document.documentElement.dataset.theme = next;
+          try {
+            localStorage.setItem('workspace-theme', next);
+          } catch {
+            /* ignore */
+          }
+          setTheme(next);
+        }}
         user={mapUserProps(props.user)}
         onSettingsClick={() => setIsSettingsOpen(true)}
         onLogout={props.onLogout}

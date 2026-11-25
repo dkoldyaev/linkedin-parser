@@ -1,9 +1,6 @@
-'use client';
-
 import React from 'react';
 import { Card } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import { getWorkplaceInfo } from '../utils/workplace';
 import KanbanCardTokens from './KanbanCardTokens';
 import KanbanCardMetaRow from './KanbanCardMetaRow';
 import KanbanCardFooterContent from './KanbanCardFooterContent';
@@ -122,7 +119,6 @@ export default function KanbanCard({
   const { t } = useTranslation();
   const cardState = deriveCardState(vacancy, columns, laneColumns, t);
   const isCompact = propCompact ?? cardState.isRejected;
-  const workplaceInfo = getWorkplaceInfo(vacancy.workplace_type, t);
   const matchScore = computeMatchScore(vacancy);
 
   const handlers = createCardHandlers({

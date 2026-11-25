@@ -1,4 +1,3 @@
-'use client';
 
 export interface SkeletonBarProps {
   width?: number | string;

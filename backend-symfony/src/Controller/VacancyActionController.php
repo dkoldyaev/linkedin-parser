@@ -398,8 +398,9 @@ class VacancyActionController extends AbstractController
         $entityManager->persist($history);
         $entityManager->flush();
 
-        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
-        $vacancyArray = json_decode($json, true) ?? [];
+        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read', 'vacancy:detail']]);
+        $lightJson = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
+        $vacancyArray = json_decode($lightJson, true) ?? [];
 
         $mercure->publish(
             'vacancies:' . $user->getId(),
@@ -447,8 +448,9 @@ class VacancyActionController extends AbstractController
         $history->setUpdatedAt(new \DateTimeImmutable());
         $entityManager->flush();
 
-        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
-        $vacancyArray = json_decode($json, true) ?? [];
+        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read', 'vacancy:detail']]);
+        $lightJson = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
+        $vacancyArray = json_decode($lightJson, true) ?? [];
 
         $mercure->publish(
             'vacancies:' . $user->getId(),
@@ -491,8 +493,9 @@ class VacancyActionController extends AbstractController
         $entityManager->remove($history);
         $entityManager->flush();
 
-        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
-        $vacancyArray = json_decode($json, true) ?? [];
+        $json = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read', 'vacancy:detail']]);
+        $lightJson = $serializer->serialize($vacancy, 'json', ['groups' => ['vacancy:read']]);
+        $vacancyArray = json_decode($lightJson, true) ?? [];
 
         $mercure->publish(
             'vacancies:' . $user->getId(),

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { DashboardLayout } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
@@ -9,22 +7,26 @@ import HomeGuestBanner from './HomeGuestBanner';
 import HomeFilterSection from './HomeFilterSection';
 import HomeModalsContainer from './HomeModalsContainer';
 import HomeToastNotification from './HomeToastNotification';
+import NotFoundPage from './NotFoundPage';
 import { useHomePageController, type HomePageControllerProps } from './useHomePageController';
 import type { BoardColumn } from '../types/models';
 
 export type HomePageProps = HomePageControllerProps;
 
 export default function HomePage(props: HomePageProps): React.ReactElement {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const { user, onLogout, onUserUpdated, data, modals, actions } = useHomePageController(
     props,
-    t,
-    locale
+    t
   );
+
+  if (modals.isVacancyNotFound) {
+    return <NotFoundPage showHeader />;
+  }
 
   const handleColumnsUpdated = (newCols: BoardColumn[]) => {
     data.setColumns(newCols);
-    data.fetchVacancies();
+    void data.fetchVacancies();
   };
 
   return (

@@ -1,4 +1,3 @@
-'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { extractTextFromFile } from '../utils/textExtractor';
