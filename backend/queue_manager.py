@@ -1205,8 +1205,8 @@ class RedisQueueManager:
                         existing.salary_period = scraped["salary_period"]
                     if scraped.get("workplace_type"):
                         existing.workplace_type = scraped["workplace_type"]
-                    if "is_closed" in scraped:
-                        existing.is_closed = scraped["is_closed"]
+                    if scraped.get("is_closed") is not None:
+                        existing.is_closed = bool(scraped["is_closed"])
                     if scraped.get("source"):
                         existing.source = scraped["source"]
 
@@ -1231,7 +1231,7 @@ class RedisQueueManager:
                         country=scraped.get("country"),
                         description=scraped.get("description"),
                         workplace_type=scraped.get("workplace_type"),
-                        is_closed=scraped.get("is_closed", False),
+                        is_closed=bool(scraped.get("is_closed")),
                         salary_min=scraped.get("salary_min"),
                         salary_max=scraped.get("salary_max"),
                         salary_currency=scraped.get("salary_currency"),
@@ -1634,11 +1634,15 @@ class RedisQueueManager:
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
                 vac_id = vacancy.id
+                vac_url = vacancy.url or ""
+                vac_source = vacancy.source or ""
                 vac_title = vacancy.title
                 vac_company = vacancy.company
                 vac_location = vacancy.location or ""
                 vac_description = vacancy.description or ""
                 vac_extracted_reqs = vacancy.extracted_requirements
+                parser = parser_registry.find(vac_url) if vac_url else None
+                is_universal = bool((parser and parser.name == "universal") or vac_source == "Universal" or "." in vac_source)
 
             has_description = bool(vac_description and vac_description.strip())
             if not has_description:
@@ -1660,7 +1664,7 @@ class RedisQueueManager:
                 # 1. Summarization & metadata extraction (outside DB session)
                 llm_res = await analyze_vacancy_with_llm(
                     title=vac_title,
-                    company=vac_company,
+                    company="" if is_universal and vac_company == vac_source else vac_company,
                     location=vac_location,
                     description=vac_description,
                     provider=provider,
@@ -1670,7 +1674,7 @@ class RedisQueueManager:
                 )
 
                 effective_title = vac_title
-                if llm_res.get("title") and (not vac_title or vac_title.startswith("http") or vac_title == "Не удалось загрузить страницу"):
+                if llm_res.get("title") and (is_universal or not vac_title or vac_title.startswith("http") or vac_title in ("Не удалось загрузить страницу", "Untitled Vacancy")):
                     effective_title = llm_res["title"]
 
                 # 2. Extract structured requirements (outside DB session)
@@ -1691,8 +1695,10 @@ class RedisQueueManager:
                     if not vacancy:
                         raise RuntimeError(f"Vacancy #{vac_id} not found in DB")
 
-                    if llm_res.get("title") and (not vacancy.title or vacancy.title.startswith("http") or vacancy.title == "Не удалось загрузить страницу"):
+                    if llm_res.get("title") and (is_universal or not vacancy.title or vacancy.title.startswith("http") or vacancy.title in ("Не удалось загрузить страницу", "Untitled Vacancy")):
                         vacancy.title = llm_res["title"]
+                    if llm_res.get("company") and (is_universal or not vacancy.company or vacancy.company in ("Unknown Company", "Загрузка...", vacancy.source)):
+                        vacancy.company = llm_res["company"]
                     if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
                         vacancy.location = llm_res["location"]
                     if llm_res.get("city") and (not vacancy.city or str(vacancy.city).strip().isdigit()):
@@ -2044,7 +2050,7 @@ class RedisQueueManager:
                     if scraped.get("workplace_type"):
                         existing.workplace_type = scraped["workplace_type"]
                     if scraped.get("is_closed") is not None:
-                        existing.is_closed = scraped["is_closed"]
+                        existing.is_closed = bool(scraped["is_closed"])
                     if scraped.get("source"):
                         existing.source = scraped["source"]
 
@@ -2072,7 +2078,7 @@ class RedisQueueManager:
                         salary_currency=scraped.get("salary_currency"),
                         salary_period=scraped.get("salary_period"),
                         workplace_type=scraped.get("workplace_type"),
-                        is_closed=scraped.get("is_closed", False),
+                        is_closed=bool(scraped.get("is_closed")),
                         tags=initial_tags,
                         status=STATUS_NOT_CONTACTED
                     )

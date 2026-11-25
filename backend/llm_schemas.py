@@ -23,6 +23,7 @@ def vacancy_schema(language):
     nullable = ["string", "null"]
     return obj({
         "title": field(nullable, d("Exact job title from the vacancy; use the supplied title if absent.", "Точное название должности из вакансии; если его нет, используйте переданное название.")),
+        "company": field(nullable, d("Exact hiring company name from the vacancy, or null if absent (do not return job board domain).", "Точное название компании-работодателя из вакансии или null, если оно не указано (не возвращайте домен сайта вакансий).")),
         "location": field(nullable, d("Location in English, or null if absent.", "Местоположение на английском языке или null, если оно не указано.")),
         "city": field(nullable, d("City in English, or null if absent.", "Город на английском языке или null, если он не указан.")),
         "country": field(nullable, d("Country in English, or null if absent.", "Страна на английском языке или null, если она не указана.")),

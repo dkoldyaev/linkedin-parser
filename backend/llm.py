@@ -280,9 +280,11 @@ async def analyze_vacancy_with_llm(
     if not description or not str(description).strip():
         return {
             "title": None,
+            "company": None,
             "location": None,
             "city": None,
             "country": None,
+            "is_closed": None,
             "summary": "",
             "tech_stack": [],
             "company_info": "",
@@ -379,6 +381,7 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
             is_en = language.startswith("en")
             mock_payload = {
                 "title": title if title else "Software Engineer",
+                "company": company if company else "Tech Corp",
                 "location": location if location else "Berlin, Germany",
                 "city": "Berlin" if not location else location.split(",")[0].strip(),
                 "country": "Germany" if not location or "," not in location else location.split(",")[-1].strip(),
@@ -479,11 +482,16 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
             return s
         return str(val).strip()
 
+    raw_is_closed = data.get("is_closed")
+    clean_is_closed = bool(raw_is_closed) if isinstance(raw_is_closed, bool) else None
+
     return {
         "title": safe_str(data.get("title")),
+        "company": safe_str(data.get("company")),
         "location": safe_str(data.get("location")),
         "city": safe_str(data.get("city")),
         "country": safe_str(data.get("country")),
+        "is_closed": clean_is_closed,
         "summary": safe_str(data.get("summary"), default=""),
         "tech_stack": [t.strip() for t in data.get("tech_stack", []) if isinstance(t, str) and t.strip()],
         "company_info": safe_str(data.get("company_info"), default=""),
