@@ -32,28 +32,10 @@ const ACTIONS_STYLE: React.CSSProperties = {
   justifyContent: 'center',
 };
 
-function resolveNotFoundCopy(locale: string) {
-  if (locale === 'en') {
-    return {
-      title: '404 — Vacancy or page not found',
-      description: 'The requested page does not exist or belongs to another account.',
-      backLabel: 'Back to board',
-      switchAccountLabel: 'Switch account / Sign in',
-    };
-  }
-  return {
-    title: '404 — Вакансия или страница не найдена',
-    description: 'Запрошенная страница не существует или карточка принадлежит другому аккаунту.',
-    backLabel: 'Вернуться на доску',
-    switchAccountLabel: 'Сменить аккаунт / Войти',
-  };
-}
-
 export default function NotFoundPage({ showHeader = false }: NotFoundPageProps): React.ReactElement {
-  const { locale } = useTranslation();
+  const { locale, t } = useTranslation();
   const { user, handleLogout, setUser } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const copy = resolveNotFoundCopy(locale);
 
   const handleLoginSuccess = (userData: User) => {
     setIsLoginOpen(false);
@@ -64,7 +46,7 @@ export default function NotFoundPage({ showHeader = false }: NotFoundPageProps):
   const actionsNode = (
     <div style={ACTIONS_STYLE}>
       <Button asChild variant="primary" size="md" startIcon={BACK_ICON}>
-        <Link to="/">{copy.backLabel}</Link>
+        <Link to="/">{t('pages.notFound.back_btn')}</Link>
       </Button>
       <Button
         variant="secondary"
@@ -72,7 +54,7 @@ export default function NotFoundPage({ showHeader = false }: NotFoundPageProps):
         startIcon={LOGIN_ICON}
         onClick={() => setIsLoginOpen(true)}
       >
-        {copy.switchAccountLabel}
+        {t('pages.notFound.switch_account_btn')}
       </Button>
     </div>
   );
@@ -86,8 +68,8 @@ export default function NotFoundPage({ showHeader = false }: NotFoundPageProps):
         <div style={CONTAINER_STYLE}>
           <EmptyState
             icon={NOT_FOUND_ICON}
-            title={copy.title}
-            description={copy.description}
+            title={t('pages.notFound.title')}
+            description={t('pages.notFound.description')}
             action={actionsNode}
           />
         </div>

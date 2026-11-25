@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon, Text } from '@blueprint/ui-kit';
-import { WORKPLACE_CONFIG } from '../utils/workplace';
+import { getWorkplaceInfo } from '../utils/workplace';
 import { useTranslation } from '../i18n/I18nContext';
 import { Vacancy } from '../types/models';
 
@@ -10,20 +10,16 @@ export interface WorkplaceBadgeProps {
 
 export function WorkplaceBadge({ workplaceType }: WorkplaceBadgeProps): React.ReactElement | null {
   const { t } = useTranslation();
-
-  if (!workplaceType) return null;
-
-  const config = WORKPLACE_CONFIG[workplaceType];
-  const label = config?.fullLabel || config?.label || workplaceType;
-  const icon = config?.icon;
+  const info = getWorkplaceInfo(workplaceType, t);
+  if (!info) return null;
 
   return (
     <Text
       variant="caption"
       tone="accent"
-      startIcon={icon ? <Icon icon={icon} size="xs" /> : undefined}
+      startIcon={<Icon icon={info.icon} size="xs" />}
     >
-      {label || t('vacancyModal.not_specified')}
+      {info.fullLabel}
     </Text>
   );
 }

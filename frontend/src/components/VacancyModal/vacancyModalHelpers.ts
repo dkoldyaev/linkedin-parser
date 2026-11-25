@@ -99,6 +99,13 @@ function buildMatchedSection(matched: MatchedRequirement[], t: TranslateFn): Rep
   };
 }
 
+function resolveSeverityLabel(severity: string | undefined, t: TranslateFn): string {
+  const normalized = severity || 'medium';
+  const key = `vacancyModal.compat_severity.${normalized}`;
+  const translated = t(key);
+  return translated !== key ? translated : normalized;
+}
+
 function buildMissingSection(missing: MissingRequirement[], t: TranslateFn): ReportSectionGroup {
   return {
     id: 'missing',
@@ -108,7 +115,7 @@ function buildMissingSection(missing: MissingRequirement[], t: TranslateFn): Rep
       id: `missing_${idx}`,
       title: m.requirement,
       content: m.reason || '',
-      actionLabel: m.severity || 'medium',
+      actionLabel: resolveSeverityLabel(m.severity, t),
     })),
   };
 }
@@ -133,7 +140,7 @@ function buildGapsSection(gaps: Array<CriticalGap | string>, t: TranslateFn): Re
       id: `gap_${idx}`,
       title: formatGapTitle(g),
       content: formatGapContent(g),
-      actionLabel: 'critical',
+      actionLabel: t('vacancyModal.compat_severity.critical'),
     })),
   };
 }
@@ -186,7 +193,6 @@ export function resolveCompatibilityDisplayScore(
 export function resolveCompatScoreTone(
   displayScore: number | undefined | null
 ): SemanticTone {
-  console.log({displayScore})
   if (displayScore == null) return 'neutral';
   if (displayScore >= 70) return 'success';
   if (displayScore >= 45) return 'warning';
