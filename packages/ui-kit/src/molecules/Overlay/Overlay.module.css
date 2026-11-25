@@ -1,0 +1,86 @@
+@layer ui-molecules {
+  .viewportFrame {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: var(--ui-bg-overlay);
+    backdrop-filter: blur(4px);
+    pointer-events: auto;
+  }
+
+  .surface {
+    position: relative;
+    pointer-events: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .anchoredSurface {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    box-sizing: border-box;
+  }
+
+  .placement-center {
+    align-items: center;
+    justify-content: center;
+    padding: var(--ui-space-4);
+  }
+
+  .placement-top-start {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-top-center {
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-top-end {
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-bottom-start {
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-bottom-center {
+    align-items: flex-end;
+    justify-content: center;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-bottom-end {
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: var(--ui-space-6);
+  }
+
+  .placement-stretch-left {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  .placement-stretch-right {
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: 0;
+  }
+}

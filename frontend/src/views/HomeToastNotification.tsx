@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertBanner } from '@blueprint/ui-kit';
+import { AlertBanner, Overlay } from '@blueprint/ui-kit';
 import type { ToastState } from './home.types';
 
 export interface HomeToastNotificationProps {
@@ -7,11 +7,7 @@ export interface HomeToastNotificationProps {
   onDismiss: () => void;
 }
 
-const TOAST_CONTAINER_STYLE: React.CSSProperties = {
-  position: 'fixed',
-  bottom: 'var(--ui-space-6)',
-  right: 'var(--ui-space-6)',
-  zIndex: 9999,
+const TOAST_WRAPPER_STYLE: React.CSSProperties = {
   maxWidth: '420px',
 };
 
@@ -22,12 +18,14 @@ export default function HomeToastNotification({
   if (!toast) return null;
 
   return (
-    <div style={TOAST_CONTAINER_STYLE}>
-      <AlertBanner
-        tone={toast.type === 'error' ? 'danger' : 'success'}
-        title={toast.message}
-        onDismiss={onDismiss}
-      />
-    </div>
+    <Overlay key={`${toast.type}:${toast.message}`} isOpen placement="bottom-end">
+      <div style={TOAST_WRAPPER_STYLE}>
+        <AlertBanner
+          tone={toast.type === 'error' ? 'danger' : 'success'}
+          title={toast.message}
+          onDismiss={onDismiss}
+        />
+      </div>
+    </Overlay>
   );
 }

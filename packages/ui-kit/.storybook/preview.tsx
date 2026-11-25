@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import type { Preview } from '@storybook/react-vite';
+import { OverlayProvider } from '../src/utils/overlay';
 import { blueprintDarkTheme } from './blueprintTheme';
 import '../src/tokens/tokens.css';
 import '../src/stories/storybook-canvas.css';
@@ -46,13 +47,15 @@ const preview: Preview = {
       }, [activeTheme, activeDir]);
 
       return (
-        <div
-          data-theme={activeTheme}
-          dir={activeDir}
-          className="sb-blueprint-canvas"
-        >
-          <Story />
-        </div>
+        <OverlayProvider>
+          <div
+            data-theme={activeTheme}
+            dir={activeDir}
+            className="sb-blueprint-canvas"
+          >
+            <Story />
+          </div>
+        </OverlayProvider>
       );
     },
   ],
@@ -116,6 +119,7 @@ const preview: Preview = {
             'FormField',
             'SearchBar',
             'Select',
+            'Overlay',
             'Tabs',
             'Tooltip',
             'AlertBanner',

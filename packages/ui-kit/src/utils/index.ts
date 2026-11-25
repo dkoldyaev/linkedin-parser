@@ -7,4 +7,5 @@ export {
   unitsToPx,
 } from './grid';
 export * from './hooks';
+export * from './overlay';
 export * from './responsive';

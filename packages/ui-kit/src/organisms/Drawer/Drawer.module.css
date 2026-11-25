@@ -2,7 +2,6 @@
   .overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--ui-z-drawer);
     background-color: var(--ui-bg-overlay);
     backdrop-filter: blur(2px);
     transition: opacity var(--ui-transition-fast);
@@ -12,7 +11,6 @@
     position: fixed;
     top: 0;
     bottom: 0;
-    z-index: calc(var(--ui-z-drawer) + 1);
     display: flex;
     flex-direction: column;
     width: min(100vw, calc(var(--ui-grid-cell) * 10));

@@ -1,6 +1,6 @@
 import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { cn } from '../../utils';
+import { cn, useOverlayContainer } from '../../utils';
 import { ModalContext, type ModalContextValue } from './ModalContext';
 import { ModalHeader, ModalHeaderMeta, type ModalHeaderProps, type ModalHeaderMetaProps } from './ModalHeader';
 import { ModalBody, type ModalBodyProps } from './ModalBody';
@@ -51,6 +51,7 @@ export function Modal({
   children,
   ...rest
 }: ModalProps): React.ReactElement {
+  const overlayContainer = useOverlayContainer();
   const contextValue: ModalContextValue = React.useMemo(
     () => ({
       isOpen,
@@ -92,7 +93,7 @@ export function Modal({
   return (
     <ModalContext.Provider value={contextValue}>
       <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogPrimitive.Portal>
+        <DialogPrimitive.Portal container={overlayContainer}>
           <DialogPrimitive.Overlay className={styles.overlay}>
             <DialogPrimitive.Content
               ref={setContentRef}

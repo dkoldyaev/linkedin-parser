@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { OverlayProvider } from '../../../utils';
 import { VacancyDetailsModal } from '../VacancyDetailsModal';
 
 describe('VacancyDetailsModal', () => {
@@ -36,7 +37,7 @@ describe('VacancyDetailsModal', () => {
   };
 
   it('renders modal header, title, company, and meta badges', () => {
-    render(<VacancyDetailsModal {...defaultProps} />);
+    render(<VacancyDetailsModal {...defaultProps} />, { wrapper: OverlayProvider });
 
     expect(screen.getByText('Staff Frontend Architect')).toBeInTheDocument();
     expect(screen.getByText('Stripe')).toBeInTheDocument();
@@ -46,7 +47,7 @@ describe('VacancyDetailsModal', () => {
   });
 
   it('renders status buttons and switches stage on click', () => {
-    render(<VacancyDetailsModal {...defaultProps} />);
+    render(<VacancyDetailsModal {...defaultProps} />, { wrapper: OverlayProvider });
 
     const offerBtn = screen.getByRole('button', { name: 'Оффер' });
     fireEvent.click(offerBtn);
@@ -54,7 +55,7 @@ describe('VacancyDetailsModal', () => {
   });
 
   it('calls onReject when reject button is clicked', () => {
-    render(<VacancyDetailsModal {...defaultProps} />);
+    render(<VacancyDetailsModal {...defaultProps} />, { wrapper: OverlayProvider });
 
     const rejectBtn = screen.getByRole('button', { name: /В НЕ ПОДОШЛО/i });
     fireEvent.click(rejectBtn);
@@ -66,7 +67,8 @@ describe('VacancyDetailsModal', () => {
       <VacancyDetailsModal
         {...defaultProps}
         cvAssessment="High level match for UI platform role."
-      />
+      />,
+      { wrapper: OverlayProvider }
     );
 
     const compatTab = screen.getByRole('tab', { name: /Совместимость с CV/i });

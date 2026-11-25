@@ -9,6 +9,7 @@ import { Stepper } from '../molecules/Stepper';
 import { Tabs } from '../molecules/Tabs/Tabs';
 import { Modal } from '../organisms/Modal/Modal';
 import { Badge } from '../atoms';
+import { OverlayProvider } from '../utils';
 
 describe('UI-Kit GitHub Issues Tests', () => {
   describe('Issue #8: ColorPicker arbitrary hex/RGB colors and presets', () => {
@@ -73,7 +74,8 @@ describe('UI-Kit GitHub Issues Tests', () => {
           ]}
           footerSlot={<span data-testid="drawer-footer">Status OK</span>}
           data-testid="standalone-drawer"
-        />
+        />,
+        { wrapper: OverlayProvider }
       );
 
       const drawer = screen.getByTestId('standalone-drawer');
@@ -180,7 +182,8 @@ describe('UI-Kit GitHub Issues Tests', () => {
           data-testid="custom-width-modal"
         >
           <div>Modal Body</div>
-        </Modal>
+        </Modal>,
+        { wrapper: OverlayProvider }
       );
 
       const modalContent = screen.getByTestId('custom-width-modal');

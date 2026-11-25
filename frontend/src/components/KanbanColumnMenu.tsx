@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { MoreVertical, Edit2, Trash2 } from 'lucide-react';
-import { Button, Icon } from '@blueprint/ui-kit';
+import { Button, Icon, Overlay } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 import type { BoardColumn } from '../types/models';
 
@@ -14,10 +14,6 @@ export interface KanbanColumnMenuProps {
 }
 
 const MENU_POPOVER_STYLE: React.CSSProperties = {
-  position: 'absolute',
-  top: '100%',
-  right: 0,
-  zIndex: 100,
   minWidth: '180px',
   padding: 'var(--ui-space-1)',
   backgroundColor: 'var(--ui-bg-surface)',
@@ -26,6 +22,11 @@ const MENU_POPOVER_STYLE: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 'var(--ui-space-1)',
+};
+
+const MENU_ITEM_STYLE: React.CSSProperties = {
+  width: '100%',
+  justifyContent: 'flex-start',
 };
 
 const MORE_ICON = <Icon icon={MoreVertical} size="xs" />;
@@ -41,10 +42,12 @@ export default function KanbanColumnMenu({
   onDelete,
 }: KanbanColumnMenuProps): React.ReactElement {
   const { t } = useTranslation();
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+    <div style={{ display: 'flex', alignItems: 'center' }}>
       <Button
+        ref={triggerRef}
         variant="ghost"
         size="icon-sm"
         onClick={(e) => {
@@ -57,14 +60,20 @@ export default function KanbanColumnMenu({
         {MORE_ICON}
       </Button>
 
-      {isMenuOpen && (
+      <Overlay
+        isOpen={isMenuOpen}
+        anchorRef={triggerRef}
+        placement="bottom-end"
+        offsetPx={4}
+        onClose={() => onToggleMenu(col.id)}
+      >
         <div onClick={(e) => e.stopPropagation()} style={MENU_POPOVER_STYLE}>
           <Button
             variant="ghost"
             size="sm"
             startIcon={EDIT_ICON}
             onClick={() => onEdit(col)}
-            style={{ width: '100%', justifyContent: 'flex-start' }}
+            style={MENU_ITEM_STYLE}
           >
             {t('kanban.edit_column')}
           </Button>
@@ -76,13 +85,13 @@ export default function KanbanColumnMenu({
               tone="danger"
               startIcon={TRASH_ICON}
               onClick={() => onDelete(col)}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={MENU_ITEM_STYLE}
             >
               {t('kanban.delete_column')}
             </Button>
           )}
         </div>
-      )}
+      </Overlay>
     </div>
   );
 }

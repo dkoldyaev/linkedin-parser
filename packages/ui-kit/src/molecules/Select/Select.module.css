@@ -103,7 +103,6 @@
     box-shadow:
       var(--ui-shadow-md),
       inset 0 0 0 1px var(--ui-border-strong);
-    z-index: var(--ui-z-dropdown);
     min-width: var(--radix-select-trigger-width);
     max-height: var(--radix-select-content-available-height);
   }

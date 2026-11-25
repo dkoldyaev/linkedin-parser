@@ -52,3 +52,10 @@ export {
   type AccordionProps,
   type AccordionItem,
 } from './Accordion';
+export {
+  Overlay,
+  type OverlayProps,
+  type OverlayPlacement,
+  type OverlayViewportPlacement,
+  type OverlayAnchorPlacement,
+} from './Overlay';

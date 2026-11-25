@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { OverlayProvider } from '../../../utils';
 import { FilterBar } from '../FilterBar';
 
 describe('FilterBar molecule', () => {
@@ -28,7 +29,8 @@ describe('FilterBar molecule', () => {
         selectedTags={['TypeScript']}
         onToggleTag={onToggleTag}
         onReset={onReset}
-      />
+      />,
+      { wrapper: OverlayProvider }
     );
 
     expect(screen.getByRole('toolbar', { name: 'Filters' })).toBeInTheDocument();

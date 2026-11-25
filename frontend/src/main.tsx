@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { OverlayProvider } from '@blueprint/ui-kit';
 import '@blueprint/ui-kit/styles.css';
 import './index.css';
 import './design-system.css';
@@ -13,9 +14,11 @@ if (!rootElement) {
 }
 
 createRoot(rootElement).render(
-  <BrowserRouter>
-    <I18nProvider>
-      <AppRouter />
-    </I18nProvider>
-  </BrowserRouter>
+  <OverlayProvider>
+    <BrowserRouter>
+      <I18nProvider>
+        <AppRouter />
+      </I18nProvider>
+    </BrowserRouter>
+  </OverlayProvider>
 );

@@ -1,7 +1,7 @@
 import React from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Text } from '../../atoms';
-import { cn } from '../../utils';
+import { cn, useOverlayContainer } from '../../utils';
 import styles from './Tooltip.module.css';
 
 export interface TooltipProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> {
@@ -25,11 +25,13 @@ export function Tooltip({
   className,
   ...rest
 }: TooltipProps): React.ReactElement {
+  const overlayContainer = useOverlayContainer();
+
   return (
     <TooltipPrimitive.Provider delayDuration={delayDuration}>
       <TooltipPrimitive.Root>
         <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-        <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Portal container={overlayContainer}>
           <TooltipPrimitive.Content
             side={side}
             align={align}

@@ -187,16 +187,10 @@
     --ui-shadow-border: inset 0 0 0 1px var(--ui-border-subtle);
     --ui-shadow-focus: inset 0 0 0 1px var(--ui-border-focus);
 
-    /* 9. Z-Index Scale */
+    /* 9. Local Stacking Scale (inside isolated app root; overlays rely on DOM order in OverlayProvider) */
     --ui-z-base: 1;
     --ui-z-elevated: 2;
     --ui-z-sticky: 20;
-    --ui-z-dropdown: 50;
-    --ui-z-drawer: 100;
-    --ui-z-modal-backdrop: 990;
-    --ui-z-modal: 999;
-    --ui-z-tooltip: 1100;
-    --ui-z-toast: 9999;
 
     /* 10. Motion & Transitions */
     --ui-transition-fast: 140ms ease;

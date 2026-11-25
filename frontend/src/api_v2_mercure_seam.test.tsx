@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { OverlayProvider } from '@blueprint/ui-kit';
 import { I18nProvider } from './i18n/I18nContext';
 import HomePage from './views/HomePage';
 
@@ -66,15 +67,17 @@ describe('Symfony /api/v2 + Mercure Realtime SPA Integration', () => {
     ];
 
     render(
-      <MemoryRouter initialEntries={['/?is_closed=false']}>
-        <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
-          <HomePage
-            user={{ id: 7, email: 'user7@test.local', is_anonymous: false }}
-            initialColumns={cols}
-            initialVacancies={[]}
-          />
-        </I18nProvider>
-      </MemoryRouter>
+      <OverlayProvider>
+        <MemoryRouter initialEntries={['/?is_closed=false']}>
+          <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
+            <HomePage
+              user={{ id: 7, email: 'user7@test.local', is_anonymous: false }}
+              initialColumns={cols}
+              initialVacancies={[]}
+            />
+          </I18nProvider>
+        </MemoryRouter>
+      </OverlayProvider>
     );
 
     await waitFor(() => {

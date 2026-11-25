@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
-import { useFocusTrap } from '../../hooks';
-import { cn } from '../../utils';
+import { cn, useOverlayContainer } from '../../utils';
 import styles from './Drawer.module.css';
 
 export interface DrawerNavLinkItem {
@@ -55,19 +54,7 @@ export function Drawer({
   overlayClassName,
   ...rest
 }: DrawerProps): React.ReactElement {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, isOpen);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  const overlayContainer = useOverlayContainer();
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -77,12 +64,11 @@ export function Drawer({
 
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogPrimitive.Portal>
+      <DialogPrimitive.Portal container={overlayContainer}>
         <DialogPrimitive.Overlay
           className={cn(styles.overlay, overlayClassName)}
         />
         <DialogPrimitive.Content
-          ref={containerRef}
           aria-modal="true"
           className={cn(
             styles.drawer,

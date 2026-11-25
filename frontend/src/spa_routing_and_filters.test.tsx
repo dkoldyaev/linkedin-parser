@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { OverlayProvider } from '@blueprint/ui-kit';
 import { I18nProvider } from './i18n/I18nContext';
 import AppRouter from './AppRouter';
 import type { Vacancy, BoardColumn, User } from './types/models';
@@ -73,9 +74,11 @@ function createSpaRouter(initialEntries: string[]) {
       {
         path: '*',
         element: (
-          <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
-            <AppRouter initialUser={TEST_USER} />
-          </I18nProvider>
+          <OverlayProvider>
+            <I18nProvider initialLocale="ru" initialSalaryFormat="month" initialSalaryCurrency="">
+              <AppRouter initialUser={TEST_USER} />
+            </I18nProvider>
+          </OverlayProvider>
         ),
       },
     ],

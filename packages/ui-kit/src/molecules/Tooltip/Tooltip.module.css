@@ -1,6 +1,5 @@
 @layer ui-molecules {
   .content {
-    z-index: var(--ui-z-tooltip);
     max-width: calc(var(--ui-grid-cell) * 9);
     padding: var(--ui-space-2) var(--ui-space-3);
     font-family: var(--ui-font-mono);

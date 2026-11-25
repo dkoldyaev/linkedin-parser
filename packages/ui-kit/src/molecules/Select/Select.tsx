@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { Icon, Text } from '../../atoms';
-import { cn } from '../../utils';
+import { cn, useOverlayContainer } from '../../utils';
 import styles from './Select.module.css';
 
 export interface SelectOption {
@@ -51,6 +51,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
   },
   ref
 ) {
+  const overlayContainer = useOverlayContainer();
   const isFilter = variant === 'filter';
   const hasSelectedValue =
     value !== undefined && value !== '' && value !== EMPTY_VALUE_SENTINEL;
@@ -113,7 +114,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
 
-      <SelectPrimitive.Portal>
+      <SelectPrimitive.Portal container={overlayContainer}>
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}

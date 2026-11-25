@@ -1,0 +1,6 @@
+@layer ui-utilities {
+  .appRoot {
+    isolation: isolate;
+    min-height: 100%;
+  }
+}
