@@ -1272,13 +1272,23 @@ async def create_vacancy(
         comment=None,
         created_at=v.created_at,
     )
+    user_id = current_user.id
     db.add(history_entry)
-    touch_user_board_interaction(db, current_user.id)
+    touch_user_board_interaction(db, user_id)
     db.commit()
     db.refresh(v)
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    has_desc = bool(v.description and v.description.strip())
+    should_enqueue_ai = False
+    if has_desc:
+        should_enqueue_ai = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first() is not None
+
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    v_id, v_title, v_company, v_url = v.id, v.title, v.company, v.url
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_CREATED,
             data={
@@ -1289,18 +1299,16 @@ async def create_vacancy(
         )
 
     # If vacancy has a description and user has an approved CV, trigger scoring / AI analysis in background
-    if v.description and v.description.strip():
-        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
-        if has_approved_cv:
-            await queue_manager.enqueue_ai(
-                vacancy_id=v.id,
-                user_id=current_user.id,
-                title=v.title,
-                company=v.company,
-                url=v.url,
-            )
+    if should_enqueue_ai:
+        await queue_manager.enqueue_ai(
+            vacancy_id=v_id,
+            user_id=user_id,
+            title=v_title,
+            company=v_company,
+            url=v_url,
+        )
 
-    return v
+    return vac_resp
 
 
 @api_v2.post("/vacancies/reorder", tags=["Vacancies"])
@@ -1369,14 +1377,18 @@ async def reorder_vacancies(
         v.sort_order = float(position)
         changed.append(v)
 
-    touch_user_board_interaction(db, current_user.id)
+    user_id = current_user.id
+    touch_user_board_interaction(db, user_id)
     db.commit()
     for v in changed:
         db.refresh(v)
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    for v in changed:
-        vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    validated = [VacancyResponse.model_validate(v) for v in changed]
+    vacancy_payloads = [item.model_dump(mode="json") for item in validated]
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+    for vacancy_data in vacancy_payloads:
         await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
@@ -1385,7 +1397,7 @@ async def reorder_vacancies(
                 },
                 topic=mercure_topic,
             )
-    return [VacancyResponse.model_validate(v) for v in changed]
+    return validated
 
 
 @api_v2.patch("/vacancies/{vacancy_id}", response_model=VacancyResponse, tags=["Vacancies"])
@@ -1458,12 +1470,22 @@ async def update_vacancy(
             VacancyCVAnalysis.user_id == current_user.id
         ).update({"is_outdated": True})
 
-    touch_user_board_interaction(db, current_user.id)
+    user_id = current_user.id
+    touch_user_board_interaction(db, user_id)
     db.commit()
     db.refresh(v)
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    description_changed = bool("description" in update_data and v.description and v.description.strip())
+    should_enqueue_ai = False
+    if description_changed:
+        should_enqueue_ai = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first() is not None
+
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    v_id, v_title, v_company, v_url = v.id, v.title, v.company, v.url
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
@@ -1474,19 +1496,16 @@ async def update_vacancy(
         )
 
     # If description was updated and present, and user has an approved CV, trigger scoring / AI analysis in background
-    description_changed = "description" in update_data and v.description and v.description.strip()
-    if description_changed:
-        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
-        if has_approved_cv:
-            await queue_manager.enqueue_ai(
-                vacancy_id=v.id,
-                user_id=current_user.id,
-                title=v.title,
-                company=v.company,
-                url=v.url,
-            )
+    if should_enqueue_ai:
+        await queue_manager.enqueue_ai(
+            vacancy_id=v_id,
+            user_id=user_id,
+            title=v_title,
+            company=v_company,
+            url=v_url,
+        )
 
-    return v
+    return vac_resp
 
 
 @api_v2.patch("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse, tags=["Vacancies"])
@@ -1508,14 +1527,17 @@ async def update_vacancy_history_comment(
     if not history_item:
         raise HTTPException(status_code=404, detail="History record not found")
 
+    user_id = current_user.id
     history_item.comment = payload.comment
     history_item.updated_at = datetime.datetime.utcnow()
-    touch_user_board_interaction(db, current_user.id)
+    touch_user_board_interaction(db, user_id)
     db.commit()
     db.refresh(v)
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    db.close()
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
@@ -1524,7 +1546,7 @@ async def update_vacancy_history_comment(
             },
             topic=mercure_topic,
         )
-    return v
+    return vac_resp
 
 
 @api_v2.get("/vacancies/{vacancy_id}/history", response_model=List[VacancyHistoryItem], tags=["Vacancies"])
@@ -1578,15 +1600,18 @@ async def add_vacancy_history_entry(
         comment=payload.comment,
         created_at=datetime.datetime.utcnow(),
     )
+    user_id = current_user.id
     v.status = payload.to_status
     v.lane = to_lane
     db.add(history_entry)
-    touch_user_board_interaction(db, current_user.id)
+    touch_user_board_interaction(db, user_id)
     db.commit()
     db.refresh(v)
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    db.close()
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
@@ -1595,7 +1620,7 @@ async def add_vacancy_history_entry(
             },
             topic=mercure_topic,
         )
-    return v
+    return vac_resp
 
 
 @api_v2.delete("/vacancies/{vacancy_id}/history/{history_id}", response_model=VacancyResponse, tags=["Vacancies"])
@@ -1616,13 +1641,16 @@ async def delete_vacancy_history_entry(
     if not history_item:
         raise HTTPException(status_code=404, detail="History record not found")
 
+    user_id = current_user.id
     db.delete(history_item)
-    touch_user_board_interaction(db, current_user.id)
+    touch_user_board_interaction(db, user_id)
     db.commit()
     db.refresh(v)
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    db.close()
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
@@ -1631,7 +1659,7 @@ async def delete_vacancy_history_entry(
             },
             topic=mercure_topic,
         )
-    return v
+    return vac_resp
 
 
 @api_v2.delete("/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Vacancies"])
@@ -1644,12 +1672,14 @@ async def delete_vacancy(
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
     
+    user_id = current_user.id
     title = v.title
     db.delete(v)
-    touch_user_board_interaction(db, current_user.id)
+    touch_user_board_interaction(db, user_id)
     db.commit()
+    db.close()
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_DELETED,
             data={
@@ -1724,11 +1754,13 @@ async def batch_import_vacancies(
             existing_vacancies=duplicate_infos,
         )
 
+    user_id = current_user.id
     vacancy_ids = []
+    created_events_payloads = []
     for url in urls_to_process:
         job_id = extract_job_id(url)
         v = Vacancy(
-            user_id=current_user.id,
+            user_id=user_id,
             job_id=job_id,
             url=url,
             title=url[:255],
@@ -1749,9 +1781,13 @@ async def batch_import_vacancies(
         db.commit()
         db.refresh(v)
         vacancy_ids.append(v.id)
-
-        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+        created_events_payloads.append((url, vacancy_data))
+
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+    for url, vacancy_data in created_events_payloads:
         await publish_mercure_event(
             event_type=EVENT_VACANCY_CREATED,
             data={
@@ -1766,7 +1802,7 @@ async def batch_import_vacancies(
         urls_to_process,
         payload.default_tags,
         vacancy_ids=vacancy_ids,
-        user_id=current_user.id,
+        user_id=user_id,
         force_cv_scoring=False,
     )
     msg = f"{len(tasks)} вакансий успешно добавлено в очередь на обработку"
@@ -2261,15 +2297,21 @@ async def update_column(
     if payload.has_lanes is not None:
         target["has_lanes"] = bool(payload.has_lanes)
 
-    save_user_columns(db, current_user.id, cols)
-    touch_user_board_interaction(db, current_user.id)
+    user_id = current_user.id
+    save_user_columns(db, user_id, cols)
+    touch_user_board_interaction(db, user_id)
     db.commit()
 
+    renamed_payloads = []
     if vacancies_to_rename:
-        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         for v in vacancies_to_rename:
             db.refresh(v)
-            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            renamed_payloads.append(VacancyResponse.model_validate(v).model_dump(mode="json"))
+    db.close()
+
+    if renamed_payloads:
+        mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+        for vacancy_data in renamed_payloads:
             await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
@@ -2322,15 +2364,21 @@ async def delete_column(
         v.sort_order = None
         v.lane = 0
 
-    save_user_columns(db, current_user.id, remaining_cols)
-    touch_user_board_interaction(db, current_user.id)
+    user_id = current_user.id
+    save_user_columns(db, user_id, remaining_cols)
+    touch_user_board_interaction(db, user_id)
     db.commit()
 
+    migrated_payloads = []
     if vacancies_to_migrate:
-        mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
         for v in vacancies_to_migrate:
             db.refresh(v)
-            vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+            migrated_payloads.append(VacancyResponse.model_validate(v).model_dump(mode="json"))
+    db.close()
+
+    if migrated_payloads:
+        mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
+        for vacancy_data in migrated_payloads:
             await publish_mercure_event(
                 event_type=EVENT_VACANCY_UPDATED,
                 data={
@@ -2614,16 +2662,19 @@ async def save_approved_cv(
         VacancyCVAnalysis.user_id == current_user.id
     ).update({"is_outdated": True})
 
+    user_id = current_user.id
     # Clear old parsed profile so it is re-extracted
     approved_cv.parsed_profile = None
 
     db.commit()
     db.refresh(approved_cv)
+    cv_resp = ApprovedCVResponse.model_validate(approved_cv)
+    db.close()
 
     # Enqueue isolated background task to parse CV qualifications first
-    await queue_manager.enqueue_cv_parsing(current_user.id)
+    await queue_manager.enqueue_cv_parsing(user_id)
 
-    return ApprovedCVResponse.model_validate(approved_cv)
+    return cv_resp
 
 
 @api_v2.delete("/cv", status_code=status.HTTP_204_NO_CONTENT, tags=["CV"])

@@ -94,6 +94,7 @@ def sync_db_queue_item(
 
 
 _queue_state_publish_tasks: set = set()
+_queue_state_pending_users: set = set()
 
 
 def schedule_queue_state_publish(user_id: int) -> None:
@@ -103,7 +104,17 @@ def schedule_queue_state_publish(user_id: int) -> None:
     except RuntimeError:
         logger.warning(f"No running event loop; queue_state for user {user_id} not published")
         return
-    publish_task = loop.create_task(queue_manager.publish_queue_state(user_id))
+    if user_id in _queue_state_pending_users:
+        return
+    _queue_state_pending_users.add(user_id)
+
+    async def _publish_for_user():
+        try:
+            await queue_manager.publish_queue_state(user_id)
+        finally:
+            _queue_state_pending_users.discard(user_id)
+
+    publish_task = loop.create_task(_publish_for_user())
     _queue_state_publish_tasks.add(publish_task)
     publish_task.add_done_callback(_queue_state_publish_tasks.discard)
 
@@ -1561,90 +1572,125 @@ class RedisQueueManager:
         logger.info(f"[Stage 2 - AI] Processing task {task.task_id} ({active_stage}) for user {task.user_id}")
 
         try:
+            user_id = task.user_id
+            provider = os.getenv("LLM_PROVIDER")
             with SessionLocal() as db:
-                user_id = task.user_id
-                provider = os.getenv("LLM_PROVIDER")
                 language = get_setting_or_env(db, "locale", os.getenv("LOCALE", "ru"), user_id=user_id).lower()
 
-                # -------------------------------------------------------------
-                # Branch A: CV Parsing Task
-                # -------------------------------------------------------------
-                if is_cv_parsing:
+            # -------------------------------------------------------------
+            # Branch A: CV Parsing Task
+            # -------------------------------------------------------------
+            if is_cv_parsing:
+                with SessionLocal() as db:
                     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
-                    if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
-                        logger.warning(f"[Stage 2 - AI] No approved CV content to parse for user {user_id}")
-                    else:
-                        parsed = await parse_cv_qualifications_with_llm(
-                            cv_text=approved_cv.content,
-                            provider=provider,
-                            language=language,
-                            db=db,
-                            user_id=user_id,
-                        )
-                        approved_cv.parsed_profile = parsed
-                        db.commit()
-                        logger.info(f"[Stage 2 - AI] Successfully parsed and cached CV profile for user {user_id}")
+                    cv_content = approved_cv.content if approved_cv else None
 
-                        # Trigger scoring tasks for vacancies
+                if not cv_content or not cv_content.strip():
+                    logger.warning(f"[Stage 2 - AI] No approved CV content to parse for user {user_id}")
+                else:
+                    parsed = await parse_cv_qualifications_with_llm(
+                        cv_text=cv_content,
+                        provider=provider,
+                        language=language,
+                        db=None,
+                        user_id=user_id,
+                    )
+                    with SessionLocal() as db:
+                        approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                        if approved_cv:
+                            approved_cv.parsed_profile = parsed
+                            db.commit()
+                            logger.info(f"[Stage 2 - AI] Successfully parsed and cached CV profile for user {user_id}")
                         vacancies = (
                             db.query(Vacancy)
                             .filter(Vacancy.user_id == user_id, Vacancy.status == STATUS_NOT_CONTACTED)
                             .all()
                         )
-                        if vacancies:
-                            await self.enqueue_cv_scoring(vacancies, user_id=user_id, force=True)
+                        for v in vacancies:
+                            db.expunge(v)
 
-                    task.status = "completed"
-                    task.stage = "completed"
-                    task.updated_at = time.time()
-                    async with self.redis.pipeline(transaction=True) as pipe:
-                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        pipe.hincrby(STATS_KEY, "completed", 1)
-                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
-                        pipe.srem(AI_PROCESSING_SET, task_id)
-                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
-                        await pipe.execute()
-                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, None)
-                    await self.publish_queue_state(user_id)
-                    return
+                    if vacancies:
+                        await self.enqueue_cv_scoring(vacancies, user_id=user_id, force=True)
 
-                # -------------------------------------------------------------
-                # Branch B: Vacancy Analysis & Scoring Tasks
-                # -------------------------------------------------------------
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, None)
+                await self.publish_queue_state(user_id)
+                return
+
+            # -------------------------------------------------------------
+            # Branch B: Vacancy Analysis & Scoring Tasks
+            # -------------------------------------------------------------
+            with SessionLocal() as db:
                 vacancy = db.query(Vacancy).filter(Vacancy.id == task.vacancy_id, Vacancy.user_id == task.user_id).first()
                 if not vacancy:
                     raise RuntimeError(f"Vacancy #{task.vacancy_id} not found in DB")
+                vac_id = vacancy.id
+                vac_title = vacancy.title
+                vac_company = vacancy.company
+                vac_location = vacancy.location or ""
+                vac_description = vacancy.description or ""
+                vac_extracted_reqs = vacancy.extracted_requirements
 
-                has_description = bool(vacancy.description and vacancy.description.strip())
-                if not has_description:
-                    logger.info(f"[Stage 2 - AI] Vacancy #{vacancy.id} has no description; skipping AI content generation.")
-                    task.status = "completed"
-                    task.stage = "completed"
-                    task.updated_at = time.time()
-                    async with self.redis.pipeline(transaction=True) as pipe:
-                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        pipe.hincrby(STATS_KEY, "completed", 1)
-                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
-                        pipe.srem(AI_PROCESSING_SET, task_id)
-                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
-                        await pipe.execute()
-                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
-                    return
+            has_description = bool(vac_description and vac_description.strip())
+            if not has_description:
+                logger.info(f"[Stage 2 - AI] Vacancy #{vac_id} has no description; skipping AI content generation.")
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vac_id)
+                return
 
-                if not is_cv_scoring_only:
-                    # 1. Summarization & metadata extraction
-                    llm_res = await analyze_vacancy_with_llm(
-                        title=vacancy.title,
-                        company=vacancy.company,
-                        location=vacancy.location or "",
-                        description=vacancy.description or "",
-                        provider=provider,
-                        language=language,
-                        db=db,
-                        user_id=user_id,
-                    )
+            if not is_cv_scoring_only:
+                # 1. Summarization & metadata extraction (outside DB session)
+                llm_res = await analyze_vacancy_with_llm(
+                    title=vac_title,
+                    company=vac_company,
+                    location=vac_location,
+                    description=vac_description,
+                    provider=provider,
+                    language=language,
+                    db=None,
+                    user_id=user_id,
+                )
 
-                    # Update vacancy in DB
+                effective_title = vac_title
+                if llm_res.get("title") and (not vac_title or vac_title.startswith("http") or vac_title == "Не удалось загрузить страницу"):
+                    effective_title = llm_res["title"]
+
+                # 2. Extract structured requirements (outside DB session)
+                vac_full_desc = f"{effective_title}\n{vac_description}"
+                extracted_reqs = await extract_vacancy_requirements_with_llm(
+                    vacancy_text=vac_full_desc,
+                    provider=provider,
+                    language=language,
+                    db=None,
+                    user_id=user_id,
+                )
+
+                # Save results and read CV state in a short DB session
+                needs_cv_parsing = False
+                vacancy_for_scoring = None
+                with SessionLocal() as db:
+                    vacancy = db.query(Vacancy).filter(Vacancy.id == vac_id, Vacancy.user_id == user_id).first()
+                    if not vacancy:
+                        raise RuntimeError(f"Vacancy #{vac_id} not found in DB")
+
                     if llm_res.get("title") and (not vacancy.title or vacancy.title.startswith("http") or vacancy.title == "Не удалось загрузить страницу"):
                         vacancy.title = llm_res["title"]
                     if llm_res.get("location") and (not vacancy.location or vacancy.location == "Not specified"):
@@ -1672,126 +1718,137 @@ class RedisQueueManager:
                     if llm_res.get("is_closed") is not None:
                         vacancy.is_closed = llm_res["is_closed"]
 
-                    # 2. Extract structured requirements and cache in vacancy
-                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
-                    extracted_reqs = await extract_vacancy_requirements_with_llm(
-                        vacancy_text=vac_full_desc,
-                        provider=provider,
-                        language=language,
-                        db=db,
-                        user_id=user_id,
-                    )
                     vacancy.extracted_requirements = extracted_reqs
                     db.commit()
+                    db.refresh(vacancy)
+                    vacancy_resp = VacancyResponse.model_validate(vacancy)
+                    vacancy_data = vacancy_resp.model_dump(mode="json")
 
-                    # Check if user has an approved CV to trigger scoring
                     approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
                     if approved_cv and approved_cv.content and approved_cv.content.strip():
                         if not approved_cv.parsed_profile:
-                            await self.enqueue_cv_parsing(user_id=user_id)
+                            needs_cv_parsing = True
                         else:
-                            await self.enqueue_cv_scoring([vacancy], user_id=user_id, force=True)
+                            db.expunge(vacancy)
+                            vacancy_for_scoring = vacancy
 
-                    task.status = "completed"
-                    task.stage = "completed"
-                    task.updated_at = time.time()
-                    async with self.redis.pipeline(transaction=True) as pipe:
-                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        pipe.hincrby(STATS_KEY, "completed", 1)
-                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
-                        pipe.srem(AI_PROCESSING_SET, task_id)
-                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
-                        await pipe.execute()
-                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
-
-                    vacancy_resp = VacancyResponse.model_validate(vacancy)
-                    vacancy_data = vacancy_resp.model_dump(mode="json")
-                    total_rem = await self._calculate_total_remaining(user_id=task.user_id)
-                    await publish_mercure_event(
-                        event_type=EVENT_VACANCY_UPDATED,
-                        data={
-                            "message_code": MSG_VACANCY_UPDATED,
-                            "vacancy": vacancy_data,
-                            "task_id": task.task_id,
-                            "batch_id": task.batch_id,
-                            "url": task.url,
-                            "total_remaining": total_rem,
-                        },
-                        topic=mercure_topic,
-                    )
-                    return
-
-                # -------------------------------------------------------------
-                # Branch C: Dedicated CV Scoring Task (Two Prepared JSON Profiles)
-                # -------------------------------------------------------------
-                approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
-                if not approved_cv or not approved_cv.content or not approved_cv.content.strip():
-                    logger.info(f"[Stage 2 - AI] No CV available for scoring vacancy #{vacancy.id}")
-                    task.status = "completed"
-                    task.stage = "completed"
-                    task.updated_at = time.time()
-                    async with self.redis.pipeline(transaction=True) as pipe:
-                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        pipe.hincrby(STATS_KEY, "completed", 1)
-                        pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
-                        pipe.srem(AI_PROCESSING_SET, task_id)
-                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
-                        await pipe.execute()
-                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
-                    return
-
-                # If CV or Vacancy is missing cached structured JSON, trigger preparation task and stop
-                if not approved_cv.parsed_profile:
-                    logger.info(f"[Stage 2 - AI] CV parsed_profile missing for user {user_id}. Enqueuing cv_parsing.")
+                if needs_cv_parsing:
                     await self.enqueue_cv_parsing(user_id=user_id)
-                    task.status = "completed"
-                    task.stage = "completed"
-                    task.updated_at = time.time()
-                    async with self.redis.pipeline(transaction=True) as pipe:
-                        pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
-                        pipe.srem(AI_PROCESSING_SET, task_id)
-                        pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
-                        await pipe.execute()
-                    sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
-                    return
+                elif vacancy_for_scoring is not None:
+                    await self.enqueue_cv_scoring([vacancy_for_scoring], user_id=user_id, force=True)
 
-                if not vacancy.extracted_requirements:
-                    logger.info(f"[Stage 2 - AI] Vacancy extracted_requirements missing for #{vacancy.id}. Extracting now.")
-                    vac_full_desc = f"{vacancy.title}\n{vacancy.description}"
-                    vacancy.extracted_requirements = await extract_vacancy_requirements_with_llm(
-                        vacancy_text=vac_full_desc,
-                        provider=provider,
-                        language=language,
-                        db=db,
-                        user_id=user_id,
-                    )
-                    db.commit()
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vac_id)
 
-                # Execute matching on prepared JSON profiles
-                logger.info(f"[Stage 2 - AI] Running structured CV matching for vacancy #{vacancy.id} (user {user_id})")
-                compat_res = await match_structured_profiles_with_llm(
-                    vacancy_profile=vacancy.extracted_requirements,
-                    cv_profile=approved_cv.parsed_profile,
+                total_rem = await self._calculate_total_remaining(user_id=task.user_id)
+                await publish_mercure_event(
+                    event_type=EVENT_VACANCY_UPDATED,
+                    data={
+                        "message_code": MSG_VACANCY_UPDATED,
+                        "vacancy": vacancy_data,
+                        "task_id": task.task_id,
+                        "batch_id": task.batch_id,
+                        "url": task.url,
+                        "total_remaining": total_rem,
+                    },
+                    topic=mercure_topic,
+                )
+                return
+
+            # -------------------------------------------------------------
+            # Branch C: Dedicated CV Scoring Task (Two Prepared JSON Profiles)
+            # -------------------------------------------------------------
+            with SessionLocal() as db:
+                approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first()
+                cv_has_content = bool(approved_cv and approved_cv.content and approved_cv.content.strip())
+                cv_parsed_profile = approved_cv.parsed_profile if approved_cv else None
+                cv_revision = approved_cv.revision if approved_cv else 1
+
+            if not cv_has_content:
+                logger.info(f"[Stage 2 - AI] No CV available for scoring vacancy #{vac_id}")
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.hincrby(STATS_KEY, "completed", 1)
+                    pipe.hincrby(f"{STATS_KEY}:{task.user_id}", "completed", 1)
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vac_id)
+                return
+
+            # If CV is missing cached structured JSON, trigger preparation task and stop
+            if not cv_parsed_profile:
+                logger.info(f"[Stage 2 - AI] CV parsed_profile missing for user {user_id}. Enqueuing cv_parsing.")
+                await self.enqueue_cv_parsing(user_id=user_id)
+                task.status = "completed"
+                task.stage = "completed"
+                task.updated_at = time.time()
+                async with self.redis.pipeline(transaction=True) as pipe:
+                    pipe.set(f"{TASK_KEY_PREFIX}{task_id}", json.dumps(task.to_dict()), ex=TASK_TTL)
+                    pipe.srem(AI_PROCESSING_SET, task_id)
+                    pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
+                    await pipe.execute()
+                sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vac_id)
+                return
+
+            if not vac_extracted_reqs:
+                logger.info(f"[Stage 2 - AI] Vacancy extracted_requirements missing for #{vac_id}. Extracting now.")
+                vac_full_desc = f"{vac_title}\n{vac_description}"
+                vac_extracted_reqs = await extract_vacancy_requirements_with_llm(
+                    vacancy_text=vac_full_desc,
                     provider=provider,
                     language=language,
-                    db=db,
+                    db=None,
                     user_id=user_id,
                 )
+                with SessionLocal() as db:
+                    vacancy = db.query(Vacancy).filter(Vacancy.id == vac_id, Vacancy.user_id == user_id).first()
+                    if vacancy:
+                        vacancy.extracted_requirements = vac_extracted_reqs
+                        db.commit()
 
-                overall_score = float(compat_res.get("overallScore", 0.0))
-                policy_version = str(compat_res.get("scoringPolicyVersion", "v2.0"))
-                model_id = str(compat_res.get("model", provider or "llm"))
-                now = datetime.datetime.utcnow()
+            # Execute matching on prepared JSON profiles (outside DB session)
+            logger.info(f"[Stage 2 - AI] Running structured CV matching for vacancy #{vac_id} (user {user_id})")
+            compat_res = await match_structured_profiles_with_llm(
+                vacancy_profile=vac_extracted_reqs,
+                cv_profile=cv_parsed_profile,
+                provider=provider,
+                language=language,
+                db=None,
+                user_id=user_id,
+            )
+
+            overall_score = float(compat_res.get("overallScore", 0.0))
+            policy_version = str(compat_res.get("scoringPolicyVersion", "v2.0"))
+            model_id = str(compat_res.get("model", provider or "llm"))
+            now = datetime.datetime.utcnow()
+
+            with SessionLocal() as db:
+                vacancy = db.query(Vacancy).filter(Vacancy.id == vac_id, Vacancy.user_id == user_id).first()
+                if not vacancy:
+                    raise RuntimeError(f"Vacancy #{vac_id} not found in DB")
 
                 vacancy.match_score = overall_score
 
                 existing_analysis = db.query(VacancyCVAnalysis).filter(
-                    VacancyCVAnalysis.vacancy_id == vacancy.id,
+                    VacancyCVAnalysis.vacancy_id == vac_id,
                     VacancyCVAnalysis.user_id == user_id,
                 ).first()
 
                 if existing_analysis:
-                    existing_analysis.cv_revision = approved_cv.revision
+                    existing_analysis.cv_revision = cv_revision
                     existing_analysis.scoring_policy_version = policy_version
                     existing_analysis.model_id = model_id
                     existing_analysis.overall_score = overall_score
@@ -1801,8 +1858,8 @@ class RedisQueueManager:
                 else:
                     new_analysis = VacancyCVAnalysis(
                         user_id=user_id,
-                        vacancy_id=vacancy.id,
-                        cv_revision=approved_cv.revision,
+                        vacancy_id=vac_id,
+                        cv_revision=cv_revision,
                         scoring_policy_version=policy_version,
                         model_id=model_id,
                         overall_score=overall_score,
@@ -1815,13 +1872,14 @@ class RedisQueueManager:
 
                 db.commit()
                 db.refresh(vacancy)
+                vac_final_title = vacancy.title
                 vacancy_resp = VacancyResponse.model_validate(vacancy)
                 if compat_res:
                     try:
                         from .main import _build_vacancy_compatibility_response
-                        vacancy_resp.compatibility = _build_vacancy_compatibility_response(vacancy.id, user_id, db)
+                        vacancy_resp.compatibility = _build_vacancy_compatibility_response(vac_id, user_id, db)
                     except Exception as e_bld:
-                        logger.warning(f"Could not attach compatibility to vacancy {vacancy.id}: {e_bld}")
+                        logger.warning(f"Could not attach compatibility to vacancy {vac_id}: {e_bld}")
                 vacancy_data = vacancy_resp.model_dump(mode="json")
 
             task.status = "completed"
@@ -1836,10 +1894,10 @@ class RedisQueueManager:
                 pipe.srem(f"linkedin:active:user:{task.user_id}", task_id)
                 await pipe.execute()
 
-            sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vacancy.id)
+            sync_db_queue_item(task_id, "completed", "completed", task.attempts, None, vac_id)
             total_rem = await self._calculate_total_remaining(user_id=task.user_id)
             logger.info(
-                f"[Stage 2 - AI] Task {task.task_id} AI completed for '{vacancy.title}'. "
+                f"[Stage 2 - AI] Task {task.task_id} AI completed for '{vac_final_title}'. "
                 f"Remaining tasks in pipeline: {total_rem}"
             )
 

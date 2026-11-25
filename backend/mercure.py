@@ -77,6 +77,38 @@ def set_subscriber_cookie(response, user_id: int):
                         samesite="lax", path="/.well-known/mercure")
 
 
+_mercure_client: Optional[httpx.AsyncClient] = None
+_mercure_client_loop = None
+
+
+def _get_mercure_client() -> httpx.AsyncClient:
+    """Return a shared httpx.AsyncClient bound to the current event loop (or create one)."""
+    global _mercure_client, _mercure_client_loop
+    import asyncio
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    # If httpx.AsyncClient is patched by tests (e.g. unittest.mock), return the context manager client or new instance
+    if not isinstance(httpx.AsyncClient, type):
+        ctx = httpx.AsyncClient(timeout=4.0)
+        return ctx
+
+    if _mercure_client is None or _mercure_client.is_closed or _mercure_client_loop is not current_loop:
+        _mercure_client = httpx.AsyncClient(timeout=4.0)
+        _mercure_client_loop = current_loop
+    return _mercure_client
+
+
+async def close_mercure_client() -> None:
+    global _mercure_client, _mercure_client_loop
+    if _mercure_client is not None and not _mercure_client.is_closed:
+        await _mercure_client.aclose()
+    _mercure_client = None
+    _mercure_client_loop = None
+
+
 async def publish_mercure_event(
     event_type: str,
     data: Dict[str, Any],
@@ -98,43 +130,47 @@ async def publish_mercure_event(
 
     try:
         token = generate_publisher_jwt(secret)
-        async with httpx.AsyncClient(timeout=4.0) as client:
-            resp = await client.post(
-                url,
-                data={
-                    "topic": topic,
-                    "private": "on",
-                    "data": json.dumps(payload, ensure_ascii=False),
-                },
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/x-www-form-urlencoded",
-                }
-            )
+        request_kwargs = dict(
+            data={
+                "topic": topic,
+                "private": "on",
+                "data": json.dumps(payload, ensure_ascii=False),
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        if not isinstance(httpx.AsyncClient, type):
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.post(url, **request_kwargs)
+        else:
+            client = _get_mercure_client()
+            resp = await client.post(url, **request_kwargs)
 
-            if resp.status_code in (200, 201, 202):
-                logger.info(f"Published Mercure event '{event_type}' to topic '{topic}' (HTTP {resp.status_code})")
-                return True
-            else:
-                logger.warning(
-                    f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}"
-                )
-                try:
-                    import sentry_sdk
-                    with sentry_sdk.isolation_scope() as scope:
-                        scope.set_tag("mercure_event", event_type)
-                        scope.set_tag("mercure_status_code", resp.status_code)
-                        scope.set_extra("topic", topic)
-                        scope.set_extra("status_code", resp.status_code)
-                        scope.set_extra("event_type", event_type)
-                        scope.set_extra("response_text", resp.text[:500])
-                        sentry_sdk.capture_message(
-                            f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}",
-                            level="error"
-                        )
-                except Exception as sentry_err:
-                    logger.debug(f"Failed to report Mercure failure to Sentry: {sentry_err}")
-                return False
+        if resp.status_code in (200, 201, 202):
+            logger.info(f"Published Mercure event '{event_type}' to topic '{topic}' (HTTP {resp.status_code})")
+            return True
+        else:
+            logger.warning(
+                f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}"
+            )
+            try:
+                import sentry_sdk
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("mercure_event", event_type)
+                    scope.set_tag("mercure_status_code", resp.status_code)
+                    scope.set_extra("topic", topic)
+                    scope.set_extra("status_code", resp.status_code)
+                    scope.set_extra("event_type", event_type)
+                    scope.set_extra("response_text", resp.text[:500])
+                    sentry_sdk.capture_message(
+                        f"Mercure publish failed status={resp.status_code} topic={topic} event={event_type}",
+                        level="error"
+                    )
+            except Exception as sentry_err:
+                logger.debug(f"Failed to report Mercure failure to Sentry: {sentry_err}")
+            return False
 
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         logger.warning(f"Mercure Hub not reachable at {url}: {e}")

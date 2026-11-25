@@ -84,10 +84,15 @@ def record_token_usage(
     total_tokens: int = 0,
 ):
     """Safely record LLM token usage for a user in the database."""
-    if not db or not user_id:
+    if not user_id:
         return
+    calc_total = total_tokens if total_tokens > 0 else (prompt_tokens + completion_tokens)
+    own_session = False
+    if db is None:
+        from .database import SessionLocal
+        db = SessionLocal()
+        own_session = True
     try:
-        calc_total = total_tokens if total_tokens > 0 else (prompt_tokens + completion_tokens)
         usage = UserLLMTokenUsage(
             user_id=user_id,
             provider=provider,
@@ -105,6 +110,9 @@ def record_token_usage(
             db.rollback()
         except Exception:
             pass
+    finally:
+        if own_session:
+            db.close()
 
 
 def parse_llm_json(raw_text: str) -> Any:
@@ -402,7 +410,7 @@ Analyze the supplied vacancy and return the JSON object. Use the prescribed empt
         else:
             raise ValueError(f"Unsupported LLM provider: {provider}")
 
-        if token_usage_info and db and user_id:
+        if token_usage_info and user_id:
             record_token_usage(
                 db=db,
                 user_id=user_id,
@@ -680,7 +688,7 @@ Schema: {schema}"""
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
-    if token_usage_info and db and user_id:
+    if token_usage_info and user_id:
         record_token_usage(
             db=db, user_id=user_id, provider=provider, operation="extract_vacancy_requirements",
             model=token_usage_info.get("model") or active_model,
@@ -774,7 +782,7 @@ Schema: {schema}"""
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
-    if token_usage_info and db and user_id:
+    if token_usage_info and user_id:
         record_token_usage(
             db=db, user_id=user_id, provider=provider, operation="parse_cv_qualifications",
             model=token_usage_info.get("model") or active_model,
@@ -874,7 +882,7 @@ Schema: {schema}"""
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
-    if token_usage_info and db and user_id:
+    if token_usage_info and user_id:
         record_token_usage(
             db=db, user_id=user_id, provider=provider, operation="match_profiles",
             model=token_usage_info.get("model") or active_model,

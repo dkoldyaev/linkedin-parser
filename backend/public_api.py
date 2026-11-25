@@ -259,35 +259,43 @@ async def create_vacancy(
         comment=None,
         created_at=v.created_at,
     )
+    user_id = current_user.id
     db.add(history_entry)
     db.commit()
     db.refresh(v)
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    has_desc = bool(v.description and v.description.strip())
+    should_enqueue_ai = False
+    if has_desc:
+        should_enqueue_ai = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first() is not None
+
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    v_id, v_title, v_company, v_url = v.id, v.title, v.company, v.url
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_CREATED,
             data={
                 "message_code": MSG_VACANCY_CREATED,
                 "vacancy": vacancy_data,
-                "url": v.url,
+                "url": v_url,
             },
             topic=mercure_topic,
         )
 
     # If vacancy has a description and user has an approved CV, trigger scoring / AI analysis in background
-    if v.description and v.description.strip():
-        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
-        if has_approved_cv:
-            await queue_manager.enqueue_ai(
-                vacancy_id=v.id,
-                user_id=current_user.id,
-                title=v.title,
-                company=v.company,
-                url=v.url,
-            )
+    if should_enqueue_ai:
+        await queue_manager.enqueue_ai(
+            vacancy_id=v_id,
+            user_id=user_id,
+            title=v_title,
+            company=v_company,
+            url=v_url,
+        )
 
-    return v
+    return vac_resp
 
 
 @router.patch("/vacancies/{vacancy_id}", response_model=VacancyResponse, summary="Update vacancy")
@@ -329,11 +337,21 @@ async def update_vacancy(
     for field, val in update_data.items():
         setattr(v, field, val)
 
+    user_id = current_user.id
     db.commit()
     db.refresh(v)
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
-    vacancy_data = VacancyResponse.model_validate(v).model_dump(mode="json")
+    description_changed = bool("description" in update_data and v.description and v.description.strip())
+    should_enqueue_ai = False
+    if description_changed:
+        should_enqueue_ai = db.query(ApprovedCV).filter(ApprovedCV.user_id == user_id).first() is not None
+
+    vac_resp = VacancyResponse.model_validate(v)
+    vacancy_data = vac_resp.model_dump(mode="json")
+    v_id, v_title, v_company, v_url = v.id, v.title, v.company, v.url
+    db.close()
+
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_UPDATED,
             data={
@@ -344,19 +362,16 @@ async def update_vacancy(
         )
 
     # If description was updated and present, and user has an approved CV, trigger scoring / AI analysis in background
-    description_changed = "description" in update_data and v.description and v.description.strip()
-    if description_changed:
-        has_approved_cv = db.query(ApprovedCV).filter(ApprovedCV.user_id == current_user.id).first() is not None
-        if has_approved_cv:
-            await queue_manager.enqueue_ai(
-                vacancy_id=v.id,
-                user_id=current_user.id,
-                title=v.title,
-                company=v.company,
-                url=v.url,
-            )
+    if should_enqueue_ai:
+        await queue_manager.enqueue_ai(
+            vacancy_id=v_id,
+            user_id=user_id,
+            title=v_title,
+            company=v_company,
+            url=v_url,
+        )
 
-    return v
+    return vac_resp
 
 
 @router.delete("/vacancies/{vacancy_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete vacancy")
@@ -370,11 +385,13 @@ async def delete_vacancy(
     if not v:
         raise HTTPException(status_code=404, detail="Vacancy not found")
 
+    user_id = current_user.id
     title = v.title
     db.delete(v)
     db.commit()
+    db.close()
 
-    mercure_topic = f"vacancies:{current_user.id}" if current_user.id else "vacancies"
+    mercure_topic = f"vacancies:{user_id}" if user_id else "vacancies"
     await publish_mercure_event(
             event_type=EVENT_VACANCY_DELETED,
             data={
@@ -452,13 +469,15 @@ async def batch_import_vacancies(
             existing_vacancies=duplicate_infos,
         )
 
+    user_id = current_user.id
     initial_tags = [t.strip() for t in payload.default_tags if t.strip()]
+    db.close()
 
     batch_id, tasks = await queue_manager.enqueue(
         urls=urls_to_process,
         default_tags=initial_tags,
         vacancy_ids=None,
-        user_id=current_user.id,
+        user_id=user_id,
         force_cv_scoring=False,
     )
     task_infos = [t.to_info() for t in tasks]
