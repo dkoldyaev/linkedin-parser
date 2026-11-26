@@ -101,7 +101,7 @@ export default function ColumnDeleteModal({
           <Button variant="secondary" onClick={onClose}>
             {t('batchModal.cancel_btn')}
           </Button>
-          <Button variant="danger" onClick={handleConfirm}>
+          <Button variant="secondary" tone="danger" onClick={handleConfirm}>
             {t('kanban.delete_column')}
           </Button>
         </ModalFooter.Actions>

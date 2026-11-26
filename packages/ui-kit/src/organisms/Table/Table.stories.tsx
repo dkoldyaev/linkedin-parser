@@ -42,7 +42,7 @@ export const KanbanColumnsLayout: Story = {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 01 ]
             </Text>
-            <StatusDot palette="blue" size="md" />
+            <StatusDot tone="primary" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
               Backlog
             </Text>
@@ -52,10 +52,10 @@ export const KanbanColumnsLayout: Story = {
           </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
-              <Card title="Senior Frontend Engineer" subtitle="Datadog • Paris" matchScore={84} />
+              <Card title="Senior Frontend Engineer" subtitle="Datadog • Paris" tone="success" />
             </TableCell>
             <TableCell padding="none">
-              <Card title="Full Stack Developer" subtitle="Supabase • Remote" matchScore={72} />
+              <Card title="Full Stack Developer" subtitle="Supabase • Remote" tone="warning" />
             </TableCell>
           </TableBody>
         </TableCol>
@@ -71,7 +71,7 @@ export const KanbanColumnsLayout: Story = {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 02 ]
             </Text>
-            <StatusDot palette="cyan" size="md" />
+            <StatusDot tone="info" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
               Applied
             </Text>
@@ -81,7 +81,7 @@ export const KanbanColumnsLayout: Story = {
           </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
-              <Card title="Staff UI Architect" subtitle="Stripe • Remote" matchScore={91} />
+              <Card title="Staff UI Architect" subtitle="Stripe • Remote" tone="success" />
             </TableCell>
           </TableBody>
         </TableCol>
@@ -97,7 +97,7 @@ export const KanbanColumnsLayout: Story = {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 03 ]
             </Text>
-            <StatusDot palette="amber" size="md" />
+            <StatusDot tone="warning" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
               Screening
             </Text>

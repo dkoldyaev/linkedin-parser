@@ -55,7 +55,8 @@ export default function QueueTaskRow({ task, onCancel }: QueueTaskRowProps): Rea
         </div>
       </div>
       <Button
-        variant="danger"
+        variant="secondary"
+        tone="danger"
         size="icon-sm"
         title={cancelLabel}
         aria-label={cancelLabel}

@@ -31,7 +31,7 @@ export const DefaultGridUnits10: Story = {
           <Text as="span" variant="mono" weight="semibold" tone="accent">
             [ 01 ]
           </Text>
-          <StatusDot palette="blue" size="md" />
+          <StatusDot tone="primary" size="md" />
           <Text as="span" variant="mono-label" weight="semibold" tone="primary">
             10 Grid Units (320px)
           </Text>
@@ -58,7 +58,7 @@ export const WidthVariants: Story = {
           <Text as="span" variant="mono" weight="semibold" tone="accent">
             8
           </Text>
-          <StatusDot palette="cyan" size="md" />
+          <StatusDot tone="info" size="md" />
           <Text as="span" variant="mono-label" weight="semibold" tone="primary">
             8 Units (256px)
           </Text>
@@ -79,7 +79,7 @@ export const WidthVariants: Story = {
           <Text as="span" variant="mono" weight="semibold" tone="accent">
             10
           </Text>
-          <StatusDot palette="emerald" size="md" />
+          <StatusDot tone="success" size="md" />
           <Text as="span" variant="mono-label" weight="semibold" tone="primary">
             10 Units (320px)
           </Text>
@@ -100,7 +100,7 @@ export const WidthVariants: Story = {
           <Text as="span" variant="mono" weight="semibold" tone="accent">
             12
           </Text>
-          <StatusDot palette="purple" size="md" />
+          <StatusDot tone="accent" size="md" />
           <Text as="span" variant="mono-label" weight="semibold" tone="primary">
             12 Units (384px)
           </Text>
@@ -127,7 +127,7 @@ export const DragOverActiveDropzone: Story = {
           <Text as="span" variant="mono" weight="semibold" tone="accent">
             [ DROP ]
           </Text>
-          <StatusDot palette="amber" size="md" />
+          <StatusDot tone="warning" size="md" />
           <Text as="span" variant="mono-label" weight="semibold" tone="primary">
             Drop Target
           </Text>

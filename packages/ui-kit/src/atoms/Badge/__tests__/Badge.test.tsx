@@ -25,14 +25,14 @@ describe('Badge atom', () => {
     expect(container.querySelector('span')?.className).toContain('tone-primary');
   });
 
-  it('supports universal variants and palette tones', () => {
+  it('supports universal variants and semantic tones', () => {
     const { container, rerender } = render(
-      <Badge variant="chip" palette="emerald">
-        Emerald Chip
+      <Badge variant="chip" tone="success">
+        Success Chip
       </Badge>,
     );
     expect(container.firstElementChild?.className).toContain('variant-chip');
-    expect(container.firstElementChild?.className).toContain('palette-emerald');
+    expect(container.firstElementChild?.className).toContain('tone-success');
 
     rerender(
       <Badge variant="counter" tone="info" size="xs">

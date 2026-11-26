@@ -121,6 +121,9 @@ export function useBlueprintGrid<T extends HTMLElement>(
       }
       for (const el of snaps) {
         el.style.minHeight = '';
+        if (el.hasAttribute('data-bp-snap-height')) {
+          el.style.height = '';
+        }
       }
 
       snaps.sort((a, b) => {
@@ -139,16 +142,27 @@ export function useBlueprintGrid<T extends HTMLElement>(
         const rawMinGrids = Number.parseInt(el.getAttribute('data-min-grids') ?? '1', 10);
         const minGrids = Number.isFinite(rawMinGrids) && rawMinGrids > 0 ? rawMinGrids : 1;
         const measuredHeight = el.offsetHeight;
-        const snappedHeight = Math.max(minGrids * grid, Math.ceil(measuredHeight / grid) * grid);
+        let snappedHeight = Math.max(minGrids * grid, Math.ceil(measuredHeight / grid) * grid);
+        const maxHeightStr = window.getComputedStyle(el).maxHeight;
+        const maxHeightPx = Number.parseFloat(maxHeightStr);
+        if (Number.isFinite(maxHeightPx) && maxHeightPx > 0) {
+          const quantizedMax = Math.floor(maxHeightPx / grid) * grid;
+          if (quantizedMax > 0 && snappedHeight > quantizedMax) {
+            snappedHeight = quantizedMax;
+          }
+        }
         el.style.minHeight = `${snappedHeight}px`;
+        if (el.hasAttribute('data-bp-snap-height')) {
+          el.style.height = `${snappedHeight}px`;
+        }
       }
 
       // 2b. Snap horizontal control widths ([data-ui-snap-width], [data-bp-snap-width], .bp-snap-width) to multiples of 32px
-      const widthSnaps = Array.from(
-        root.querySelectorAll<HTMLElement>(
-          '[data-ui-snap-width], [data-bp-snap-width], .bp-snap-width',
-        ),
-      );
+      const widthSnapSelector = '[data-ui-snap-width], [data-bp-snap-width], .bp-snap-width';
+      const widthSnaps = Array.from(root.querySelectorAll<HTMLElement>(widthSnapSelector));
+      if (root.matches(widthSnapSelector)) {
+        widthSnaps.push(root);
+      }
       for (const el of widthSnaps) {
         el.style.width = '';
         const measuredWidth = el.offsetWidth;
@@ -160,6 +174,9 @@ export function useBlueprintGrid<T extends HTMLElement>(
 
       // 3. Align [data-grid-top] top edges to the fixed viewport 32px grid
       const topAligned = Array.from(root.querySelectorAll<HTMLElement>('[data-grid-top]'));
+      if (root.matches('[data-grid-top]')) {
+        topAligned.push(root);
+      }
       for (const el of topAligned) {
         el.style.marginTop = '';
         const computedMargin = Number.parseFloat(window.getComputedStyle(el).marginTop);
@@ -169,6 +186,23 @@ export function useBlueprintGrid<T extends HTMLElement>(
         const offset = (grid - remainder) % grid;
         if (offset > 0.5) {
           el.style.marginTop = `${baseMargin + offset}px`;
+        }
+      }
+
+      // 3b. Align [data-grid-left] left edges to the fixed viewport 32px grid
+      const leftAligned = Array.from(root.querySelectorAll<HTMLElement>('[data-grid-left]'));
+      if (root.matches('[data-grid-left]')) {
+        leftAligned.push(root);
+      }
+      for (const el of leftAligned) {
+        el.style.marginLeft = '';
+        const computedMargin = Number.parseFloat(window.getComputedStyle(el).marginLeft);
+        const baseMargin = Number.isFinite(computedMargin) ? computedMargin : 0;
+        const left = el.getBoundingClientRect().left;
+        const remainder = ((left % grid) + grid) % grid;
+        const offset = (grid - remainder) % grid;
+        if (offset > 0.5) {
+          el.style.marginLeft = `${baseMargin + offset}px`;
         }
       }
 

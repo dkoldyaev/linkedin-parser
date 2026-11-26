@@ -13,6 +13,7 @@ function createOverlayContainerElement(): HTMLDivElement {
   }
   const container = document.createElement('div');
   container.setAttribute('data-ui-overlay-root', '');
+  container.className = styles.overlayRoot;
   document.body.appendChild(container);
   return container;
 }

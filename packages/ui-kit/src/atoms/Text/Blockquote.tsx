@@ -1,8 +1,9 @@
 import { cn } from '../../utils';
 import React from 'react';
+import type { SemanticTone } from '../../tokens';
 import styles from './Text.module.css';
 
-export type BlockquoteTone = 'primary' | 'accent' | 'success' | 'warning' | 'danger';
+export type BlockquoteTone = SemanticTone;
 
 export interface BlockquoteProps extends React.BlockquoteHTMLAttributes<HTMLQuoteElement> {
   readonly tone?: BlockquoteTone;

@@ -2,10 +2,11 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { Button, Icon, Text } from '../../atoms';
 import { cn } from '../../utils';
 import React from 'react';
+import type { SemanticTone } from '../../tokens';
 import styles from './AlertBanner.module.css';
 import { useBlueprintGrid } from '../../hooks';
 
-export type AlertBannerTone = 'info' | 'success' | 'warning' | 'danger';
+export type AlertBannerTone = SemanticTone;
 
 export interface AlertBannerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly tone?: AlertBannerTone;
@@ -14,12 +15,17 @@ export interface AlertBannerProps extends Omit<React.HTMLAttributes<HTMLDivEleme
   readonly dismissLabel?: string;
 }
 
-const TONE_ICONS = {
+const TONE_ICONS: Record<SemanticTone, typeof Info> = {
+  neutral: Info,
+  primary: Info,
+  secondary: Info,
+  muted: Info,
+  accent: Info,
   info: Info,
   success: CheckCircle2,
   warning: AlertTriangle,
   danger: AlertCircle,
-} as const;
+};
 
 /**
  * AlertBanner molecule replacing inline status/error/warning banners across pages and modals.

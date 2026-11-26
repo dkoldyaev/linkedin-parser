@@ -1,4 +1,4 @@
-import type { PaletteTone, SemanticTone } from '../../tokens';
+import type { SemanticTone } from '../../tokens';
 import React, { forwardRef } from 'react';
 import { Button } from '../Button';
 import { cn } from '../../utils';
@@ -8,7 +8,6 @@ import { Text } from '../Text';
 import { X } from 'lucide-react';
 
 export type BadgeTone = SemanticTone;
-export type BadgePalette = PaletteTone;
 
 export type BadgeVariant = 'badge' | 'subtle' | 'solid' | 'outline' | 'chip' | 'counter' | 'ghost';
 
@@ -18,7 +17,6 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   readonly icon?: React.ReactNode;
   readonly endIcon?: React.ReactNode;
   readonly tone?: BadgeTone;
-  readonly palette?: BadgePalette;
   readonly variant?: BadgeVariant;
   readonly size?: BadgeSize;
   readonly interactive?: boolean;
@@ -38,7 +36,6 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
     icon,
     endIcon,
     tone = 'neutral',
-    palette,
     variant = 'subtle',
     size = 'md',
     interactive = false,
@@ -53,9 +50,7 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
   ref,
 ) {
   const normalizedVariant = variant === 'badge' ? 'subtle' : variant;
-  const resolvedTone = tone === 'accent' ? 'primary' : tone;
-  const colorClass =
-    palette !== undefined ? styles[`palette-${palette}`] : styles[`tone-${resolvedTone}`];
+  const colorClass = styles[`tone-${tone}`];
 
   const isInteractive = interactive || onClick !== undefined;
 

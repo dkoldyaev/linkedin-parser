@@ -15,5 +15,5 @@ export {
   type CardHeaderProps,
   type CardBodyProps,
   type CardFooterProps,
-  type CardAccentTone,
+  type CardTone,
 } from './Card';

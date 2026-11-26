@@ -68,7 +68,7 @@ function UniversalDashboardDemo(): React.ReactElement {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 01 ]
             </Text>
-            <StatusDot palette="blue" size="md" />
+            <StatusDot tone="primary" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary">
               Queued
             </Text>
@@ -78,13 +78,13 @@ function UniversalDashboardDemo(): React.ReactElement {
           </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
-              <Card title="Design Tokens Audit" subtitle="Core System" accentTone="accent" />
+              <Card title="Design Tokens Audit" subtitle="Core System" tone="accent" />
             </TableCell>
             <TableCell padding="none">
               <Card
                 title="Accessibility Verification"
                 subtitle="QA Pipeline"
-                accentTone="success"
+                tone="success"
               />
             </TableCell>
           </TableBody>
@@ -94,7 +94,7 @@ function UniversalDashboardDemo(): React.ReactElement {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 02 ]
             </Text>
-            <StatusDot palette="emerald" size="md" />
+            <StatusDot tone="success" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary">
               Completed
             </Text>
@@ -107,7 +107,7 @@ function UniversalDashboardDemo(): React.ReactElement {
               <Card
                 title="Standalone Package Build"
                 subtitle="@blueprint/ui-kit"
-                accentTone="success"
+                tone="success"
                 footer={
                   <Text variant="caption" tone="muted">
                     Verified

@@ -17,7 +17,7 @@ type Story = StoryObj<typeof CardFooter>;
 export const Default: Story = {
   render: () => (
     <div className={layoutStyles.narrowBox}>
-      <Card matchScore={75}>
+      <Card tone="success">
         <CardFooter
           metaSlot={
             <div className={layoutStyles.row}>
@@ -68,7 +68,7 @@ export const Variants: Story = {
   render: () => (
     <div className={layoutStyles.narrowBox}>
       <div className={layoutStyles.stack}>
-        <Card matchScore={91}>
+        <Card tone="success">
           <CardFooter
             metaSlot={
               <>
@@ -96,7 +96,7 @@ export const Variants: Story = {
           />
         </Card>
 
-        <Card matchScore={35}>
+        <Card tone="danger">
           <CardFooter
             metaSlot={
               <Text variant="caption" tone="muted">

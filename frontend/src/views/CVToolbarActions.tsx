@@ -61,7 +61,8 @@ export default function CVToolbarActions({
 
       {serverCV && (
         <Button
-          variant="danger"
+          variant="secondary"
+          tone="danger"
           size="sm"
           disabled={isSubmitting}
           onClick={onDeleteServerCV}

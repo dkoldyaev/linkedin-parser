@@ -4,10 +4,20 @@
     inset: 0;
     background-color: var(--ui-bg-overlay);
     backdrop-filter: blur(4px);
+    box-sizing: border-box;
+  }
+
+  .gridViewport {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: round(down, 100vw, var(--ui-grid-cell));
+    height: round(down, 100vh, var(--ui-grid-cell));
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--ui-grid-cell);
+    box-sizing: border-box;
   }
 
   .content {

@@ -16,7 +16,7 @@ describe('ReportAccordion organism', () => {
           {
             id: 'matches',
             title: 'MATCHES',
-            tone: 'mint',
+            tone: 'success',
             items: [
               {
                 id: '1',

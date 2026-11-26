@@ -24,7 +24,7 @@ export const Default: Story = {
           {
             id: 'matches',
             title: 'STRENGTHS & MATCHES',
-            tone: 'mint',
+            tone: 'success',
             defaultExpandedIds: ['m1'],
             items: [
               {

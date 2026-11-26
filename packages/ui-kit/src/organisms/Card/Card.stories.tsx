@@ -22,14 +22,14 @@ const meta: Meta<typeof Card> = {
     title: 'Staff Frontend Architect — UI Platform',
     overline: 'Stripe',
     overlineHref: 'https://stripe.com',
-    accentTone: 'success',
+    tone: 'success',
     selected: false,
     interactive: true,
   },
   argTypes: {
-    accentTone: {
+    tone: {
       control: 'select',
-      options: ['none', 'success', 'warning', 'danger', 'accent', 'info'],
+      options: ['neutral', 'primary', 'secondary', 'muted', 'accent', 'success', 'warning', 'danger', 'info'],
     },
     selected: { control: 'boolean' },
     interactive: { control: 'boolean' },
@@ -135,7 +135,7 @@ export const CompactFormat: Story = {
         <Card
           compact
           interactive
-          accentTone="success"
+          tone="success"
           overline="Stripe"
           title="Staff Frontend Architect"
           statusIndicators={
@@ -149,7 +149,7 @@ export const CompactFormat: Story = {
         <Card
           compact
           interactive
-          accentTone="warning"
+          tone="warning"
           overline="Revolut"
           title="Senior Fullstack Developer (Node.js + React)"
           statusIndicators={
@@ -163,7 +163,7 @@ export const CompactFormat: Story = {
         <Card
           compact
           interactive
-          accentTone="danger"
+          tone="danger"
           overline="Figma"
           title="Lead UI Engineer"
           statusIndicators={
@@ -184,16 +184,16 @@ export const LoadingSkeletons: Story = {
         <Text variant="caption" tone="muted">
           Standard Card (isLoading)
         </Text>
-        <Card isLoading accentTone="accent" />
+        <Card isLoading tone="accent" />
       </div>
       <div>
         <Text variant="caption" tone="muted">
           Compact Card (isLoading + compact)
         </Text>
         <div className={layoutStyles.stackSm}>
-          <Card isLoading compact accentTone="success" />
-          <Card isLoading compact accentTone="warning" />
-          <Card isLoading compact accentTone="danger" />
+          <Card isLoading compact tone="success" />
+          <Card isLoading compact tone="warning" />
+          <Card isLoading compact tone="danger" />
         </div>
       </div>
     </div>

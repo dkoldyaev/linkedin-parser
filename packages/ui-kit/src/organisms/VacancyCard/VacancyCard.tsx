@@ -129,7 +129,7 @@ export const VacancyCard = React.forwardRef<HTMLDivElement, VacancyCardProps>(fu
   return (
     <Card
       ref={ref}
-      matchScore={matchScore}
+      tone={scoreTone}
       selected={selected}
       interactive
       onClick={onClick}

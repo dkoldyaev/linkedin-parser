@@ -108,7 +108,7 @@ function ComposableModalDemo(): React.ReactElement {
         </Modal.Body>
 
         <Modal.Footer justify="between">
-          <Button variant="danger" size="sm" onClick={close}>
+          <Button variant="secondary" tone="danger" size="sm" onClick={close}>
             <Icon icon={Trash2} size="sm" />
             <span>Delete Entity</span>
           </Button>

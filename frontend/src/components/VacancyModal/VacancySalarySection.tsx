@@ -1,6 +1,7 @@
 import { Input, Label, Select, type SelectOption } from '@blueprint/ui-kit';
 import React, { useEffect, useState } from 'react';
 import { Banknote } from 'lucide-react';
+import { SaveButton } from './SaveButton';
 import type { TranslateFn } from '../../i18n/I18nContext';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
@@ -83,8 +84,7 @@ export function VacancySalarySection({
     <VacancySection
       title={t('vacancyModal.salary_title')}
       icon={Banknote}
-      onSave={onSaveSalary ? handleSave : undefined}
-      saveStatus={saveStatus}
+      accessory={onSaveSalary && <SaveButton status={saveStatus} onClick={handleSave} />}
     >
       <div style={GRID_STYLE}>
         <div>

@@ -73,7 +73,10 @@ export function Modal({
     [isOpen, onClose, closeLabel],
   );
 
-  const gridRef = useBlueprintGrid<HTMLDivElement>([isOpen, size, width, children]);
+  const gridRef = useBlueprintGrid<HTMLDivElement>({
+    deps: [isOpen, size, width, children],
+    observeSubtree: true,
+  });
   const contentRef = React.useRef<HTMLDivElement | null>(null);
 
   const setContentRef = React.useCallback(
@@ -109,41 +112,46 @@ export function Modal({
       <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
         <DialogPrimitive.Portal container={overlayContainer}>
           <DialogPrimitive.Overlay className={styles.overlay}>
-            <DialogPrimitive.Content
-              ref={setContentRef}
-              data-bp-snap=""
-              data-bp-snap-width=""
-              className={cn(
-                styles.content,
-                'bp-snap',
-                'bp-snap-width',
-                size !== 'custom' && styles[`size-${size}`],
-                className,
-              )}
-              {...rest}
-            >
-              {isShorthandMode ? (
-                <>
-                  <ModalHeader
-                    title={title}
-                    description={description}
-                    icon={icon}
-                    hideCloseButton={hideCloseButton}
-                    closeLabel={closeLabel}
-                    onClose={onClose}
-                  />
-                  <ModalBody className={bodyClassName}>{children}</ModalBody>
-                  {footer !== undefined && <ModalFooter>{footer}</ModalFooter>}
-                </>
-              ) : (
-                <>
-                  <DialogPrimitive.Description className={styles.srOnly}>
-                    Dialog content
-                  </DialogPrimitive.Description>
-                  {children}
-                </>
-              )}
-            </DialogPrimitive.Content>
+            <div className={styles.gridViewport}>
+              <DialogPrimitive.Content
+                ref={setContentRef}
+                data-bp-snap=""
+                data-bp-snap-height=""
+                data-bp-snap-width=""
+                data-grid-top=""
+                data-grid-left=""
+                className={cn(
+                  styles.content,
+                  'bp-snap',
+                  'bp-snap-width',
+                  size !== 'custom' && styles[`size-${size}`],
+                  className,
+                )}
+                {...rest}
+              >
+                {isShorthandMode ? (
+                  <>
+                    <ModalHeader
+                      title={title}
+                      description={description}
+                      icon={icon}
+                      hideCloseButton={hideCloseButton}
+                      closeLabel={closeLabel}
+                      onClose={onClose}
+                    />
+                    <ModalBody className={bodyClassName}>{children}</ModalBody>
+                    {footer !== undefined && <ModalFooter>{footer}</ModalFooter>}
+                  </>
+                ) : (
+                  <>
+                    <DialogPrimitive.Description className={styles.srOnly}>
+                      Dialog content
+                    </DialogPrimitive.Description>
+                    {children}
+                  </>
+                )}
+              </DialogPrimitive.Content>
+            </div>
           </DialogPrimitive.Overlay>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>

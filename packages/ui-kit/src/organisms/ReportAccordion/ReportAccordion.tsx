@@ -90,7 +90,7 @@ export function ReportAccordion({
           <div key={section.id} className={styles.sectionBlock}>
             <SectionHeader
               title={`${section.title} [${section.items.length}]`}
-              tone={section.tone ?? 'default'}
+              tone={section.tone ?? 'neutral'}
               variant="mono"
               divider
             />

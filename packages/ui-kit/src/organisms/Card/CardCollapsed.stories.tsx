@@ -10,14 +10,14 @@ const meta: Meta<typeof CardCollapsed> = {
   args: {
     overline: 'Stripe',
     title: 'Staff Frontend Architect — UI Platform',
-    accentTone: 'success',
+    tone: 'success',
     selected: false,
     interactive: true,
   },
   argTypes: {
-    accentTone: {
+    tone: {
       control: 'select',
-      options: ['none', 'success', 'warning', 'danger', 'accent', 'info'],
+      options: ['neutral', 'primary', 'secondary', 'muted', 'accent', 'success', 'warning', 'danger', 'info'],
     },
     selected: { control: 'boolean' },
     interactive: { control: 'boolean' },
@@ -49,7 +49,7 @@ export const StatesList: Story = {
       <div className={layoutStyles.narrowBox}>
         <CardCollapsed
           interactive
-          accentTone="success"
+          tone="success"
           overline="Stripe"
           title="Staff Frontend Architect"
           statusIndicators={
@@ -62,7 +62,7 @@ export const StatesList: Story = {
       <div className={layoutStyles.narrowBox}>
         <CardCollapsed
           interactive
-          accentTone="warning"
+          tone="warning"
           overline="Revolut"
           title="Senior Fullstack Developer (Node.js + React)"
           statusIndicators={
@@ -75,7 +75,7 @@ export const StatesList: Story = {
       <div className={layoutStyles.narrowBox}>
         <CardCollapsed
           interactive
-          accentTone="danger"
+          tone="danger"
           overline="Figma"
           title="Lead UI Engineer"
           statusIndicators={

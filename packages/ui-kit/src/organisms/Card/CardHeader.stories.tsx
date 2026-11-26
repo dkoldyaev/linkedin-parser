@@ -32,7 +32,7 @@ type Story = StoryObj<typeof CardHeader>;
 export const Default: Story = {
   render: (args) => (
     <div className={layoutStyles.narrowBox}>
-      <Card matchScore={85}>
+      <Card tone="success">
         <CardBody snapToGrid={false}>
           <CardHeader {...args} />
         </CardBody>
@@ -45,7 +45,7 @@ export const WithStatusIndicators: Story = {
   render: () => (
     <div className={layoutStyles.narrowBox}>
       <div className={layoutStyles.stack}>
-        <Card matchScore={88} selected>
+        <Card tone="success" selected>
           <CardBody snapToGrid={false}>
             <CardHeader
               overline="Stripe"
@@ -62,7 +62,7 @@ export const WithStatusIndicators: Story = {
           </CardBody>
         </Card>
 
-        <Card matchScore={42}>
+        <Card tone="danger">
           <CardBody snapToGrid={false}>
             <CardHeader
               overline="Linear"

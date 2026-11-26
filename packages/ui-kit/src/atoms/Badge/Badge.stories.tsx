@@ -17,11 +17,17 @@ const meta: Meta<typeof Badge> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: ['neutral', 'primary', 'success', 'warning', 'danger', 'info'],
-    },
-    palette: {
-      control: 'select',
-      options: ['slate', 'blue', 'cyan', 'indigo', 'purple', 'emerald', 'amber', 'rose'],
+      options: [
+        'neutral',
+        'primary',
+        'secondary',
+        'muted',
+        'accent',
+        'success',
+        'warning',
+        'danger',
+        'info',
+      ],
     },
     variant: {
       control: 'select',
@@ -64,21 +70,6 @@ export const SemanticTones: Story = {
       <Badge tone="info" icon={<Icon icon={MapPin} size="2xs" />}>
         Info
       </Badge>
-    </div>
-  ),
-};
-
-export const PaletteTones: Story = {
-  render: () => (
-    <div className={layoutStyles.row}>
-      <Badge palette="slate">Slate</Badge>
-      <Badge palette="blue">Blue</Badge>
-      <Badge palette="cyan">Cyan</Badge>
-      <Badge palette="indigo">Indigo</Badge>
-      <Badge palette="purple">Purple</Badge>
-      <Badge palette="emerald">Emerald</Badge>
-      <Badge palette="amber">Amber</Badge>
-      <Badge palette="rose">Rose</Badge>
     </div>
   ),
 };

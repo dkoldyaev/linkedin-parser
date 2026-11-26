@@ -45,6 +45,7 @@
     color: var(--ui-text-primary);
   }
 
+  .tone-neutral,
   .tone-secondary {
     color: var(--ui-text-secondary);
   }

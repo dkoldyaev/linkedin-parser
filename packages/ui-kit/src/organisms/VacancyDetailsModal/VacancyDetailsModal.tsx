@@ -618,7 +618,8 @@ export function VacancyDetailsModal({
 
                 {onToggleClosed && (
                   <Button
-                    variant={isClosed ? 'danger' : 'secondary'}
+                    variant="secondary"
+                    tone={isClosed ? 'danger' : 'neutral'}
                     size="m"
                     startIcon={<Icon icon={isClosed ? Ban : Check} size="xs" />}
                     onClick={onToggleClosed}

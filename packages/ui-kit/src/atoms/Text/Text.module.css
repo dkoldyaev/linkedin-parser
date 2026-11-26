@@ -241,6 +241,12 @@
     gap: var(--ui-space-2);
   }
 
+  .blockquoteToneNeutral,
+  .blockquoteToneSecondary,
+  .blockquoteToneMuted {
+    box-shadow: inset 3px 0 0 0 var(--ui-border-strong);
+  }
+
   .blockquoteTonePrimary {
     box-shadow: inset 3px 0 0 0 var(--ui-primary);
   }
@@ -259,6 +265,10 @@
 
   .blockquoteToneDanger {
     box-shadow: inset 3px 0 0 0 var(--ui-danger);
+  }
+
+  .blockquoteToneInfo {
+    box-shadow: inset 3px 0 0 0 var(--ui-info);
   }
 
   .blockquoteCite {
@@ -380,6 +390,7 @@
     color: var(--ui-text-primary);
   }
 
+  .tone-neutral,
   .tone-secondary {
     color: var(--ui-text-secondary);
   }
@@ -406,38 +417,5 @@
 
   .tone-info {
     color: var(--ui-info);
-  }
-
-  /* Palette Tones */
-  .palette-slate {
-    color: var(--ui-palette-slate);
-  }
-
-  .palette-blue {
-    color: var(--ui-palette-blue);
-  }
-
-  .palette-cyan {
-    color: var(--ui-palette-cyan);
-  }
-
-  .palette-indigo {
-    color: var(--ui-palette-indigo);
-  }
-
-  .palette-purple {
-    color: var(--ui-palette-purple);
-  }
-
-  .palette-emerald {
-    color: var(--ui-palette-emerald);
-  }
-
-  .palette-amber {
-    color: var(--ui-palette-amber);
-  }
-
-  .palette-rose {
-    color: var(--ui-palette-rose);
   }
 }

@@ -70,7 +70,7 @@ function buildMatchedSection(matched: MatchedRequirement[], t: TranslateFn): Rep
   return {
     id: 'matched',
     title: t('vacancyModal.compat_matched', { count: matched.length }),
-    tone: 'mint',
+    tone: 'success',
     items: matched.map((m, idx) => ({
       id: `m_${idx}`,
       title: m.requirement,

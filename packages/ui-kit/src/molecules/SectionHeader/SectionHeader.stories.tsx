@@ -89,7 +89,7 @@ export const NotesWithSaveAction: Story = {
 export const SemanticTonesAndDividers: Story = {
   render: () => (
     <div className={layoutStyles.stack}>
-      <SectionHeader title="MATCHES [3]" variant="mono" tone="mint" divider />
+      <SectionHeader title="MATCHES [3]" variant="mono" tone="success" divider />
       <SectionHeader title="GAPS [2]" variant="mono" tone="warning" divider />
       <SectionHeader title="CRITICAL BLOCKERS [1]" variant="mono" tone="danger" divider />
       <SectionHeader title="ACCENT SECTION" variant="mono" tone="accent" divider />

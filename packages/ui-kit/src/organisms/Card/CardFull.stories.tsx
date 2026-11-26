@@ -22,14 +22,14 @@ const meta: Meta<typeof CardFull> = {
     title: 'Staff Frontend Architect — UI Platform',
     overline: 'Stripe',
     overlineHref: 'https://stripe.com',
-    accentTone: 'success',
+    tone: 'success',
     selected: false,
     interactive: true,
   },
   argTypes: {
-    accentTone: {
+    tone: {
       control: 'select',
-      options: ['none', 'success', 'warning', 'danger', 'accent', 'info'],
+      options: ['neutral', 'primary', 'secondary', 'muted', 'accent', 'success', 'warning', 'danger', 'info'],
     },
     selected: { control: 'boolean' },
     interactive: { control: 'boolean' },

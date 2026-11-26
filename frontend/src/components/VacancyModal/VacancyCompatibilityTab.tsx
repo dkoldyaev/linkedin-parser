@@ -6,6 +6,8 @@ import {
   CollapsibleSection,
   EmptyState,
   Icon,
+  List,
+  ListItem,
   Paragraph,
   Skeleton,
   Text,
@@ -112,7 +114,7 @@ export function VacancyCompatibilityTab({
             count: compatibility.matched_requirements.length,
           })}
           icon={CheckCircle}
-          tone="mint"
+          tone="success"
         >
           {compatibility.matched_requirements.map((item, i) => (
             <CollapsibleSection title={item.requirement} key={i}>
@@ -172,11 +174,13 @@ export function VacancyCompatibilityTab({
           icon={Layers}
           paddingBody="md"
         >
-          {recommendations.map((rec, i) => (
-            <Paragraph spacing="sm" key={i}>
-              {rec}
-            </Paragraph>
-          ))}
+          <List>
+            {recommendations.map((rec, i) => (
+              <ListItem key={i}>
+                {rec}
+              </ListItem>
+            ))}
+          </List>
         </VacancySection>
       )}
     </VacancyTabContent>

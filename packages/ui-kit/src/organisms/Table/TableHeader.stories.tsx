@@ -32,7 +32,7 @@ export const Default: Story = {
         <Text as="span" variant="mono" weight="semibold" tone="accent">
           [ 01 ]
         </Text>
-        <StatusDot palette="blue" size="md" />
+        <StatusDot tone="primary" size="md" />
         <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
           Backlog
         </Text>
@@ -58,7 +58,7 @@ export const SizeMedium: Story = {
         <Text as="span" variant="mono" weight="semibold" tone="accent">
           STAGE 03
         </Text>
-        <StatusDot palette="emerald" size="md" />
+        <StatusDot tone="success" size="md" />
         <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
           Техническое интервью
         </Text>

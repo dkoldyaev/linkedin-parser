@@ -16,6 +16,7 @@ import KanbanColumnMenu from './KanbanColumnMenu';
 import type { KanbanFunnelColumnProps } from './kanban.types';
 import KanbanLanesDropOverlay from './KanbanLanesDropOverlay';
 import React from 'react';
+import { resolveToneFromHex } from './columnPalette';
 import { sortByManualOrder } from './kanbanBoardHelpers';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -136,7 +137,7 @@ export default function KanbanFunnelColumn(props: KanbanFunnelColumnProps): Reac
     >
       <TableHeader size="sm" actions={menuSlot}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
-          <StatusDot color={col.color || '#2563eb'} size="sm" />
+          <StatusDot tone={resolveToneFromHex(col.color)} size="sm" />
           <Text variant="mono" weight="bold">
             {columnName}
           </Text>

@@ -1,4 +1,4 @@
-import { Icon, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
+import { Icon, type SemanticTone, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
@@ -6,7 +6,7 @@ import { useTranslation } from '../i18n/I18nContext';
 export interface AboutFeature {
   key: string;
   icon: LucideIcon;
-  color: string;
+  tone: SemanticTone;
 }
 
 export interface AboutFeatureCardProps {
@@ -19,7 +19,7 @@ export default function AboutFeatureCard({
   index,
 }: AboutFeatureCardProps): React.ReactElement {
   const { t } = useTranslation();
-  const { key, icon: IconComponent, color } = feature;
+  const { key, icon: IconComponent, tone } = feature;
 
   return (
     <div
@@ -34,7 +34,7 @@ export default function AboutFeatureCard({
         <Text as="span" variant="mono" weight="semibold" tone="accent">
           {`[ ${String(index + 2).padStart(2, '0')} ]`}
         </Text>
-        <StatusDot color={color} size="md" />
+        <StatusDot tone={tone} size="md" />
         <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
           {t(`pages.about.f_${key}_title`)}
         </Text>
@@ -59,10 +59,9 @@ export default function AboutFeatureCard({
               padding: 'var(--ui-space-2)',
               backgroundColor: 'var(--ui-bg-surface)',
               border: '1px solid var(--ui-border-subtle)',
-              color,
             }}
           >
-            <Icon icon={IconComponent} size="md" />
+            <Icon icon={IconComponent} size="md" tone={tone} />
           </div>
           <Text variant="mono" weight="medium" tone="primary">
             {t(`pages.about.f_${key}_headline`)}

@@ -10,8 +10,13 @@
     user-select: none;
   }
 
+  .tone-neutral,
   .tone-secondary {
     color: var(--ui-text-secondary);
+  }
+
+  .tone-muted {
+    color: var(--ui-text-muted);
   }
 
   .tone-primary {
@@ -20,6 +25,22 @@
 
   .tone-accent {
     color: var(--ui-primary);
+  }
+
+  .tone-success {
+    color: var(--ui-success);
+  }
+
+  .tone-warning {
+    color: var(--ui-warning);
+  }
+
+  .tone-danger {
+    color: var(--ui-danger);
+  }
+
+  .tone-info {
+    color: var(--ui-info);
   }
 
   .disabled {

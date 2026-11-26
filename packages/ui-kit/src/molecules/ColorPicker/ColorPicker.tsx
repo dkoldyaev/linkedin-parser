@@ -1,4 +1,4 @@
-import { Button, StatusDot, type StatusDotPalette } from '../../atoms';
+import { Button, StatusDot, type StatusDotTone } from '../../atoms';
 import React, { useRef, useState } from 'react';
 import { cn } from '../../utils';
 import styles from './ColorPicker.module.css';
@@ -8,30 +8,29 @@ export interface ColorOption {
   readonly id: string;
   readonly label: string;
   readonly hex?: string;
-  readonly palette?: StatusDotPalette;
+  readonly tone?: StatusDotTone;
 }
 
 export const DEFAULT_PALETTE_OPTIONS: readonly ColorOption[] = [
-  // { id: 'slate', label: 'Slate', palette: 'slate', hex: '#475569' },
-  { id: 'blue', label: 'Blue', palette: 'blue', hex: '#2563eb' },
-  { id: 'purple', label: 'Purple', palette: 'purple', hex: '#9333ea' },
-  { id: 'emerald', label: 'Emerald', palette: 'emerald', hex: '#059669' },
-  { id: 'amber', label: 'Amber', palette: 'amber', hex: '#d97706' },
-  { id: 'rose', label: 'Rose', palette: 'rose', hex: '#e11d48' },
-  { id: 'cyan', label: 'Cyan', palette: 'cyan', hex: '#0891b2' },
-  { id: 'indigo', label: 'Indigo', palette: 'indigo', hex: '#1d4ed8' },
+  { id: 'blue', label: 'Blue', tone: 'primary', hex: '#2563eb' },
+  { id: 'purple', label: 'Purple', tone: 'accent', hex: '#9333ea' },
+  { id: 'emerald', label: 'Emerald', tone: 'success', hex: '#059669' },
+  { id: 'amber', label: 'Amber', tone: 'warning', hex: '#d97706' },
+  { id: 'rose', label: 'Rose', tone: 'danger', hex: '#e11d48' },
+  { id: 'cyan', label: 'Cyan', tone: 'info', hex: '#0891b2' },
+  { id: 'indigo', label: 'Indigo', tone: 'primary', hex: '#1d4ed8' },
 ] as const;
 
-const PALETTE_SET = new Set([
-  'slate',
-  'blue',
-  'purple',
-  'emerald',
-  'amber',
-  'rose',
-  'cyan',
-  'indigo',
-]);
+const PRESET_TO_TONE: Record<string, StatusDotTone> = {
+  slate: 'neutral',
+  blue: 'primary',
+  purple: 'accent',
+  emerald: 'success',
+  amber: 'warning',
+  rose: 'danger',
+  cyan: 'info',
+  indigo: 'primary',
+};
 
 export interface ColorPickerProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
@@ -47,8 +46,7 @@ export interface ColorPickerProps extends Omit<
 }
 
 /**
- * Accessible radio-group ColorPicker molecule supporting semantic palettes, custom presets,
- * and arbitrary hex/RGB/HSL colors.
+ * Accessible radio-group ColorPicker molecule supporting semantic tones and custom presets.
  */
 export function ColorPicker({
   value,
@@ -66,12 +64,12 @@ export function ColorPicker({
     }
     if (presets !== undefined) {
       return presets.map((preset) => {
-        const isPalette = PALETTE_SET.has(preset);
+        const tone = PRESET_TO_TONE[preset];
         return {
           id: preset,
           label: preset,
-          palette: isPalette ? (preset as StatusDotPalette) : undefined,
-          hex: !isPalette ? preset : undefined,
+          tone: tone ?? 'primary',
+          hex: tone === undefined ? preset : undefined,
         };
       });
     }
@@ -134,8 +132,7 @@ export function ColorPicker({
             aria-checked={value === nativeColorValue}
             disabled={disabled}
             onClick={handleClickCustomColorInput}
-            startIcon={<StatusDot color={nativeColorValue} size="sm" />}
-            // className={cn(styles.swatch, value === nativeColorValue && styles.selected)}
+            startIcon={<StatusDot tone="neutral" size="sm" />}
           >
             {nativeColorValue || 'Custom'}
           </Button>
@@ -151,12 +148,9 @@ export function ColorPicker({
                 aria-checked={isSelected}
                 disabled={disabled}
                 onClick={() => onChange(option.hex ?? option.id)}
-                startIcon={<StatusDot palette={option.palette} color={option.hex} size="sm" />}
-                // className={cn(styles.swatch, isSelected && styles.selected)}
+                startIcon={<StatusDot tone={option.tone ?? 'primary'} size="sm" />}
               >
-                {/* <Text variant="mono" tone={isSelected ? 'accent' : 'secondary'} truncate> */}
                 {option.label}
-                {/* </Text> */}
               </Button>
             );
           })}

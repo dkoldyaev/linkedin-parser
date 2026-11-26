@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Skeleton, Textarea } from '@blueprint/ui-kit';
 import { StickyNote } from 'lucide-react';
+import { SaveButton } from './SaveButton';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
 import { VacancySection } from './VacancySection';
@@ -28,8 +29,9 @@ export function VacancyNotesSection({
     <VacancySection
       title={t('vacancyModal.notes_title')}
       icon={StickyNote}
-      onSave={!loading && onSaveNotes ? () => saveNotes(draft) : undefined}
-      saveStatus={saveStatus}
+      accessory={
+        !loading && onSaveNotes && <SaveButton status={saveStatus} onClick={() => saveNotes(draft)} />
+      }
     >
       {loading ? (
         <div data-testid="vacancy-notes-skeleton">

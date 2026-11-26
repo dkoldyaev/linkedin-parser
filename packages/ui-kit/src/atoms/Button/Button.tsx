@@ -1,13 +1,14 @@
 import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
+import type { SemanticTone } from '../../tokens';
 import { Slot } from '@radix-ui/react-slot';
 import { Spinner } from '../Spinner';
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'warning' | 'mint' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
 export type ButtonSize = 'sm' | 'md' | 'm' | 'lg' | 'icon' | 'icon-sm' | 'icon-xs';
-export type ButtonTone = 'default' | 'danger' | 'accent' | 'success' | 'muted';
+export type ButtonTone = SemanticTone;
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
@@ -28,7 +29,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   {
     variant = 'secondary',
     size = 'md',
-    tone = 'default',
+    tone = 'neutral',
     loading = false,
     fullWidth = false,
     asChild = false,
@@ -50,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     styles.button,
     styles[`variant-${variant}`],
     styles[`size-${normalizedSize}`],
-    tone !== 'default' && styles[`tone-${tone}`],
+    tone !== 'neutral' && styles[`tone-${tone}`],
     fullWidth && styles.fullWidth,
     className,
   );

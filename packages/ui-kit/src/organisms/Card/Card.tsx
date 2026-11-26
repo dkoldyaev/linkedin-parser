@@ -1,9 +1,10 @@
 import { Checkbox, Heading, Link, Skeleton, Text } from '../../atoms';
 import { cn, GRID_CELL_PX } from '../../utils';
 import React, { forwardRef, useLayoutEffect, useRef } from 'react';
+import type { SemanticTone } from '../../tokens';
 import styles from './Card.module.css';
 
-export type CardAccentTone = 'success' | 'warning' | 'danger' | 'accent' | 'info' | 'none';
+export type CardTone = SemanticTone;
 
 export interface CardHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;
@@ -259,8 +260,7 @@ export interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 't
   readonly headerActions?: React.ReactNode;
   readonly statusIndicators?: React.ReactNode;
   readonly footer?: React.ReactNode;
-  readonly accentTone?: CardAccentTone;
-  readonly matchScore?: number;
+  readonly tone?: CardTone;
   readonly selected?: boolean;
   readonly horizontal?: boolean;
   readonly interactive?: boolean;
@@ -284,42 +284,26 @@ export type CardCollapsedProps = Omit<
 >;
 
 export interface CardFullLoadingProps extends React.HTMLAttributes<HTMLDivElement> {
-  readonly accentTone?: CardAccentTone;
-  readonly matchScore?: number;
+  readonly tone?: CardTone;
   readonly horizontal?: boolean;
   readonly snapToGrid?: boolean;
   readonly bodyClassName?: string;
 }
 
 export interface CardCollapsedLoadingProps extends React.HTMLAttributes<HTMLDivElement> {
-  readonly accentTone?: CardAccentTone;
-  readonly matchScore?: number;
+  readonly tone?: CardTone;
 }
 
-function resolveCardToneClass(
-  accentTone?: CardAccentTone,
-  matchScore?: number,
-): string | undefined {
-  const resolvedTone: CardAccentTone | undefined =
-    accentTone !== undefined
-      ? accentTone
-      : matchScore !== undefined
-        ? matchScore >= 75
-          ? 'success'
-          : matchScore >= 50
-            ? 'warning'
-            : 'danger'
-        : undefined;
-
-  return resolvedTone === 'success'
+function resolveCardToneClass(tone?: CardTone): string | undefined {
+  return tone === 'success'
     ? styles.accentSuccess
-    : resolvedTone === 'warning'
+    : tone === 'warning'
       ? styles.accentWarning
-      : resolvedTone === 'danger'
+      : tone === 'danger'
         ? styles.accentDanger
-        : resolvedTone === 'accent'
+        : tone === 'accent' || tone === 'primary'
           ? styles.accentPrimary
-          : resolvedTone === 'info'
+          : tone === 'info'
             ? styles.accentInfo
             : undefined;
 }
@@ -328,8 +312,8 @@ function resolveCardToneClass(
  * CardCollapsedLoading renders the animated skeleton placeholder for CardCollapsed (32px / 1 cell).
  */
 export const CardCollapsedLoading = forwardRef<HTMLDivElement, CardCollapsedLoadingProps>(
-  function CardCollapsedLoading({ accentTone, matchScore, className, ...rest }, ref) {
-    const toneClass = resolveCardToneClass(accentTone, matchScore);
+  function CardCollapsedLoading({ tone, className, ...rest }, ref) {
+    const toneClass = resolveCardToneClass(tone);
     return (
       <div
         ref={ref}
@@ -358,8 +342,7 @@ export const CardCollapsedLoading = forwardRef<HTMLDivElement, CardCollapsedLoad
 export const CardFullLoading = forwardRef<HTMLDivElement, CardFullLoadingProps>(
   function CardFullLoading(
     {
-      accentTone,
-      matchScore,
+      tone,
       horizontal = false,
       snapToGrid = true,
       bodyClassName,
@@ -368,7 +351,7 @@ export const CardFullLoading = forwardRef<HTMLDivElement, CardFullLoadingProps>(
     },
     ref,
   ) {
-    const toneClass = resolveCardToneClass(accentTone, matchScore);
+    const toneClass = resolveCardToneClass(tone);
     return (
       <div
         ref={ref}
@@ -426,8 +409,7 @@ export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(func
     checkboxAriaLabel = 'Select card',
     headerActions,
     statusIndicators,
-    accentTone,
-    matchScore,
+    tone,
     selected = false,
     interactive = false,
     isLoading = false,
@@ -441,15 +423,14 @@ export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(func
     return (
       <CardCollapsedLoading
         ref={ref}
-        accentTone={accentTone}
-        matchScore={matchScore}
+        tone={tone}
         className={className}
         {...rest}
       />
     );
   }
 
-  const toneClass = resolveCardToneClass(accentTone, matchScore);
+  const toneClass = resolveCardToneClass(tone);
 
   return (
     <div
@@ -498,8 +479,7 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(function CardF
     headerActions,
     statusIndicators,
     footer,
-    accentTone,
-    matchScore,
+    tone,
     selected = false,
     horizontal = false,
     interactive = false,
@@ -516,8 +496,7 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(function CardF
     return (
       <CardFullLoading
         ref={ref}
-        accentTone={accentTone}
-        matchScore={matchScore}
+        tone={tone}
         horizontal={horizontal}
         snapToGrid={snapToGrid}
         bodyClassName={bodyClassName}
@@ -527,7 +506,7 @@ export const CardFull = forwardRef<HTMLDivElement, CardFullProps>(function CardF
     );
   }
 
-  const toneClass = resolveCardToneClass(accentTone, matchScore);
+  const toneClass = resolveCardToneClass(tone);
 
   const hasShorthandSlots =
     title !== undefined ||

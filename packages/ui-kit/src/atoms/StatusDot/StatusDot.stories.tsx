@@ -11,21 +11,18 @@ const meta: Meta<typeof StatusDot> = {
 export default meta;
 type Story = StoryObj<typeof StatusDot>;
 
-export const SemanticAndPaletteDots: Story = {
+export const SemanticDots: Story = {
   render: () => (
     <div className={layoutStyles.row}>
-      <StatusDot tone="success" pulse label="Worker online" />
+      <StatusDot tone="neutral" label="Neutral" />
       <StatusDot tone="primary" label="Active" />
+      <StatusDot tone="secondary" label="Secondary" />
+      <StatusDot tone="muted" label="Muted" />
+      <StatusDot tone="accent" label="Accent" />
+      <StatusDot tone="success" pulse label="Worker online" />
       <StatusDot tone="warning" label="Pending" />
       <StatusDot tone="danger" label="Error" />
-      <StatusDot palette="slate" />
-      <StatusDot palette="blue" />
-      <StatusDot palette="purple" />
-      <StatusDot palette="emerald" />
-      <StatusDot palette="amber" />
-      <StatusDot palette="rose" />
-      <StatusDot palette="cyan" />
-      <StatusDot palette="indigo" />
+      <StatusDot tone="info" label="Info" />
     </div>
   ),
 };

@@ -3,12 +3,13 @@ import React, { forwardRef } from 'react';
 import { Button } from './Button';
 import { cn } from '../../utils';
 import { Icon } from '../Icon';
+import type { SemanticTone } from '../../tokens';
 import styles from './Button.module.css';
 import { Text } from '../Text';
 
 export type SortDirection = 'asc' | 'desc' | 'none';
 export type SortButtonSize = 'sm' | 'md';
-export type SortButtonTone = 'default' | 'accent' | 'muted';
+export type SortButtonTone = SemanticTone;
 
 export interface SortButtonProps extends Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -34,7 +35,7 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
     onToggle,
     onClick,
     size = 'sm',
-    tone = 'default',
+    tone = 'neutral',
     iconPosition = 'end',
     type = 'button',
     className,
@@ -62,15 +63,16 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
 
   const ariaSortValue = isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
+  const resolvedTone: SemanticTone =
+    tone !== 'neutral' ? tone : isActive ? 'accent' : 'secondary';
+
   const iconElement = (
     <Icon
       icon={SortIconComponent}
       size={size === 'sm' ? 'xs' : 'sm'}
-      tone={isActive ? 'accent' : tone === 'muted' ? 'muted' : 'secondary'}
+      tone={resolvedTone}
     />
   );
-
-  const buttonTone = isActive ? 'accent' : tone;
 
   return (
     <Button
@@ -78,7 +80,7 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
       type={type}
       variant="ghost"
       size={size}
-      tone={buttonTone}
+      tone={resolvedTone}
       disabled={disabled}
       aria-sort={ariaSortValue}
       aria-pressed={isActive}
@@ -98,7 +100,7 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
           as="span"
           variant="mono"
           size="xs"
-          tone={isActive ? 'accent' : tone === 'muted' ? 'muted' : 'secondary'}
+          tone={resolvedTone}
           truncate
         >
           {children}

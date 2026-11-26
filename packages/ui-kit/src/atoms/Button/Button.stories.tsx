@@ -21,7 +21,21 @@ const meta: Meta<typeof Button> = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'danger', 'warning', 'mint', 'ghost'],
+      options: ['primary', 'secondary', 'ghost'],
+    },
+    tone: {
+      control: 'select',
+      options: [
+        'neutral',
+        'primary',
+        'secondary',
+        'muted',
+        'accent',
+        'success',
+        'warning',
+        'danger',
+        'info',
+      ],
     },
     size: {
       control: 'select',
@@ -47,9 +61,13 @@ export const AllVariants: Story = {
         Primary Action
       </Button>
       <Button variant="secondary">Secondary</Button>
-      <Button variant="mint">Mint Success</Button>
-      <Button variant="warning">Warning</Button>
-      <Button variant="danger" startIcon={<Icon icon={Trash2} size="sm" />}>
+      <Button variant="secondary" tone="success">
+        Success
+      </Button>
+      <Button variant="secondary" tone="warning">
+        Warning
+      </Button>
+      <Button variant="secondary" tone="danger" startIcon={<Icon icon={Trash2} size="sm" />}>
         Delete
       </Button>
       <Button variant="ghost">Ghost</Button>

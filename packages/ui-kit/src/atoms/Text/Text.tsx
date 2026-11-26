@@ -1,6 +1,6 @@
 import { Blockquote, type BlockquoteProps, type BlockquoteTone } from './Blockquote';
 import { Code, type CodeProps, Kbd, type KbdProps } from './Code';
-import type { FontSizeToken, PaletteTone } from '../../tokens';
+import type { FontSizeToken, SemanticTone } from '../../tokens';
 import { Heading, type HeadingLevel, type HeadingProps } from './Heading';
 import { Link, type LinkProps } from './Link';
 import {
@@ -26,8 +26,7 @@ export type TextElement =
 export type TextVariant =
   'body' | 'body-sm' | 'caption' | 'mono' | 'mono-label' | 'title' | 'heading' | 'display';
 
-export type TextTone =
-  'primary' | 'secondary' | 'muted' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
+export type TextTone = SemanticTone;
 
 export type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
@@ -39,7 +38,6 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   readonly variant?: TextVariant;
   readonly size?: FontSizeToken;
   readonly tone?: TextTone;
-  readonly palette?: PaletteTone;
   readonly weight?: TextWeight;
   readonly truncate?: boolean;
   readonly startIcon?: React.ReactNode;
@@ -70,7 +68,6 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
     variant = 'body',
     size,
     tone = 'primary',
-    palette,
     weight,
     truncate = false,
     startIcon,
@@ -93,7 +90,7 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
         ? styles['lineHeight-half']
         : undefined;
 
-  const colorClass = palette !== undefined ? styles[`palette-${palette}`] : styles[`tone-${tone}`];
+  const colorClass = styles[`tone-${tone}`];
 
   return (
     <Component

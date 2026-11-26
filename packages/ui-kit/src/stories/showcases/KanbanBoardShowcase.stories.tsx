@@ -119,7 +119,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 01 ]
             </Text>
-            <StatusDot palette="blue" size="md" />
+            <StatusDot tone="primary" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
               НЕ СВЯЗЫВАЛИСЬ
             </Text>
@@ -129,7 +129,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
           </TableHeader>
           <TableBody scrollable snapScroll padding="none" gap="none">
             <TableCell padding="none">
-              <Card matchScore={88} interactive>
+              <Card tone="success" interactive>
                 <CardBody>
                   <CardHeader
                     overline="Datadog"
@@ -231,7 +231,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               [ 02 ]
             </Text>
-            <StatusDot palette="emerald" size="md" />
+            <StatusDot tone="success" size="md" />
             <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
               ОТКЛИКНУЛСЯ
             </Text>
@@ -241,7 +241,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
           </TableHeader>
           <TableBody scrollable snapScroll padding="none" gap="none">
             <TableCell padding="none">
-              <Card matchScore={96} interactive>
+              <Card tone="success" interactive>
                 <CardBody>
                   <CardHeader
                     overline="Stripe"
@@ -343,7 +343,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
           </TableHeader>
           <TableBody scrollable snapScroll padding="none" gap="none">
             <TableCell padding="none">
-              <Card matchScore={42} interactive>
+              <Card tone="danger" interactive>
                 <CardBody>
                   <CardHeader
                     overline="Meta"

@@ -22,16 +22,6 @@ export interface StepperItemProps
   readonly isLast?: boolean;
 }
 
-const BADGE_TO_STATUS_TONE: Record<BadgeTone, StatusDotTone> = {
-  neutral: 'neutral',
-  primary: 'primary',
-  accent: 'accent',
-  success: 'success',
-  warning: 'warning',
-  danger: 'danger',
-  info: 'info',
-};
-
 /**
  * StepperItem sub-component.
  * Renders a single timeline transition step composing StatusDot, Badge, Icon, Text,
@@ -51,7 +41,8 @@ export function StepperItem({
   className,
   ...rest
 }: StepperItemProps): React.ReactElement {
-  const dotTone: StatusDotTone = active ? 'accent' : BADGE_TO_STATUS_TONE[tone];
+  const resolvedTone: BadgeTone = tone !== 'neutral' ? tone : active ? 'accent' : 'neutral';
+  const dotTone: StatusDotTone = resolvedTone;
 
   return (
     <li className={cn(styles.stepItem, active && styles.stepActive, className)} {...rest}>
@@ -71,7 +62,7 @@ export function StepperItem({
                 <Icon icon={ArrowRight} size="xs" tone="muted" />
               </>
             )}
-            <Badge variant={active ? 'solid' : 'outline'} size="xs" tone={active ? 'accent' : tone}>
+            <Badge variant={active ? 'solid' : 'outline'} size="xs" tone={resolvedTone}>
               {label}
             </Badge>
           </div>

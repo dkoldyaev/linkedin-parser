@@ -4,6 +4,7 @@ import {
   resolveInitialStatusId,
   resolveLinearColumns,
   resolveRejectedStatusId,
+  resolveScoreTone,
   resolveStageLabel,
 } from './kanbanCardHelpers';
 import { Card } from '@blueprint/ui-kit';
@@ -138,7 +139,7 @@ export default function KanbanCard({
   return (
     <Card
       compact={isCompact}
-      matchScore={matchScore}
+      tone={matchScore !== undefined ? resolveScoreTone(matchScore) : undefined}
       selected={isSelected}
       interactive
       onClick={handlers.handleCardClick}

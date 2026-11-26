@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Skeleton, Textarea } from '@blueprint/ui-kit';
 import { FileText } from 'lucide-react';
+import { SaveButton } from './SaveButton';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
 import { VacancySection } from './VacancySection';
@@ -34,8 +35,12 @@ export function VacancyDescriptionSection({
     <VacancySection
       title={t('vacancyModal.raw_desc_title')}
       icon={FileText}
-      onSave={!loading && onSaveDescription ? () => saveDescription(draft) : undefined}
-      saveStatus={saveStatus}
+      accessory={
+        !loading &&
+        onSaveDescription && (
+          <SaveButton status={saveStatus} onClick={() => saveDescription(draft)} />
+        )
+      }
     >
       {loading ? (
         <div style={SKELETON_STACK_STYLE} data-testid="vacancy-description-skeleton">
@@ -46,7 +51,6 @@ export function VacancyDescriptionSection({
         </div>
       ) : (
         <Textarea
-          rows={12}
           value={draft}
           placeholder={t('vacancyModal.description_placeholder')}
           onChange={(e) => setDraft(e.target.value)}

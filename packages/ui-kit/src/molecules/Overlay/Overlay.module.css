@@ -1,8 +1,11 @@
 @layer ui-molecules {
   .viewportFrame {
     position: fixed;
-    inset: 0;
-    display: flex;
+    top: 0;
+    left: 0;
+    width: round(down, 100vw, var(--ui-grid-cell));
+    height: round(down, 100vh, var(--ui-grid-cell));
+    display: grid;
     pointer-events: none;
     box-sizing: border-box;
   }
@@ -11,7 +14,7 @@
     position: fixed;
     inset: 0;
     background-color: var(--ui-bg-overlay);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(1px);
     pointer-events: auto;
   }
 
@@ -31,56 +34,55 @@
   }
 
   .placement-center {
-    align-items: center;
-    justify-content: center;
-    padding: var(--ui-space-4);
+    place-items: center;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-top-start {
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: var(--ui-space-6);
+    align-items: start;
+    justify-items: start;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-top-center {
-    align-items: flex-start;
-    justify-content: center;
-    padding: var(--ui-space-6);
+    align-items: start;
+    justify-items: center;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-top-end {
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: var(--ui-space-6);
+    align-items: start;
+    justify-items: end;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-bottom-start {
-    align-items: flex-end;
-    justify-content: flex-start;
-    padding: var(--ui-space-6);
+    align-items: end;
+    justify-items: start;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-bottom-center {
-    align-items: flex-end;
-    justify-content: center;
-    padding: var(--ui-space-6);
+    align-items: end;
+    justify-items: center;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-bottom-end {
-    align-items: flex-end;
-    justify-content: flex-end;
-    padding: var(--ui-space-6);
+    align-items: end;
+    justify-items: end;
+    padding: var(--ui-grid-cell);
   }
 
   .placement-stretch-left {
     align-items: stretch;
-    justify-content: flex-start;
+    justify-items: start;
     padding: 0;
   }
 
   .placement-stretch-right {
     align-items: stretch;
-    justify-content: flex-end;
+    justify-items: end;
     padding: 0;
   }
 }

@@ -56,7 +56,7 @@ export {
   type CardHeaderProps,
   type CardBodyProps,
   type CardFooterProps,
-  type CardAccentTone,
+  type CardTone,
 } from './Card';
 export { Header, type HeaderProps, type HeaderUser } from './Header';
 export { Form, type FormProps } from './Form';

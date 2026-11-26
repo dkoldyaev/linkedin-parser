@@ -49,7 +49,6 @@ export {
   Badge,
   type BadgeProps,
   type BadgeTone,
-  type BadgePalette,
   type BadgeVariant,
   type BadgeSize,
 } from './Badge';
@@ -57,7 +56,6 @@ export {
   StatusDot,
   type StatusDotProps,
   type StatusDotTone,
-  type StatusDotPalette,
   type StatusDotSize,
 } from './StatusDot';
 export { Spinner, type SpinnerProps, type SpinnerSize } from './Spinner';

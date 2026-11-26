@@ -1,4 +1,4 @@
-import type { StatusDotPalette } from '@blueprint/ui-kit';
+import type { StatusDotTone } from '@blueprint/ui-kit';
 
 export const PALETTE_TO_HEX: Record<string, string> = {
   blue: '#2563eb',
@@ -11,7 +11,7 @@ export const PALETTE_TO_HEX: Record<string, string> = {
   slate: '#475569',
 };
 
-export const HEX_TO_PALETTE: Record<string, StatusDotPalette> = {
+export const HEX_TO_PALETTE: Record<string, string> = {
   '#2563eb': 'blue',
   '#0284c7': 'cyan',
   '#0891b2': 'cyan',
@@ -24,8 +24,26 @@ export const HEX_TO_PALETTE: Record<string, StatusDotPalette> = {
   '#475569': 'slate',
 };
 
-export function resolvePaletteFromHex(color: string): StatusDotPalette {
+export const HEX_TO_TONE: Record<string, StatusDotTone> = {
+  '#2563eb': 'primary',
+  '#0284c7': 'info',
+  '#0891b2': 'info',
+  '#d97706': 'warning',
+  '#9333ea': 'accent',
+  '#059669': 'success',
+  '#e11d48': 'danger',
+  '#ea580c': 'warning',
+  '#1d4ed8': 'primary',
+  '#475569': 'neutral',
+};
+
+export function resolvePaletteFromHex(color: string): string {
   return HEX_TO_PALETTE[color] || 'blue';
+}
+
+export function resolveToneFromHex(color?: string): StatusDotTone {
+  if (!color) return 'primary';
+  return HEX_TO_TONE[color.toLowerCase()] || 'primary';
 }
 
 export function resolveHexFromPalette(palette: string): string {

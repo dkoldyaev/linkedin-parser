@@ -2,9 +2,10 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Icon, Text } from '../../atoms';
 import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
+import type { SemanticTone } from '../../tokens';
 import styles from './SectionHeader.module.css';
 
-export type SectionHeaderTone = 'default' | 'accent' | 'mint' | 'warning' | 'danger' | 'muted';
+export type SectionHeaderTone = SemanticTone;
 
 export type SectionHeaderVariant = 'mono' | 'sans';
 
@@ -34,7 +35,7 @@ export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivEle
 export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(function SectionHeader(
   {
     title,
-    tone = 'default',
+    tone = 'neutral',
     icon,
     badge,
     accessory,
@@ -65,10 +66,13 @@ export const SectionHeader = forwardRef<HTMLDivElement, SectionHeaderProps>(func
       ref={ref}
       className={cn(
         styles.header,
-        tone === 'mint' && styles.toneMint,
+        tone === 'primary' && styles.tonePrimary,
+        tone === 'secondary' && styles.toneSecondary,
+        tone === 'success' && styles.toneSuccess,
         tone === 'warning' && styles.toneWarning,
         tone === 'danger' && styles.toneDanger,
         tone === 'accent' && styles.toneAccent,
+        tone === 'info' && styles.toneInfo,
         tone === 'muted' && styles.toneMuted,
         divider && styles.headerDivider,
         collapsible && styles.headerCollapsible,

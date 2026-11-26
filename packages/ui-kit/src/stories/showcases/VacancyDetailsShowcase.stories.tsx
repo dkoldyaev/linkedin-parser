@@ -37,7 +37,7 @@ const COMPATIBILITY_SECTIONS = [
   {
     id: 'confirmed',
     title: 'ПОДТВЕРЖДЁННЫЕ ТРЕБОВАНИЯ',
-    tone: 'mint' as const,
+    tone: 'success' as const,
     items: [
       {
         id: 'c1',

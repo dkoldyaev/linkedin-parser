@@ -1,9 +1,10 @@
 import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
+import type { SemanticTone } from '../../tokens';
 import styles from './Label.module.css';
 import { Text } from '../Text';
 
-export type LabelTone = 'secondary' | 'accent' | 'primary';
+export type LabelTone = SemanticTone;
 
 export interface LabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
   readonly required?: boolean;

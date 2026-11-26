@@ -107,13 +107,21 @@
   }
 
   /* Semantic Tones */
-  .tone-neutral {
+  .tone-neutral,
+  .tone-secondary {
     background-color: var(--ui-bg-subtle);
     box-shadow: inset 0 0 0 1px var(--ui-border-strong);
     color: var(--ui-text-secondary);
   }
 
-  .tone-primary {
+  .tone-muted {
+    background-color: var(--ui-bg-subtle);
+    box-shadow: inset 0 0 0 1px var(--ui-border-subtle);
+    color: var(--ui-text-muted);
+  }
+
+  .tone-primary,
+  .tone-accent {
     background-color: var(--ui-primary-subtle);
     box-shadow: inset 0 0 0 1px var(--ui-primary-border);
     color: var(--ui-primary);
@@ -144,62 +152,16 @@
   }
 
   .variant-ghost.tone-neutral,
+  .variant-ghost.tone-secondary,
+  .variant-ghost.tone-muted,
   .variant-ghost.tone-primary,
+  .variant-ghost.tone-accent,
   .variant-ghost.tone-success,
   .variant-ghost.tone-warning,
   .variant-ghost.tone-danger,
   .variant-ghost.tone-info {
     background-color: transparent;
     box-shadow: none;
-  }
-
-  /* Universal Palette Tones */
-  .palette-slate {
-    color: var(--ui-palette-slate);
-    background-color: var(--ui-palette-slate-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-slate-border);
-  }
-
-  .palette-blue {
-    color: var(--ui-palette-blue);
-    background-color: var(--ui-palette-blue-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-blue-border);
-  }
-
-  .palette-cyan {
-    color: var(--ui-palette-cyan);
-    background-color: var(--ui-palette-cyan-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-cyan-border);
-  }
-
-  .palette-indigo {
-    color: var(--ui-palette-indigo);
-    background-color: var(--ui-palette-indigo-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-indigo-border);
-  }
-
-  .palette-purple {
-    color: var(--ui-palette-purple);
-    background-color: var(--ui-palette-purple-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-purple-border);
-  }
-
-  .palette-emerald {
-    color: var(--ui-palette-emerald);
-    background-color: var(--ui-palette-emerald-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-emerald-border);
-  }
-
-  .palette-amber {
-    color: var(--ui-palette-amber);
-    background-color: var(--ui-palette-amber-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-amber-border);
-  }
-
-  .palette-rose {
-    color: var(--ui-palette-rose);
-    background-color: var(--ui-palette-rose-subtle);
-    box-shadow: inset 0 0 0 1px var(--ui-palette-rose-border);
   }
 
   /* Remove button composed via Button atom */

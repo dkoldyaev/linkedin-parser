@@ -40,7 +40,7 @@ export const JustifyBetween: Story = {
   render: () => (
     <div className={layoutStyles.panel}>
       <ModalFooter justify="between">
-        <Button variant="danger" size="sm" onClick={() => alert('Delete')}>
+        <Button variant="secondary" tone="danger" size="sm" onClick={() => alert('Delete')}>
           <Icon icon={Trash2} size="sm" />
           <span>Delete Column</span>
         </Button>

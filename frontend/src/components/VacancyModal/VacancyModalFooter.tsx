@@ -23,7 +23,6 @@ export function VacancyModalFooter({
           <Button
             variant="ghost"
             tone="danger"
-            size="sm"
             startIcon={<Icon icon={XCircle} size="xs" />}
             onClick={onReject}
           >
@@ -37,14 +36,13 @@ export function VacancyModalFooter({
           <Button
             variant="ghost"
             tone="danger"
-            size="sm"
             startIcon={<Icon icon={Trash2} size="xs" />}
             onClick={onDelete}
           >
             {t('vacancyModal.delete_btn')}
           </Button>
         )}
-        <Button variant="secondary" size="sm" onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           {t('vacancyModal.close_btn')}
         </Button>
       </Modal.Footer.Actions>

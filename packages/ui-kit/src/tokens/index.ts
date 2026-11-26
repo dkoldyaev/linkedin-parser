@@ -3,10 +3,15 @@ import './tokens.css';
 export type ThemeMode = 'dark' | 'light';
 
 export type SemanticTone =
-  'neutral' | 'primary' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
-
-export type PaletteTone =
-  'slate' | 'blue' | 'cyan' | 'indigo' | 'purple' | 'emerald' | 'amber' | 'rose';
+  | 'neutral'
+  | 'primary'
+  | 'secondary'
+  | 'muted'
+  | 'accent'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info';
 
 export type SpacingToken =
   | '0'
@@ -147,22 +152,6 @@ export const COLOR_TOKENS: readonly TokenDescriptor[] = [
     lightValue: '#176389',
     description: 'Semantic informational status accent',
   },
-] as const;
-
-export const PALETTE_TOKENS: readonly {
-  readonly key: PaletteTone;
-  readonly label: string;
-  readonly cssVar: string;
-  readonly hex: string;
-}[] = [
-  { key: 'slate', label: 'Slate', cssVar: '--ui-palette-slate', hex: '#64748b' },
-  { key: 'blue', label: 'Blue', cssVar: '--ui-palette-blue', hex: '#3b82f6' },
-  { key: 'cyan', label: 'Cyan', cssVar: '--ui-palette-cyan', hex: '#06b6d4' },
-  { key: 'indigo', label: 'Indigo', cssVar: '--ui-palette-indigo', hex: '#6366f1' },
-  { key: 'purple', label: 'Purple', cssVar: '--ui-palette-purple', hex: '#a855f7' },
-  { key: 'emerald', label: 'Emerald', cssVar: '--ui-palette-emerald', hex: '#10b981' },
-  { key: 'amber', label: 'Amber', cssVar: '--ui-palette-amber', hex: '#f59e0b' },
-  { key: 'rose', label: 'Rose', cssVar: '--ui-palette-rose', hex: '#f43f5e' },
 ] as const;
 
 export const SPACING_TOKENS: readonly {

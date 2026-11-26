@@ -1,15 +1,15 @@
 import { ArrowRight, Columns3, Flame, Puzzle, Sparkles } from 'lucide-react';
 import { Button, Icon, PageLayout, Text } from '@blueprint/ui-kit';
-import AboutFeatureCard from './AboutFeatureCard';
+import AboutFeatureCard, { type AboutFeature } from './AboutFeatureCard';
 import AboutOverviewSection from './AboutOverviewSection';
 import { Link } from 'react-router-dom';
 import { useTranslation } from '../i18n/I18nContext';
 
-const FEATURES = [
-  { key: 'ai', icon: Sparkles, color: '#2563eb' },
-  { key: 'kanban', icon: Columns3, color: '#0284c7' },
-  { key: 'streak', icon: Flame, color: '#d97706' },
-  { key: 'extension', icon: Puzzle, color: '#059669' },
+const FEATURES: AboutFeature[] = [
+  { key: 'ai', icon: Sparkles, tone: 'primary' },
+  { key: 'kanban', icon: Columns3, tone: 'info' },
+  { key: 'streak', icon: Flame, tone: 'warning' },
+  { key: 'extension', icon: Puzzle, tone: 'success' },
 ];
 
 const ARROW_RIGHT_ICON = <Icon icon={ArrowRight} size="xs" />;

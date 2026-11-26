@@ -54,7 +54,15 @@
     letter-spacing: normal;
   }
 
-  .toneMint .title {
+  .tonePrimary .title {
+    color: var(--ui-text-primary);
+  }
+
+  .toneSecondary .title {
+    color: var(--ui-text-secondary);
+  }
+
+  .toneSuccess .title {
     color: var(--ui-success);
   }
 
@@ -68,6 +76,10 @@
 
   .toneAccent .title {
     color: var(--ui-primary);
+  }
+
+  .toneInfo .title {
+    color: var(--ui-info);
   }
 
   .toneMuted .title {

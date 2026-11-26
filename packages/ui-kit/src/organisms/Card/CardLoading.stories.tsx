@@ -13,7 +13,7 @@ export default meta;
 export const FullLoading: StoryObj<typeof CardFullLoading> = {
   render: () => (
     <div className={layoutStyles.narrowBox}>
-      <CardFullLoading accentTone="accent" />
+      <CardFullLoading tone="accent" />
     </div>
   ),
 };
@@ -25,13 +25,13 @@ export const CollapsedLoading: StoryObj<typeof CardCollapsedLoading> = {
         <Text variant="caption" tone="muted">
           Collapsed Skeleton (32px single cell)
         </Text>
-        <CardCollapsedLoading accentTone="success" />
+        <CardCollapsedLoading tone="success" />
       </div>
       <div className={layoutStyles.narrowBox}>
-        <CardCollapsedLoading accentTone="warning" />
+        <CardCollapsedLoading tone="warning" />
       </div>
       <div className={layoutStyles.narrowBox}>
-        <CardCollapsedLoading accentTone="danger" />
+        <CardCollapsedLoading tone="danger" />
       </div>
     </div>
   ),

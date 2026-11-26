@@ -1,20 +1,11 @@
-import { ICON_SIZE_PX, type IconSize } from '../../tokens';
+import { ICON_SIZE_PX, type IconSize, type SemanticTone } from '../../tokens';
 import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
 import styles from './Icon.module.css';
 
 export type { IconSize };
 
-export type IconTone =
-  | 'inherit'
-  | 'primary'
-  | 'secondary'
-  | 'muted'
-  | 'accent'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info';
+export type IconTone = 'inherit' | SemanticTone;
 
 export type IconComponentType = React.ComponentType<{
   readonly size?: number | string;

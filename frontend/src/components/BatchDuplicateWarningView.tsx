@@ -94,7 +94,7 @@ export default function BatchDuplicateWarningView({
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {t('batchModal.duplicate_warning_cancel')}
           </Button>
-          <Button variant="warning" onClick={onProceed} disabled={loading} loading={loading}>
+          <Button variant="secondary" tone="warning" onClick={onProceed} disabled={loading} loading={loading}>
             {t('batchModal.duplicate_warning_proceed')}
           </Button>
         </ModalFooter.Actions>
