@@ -1,23 +1,23 @@
 import { createDocument } from './dom';
 
 export function cleanText(htmlElem: any | string | undefined | null): string {
-  if (!htmlElem) return "";
-  let text = "";
+  if (!htmlElem) return '';
+  let text = '';
   if (typeof htmlElem === 'string') {
     text = htmlElem;
   } else {
     // Attempt to use innerText if available (browsers), fallback to textContent
-    text = htmlElem.innerText || htmlElem.textContent || "";
+    text = htmlElem.innerText || htmlElem.textContent || '';
   }
 
-  const lines = text.split(/\r?\n/).map(line => line.trim());
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
   const cleanLines: string[] = [];
   let prevEmpty = false;
 
   for (const line of lines) {
     if (!line) {
       if (!prevEmpty) {
-        cleanLines.push("");
+        cleanLines.push('');
         prevEmpty = true;
       }
     } else {
@@ -25,26 +25,26 @@ export function cleanText(htmlElem: any | string | undefined | null): string {
       prevEmpty = false;
     }
   }
-  return cleanLines.join("\n").trim();
+  return cleanLines.join('\n').trim();
 }
 
-export function findJsonLd(html: string, targetType: string = "JobPosting"): any {
+export function findJsonLd(html: string, targetType: string = 'JobPosting'): any {
   const targetLower = targetType.toLowerCase();
   const doc = createDocument(html);
-  
+
   let result: any = null;
 
   const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
   for (let i = 0; i < scripts.length; i++) {
     if (result) return result;
-    
+
     const raw = scripts[i].textContent || scripts[i].innerHTML;
     if (!raw) continue;
-    
+
     let data;
     try {
       data = JSON.parse(raw);
-    } catch (e) {
+    } catch {
       continue;
     }
 
@@ -56,11 +56,15 @@ export function findJsonLd(html: string, targetType: string = "JobPosting"): any
         result = item;
         return result;
       }
-      
+
       const graph = item['@graph'];
       if (Array.isArray(graph)) {
         for (const g of graph) {
-          if (typeof g === 'object' && g !== null && String(g['@type'] || '').toLowerCase() === targetLower) {
+          if (
+            typeof g === 'object' &&
+            g !== null &&
+            String(g['@type'] || '').toLowerCase() === targetLower
+          ) {
             result = g;
             return result;
           }
@@ -68,34 +72,44 @@ export function findJsonLd(html: string, targetType: string = "JobPosting"): any
       }
     }
   }
-  
+
   return result;
 }
 
 export function normalizeCurrency(curr: string | null | undefined): string | null {
   if (!curr) return null;
   const c = curr.trim().toUpperCase();
-  if (['RUB', 'RUR', '₽', 'РУБ', 'РУБ.'].includes(c)) return "RUB";
-  if (['USD', '$'].includes(c)) return "USD";
-  if (['EUR', '€'].includes(c)) return "EUR";
-  if (['GBP', '£'].includes(c)) return "GBP";
+  if (['RUB', 'RUR', '₽', 'РУБ', 'РУБ.'].includes(c)) return 'RUB';
+  if (['USD', '$'].includes(c)) return 'USD';
+  if (['EUR', '€'].includes(c)) return 'EUR';
+  if (['GBP', '£'].includes(c)) return 'GBP';
   return curr.trim();
 }
 
 export function normalizePeriod(periodStr: string | null | undefined): string | null {
   if (!periodStr) return null;
   const p = periodStr.trim().toLowerCase();
-  if (['hour', 'час', 'hr'].some(k => p.includes(k))) return "hour";
-  if (['day', 'смен', 'день', 'shift'].some(k => p.includes(k))) return "day";
-  if (['week', 'недел'].some(k => p.includes(k))) return "week";
-  if (['month', 'месяц', 'мес'].some(k => p.includes(k))) return "month";
-  if (['year', 'год', 'annual'].some(k => p.includes(k))) return "year";
+  if (['hour', 'час', 'hr'].some((k) => p.includes(k))) return 'hour';
+  if (['day', 'смен', 'день', 'shift'].some((k) => p.includes(k))) return 'day';
+  if (['week', 'недел'].some((k) => p.includes(k))) return 'week';
+  if (['month', 'месяц', 'мес'].some((k) => p.includes(k))) return 'month';
+  if (['year', 'год', 'annual'].some((k) => p.includes(k))) return 'year';
   return null;
 }
 
-export function parseJsonLdSalary(data: any): { salary_min?: number; salary_max?: number; salary_currency?: string; salary_period?: string } {
-  const result: { salary_min?: number; salary_max?: number; salary_currency?: string; salary_period?: string } = {};
-  
+export function parseJsonLdSalary(data: any): {
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  salary_period?: string;
+} {
+  const result: {
+    salary_min?: number;
+    salary_max?: number;
+    salary_currency?: string;
+    salary_period?: string;
+  } = {};
+
   const base = data?.baseSalary;
   if (typeof base !== 'object' || base === null) return result;
 
@@ -141,22 +155,37 @@ export function parseJsonLdSalary(data: any): { salary_min?: number; salary_max?
 
 const toFloat = (s: string) => parseFloat(s.replace(/[\s]/g, '').replace(',', '.'));
 
-export function parseSalaryString(text: string | null | undefined): { salary_min?: number; salary_max?: number; salary_currency?: string; salary_period?: string } {
-  const result: { salary_min?: number; salary_max?: number; salary_currency?: string; salary_period?: string } = {};
+export function parseSalaryString(text: string | null | undefined): {
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  salary_period?: string;
+} {
+  const result: {
+    salary_min?: number;
+    salary_max?: number;
+    salary_currency?: string;
+    salary_period?: string;
+  } = {};
   if (!text) return result;
 
-  const raw = text.replace(/\xa0/g, " ").replace(/&nbsp;/g, " ").trim();
+  const raw = text
+    .replace(/\xa0/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
 
-  if (['₽', 'руб', 'RUR', 'RUB'].some(c => raw.includes(c))) result.salary_currency = "RUB";
-  else if (['$', 'USD'].some(c => raw.includes(c))) result.salary_currency = "USD";
-  else if (['€', 'EUR'].some(c => raw.includes(c))) result.salary_currency = "EUR";
-  else if (['£', 'GBP'].some(c => raw.includes(c))) result.salary_currency = "GBP";
+  if (['₽', 'руб', 'RUR', 'RUB'].some((c) => raw.includes(c))) result.salary_currency = 'RUB';
+  else if (['$', 'USD'].some((c) => raw.includes(c))) result.salary_currency = 'USD';
+  else if (['€', 'EUR'].some((c) => raw.includes(c))) result.salary_currency = 'EUR';
+  else if (['£', 'GBP'].some((c) => raw.includes(c))) result.salary_currency = 'GBP';
 
   const period = normalizePeriod(raw);
   if (period) result.salary_period = period;
-  else if (result.salary_currency === "RUB") result.salary_period = "month";
+  else if (result.salary_currency === 'RUB') result.salary_period = 'month';
 
-  const rangeMatch = raw.match(/(?:от\s+)?(?:\$|€|£|₽)?\s*([\d\s]+(?:[.,]\d+)?)\s*(?:₽|руб|usd|\$|eur|€|gbp|£)?\s*(?:—|-|–|до)\s*(?:до\s+)?(?:\$|€|£|₽)?\s*([\d\s]+(?:[.,]\d+)?)/i);
+  const rangeMatch = raw.match(
+    /(?:от\s+)?(?:\$|€|£|₽)?\s*([\d\s]+(?:[.,]\d+)?)\s*(?:₽|руб|usd|\$|eur|€|gbp|£)?\s*(?:—|-|–|до)\s*(?:до\s+)?(?:\$|€|£|₽)?\s*([\d\s]+(?:[.,]\d+)?)/i,
+  );
   if (rangeMatch) {
     const sMin = toFloat(rangeMatch[1]);
     const sMax = toFloat(rangeMatch[2]);
@@ -195,9 +224,13 @@ export function parseSalaryString(text: string | null | undefined): { salary_min
 export function normalizeWorkplace(text: string | null | undefined): string | null {
   if (!text) return null;
   const t = text.toLowerCase();
-  if (['remote', 'удален', 'дистанцион', 'telecommute', 'wfh', 'worldwide'].some(k => t.includes(k))) return "remote";
-  if (['hybrid', 'гибрид'].some(k => t.includes(k))) return "hybrid";
-  if (['on-site', 'onsite', 'on site', 'в офисе', 'очно', 'на месте'].some(k => t.includes(k))) return "on-site";
+  if (
+    ['remote', 'удален', 'дистанцион', 'telecommute', 'wfh', 'worldwide'].some((k) => t.includes(k))
+  )
+    return 'remote';
+  if (['hybrid', 'гибрид'].some((k) => t.includes(k))) return 'hybrid';
+  if (['on-site', 'onsite', 'on site', 'в офисе', 'очно', 'на месте'].some((k) => t.includes(k)))
+    return 'on-site';
   return null;
 }
 
@@ -225,4 +258,3 @@ export function cleanUrlParams(url: string): string {
     return url.split('?')[0].split('#')[0];
   }
 }
-

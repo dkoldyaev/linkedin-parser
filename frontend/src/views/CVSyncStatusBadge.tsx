@@ -1,8 +1,8 @@
-import React from 'react';
-import { CheckCircle2, AlertTriangle, Edit3 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Edit3 } from 'lucide-react';
 import { Badge, Icon } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
 import type { CVSyncStatus } from './cv.types';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface CVSyncStatusBadgeProps {
   syncStatus: CVSyncStatus;

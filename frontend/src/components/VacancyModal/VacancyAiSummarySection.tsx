@@ -1,6 +1,6 @@
-import React from 'react';
 import { Button, Icon, Paragraph, Text } from '@blueprint/ui-kit';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { VacancySection } from './VacancySection';
 

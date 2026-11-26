@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../cn';
+import React from 'react';
 import styles from './MediaQuery.module.css';
 
 export interface MediaQueryProps extends React.HTMLAttributes<HTMLDivElement> {

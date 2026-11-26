@@ -1,18 +1,11 @@
-
-import React from 'react';
+import { AlertBanner, Icon, Modal, ModalBody, ModalHeader } from '@blueprint/ui-kit';
 import { Briefcase } from 'lucide-react';
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  AlertBanner,
-  Icon,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { useLoginController } from './useLoginController';
-import LoginGoogleSection from './LoginGoogleSection';
 import LoginDevSection from './LoginDevSection';
+import LoginGoogleSection from './LoginGoogleSection';
+import React from 'react';
+import { useLoginController } from './useLoginController';
 import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface LoginModalProps {
   isOpen?: boolean;
@@ -28,7 +21,7 @@ function resolveLoginModalLabels(
   isGuestPromotion: boolean,
   googleConfigured: boolean,
   loading: boolean,
-  t: (key: string) => string
+  t: (key: string) => string,
 ) {
   return {
     title: isGuestPromotion ? t('auth.save_progress_title') : 'LinkedIn Vacancies',
@@ -50,12 +43,7 @@ export default function LoginModal({
   if (!isOpen) return null;
 
   const googleConfigured = ctrl.authConfig.google_configured;
-  const labels = resolveLoginModalLabels(
-    isGuestPromotion,
-    googleConfigured,
-    ctrl.loading,
-    t
-  );
+  const labels = resolveLoginModalLabels(isGuestPromotion, googleConfigured, ctrl.loading, t);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose || NOOP_CLOSE} size="sm">

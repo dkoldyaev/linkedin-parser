@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Modal.module.css';
 
 export type ModalFooterJustify = 'start' | 'center' | 'end' | 'between';
@@ -42,7 +42,9 @@ function ModalFooterRoot({
 }: ModalFooterProps): React.ReactElement {
   return (
     <div
-      className={cn(styles.footer, styles[`footer-justify-${justify}`], className)}
+      data-bp-snap=""
+      data-min-grids="2"
+      className={cn(styles.footer, 'bp-snap', styles[`footer-justify-${justify}`], className)}
       {...restProps}
     >
       {children}

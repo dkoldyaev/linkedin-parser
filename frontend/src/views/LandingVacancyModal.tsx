@@ -1,31 +1,15 @@
-
-import { useRef } from 'react';
-import {
-  Award,
-  Banknote,
-  Building2,
-  FileText,
-  Layers,
-  MapPin,
-  Shield,
-} from 'lucide-react';
+import { Award, Banknote, Building2, FileText, Layers, MapPin, Shield } from 'lucide-react';
+import type { BloatItemPreset, CompatibilityPreset, LandingVacancyPreset } from './landingPresets';
+import { COMPATIBILITY_DATA, LINKEDIN_CORPORATE_BLOAT } from './landingConstants';
 import { getSalaryDisplay } from '../utils/salary';
-import type { SalaryDisplay } from '../utils/salary';
 import { getWorkplaceInfo } from '../utils/workplace';
-import type { WorkplaceInfo } from '../utils/workplace';
-import {
-  LINKEDIN_CORPORATE_BLOAT,
-  COMPATIBILITY_DATA,
-} from './landingConstants';
-import type {
-  LandingVacancyPreset,
-  BloatItemPreset,
-  CompatibilityPreset,
-} from './landingPresets';
+import LandingModalCompatTab from './LandingModalCompatTab';
+import LandingModalDetailsTab from './LandingModalDetailsTab';
+import type { SalaryDisplay } from '../utils/salary';
 import SkeletonBar from './SkeletonBar';
 import { useLandingModalAnimations } from './useLandingModalAnimations';
-import LandingModalDetailsTab from './LandingModalDetailsTab';
-import LandingModalCompatTab from './LandingModalCompatTab';
+import { useRef } from 'react';
+import type { WorkplaceInfo } from '../utils/workplace';
 
 export interface LandingVacancyModalProps {
   vacancy: LandingVacancyPreset;
@@ -93,7 +77,7 @@ function renderModalTabs(
   activeTab: 'details' | 'compatibility',
   isScreen3: boolean,
   isEn: boolean,
-  overallScore: number
+  overallScore: number,
 ) {
   return (
     <div className="settings-tabs vacancy-tabs">
@@ -128,7 +112,7 @@ function resolveVacancySalaryBounds(vacancy: LandingVacancyPreset) {
 function deriveLandingModalViewFlags(
   subScreenId: string,
   vacancy: LandingVacancyPreset,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const isScreen3 = subScreenId === '3.1' || subScreenId === '3.2';
   const isSummaryOrCollapsed = subScreenId === '2.3' || isScreen3;
@@ -149,7 +133,7 @@ function buildModalSalaryInfo(
   salaryMin: string,
   salaryMax: string,
   vacancy: LandingVacancyPreset,
-  t: LandingVacancyModalProps['t']
+  t: LandingVacancyModalProps['t'],
 ): SalaryDisplay {
   return getSalaryDisplay(
     {
@@ -159,7 +143,7 @@ function buildModalSalaryInfo(
       salary_period: vacancy.salary_period || 'year',
     },
     t,
-    'month'
+    'month',
   );
 }
 

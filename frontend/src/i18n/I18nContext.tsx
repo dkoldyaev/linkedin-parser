@@ -1,13 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { translations, type TranslationNode } from './translations';
-import { settingsService } from '../services/settingsService';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { type TranslationNode, translations } from './translations';
 import type { RemoteSettingsData } from '../services/settings.types';
+import { settingsService } from '../services/settingsService';
 
 export type LocaleCode = 'ru' | 'en';
 export type Locale = LocaleCode;
 export type SalaryFormat = 'month' | 'year' | 'hour';
 export type TranslateFn = (path: string, params?: Record<string, string | number>) => string;
-export type FormatDateFn = (dateValue?: string | number | Date | null, options?: Intl.DateTimeFormatOptions) => string;
+export type FormatDateFn = (
+  dateValue?: string | number | Date | null,
+  options?: Intl.DateTimeFormatOptions,
+) => string;
 
 export interface I18nContextValue {
   locale: LocaleCode;
@@ -85,7 +88,10 @@ function resolveInitialRates(initialRates?: Record<string, number>): Record<stri
   }
 }
 
-function lookupTranslationNode(root: Record<string, TranslationNode>, keys: string[]): string | null {
+function lookupTranslationNode(
+  root: Record<string, TranslationNode>,
+  keys: string[],
+): string | null {
   let current: TranslationNode | undefined = root;
   for (const key of keys) {
     if (!current || typeof current !== 'object' || !(key in current)) {
@@ -109,7 +115,7 @@ function interpolateTemplate(template: string, params?: Record<string, string | 
 function translatePath(
   locale: LocaleCode,
   path: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
 ): string {
   if (!path) return '';
   const keys = path.split('.');
@@ -133,7 +139,7 @@ function applyFetchedSettings(
   data: SettingsPayload | null,
   setLocaleState: (loc: LocaleCode) => void,
   setSalaryDisplayFormatState: (fmt: string) => void,
-  setSalaryTargetCurrencyState: (curr: string) => void
+  setSalaryTargetCurrencyState: (curr: string) => void,
 ): void {
   if (!data) return;
   if (isSupportedRemoteLocale(data.locale)) {
@@ -158,10 +164,10 @@ function isSupportedRemoteLocale(val?: string | null): val is LocaleCode {
 function useI18nEffects(
   initialLocale: string | undefined,
   initialExchangeRates: Record<string, number> | undefined,
-  locale: LocaleCode
+  locale: LocaleCode,
 ): Record<string, number> {
   const [exchangeRates, setExchangeRatesState] = useState<Record<string, number>>(() =>
-    resolveInitialRates(initialExchangeRates)
+    resolveInitialRates(initialExchangeRates),
   );
 
   useEffect(() => {
@@ -195,14 +201,14 @@ function useI18nController(
   initialLocale: string | undefined,
   initialSalaryFormat: string | undefined,
   initialSalaryCurrency: string | undefined,
-  initialExchangeRates: Record<string, number> | undefined
+  initialExchangeRates: Record<string, number> | undefined,
 ): I18nContextValue {
   const [locale, setLocaleState] = useState<LocaleCode>(() => resolveInitialLocale(initialLocale));
   const [salaryDisplayFormat, setSalaryDisplayFormatState] = useState<string>(() =>
-    resolveInitialFormat(initialSalaryFormat)
+    resolveInitialFormat(initialSalaryFormat),
   );
   const [salaryTargetCurrency, setSalaryTargetCurrencyState] = useState<string>(() =>
-    resolveInitialCurrency(initialSalaryCurrency)
+    resolveInitialCurrency(initialSalaryCurrency),
   );
 
   const exchangeRates = useI18nEffects(initialLocale, initialExchangeRates, locale);
@@ -214,7 +220,7 @@ function useI18nController(
         data,
         setLocaleState,
         setSalaryDisplayFormatState,
-        setSalaryTargetCurrencyState
+        setSalaryTargetCurrencyState,
       );
     } catch (err) {
       console.debug('Could not fetch settings', err);
@@ -240,7 +246,7 @@ function useI18nController(
 
   const t = useCallback<TranslateFn>(
     (path, params) => translatePath(locale, path, params),
-    [locale]
+    [locale],
   );
 
   const formatDate = useCallback<FormatDateFn>(
@@ -254,7 +260,7 @@ function useI18nController(
         return String(dateValue);
       }
     },
-    [locale]
+    [locale],
   );
 
   return {
@@ -282,7 +288,7 @@ export function I18nProvider({
     initialLocale,
     initialSalaryFormat,
     initialSalaryCurrency,
-    initialExchangeRates
+    initialExchangeRates,
   );
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

@@ -18,7 +18,7 @@ const FOCUSABLE_SELECTOR = [
  */
 export function useFocusTrap<T extends HTMLElement>(
   containerRef: RefObject<T | null>,
-  active: boolean
+  active: boolean,
 ): void {
   useEffect(() => {
     if (!active || typeof document === 'undefined') {
@@ -33,9 +33,9 @@ export function useFocusTrap<T extends HTMLElement>(
     const previousActiveElement = document.activeElement as HTMLElement | null;
 
     const getFocusableElements = (): HTMLElement[] => {
-      return Array.from(
-        container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      ).filter((el) => !el.hasAttribute('disabled') && el.tabIndex !== -1);
+      return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => !el.hasAttribute('disabled') && el.tabIndex !== -1,
+      );
     };
 
     const initialTargets = getFocusableElements();
@@ -74,10 +74,7 @@ export function useFocusTrap<T extends HTMLElement>(
 
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
-      if (
-        previousActiveElement &&
-        typeof previousActiveElement.focus === 'function'
-      ) {
+      if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
         previousActiveElement.focus();
       }
     };

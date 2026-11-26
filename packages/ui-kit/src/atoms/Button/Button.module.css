@@ -109,7 +109,7 @@
   /* Variants */
   .variant-primary {
     background-color: var(--ui-primary-subtle);
-    box-shadow: 
+    box-shadow:
       inset 1px 1px 0px 0px var(--ui-primary-solid),
       1px 1px 0px 0px var(--ui-primary-solid);
     color: var(--ui-primary);

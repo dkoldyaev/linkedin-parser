@@ -1,19 +1,13 @@
-import React from 'react';
-import { RefreshCw, Sparkles } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Icon,
-  Paragraph,
-  type BadgeTone,
-} from '../../atoms';
 import {
   Accordion,
-  SectionHeader,
   type AccordionItem,
+  SectionHeader,
   type SectionHeaderTone,
 } from '../../molecules';
+import { Badge, type BadgeTone, Button, Icon, Paragraph } from '../../atoms';
+import { LucideIcon, RefreshCw, Sparkles } from 'lucide-react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './ReportAccordion.module.css';
 
 export interface ReportSectionGroup {
@@ -22,10 +16,10 @@ export interface ReportSectionGroup {
   readonly tone?: SectionHeaderTone;
   readonly items: readonly AccordionItem[];
   readonly defaultExpandedIds?: readonly string[];
+  readonly icon?: LucideIcon;
 }
 
-export interface ReportAccordionProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface ReportAccordionProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;
   readonly scoreLabel?: React.ReactNode;
   readonly scoreTone?: BadgeTone;

@@ -1,6 +1,6 @@
-import React from 'react';
 import { Spinner, Text } from '../../atoms';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './DataTable.module.css';
 
 export interface DataTableLoadingProps extends React.HTMLAttributes<HTMLDivElement> {

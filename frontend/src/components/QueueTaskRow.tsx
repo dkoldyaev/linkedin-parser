@@ -1,9 +1,9 @@
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import { Button, Icon, Text, Badge } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { Badge, Button, Icon, Text } from '@blueprint/ui-kit';
 import { getTaskIdentifier, getTaskLabel } from './useQueueTasks';
 import type { QueueTask } from '../types/models';
+import React from 'react';
+import { Trash2 } from 'lucide-react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface QueueTaskRowProps {
   task: QueueTask;

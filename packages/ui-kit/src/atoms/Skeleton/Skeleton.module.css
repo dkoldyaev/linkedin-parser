@@ -25,18 +25,40 @@
     flex-shrink: 0;
   }
 
-  .w25 { width: 25%; }
-  .w50 { width: 50%; }
-  .w60 { width: 60%; }
-  .w75 { width: 75%; }
-  .w85 { width: 85%; }
-  .w100 { width: 100%; }
+  .w25 {
+    width: 25%;
+  }
+  .w50 {
+    width: 50%;
+  }
+  .w60 {
+    width: 60%;
+  }
+  .w75 {
+    width: 75%;
+  }
+  .w85 {
+    width: 85%;
+  }
+  .w100 {
+    width: 100%;
+  }
 
-  .hXs { height: var(--ui-space-2-5); }
-  .hSm { height: var(--ui-space-3-5); }
-  .hMd { height: var(--ui-space-4); }
-  .hLg { height: var(--ui-space-5); }
-  .hXl { height: var(--ui-space-8); }
+  .hXs {
+    height: var(--ui-space-2-5);
+  }
+  .hSm {
+    height: var(--ui-space-3-5);
+  }
+  .hMd {
+    height: var(--ui-space-4);
+  }
+  .hLg {
+    height: var(--ui-space-5);
+  }
+  .hXl {
+    height: var(--ui-space-8);
+  }
 
   .animated::after {
     position: absolute;

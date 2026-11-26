@@ -107,7 +107,8 @@
   }
 
   .content {
-    padding: var(--ui-space-3) var(--ui-space-4) var(--ui-space-3) calc(var(--ui-space-4) + var(--ui-space-3));
+    padding: var(--ui-space-3) var(--ui-space-4) var(--ui-space-3)
+      calc(var(--ui-space-4) + var(--ui-space-3));
     font-family: var(--ui-font-mono);
     font-size: var(--ui-font-size-xs);
     line-height: var(--ui-line-height-normal);

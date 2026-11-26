@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CardCollapsed } from './CardCollapsed';
 import { Badge } from '../../atoms';
+import { CardCollapsed } from './index';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof CardCollapsed> = {
@@ -88,4 +88,3 @@ export const StatesList: Story = {
     </div>
   ),
 };
-

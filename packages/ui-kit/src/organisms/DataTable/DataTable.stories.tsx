@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { DataTable, type DataTableColumn } from './DataTable';
 import { Badge, Button, Text } from '../../atoms';
+import { DataTable, type DataTableColumn } from './DataTable';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 interface QueueRow {
   readonly id: string;
@@ -67,11 +67,7 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
       <Badge
         size="sm"
         tone={
-          row.status === 'processing'
-            ? 'accent'
-            : row.status === 'queued'
-              ? 'warning'
-              : 'danger'
+          row.status === 'processing' ? 'accent' : row.status === 'queued' ? 'warning' : 'danger'
         }
       >
         {row.status}

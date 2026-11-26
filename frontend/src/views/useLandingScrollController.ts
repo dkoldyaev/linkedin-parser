@@ -1,12 +1,11 @@
-
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import {
+  getFunnelStageFromRatio,
+  getImportStageFromRatio,
+  getSubScreenIdxFromRatio,
   SUB_SCREENS,
   SUB_SCROLL_TARGETS,
-  getSubScreenIdxFromRatio,
-  getImportStageFromRatio,
-  getFunnelStageFromRatio,
 } from './landingConstants';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export interface LandingScrollState {
   idx: number;
@@ -20,15 +19,14 @@ export interface LandingScrollState {
 function computeNextFunnelStep(
   prev: LandingScrollState,
   nextIdx: number,
-  nextTargetFunnel: number
+  nextTargetFunnel: number,
 ): { nextFunnel: number; nextPrevFunnel: number } {
   if (nextIdx === 0) {
     return { nextFunnel: 0, nextPrevFunnel: 0 };
   }
   if (nextTargetFunnel !== prev.funnelStage) {
     const diff = nextTargetFunnel - prev.funnelStage;
-    const nextFunnel =
-      Math.abs(diff) <= 1 ? nextTargetFunnel : prev.funnelStage + Math.sign(diff);
+    const nextFunnel = Math.abs(diff) <= 1 ? nextTargetFunnel : prev.funnelStage + Math.sign(diff);
     return { nextFunnel, nextPrevFunnel: prev.funnelStage };
   }
   return { nextFunnel: prev.funnelStage, nextPrevFunnel: prev.prevFunnelStage };
@@ -38,7 +36,7 @@ function computeNextScrollState(
   prev: LandingScrollState,
   nextIdx: number,
   nextImportStage: number,
-  nextTargetFunnel: number
+  nextTargetFunnel: number,
 ): LandingScrollState {
   const unchanged =
     prev.idx === nextIdx &&
@@ -46,11 +44,7 @@ function computeNextScrollState(
     prev.targetFunnelStage === nextTargetFunnel;
   if (unchanged) return prev;
 
-  const { nextFunnel, nextPrevFunnel } = computeNextFunnelStep(
-    prev,
-    nextIdx,
-    nextTargetFunnel
-  );
+  const { nextFunnel, nextPrevFunnel } = computeNextFunnelStep(prev, nextIdx, nextTargetFunnel);
 
   return {
     idx: nextIdx,
@@ -66,10 +60,9 @@ function applyExitProgressStyles(
   root: HTMLElement,
   ratio: number,
   transitionedRef: React.MutableRefObject<boolean>,
-  finishToBoard: () => void
+  finishToBoard: () => void,
 ) {
-  const exitProgress =
-    ratio <= 7.25 ? 0 : Math.min(1, Math.max(0, (ratio - 7.25) / 0.9));
+  const exitProgress = ratio <= 7.25 ? 0 : Math.min(1, Math.max(0, (ratio - 7.25) / 0.9));
 
   root.style.setProperty('--exit-progress', exitProgress.toFixed(3));
 
@@ -108,8 +101,7 @@ function updateElementGridWidths(root: HTMLElement) {
   const totalUnits = Math.max(28, Math.floor(totalWidth / grid));
   const idealLeft = totalWidth <= 1360 ? 13 : 15;
   const candidates = [idealLeft, idealLeft - 1, idealLeft + 1, idealLeft - 2, idealLeft + 2];
-  const leftUnits =
-    candidates.find((L) => (totalUnits - L) % 4 === 0) ?? idealLeft;
+  const leftUnits = candidates.find((L) => (totalUnits - L) % 4 === 0) ?? idealLeft;
   const colUnits = Math.max(5, Math.floor((totalUnits - leftUnits) / 4));
   const leftPx = leftUnits * grid;
 
@@ -141,7 +133,7 @@ function computeSnappedScrollTop(idx: number): number {
 
 function useSequentialFunnelStepper(
   scrollState: LandingScrollState,
-  setScrollState: React.Dispatch<React.SetStateAction<LandingScrollState>>
+  setScrollState: React.Dispatch<React.SetStateAction<LandingScrollState>>,
 ) {
   useEffect(() => {
     if (scrollState.funnelStage === scrollState.targetFunnelStage) return undefined;
@@ -193,8 +185,7 @@ export function useLandingScrollController(finishToBoard: () => void) {
     const scroller = root.closest('.app-shell-content') || window;
 
     const handleScroll = () => {
-      const scrollTop =
-        scroller === window ? window.scrollY : (scroller as HTMLElement).scrollTop;
+      const scrollTop = scroller === window ? window.scrollY : (scroller as HTMLElement).scrollTop;
       const ratio = scrollTop / computeStageHeightPx();
       const nextIdx = getSubScreenIdxFromRatio(ratio);
       const nextImportStage = getImportStageFromRatio(ratio);
@@ -203,7 +194,7 @@ export function useLandingScrollController(finishToBoard: () => void) {
 
       applyExitProgressStyles(root, ratio, transitionedRef, finishToBoard);
       setScrollState((prev) =>
-        computeNextScrollState(prev, nextIdx, nextImportStage, nextTargetFunnel)
+        computeNextScrollState(prev, nextIdx, nextImportStage, nextTargetFunnel),
       );
     };
 

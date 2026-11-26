@@ -1,16 +1,10 @@
 import React, { forwardRef } from 'react';
-import { Slot } from '@radix-ui/react-slot';
 import { cn } from '../../utils';
+import { Slot } from '@radix-ui/react-slot';
 import { Spinner } from '../Spinner';
 import styles from './Button.module.css';
 
-export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'danger'
-  | 'warning'
-  | 'mint'
-  | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'warning' | 'mint' | 'ghost';
 
 export type ButtonSize = 'sm' | 'md' | 'm' | 'lg' | 'icon' | 'icon-sm' | 'icon-xs';
 export type ButtonTone = 'default' | 'danger' | 'accent' | 'success' | 'muted';
@@ -46,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     children,
     ...rest
   },
-  ref
+  ref,
 ) {
   const isDisabled = Boolean(disabled) || loading;
   const Comp = asChild ? Slot : 'button';
@@ -58,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     styles[`size-${normalizedSize}`],
     tone !== 'default' && styles[`tone-${tone}`],
     fullWidth && styles.fullWidth,
-    className
+    className,
   );
 
   if (asChild) {

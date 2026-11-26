@@ -1,7 +1,7 @@
-import React from 'react';
-import { Text } from '../../atoms';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Header.module.css';
+import { Text } from '../../atoms';
 
 export interface HeaderBrandProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;

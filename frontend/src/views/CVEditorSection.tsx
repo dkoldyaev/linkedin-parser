@@ -1,14 +1,8 @@
-import React from 'react';
-import {
-  TableHeader,
-  Text,
-  Badge,
-  Textarea,
-  StatusDot,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import CVToolbarActions from './CVToolbarActions';
+import { Badge, StatusDot, TableHeader, Text, Textarea } from '@blueprint/ui-kit';
 import type { CVSyncStatus, ServerCVData } from './cv.types';
+import CVToolbarActions from './CVToolbarActions';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface CVEditorSectionProps {
   sourceText: string;

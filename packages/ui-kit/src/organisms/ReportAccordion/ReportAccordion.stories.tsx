@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ReportAccordion } from './ReportAccordion';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { ReportAccordion } from './ReportAccordion';
 
 const meta: Meta<typeof ReportAccordion> = {
   title: 'Organisms/ReportAccordion',
@@ -30,7 +30,8 @@ export const Default: Story = {
               {
                 id: 'm1',
                 title: '6+ years with React, TypeScript, and Design Systems',
-                content: 'Led architecture of 3 production component libraries with zero token violations.',
+                content:
+                  'Led architecture of 3 production component libraries with zero token violations.',
               },
               {
                 id: 'm2',
@@ -47,7 +48,8 @@ export const Default: Story = {
               {
                 id: 'g1',
                 title: 'Rust WebAssembly pipeline experience',
-                content: 'Has used WASM modules in production, but has not authored Rust crates directly.',
+                content:
+                  'Has used WASM modules in production, but has not authored Rust crates directly.',
               },
             ],
           },

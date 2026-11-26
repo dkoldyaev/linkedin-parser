@@ -28,8 +28,7 @@ export const Default: Story = {
 export const MonospacePrompt: Story = {
   args: {
     mono: true,
-    defaultValue:
-      'SYSTEM PROMPT: Highlight React 19, TypeScript, and Atomic Design experience.',
+    defaultValue: 'SYSTEM PROMPT: Highlight React 19, TypeScript, and Atomic Design experience.',
     'aria-label': 'System prompt',
   },
 };

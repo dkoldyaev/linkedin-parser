@@ -1,23 +1,23 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import type { User, Vacancy, BoardColumn } from '../types/models';
+import type { BoardColumn, User, Vacancy } from '../types/models';
 import {
-  type HomeFilterState,
-  defaultFilterState,
-  computeHiddenVacancyIds,
-} from './homeFilterHelpers';
-import {
-  useOptionalBoardStore,
-  useBoardStoreState,
   type BoardStoreValue,
+  useBoardStoreState,
+  useOptionalBoardStore,
 } from '../store/BoardStoreContext';
 import {
-  deriveAllTags,
-  deriveAllCountries,
+  computeHiddenVacancyIds,
+  defaultFilterState,
+  type HomeFilterState,
+} from './homeFilterHelpers';
+import {
   deriveAllCities,
+  deriveAllCountries,
   deriveAllSources,
+  deriveAllTags,
 } from '../store/boardMetadataHelpers';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 export interface UseHomeVacanciesDataArgs {
   user: User | null | undefined;
@@ -46,7 +46,7 @@ function readFiltersFromSearchParams(sp: URLSearchParams): HomeFilterState {
 
 function buildSearchParamsFromFilters(
   currentSp: URLSearchParams,
-  nextFilters: HomeFilterState
+  nextFilters: HomeFilterState,
 ): URLSearchParams {
   const sp = new URLSearchParams(currentSp);
   const entries: Array<[string, string]> = [
@@ -92,7 +92,7 @@ function useUrlFilterController() {
 
   const filters: HomeFilterState = useMemo(
     () => ({ ...urlFilters, search: searchDraft }),
-    [urlFilters, searchDraft]
+    [urlFilters, searchDraft],
   );
 
   const commitFiltersToUrl = useCallback(
@@ -101,7 +101,7 @@ function useUrlFilterController() {
       if (nextSp.toString() === searchParams.toString()) return;
       setSearchParams(nextSp, { replace: replaceHistory });
     },
-    [searchParams, setSearchParams]
+    [searchParams, setSearchParams],
   );
 
   const breakSearchBurst = useCallback(() => {
@@ -121,7 +121,7 @@ function useUrlFilterController() {
       }, SEARCH_BURST_MS);
       commitFiltersToUrl({ ...filters, search: val }, shouldReplace);
     },
-    [filters, commitFiltersToUrl]
+    [filters, commitFiltersToUrl],
   );
 
   const resetAllFilters = useCallback(() => {
@@ -138,14 +138,14 @@ function useUrlFilterController() {
 function useDiscreteFilterHandlers(
   filters: HomeFilterState,
   commitFiltersToUrl: (nextFilters: HomeFilterState, replaceHistory: boolean) => void,
-  breakSearchBurst: () => void
+  breakSearchBurst: () => void,
 ) {
   const applySelectPatch = useCallback(
     (patch: Partial<HomeFilterState>) => {
       breakSearchBurst();
       commitFiltersToUrl({ ...filters, ...patch }, false);
     },
-    [filters, commitFiltersToUrl, breakSearchBurst]
+    [filters, commitFiltersToUrl, breakSearchBurst],
   );
 
   const handleCountryChange = useCallback(
@@ -153,16 +153,31 @@ function useDiscreteFilterHandlers(
       trackEvent(EVENTS.FILTER_COUNTRY, { country: country ? country : 'all' });
       applySelectPatch({ selectedCountry: country, selectedCity: '' });
     },
-    [applySelectPatch]
+    [applySelectPatch],
   );
 
   return {
     handleCountryChange,
-    handleCityChange: useCallback((city: string) => applySelectPatch({ selectedCity: city }), [applySelectPatch]),
-    handleWorkplaceChange: useCallback((wp: string) => applySelectPatch({ selectedWorkplaceType: wp }), [applySelectPatch]),
-    handleSourceChange: useCallback((src: string) => applySelectPatch({ selectedSource: src }), [applySelectPatch]),
-    handleClosedChange: useCallback((cl: string) => applySelectPatch({ selectedClosed: cl }), [applySelectPatch]),
-    handleTagChange: useCallback((tag: string) => applySelectPatch({ selectedTag: tag }), [applySelectPatch]),
+    handleCityChange: useCallback(
+      (city: string) => applySelectPatch({ selectedCity: city }),
+      [applySelectPatch],
+    ),
+    handleWorkplaceChange: useCallback(
+      (wp: string) => applySelectPatch({ selectedWorkplaceType: wp }),
+      [applySelectPatch],
+    ),
+    handleSourceChange: useCallback(
+      (src: string) => applySelectPatch({ selectedSource: src }),
+      [applySelectPatch],
+    ),
+    handleClosedChange: useCallback(
+      (cl: string) => applySelectPatch({ selectedClosed: cl }),
+      [applySelectPatch],
+    ),
+    handleTagChange: useCallback(
+      (tag: string) => applySelectPatch({ selectedTag: tag }),
+      [applySelectPatch],
+    ),
   };
 }
 
@@ -174,7 +189,7 @@ function useResolvedBoardStore(args: UseHomeVacanciesDataArgs): BoardStoreValue 
   const fallbackStore = useBoardStoreState(
     fallbackUser,
     args.initialVacancies,
-    args.initialColumns
+    args.initialColumns,
   );
   return contextStore && !hasExplicitSeeds ? contextStore : fallbackStore;
 }
@@ -185,19 +200,19 @@ export function useHomeVacanciesData(args: UseHomeVacanciesDataArgs) {
   const discreteHandlers = useDiscreteFilterHandlers(
     urlCtrl.filters,
     urlCtrl.commitFiltersToUrl,
-    urlCtrl.breakSearchBurst
+    urlCtrl.breakSearchBurst,
   );
 
   const allTags = useMemo(() => deriveAllTags(store.vacancies), [store.vacancies]);
   const allCountries = useMemo(() => deriveAllCountries(store.vacancies), [store.vacancies]);
   const allCities = useMemo(
     () => deriveAllCities(store.vacancies, urlCtrl.filters.selectedCountry),
-    [store.vacancies, urlCtrl.filters.selectedCountry]
+    [store.vacancies, urlCtrl.filters.selectedCountry],
   );
   const allSources = useMemo(() => deriveAllSources(store.vacancies), [store.vacancies]);
   const hiddenVacancyIds = useMemo(
     () => computeHiddenVacancyIds(store.vacancies, urlCtrl.filters),
-    [store.vacancies, urlCtrl.filters]
+    [store.vacancies, urlCtrl.filters],
   );
 
   return {

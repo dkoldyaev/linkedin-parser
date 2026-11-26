@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TableCol } from './TableCol';
-import { TableHeader } from './TableHeader';
-import { TableBody } from './TableBody';
-import { TableCell } from './TableCell';
 import { StatusDot, Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { TableBody } from './TableBody';
+import { TableCell } from './TableCell';
+import { TableCol } from './TableCol';
+import { TableHeader } from './TableHeader';
 
 const meta: Meta<typeof TableCol> = {
   title: 'Organisms/Table/TableCol',
@@ -66,7 +66,9 @@ export const WidthVariants: Story = {
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
-              <Text as="p" variant="caption">Compact column</Text>
+              <Text as="p" variant="caption">
+                Compact column
+              </Text>
             </div>
           </TableCell>
         </TableBody>
@@ -85,7 +87,9 @@ export const WidthVariants: Story = {
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
-              <Text as="p" variant="caption">Standard column</Text>
+              <Text as="p" variant="caption">
+                Standard column
+              </Text>
             </div>
           </TableCell>
         </TableBody>
@@ -104,7 +108,9 @@ export const WidthVariants: Story = {
         <TableBody padding="sm">
           <TableCell padding="none">
             <div className={layoutStyles.box}>
-              <Text as="p" variant="caption">Wide column</Text>
+              <Text as="p" variant="caption">
+                Wide column
+              </Text>
             </div>
           </TableCell>
         </TableBody>

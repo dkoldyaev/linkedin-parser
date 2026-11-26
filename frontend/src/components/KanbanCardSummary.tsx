@@ -1,5 +1,5 @@
+import { Icon, Paragraph, Text } from '@blueprint/ui-kit';
 import React from 'react';
-import { Paragraph, Text, Icon } from '@blueprint/ui-kit';
 import { Sparkles } from 'lucide-react';
 import { useTranslation } from '../i18n/I18nContext';
 
@@ -9,9 +9,7 @@ export interface KanbanCardSummaryProps {
 
 const SPARKLES_ICON = <Icon icon={Sparkles} size="xs" />;
 
-export default function KanbanCardSummary({
-  summary,
-}: KanbanCardSummaryProps): React.ReactElement {
+export default function KanbanCardSummary({ summary }: KanbanCardSummaryProps): React.ReactElement {
   const { t } = useTranslation();
 
   if (summary) {

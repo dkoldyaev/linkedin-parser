@@ -1,12 +1,5 @@
+import { AlertBanner, Badge, Button, ModalBody, ModalFooter, Text } from '@blueprint/ui-kit';
 import React from 'react';
-import {
-  ModalBody,
-  ModalFooter,
-  Button,
-  Text,
-  AlertBanner,
-  Badge,
-} from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface DuplicateVacancyItem {
@@ -66,10 +59,7 @@ export default function BatchDuplicateWarningView({
   return (
     <>
       <ModalBody>
-        <AlertBanner
-          tone="warning"
-          title={t('batchModal.duplicate_warning_title')}
-        >
+        <AlertBanner tone="warning" title={t('batchModal.duplicate_warning_title')}>
           {t('batchModal.duplicate_warning_desc')}
         </AlertBanner>
 
@@ -79,7 +69,9 @@ export default function BatchDuplicateWarningView({
               <Text variant="body" weight="medium">
                 {dup.title || dup.url}
               </Text>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <Text variant="caption" tone="secondary">
                   {dup.company || 'Unknown'}
                 </Text>
@@ -102,12 +94,7 @@ export default function BatchDuplicateWarningView({
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {t('batchModal.duplicate_warning_cancel')}
           </Button>
-          <Button
-            variant="warning"
-            onClick={onProceed}
-            disabled={loading}
-            loading={loading}
-          >
+          <Button variant="warning" onClick={onProceed} disabled={loading} loading={loading}>
             {t('batchModal.duplicate_warning_proceed')}
           </Button>
         </ModalFooter.Actions>

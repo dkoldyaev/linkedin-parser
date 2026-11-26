@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { vacancyService } from '../../services/vacancyService';
-import type { Vacancy, CompatibilityAnalysis } from '../../types/models';
+import type { CompatibilityAnalysis, Vacancy } from '../../types/models';
+import { useCallback, useEffect, useState } from 'react';
 import type { TranslateFn } from '../../i18n/I18nContext';
+import { vacancyService } from '../../services/vacancyService';
 
 function resolveCompatErrorMessage(err: unknown, t: TranslateFn | undefined): string {
   if (err instanceof Error) return err.message;
@@ -12,7 +12,7 @@ function resolveCompatErrorMessage(err: unknown, t: TranslateFn | undefined): st
 export function useVacancyCompatibility(
   vacancy: Vacancy | null,
   isOpen: boolean,
-  t: TranslateFn | undefined
+  t: TranslateFn | undefined,
 ) {
   const [compatibility, setCompatibility] = useState<CompatibilityAnalysis | null>(null);
   const [analyzingCompatibility, setAnalyzingCompatibility] = useState(false);
@@ -59,7 +59,7 @@ export function useVacancyCompatibility(
         setAnalyzingCompatibility(false);
       }
     },
-    [vacancyId, t]
+    [vacancyId, t],
   );
 
   return {

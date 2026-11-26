@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Briefcase, Plus } from 'lucide-react';
-import { EmptyState } from './EmptyState';
 import { Button, Icon } from '../../atoms';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { EmptyState } from './EmptyState';
 
 const meta: Meta<typeof EmptyState> = {
   title: 'Molecules/EmptyState',

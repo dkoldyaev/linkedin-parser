@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { useRef, useState } from 'react';
+import { AlertBanner } from '../../AlertBanner';
 import { Button } from '../../../atoms';
 import { Modal } from '../../../organisms/Modal';
-import { OverlayProvider } from '../../../utils';
-import { AlertBanner } from '../../AlertBanner';
-import { Select } from '../../Select';
 import { Overlay } from '../Overlay';
+import { OverlayProvider } from '../../../utils';
+import { Select } from '../../Select';
+import userEvent from '@testing-library/user-event';
 
 describe('OverlayProvider & Overlay DOM-order stacking', () => {
   beforeEach(() => {
@@ -32,16 +32,16 @@ describe('OverlayProvider & Overlay DOM-order stacking', () => {
       render(
         <Overlay isOpen placement="bottom-end">
           <div>Orphan overlay</div>
-        </Overlay>
-      )
+        </Overlay>,
+      ),
     ).toThrow('useOverlayContainer must be used within an <OverlayProvider>.');
 
     expect(() =>
       render(
         <Modal isOpen onClose={vi.fn()} title="Orphan Modal">
           <div>Body</div>
-        </Modal>
-      )
+        </Modal>,
+      ),
     ).toThrow('useOverlayContainer must be used within an <OverlayProvider>.');
 
     spy.mockRestore();

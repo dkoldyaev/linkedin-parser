@@ -1,6 +1,6 @@
+import { computeLaneOptions } from './kanbanBoardHelpers';
 import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
-import { computeLaneOptions } from './kanbanBoardHelpers';
 import type { Vacancy } from '../types/models';
 
 export interface KanbanLanesDropOverlayProps {

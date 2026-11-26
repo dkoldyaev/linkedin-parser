@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Award, Banknote, ChevronLeft, ChevronRight, Globe, MapPin, MoreVertical, Plus, RotateCcw, X } from 'lucide-react';
+import {
+  Award,
+  Banknote,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  MapPin,
+  MoreVertical,
+  Plus,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import {
   Badge,
   Button,
@@ -24,6 +33,8 @@ import {
   Text,
   TokenList,
 } from '../../index';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 import showcaseStyles from './Showcase.module.css';
 
 const meta: Meta = {
@@ -85,7 +96,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
           selectedTags={selectedTags}
           onToggleTag={(tag) =>
             setSelectedTags((prev) =>
-              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
             )
           }
           onReset={() => {
@@ -127,16 +138,33 @@ function KanbanShowcaseBoard(): React.ReactElement {
                     selectable
                   />
                   <div className={showcaseStyles.metaRow}>
-                    <Badge variant="solid" size="xs" tone="success" icon={<Icon icon={Award} size="2xs" />}>
+                    <Badge
+                      variant="solid"
+                      size="xs"
+                      tone="success"
+                      icon={<Icon icon={Award} size="2xs" />}
+                    >
                       88%
                     </Badge>
-                    <Text variant="caption" tone="accent" startIcon={<Icon icon={Globe} size="xs" />}>
+                    <Text
+                      variant="caption"
+                      tone="accent"
+                      startIcon={<Icon icon={Globe} size="xs" />}
+                    >
                       Удаленка
                     </Text>
-                    <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
+                    <Text
+                      variant="caption"
+                      tone="secondary"
+                      startIcon={<Icon icon={MapPin} size="xs" />}
+                    >
                       Paris, France
                     </Text>
-                    <Text variant="mono" tone="success" startIcon={<Icon icon={Banknote} size="xs" />}>
+                    <Text
+                      variant="mono"
+                      tone="success"
+                      startIcon={<Icon icon={Banknote} size="xs" />}
+                    >
                       €95k – €110k
                     </Text>
                   </div>
@@ -222,13 +250,26 @@ function KanbanShowcaseBoard(): React.ReactElement {
                     selectable
                   />
                   <div className={showcaseStyles.metaRow}>
-                    <Badge variant="solid" size="xs" tone="success" icon={<Icon icon={Award} size="2xs" />}>
+                    <Badge
+                      variant="solid"
+                      size="xs"
+                      tone="success"
+                      icon={<Icon icon={Award} size="2xs" />}
+                    >
                       96%
                     </Badge>
-                    <Text variant="caption" tone="accent" startIcon={<Icon icon={Globe} size="xs" />}>
+                    <Text
+                      variant="caption"
+                      tone="accent"
+                      startIcon={<Icon icon={Globe} size="xs" />}
+                    >
                       Удаленка
                     </Text>
-                    <Text variant="mono" tone="success" startIcon={<Icon icon={Banknote} size="xs" />}>
+                    <Text
+                      variant="mono"
+                      tone="success"
+                      startIcon={<Icon icon={Banknote} size="xs" />}
+                    >
                       $195k – $230k
                     </Text>
                   </div>
@@ -311,10 +352,19 @@ function KanbanShowcaseBoard(): React.ReactElement {
                     selectable
                   />
                   <div className={showcaseStyles.metaRow}>
-                    <Badge variant="solid" size="xs" tone="danger" icon={<Icon icon={Award} size="2xs" />}>
+                    <Badge
+                      variant="solid"
+                      size="xs"
+                      tone="danger"
+                      icon={<Icon icon={Award} size="2xs" />}
+                    >
                       42%
                     </Badge>
-                    <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
+                    <Text
+                      variant="caption"
+                      tone="secondary"
+                      startIcon={<Icon icon={MapPin} size="xs" />}
+                    >
                       London, UK
                     </Text>
                   </div>
@@ -359,9 +409,7 @@ function KanbanShowcaseBoard(): React.ReactElement {
           >
             <span className={showcaseStyles.addColumnText}>
               <Icon icon={Plus} size="xs" />
-              <Text variant="mono" tone="inherit">
-                ДОБАВИТЬ КОЛОНКУ
-              </Text>
+              <Text variant="mono">ДОБАВИТЬ КОЛОНКУ</Text>
             </span>
           </button>
         </div>

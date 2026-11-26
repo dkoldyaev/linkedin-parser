@@ -1,5 +1,5 @@
-import React, { forwardRef, useEffect, useRef } from 'react';
 import type { PaletteTone, SemanticTone } from '../../tokens';
+import React, { forwardRef, useEffect, useRef } from 'react';
 import { cn } from '../../utils';
 import styles from './StatusDot.module.css';
 
@@ -22,66 +22,64 @@ export interface StatusDotProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Atomic StatusDot indicator for connection status, activity indicators, column palette markers,
  * and arbitrary custom hexadecimal status colors.
  */
-export const StatusDot = forwardRef<HTMLSpanElement, StatusDotProps>(
-  function StatusDot(
-    {
-      tone = 'neutral',
-      palette,
-      color,
-      size = 'md',
-      pulse = false,
-      glow = false,
-      label,
-      className,
-      ...rest
-    },
-    ref
-  ) {
-    const internalRef = useRef<HTMLSpanElement | null>(null);
+export const StatusDot = forwardRef<HTMLSpanElement, StatusDotProps>(function StatusDot(
+  {
+    tone = 'neutral',
+    palette,
+    color,
+    size = 'md',
+    pulse = false,
+    glow = false,
+    label,
+    className,
+    ...rest
+  },
+  ref,
+) {
+  const internalRef = useRef<HTMLSpanElement | null>(null);
 
-    useEffect(() => {
-      const el = internalRef.current;
-      if (!el) return;
-      if (color !== undefined) {
-        el.style.setProperty('--bp-dot-color', color);
-      } else {
-        el.style.removeProperty('--bp-dot-color');
-      }
-    }, [color]);
+  useEffect(() => {
+    const el = internalRef.current;
+    if (!el) return;
+    if (color !== undefined) {
+      el.style.setProperty('--bp-dot-color', color);
+    } else {
+      el.style.removeProperty('--bp-dot-color');
+    }
+  }, [color]);
 
-    const setRefs = (node: HTMLSpanElement | null) => {
-      internalRef.current = node;
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref) {
-        (ref as React.MutableRefObject<HTMLSpanElement | null>).current = node;
-      }
-    };
+  const setRefs = (node: HTMLSpanElement | null) => {
+    internalRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLSpanElement | null>).current = node;
+    }
+  };
 
-    const resolvedTone = tone === 'accent' ? 'primary' : tone;
-    const colorClass =
-      color !== undefined
-        ? styles.customColor
-        : palette !== undefined
-          ? styles[`palette-${palette}`]
-          : styles[`tone-${resolvedTone}`];
+  const resolvedTone = tone === 'accent' ? 'primary' : tone;
+  const colorClass =
+    color !== undefined
+      ? styles.customColor
+      : palette !== undefined
+        ? styles[`palette-${palette}`]
+        : styles[`tone-${resolvedTone}`];
 
-    return (
-      <span
-        ref={setRefs}
-        role={label !== undefined ? 'status' : undefined}
-        aria-label={label}
-        aria-hidden={label === undefined ? 'true' : undefined}
-        className={cn(
-          styles.dot,
-          styles[`size-${size}`],
-          colorClass,
-          pulse && styles.pulse,
-          glow && styles.glow,
-          className
-        )}
-        {...rest}
-      />
-    );
-  }
-);
+  return (
+    <span
+      ref={setRefs}
+      role={label !== undefined ? 'status' : undefined}
+      aria-label={label}
+      aria-hidden={label === undefined ? 'true' : undefined}
+      className={cn(
+        styles.dot,
+        styles[`size-${size}`],
+        colorClass,
+        pulse && styles.pulse,
+        glow && styles.glow,
+        className,
+      )}
+      {...rest}
+    />
+  );
+});

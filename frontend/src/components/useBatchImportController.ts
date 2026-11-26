@@ -1,19 +1,17 @@
-import { useState } from 'react';
-import type React from 'react';
-import { useTranslation } from '../i18n/I18nContext';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import { vacancyService } from '../services/vacancyService';
-import { ApiError } from '../services/apiClient';
-import type { BatchDuplicateCheckResponse } from '../services/vacancy.types';
 import {
-  checkExtensionPromptRequirement,
   anyUrlRequiresExtension,
+  checkExtensionPromptRequirement,
   type ExtensionPromptRequirement,
 } from '../utils/extension';
-import type {
-  DuplicateWarningState,
-} from './BatchDuplicateWarningView';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { ApiError } from '../services/apiClient';
+import type { BatchDuplicateCheckResponse } from '../services/vacancy.types';
 import type { BatchImportResult } from './BatchImportResultView';
+import type { DuplicateWarningState } from './BatchDuplicateWarningView';
+import type React from 'react';
+import { useState } from 'react';
+import { useTranslation } from '../i18n/I18nContext';
+import { vacancyService } from '../services/vacancyService';
 
 function parseLinesList(text: string, delimiter: string): string[] {
   return text
@@ -34,7 +32,7 @@ async function checkServerDuplicates(urls: string[]): Promise<BatchDuplicateChec
 async function submitBatchVacancies(
   urls: string[],
   defaultTags: string[],
-  t: (path: string, params?: Record<string, string | number>) => string
+  t: (path: string, params?: Record<string, string | number>) => string,
 ): Promise<BatchImportResult> {
   try {
     return (await vacancyService.batchImport(urls, defaultTags)) as BatchImportResult;
@@ -102,7 +100,7 @@ function createBatchSubmitter(deps: BatchSubmissionDeps) {
 
 function useExtensionPromptGate(
   performSubmit: (urls: string[], defaultTags: string[]) => Promise<void>,
-  setLoading: (val: boolean) => void
+  setLoading: (val: boolean) => void,
 ) {
   const [showExtModal, setShowExtModal] = useState(false);
   const [extModalInfo, setExtModalInfo] = useState<ExtensionPromptRequirement | null>(null);
@@ -111,7 +109,7 @@ function useExtensionPromptGate(
   const runWithExtensionCheck = async (
     urls: string[],
     defaultTags: string[],
-    needsExt: boolean
+    needsExt: boolean,
   ) => {
     if (needsExt) {
       const promptReq = await checkExtensionPromptRequirement();
@@ -203,7 +201,7 @@ export function useBatchImportController(onClose: () => void, onImportComplete?:
     await extGate.runWithExtensionCheck(
       duplicateWarning.urls,
       duplicateWarning.defaultTags,
-      resolveRequiresExtension(duplicateWarning)
+      resolveRequiresExtension(duplicateWarning),
     );
   };
 

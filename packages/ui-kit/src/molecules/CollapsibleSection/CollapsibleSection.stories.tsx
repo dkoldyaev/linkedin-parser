@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { FileText, Info, Settings, SlidersHorizontal } from 'lucide-react';
-import { CollapsibleSection } from './CollapsibleSection';
 import { Badge, Button, Icon, Paragraph } from '../../atoms';
+import { FileText, Info, Settings, SlidersHorizontal } from 'lucide-react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { CollapsibleSection } from './CollapsibleSection';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof CollapsibleSection> = {
@@ -16,10 +16,7 @@ type Story = StoryObj<typeof CollapsibleSection>;
 export const Default: Story = {
   render: () => (
     <div className={layoutStyles.stack}>
-      <CollapsibleSection
-        title="System Diagnostics"
-        icon={<Icon icon={Info} size="sm" />}
-      >
+      <CollapsibleSection title="System Diagnostics" icon={<Icon icon={Info} size="sm" />}>
         <Paragraph size="sm">
           Background processing worker is active. Performance metrics are streamed in real time.
         </Paragraph>
@@ -34,7 +31,11 @@ export const WithBadgeAccessory: Story = {
       <CollapsibleSection
         title="Analytical Report"
         icon={<Icon icon={FileText} size="sm" />}
-        accessory={<Badge size="sm" tone="success">Ready</Badge>}
+        accessory={
+          <Badge size="sm" tone="success">
+            Ready
+          </Badge>
+        }
       >
         <Paragraph size="sm">
           Full analysis report has been generated and stored in the local database.
@@ -51,11 +52,7 @@ export const WithButtonAccessory: Story = {
         title="Integration Settings"
         icon={<Icon icon={SlidersHorizontal} size="sm" />}
         accessory={
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            aria-label="Settings"
-          >
+          <Button size="icon-sm" variant="secondary" aria-label="Settings">
             <Icon icon={Settings} size="sm" />
           </Button>
         }

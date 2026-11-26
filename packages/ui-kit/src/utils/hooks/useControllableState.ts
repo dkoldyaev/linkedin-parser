@@ -15,7 +15,7 @@ export type SetStateFn<T> = (prevState: T) => T;
  * Calls `onChange` whenever the value transitions.
  */
 export function useControllableState<T>(
-  params: UseControllableStateParams<T>
+  params: UseControllableStateParams<T>,
 ): readonly [T, (next: T | SetStateFn<T>) => void] {
   const controlledProp = params.prop !== undefined ? params.prop : params.value;
   const initialDefault = (
@@ -36,9 +36,7 @@ export function useControllableState<T>(
   const setValue = useCallback(
     (next: T | SetStateFn<T>) => {
       const resolvedNext =
-        typeof next === 'function'
-          ? (next as SetStateFn<T>)(valueRef.current)
-          : next;
+        typeof next === 'function' ? (next as SetStateFn<T>)(valueRef.current) : next;
 
       if (!Object.is(resolvedNext, valueRef.current)) {
         if (!isControlled) {
@@ -49,7 +47,7 @@ export function useControllableState<T>(
         }
       }
     },
-    [isControlled]
+    [isControlled],
   );
 
   return [currentValue, setValue] as const;

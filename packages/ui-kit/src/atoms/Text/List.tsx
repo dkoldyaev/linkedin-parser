@@ -1,7 +1,7 @@
-import React from 'react';
 import { cn } from '../../utils';
-import type { TextTone } from './Text';
+import React from 'react';
 import styles from './Text.module.css';
+import type { TextTone } from './Text';
 
 export interface ListItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
   readonly icon?: React.ReactNode;
@@ -10,43 +10,31 @@ export interface ListItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
   readonly className?: string;
 }
 
-export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(
-  function ListItem(
-    {
-      icon,
-      tone = 'primary',
-      children,
-      className,
-      ...restProps
-    },
-    ref
-  ): React.ReactElement {
-    if (icon !== undefined) {
-      return (
-        <li
-          ref={ref}
-          className={cn(styles.listItem, styles.listItemCustom, styles[`tone-${tone}`], className)}
-          {...restProps}
-        >
-          <span className={styles.listItemIcon} aria-hidden="true">
-            {icon}
-          </span>
-          <span>{children}</span>
-        </li>
-      );
-    }
-
+export const ListItem = React.forwardRef<HTMLLIElement, ListItemProps>(function ListItem(
+  { icon, tone = 'primary', children, className, ...restProps },
+  ref,
+): React.ReactElement {
+  if (icon !== undefined) {
     return (
       <li
         ref={ref}
-        className={cn(styles.listItem, styles[`tone-${tone}`], className)}
+        className={cn(styles.listItem, styles.listItemCustom, styles[`tone-${tone}`], className)}
         {...restProps}
       >
-        {children}
+        <span className={styles.listItemIcon} aria-hidden="true">
+          {icon}
+        </span>
+        <span>{children}</span>
       </li>
     );
   }
-);
+
+  return (
+    <li ref={ref} className={cn(styles.listItem, styles[`tone-${tone}`], className)} {...restProps}>
+      {children}
+    </li>
+  );
+});
 
 export type ListSpacing = 'compact' | 'normal' | 'relaxed';
 
@@ -58,13 +46,8 @@ export interface UnorderedListProps extends React.HTMLAttributes<HTMLUListElemen
 
 export const UnorderedList = React.forwardRef<HTMLUListElement, UnorderedListProps>(
   function UnorderedList(
-    {
-      spacing = 'normal',
-      children,
-      className,
-      ...restProps
-    },
-    ref
+    { spacing = 'normal', children, className, ...restProps },
+    ref,
   ): React.ReactElement {
     return (
       <ul
@@ -73,14 +56,14 @@ export const UnorderedList = React.forwardRef<HTMLUListElement, UnorderedListPro
           styles.list,
           styles.unorderedList,
           styles[`listSpacing${capitalize(spacing)}`],
-          className
+          className,
         )}
         {...restProps}
       >
         {children}
       </ul>
     );
-  }
+  },
 );
 
 export interface OrderedListProps extends React.OlHTMLAttributes<HTMLOListElement> {
@@ -91,13 +74,8 @@ export interface OrderedListProps extends React.OlHTMLAttributes<HTMLOListElemen
 
 export const OrderedList = React.forwardRef<HTMLOListElement, OrderedListProps>(
   function OrderedList(
-    {
-      spacing = 'normal',
-      children,
-      className,
-      ...restProps
-    },
-    ref
+    { spacing = 'normal', children, className, ...restProps },
+    ref,
   ): React.ReactElement {
     return (
       <ol
@@ -106,14 +84,14 @@ export const OrderedList = React.forwardRef<HTMLOListElement, OrderedListProps>(
           styles.list,
           styles.orderedList,
           styles[`listSpacing${capitalize(spacing)}`],
-          className
+          className,
         )}
         {...restProps}
       >
         {children}
       </ol>
     );
-  }
+  },
 );
 
 export interface ListProps extends React.HTMLAttributes<HTMLOListElement | HTMLUListElement> {
@@ -126,42 +104,34 @@ export interface ListProps extends React.HTMLAttributes<HTMLOListElement | HTMLU
 /**
  * Universal List atom for ordered (<ol>) and unordered (<ul>) lists.
  */
-export const List = React.forwardRef<HTMLOListElement | HTMLUListElement, ListProps>(
-  function List(
-    {
-      ordered = false,
-      spacing = 'normal',
-      children,
-      className,
-      ...restProps
-    },
-    ref
-  ): React.ReactElement {
-    if (ordered) {
-      return (
-        <OrderedList
-          ref={ref as React.Ref<HTMLOListElement>}
-          spacing={spacing}
-          className={className}
-          {...restProps}
-        >
-          {children}
-        </OrderedList>
-      );
-    }
-
+export const List = React.forwardRef<HTMLOListElement | HTMLUListElement, ListProps>(function List(
+  { ordered = false, spacing = 'normal', children, className, ...restProps },
+  ref,
+): React.ReactElement {
+  if (ordered) {
     return (
-      <UnorderedList
-        ref={ref as React.Ref<HTMLUListElement>}
+      <OrderedList
+        ref={ref as React.Ref<HTMLOListElement>}
         spacing={spacing}
         className={className}
         {...restProps}
       >
         {children}
-      </UnorderedList>
+      </OrderedList>
     );
   }
-) as React.ForwardRefExoticComponent<
+
+  return (
+    <UnorderedList
+      ref={ref as React.Ref<HTMLUListElement>}
+      spacing={spacing}
+      className={className}
+      {...restProps}
+    >
+      {children}
+    </UnorderedList>
+  );
+}) as React.ForwardRefExoticComponent<
   ListProps & React.RefAttributes<HTMLOListElement | HTMLUListElement>
 > & {
   Item: typeof ListItem;

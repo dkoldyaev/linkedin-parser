@@ -1,6 +1,6 @@
+import { Badge, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Tabs } from './Tabs';
-import { Badge, Text } from '../../atoms';
 
 const meta: Meta<typeof Tabs> = {
   title: 'Molecules/Tabs',

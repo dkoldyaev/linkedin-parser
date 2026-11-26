@@ -9,4 +9,3 @@ export const SectionContext = React.createContext<SectionContextValue | null>(nu
 export function useSectionContext(): SectionContextValue | null {
   return React.useContext(SectionContext);
 }
-

@@ -1,19 +1,19 @@
-import React from 'react';
-import { Card } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import KanbanCardTokens from './KanbanCardTokens';
-import KanbanCardMetaRow from './KanbanCardMetaRow';
-import KanbanCardFooterContent from './KanbanCardFooterContent';
-import KanbanCardStatusIndicators from './KanbanCardStatusIndicators';
-import KanbanCardSummary from './KanbanCardSummary';
+import type { CardHandlerOptions, ColumnLike, KanbanCardProps } from './kanbanCard.types';
 import {
-  resolveRejectedStatusId,
+  resolveCurrentIndex,
   resolveInitialStatusId,
   resolveLinearColumns,
-  resolveCurrentIndex,
+  resolveRejectedStatusId,
   resolveStageLabel,
 } from './kanbanCardHelpers';
-import type { KanbanCardProps, CardHandlerOptions, ColumnLike } from './kanbanCard.types';
+import { Card } from '@blueprint/ui-kit';
+import KanbanCardFooterContent from './KanbanCardFooterContent';
+import KanbanCardMetaRow from './KanbanCardMetaRow';
+import KanbanCardStatusIndicators from './KanbanCardStatusIndicators';
+import KanbanCardSummary from './KanbanCardSummary';
+import KanbanCardTokens from './KanbanCardTokens';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 import type { Vacancy } from '../types/models';
 
 export type { KanbanCardProps };
@@ -42,7 +42,8 @@ function createCardHandlers(opts: CardHandlerOptions) {
       if (currentIndex > 0) onStatusChange?.(vacancy.id, linearColumns[currentIndex - 1]);
     },
     handleMoveRight: () => {
-      if (currentIndex < linearColumns.length - 1) onStatusChange?.(vacancy.id, linearColumns[currentIndex + 1]);
+      if (currentIndex < linearColumns.length - 1)
+        onStatusChange?.(vacancy.id, linearColumns[currentIndex + 1]);
     },
     handleMoveRejected: () => {
       if (rejectedStatusId) onStatusChange?.(vacancy.id, rejectedStatusId);
@@ -55,11 +56,14 @@ function createCardHandlers(opts: CardHandlerOptions) {
     },
     handleDragStart: (e: React.DragEvent) => {
       e.dataTransfer.setData('text/plain', String(vacancy.id));
-      e.dataTransfer.setData('application/json', JSON.stringify({
-        id: vacancy.id,
-        currentStatus: vacancy.status,
-        // hasSalary,
-      }));
+      e.dataTransfer.setData(
+        'application/json',
+        JSON.stringify({
+          id: vacancy.id,
+          currentStatus: vacancy.status,
+          // hasSalary,
+        }),
+      );
       e.dataTransfer.effectAllowed = 'move';
     },
     handleDragEnd: (e: React.DragEvent) => {
@@ -84,7 +88,7 @@ function deriveCardState(
   vacancy: Vacancy,
   columns: ColumnLike[],
   laneColumns: Set<string>,
-  t: (path: string, params?: Record<string, string | number>) => string
+  t: (path: string, params?: Record<string, string | number>) => string,
 ) {
   const rejectedStatusId = resolveRejectedStatusId(columns);
   const initialStatusId = resolveInitialStatusId(columns);

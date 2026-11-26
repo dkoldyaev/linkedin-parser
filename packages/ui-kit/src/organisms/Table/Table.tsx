@@ -1,13 +1,13 @@
-import React from 'react';
-import { useGridScroll } from '../../hooks';
-import { cn } from '../../utils';
-import { TableCol, type TableColProps, type TableColGridUnits } from './TableCol';
-import { TableHeader, type TableHeaderProps } from './TableHeader';
 import { TableBody, type TableBodyProps } from './TableBody';
 import { TableCell, type TableCellProps } from './TableCell';
+import { TableCol, type TableColGridUnits, type TableColProps } from './TableCol';
+import { TableFooter, type TableFooterJustify, type TableFooterProps } from './TableFooter';
+import { TableHeader, type TableHeaderProps } from './TableHeader';
 import { TableRow, type TableRowProps } from './TableRow';
-import { TableFooter, type TableFooterProps, type TableFooterJustify } from './TableFooter';
+import { cn } from '../../utils';
+import React from 'react';
 import styles from './Table.module.css';
+import { useGridScroll } from '../../hooks';
 
 export interface TableProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly layout?: 'columns' | 'rows';
@@ -46,7 +46,7 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
     onScroll,
     ...restProps
   },
-  forwardedRef
+  forwardedRef,
 ): React.ReactElement {
   const internalRef = React.useRef<HTMLDivElement | null>(null);
   const handleGridScroll = useGridScroll();
@@ -63,11 +63,14 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
 
     const update = () => {
       const docComputed = window.getComputedStyle(document.documentElement);
-      const rawCell = docComputed.getPropertyValue('--ui-grid-cell') || docComputed.getPropertyValue('--ui-grid');
+      const rawCell =
+        docComputed.getPropertyValue('--ui-grid-cell') || docComputed.getPropertyValue('--ui-grid');
       const grid = Number.parseFloat(rawCell) || 32;
 
       const colEls = Array.from(tableEl.children).filter(
-        (child) => (child.getAttribute('role') === 'region' || child.classList.contains(styles.col)) && !child.hasAttribute('data-fixed-rail')
+        (child) =>
+          (child.getAttribute('role') === 'region' || child.classList.contains(styles.col)) &&
+          !child.hasAttribute('data-fixed-rail'),
       );
       const count = colEls.length;
       if (count === 0) return;
@@ -88,7 +91,10 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
         tableEl.style.setProperty('--bp-rail-extra-width', `${railUnits * grid}px`);
       } else {
         tableEl.style.setProperty('--bp-col-grid-width', `${minColGridUnits * grid}px`);
-        tableEl.style.setProperty('--bp-rail-extra-width', `${Math.max(minRailUnits, totalUnits - count * minColGridUnits) * grid}px`);
+        tableEl.style.setProperty(
+          '--bp-rail-extra-width',
+          `${Math.max(minRailUnits, totalUnits - count * minColGridUnits) * grid}px`,
+        );
       }
     };
 
@@ -122,16 +128,14 @@ export const Table = React.forwardRef<HTMLDivElement, TableProps>(function Table
         quantizeColumns && styles.tableQuantizedColumns,
         fullHeight && styles.tableFullHeight,
         bordered && styles.tableBordered,
-        className
+        className,
       )}
       {...restProps}
     >
       {children}
     </div>
   );
-}) as React.ForwardRefExoticComponent<
-  TableProps & React.RefAttributes<HTMLDivElement>
-> & {
+}) as React.ForwardRefExoticComponent<TableProps & React.RefAttributes<HTMLDivElement>> & {
   Col: typeof TableCol;
   Header: typeof TableHeader;
   Body: typeof TableBody;

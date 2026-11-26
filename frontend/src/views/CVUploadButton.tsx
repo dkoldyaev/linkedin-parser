@@ -1,6 +1,6 @@
+import { Button, Icon } from '@blueprint/ui-kit';
 import React from 'react';
 import { Upload } from 'lucide-react';
-import { Button, Icon } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface CVUploadButtonProps {

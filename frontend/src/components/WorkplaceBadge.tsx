@@ -1,6 +1,6 @@
-import React from 'react';
 import { Icon, Text } from '@blueprint/ui-kit';
 import { getWorkplaceInfo } from '../utils/workplace';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 import { Vacancy } from '../types/models';
 
@@ -14,11 +14,7 @@ export function WorkplaceBadge({ workplaceType }: WorkplaceBadgeProps): React.Re
   if (!info) return null;
 
   return (
-    <Text
-      variant="caption"
-      tone="accent"
-      startIcon={<Icon icon={info.icon} size="xs" />}
-    >
+    <Text variant="caption" tone="accent" startIcon={<Icon icon={info.icon} size="xs" />}>
       {info.fullLabel}
     </Text>
   );

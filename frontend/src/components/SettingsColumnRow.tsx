@@ -1,9 +1,9 @@
-import React from 'react';
-import { Layers, Trash2, ArrowUp, ArrowDown, Edit2 } from 'lucide-react';
-import { Button, Icon, Text, Badge } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { ArrowDown, ArrowUp, Edit2, Layers, Trash2 } from 'lucide-react';
+import { Badge, Button, Icon, Text } from '@blueprint/ui-kit';
 import { BASE_STATUSES } from '../constants/columns';
 import type { BoardColumn } from '../types/models';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface SettingsColumnRowProps {
   col: BoardColumn;

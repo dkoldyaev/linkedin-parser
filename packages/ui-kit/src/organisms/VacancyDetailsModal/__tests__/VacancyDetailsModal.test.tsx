@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { OverlayProvider } from '../../../utils';
 import { VacancyDetailsModal } from '../VacancyDetailsModal';
 
@@ -68,7 +68,7 @@ describe('VacancyDetailsModal', () => {
         {...defaultProps}
         cvAssessment="High level match for UI platform role."
       />,
-      { wrapper: OverlayProvider }
+      { wrapper: OverlayProvider },
     );
 
     const compatTab = screen.getByRole('tab', { name: /Совместимость с CV/i });

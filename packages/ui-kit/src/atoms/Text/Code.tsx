@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Text.module.css';
 
 export interface CodeProps extends React.HTMLAttributes<HTMLElement> {
@@ -12,7 +12,7 @@ export interface CodeProps extends React.HTMLAttributes<HTMLElement> {
  */
 export const Code = React.forwardRef<HTMLElement, CodeProps>(function Code(
   { children, className, ...restProps },
-  ref
+  ref,
 ): React.ReactElement {
   return (
     <code ref={ref} className={cn(styles.inlineCode, className)} {...restProps}>
@@ -31,7 +31,7 @@ export interface KbdProps extends React.HTMLAttributes<HTMLElement> {
  */
 export const Kbd = React.forwardRef<HTMLElement, KbdProps>(function Kbd(
   { children, className, ...restProps },
-  ref
+  ref,
 ): React.ReactElement {
   return (
     <kbd ref={ref} className={cn(styles.kbd, className)} {...restProps}>

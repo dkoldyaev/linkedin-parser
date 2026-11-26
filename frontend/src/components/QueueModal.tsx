@@ -1,18 +1,18 @@
-import React from 'react';
-import { List } from 'lucide-react';
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  Icon,
-  Spinner,
-  EmptyState,
   AlertBanner,
+  EmptyState,
+  Icon,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Spinner,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { useAutoAnimate } from '@formkit/auto-animate/react';
-import { useQueueTasks, getTaskIdentifier } from './useQueueTasks';
+import { getTaskIdentifier, useQueueTasks } from './useQueueTasks';
+import { List } from 'lucide-react';
 import QueueTaskRow from './QueueTaskRow';
+import React from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface QueueModalProps {
   isOpen: boolean;
@@ -43,7 +43,7 @@ export default function QueueModal({
   const { tasks, loading, error, handleCancelTask } = useQueueTasks(
     isOpen,
     queueRemaining,
-    onRefreshQueue
+    onRefreshQueue,
   );
 
   if (!isOpen) return null;
@@ -51,11 +51,7 @@ export default function QueueModal({
   let queueBody: React.ReactNode = (
     <ul ref={parent} style={LIST_CONTAINER_STYLE}>
       {tasks.map((task) => (
-        <QueueTaskRow
-          key={getTaskIdentifier(task)}
-          task={task}
-          onCancel={handleCancelTask}
-        />
+        <QueueTaskRow key={getTaskIdentifier(task)} task={task} onCancel={handleCancelTask} />
       ))}
     </ul>
   );
@@ -70,20 +66,13 @@ export default function QueueModal({
     queueBody = <AlertBanner tone="danger" title={error} />;
   } else if (tasks.length === 0) {
     queueBody = (
-      <EmptyState
-        title={t('queueModal.empty_title')}
-        description={t('queueModal.empty_desc')}
-      />
+      <EmptyState title={t('queueModal.empty_title')} description={t('queueModal.empty_desc')} />
     );
   }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalHeader
-        title={t('queueModal.title')}
-        icon={QUEUE_ICON}
-        onClose={onClose}
-      />
+      <ModalHeader title={t('queueModal.title')} icon={QUEUE_ICON} onClose={onClose} />
 
       <ModalBody>{queueBody}</ModalBody>
     </Modal>

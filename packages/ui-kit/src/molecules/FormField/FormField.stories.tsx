@@ -36,9 +36,7 @@ export const DefaultWithHint: Story = {
         hint={args.hint}
         error={args.error}
       >
-        {(a11yProps) => (
-          <Input {...a11yProps} placeholder="e.g. Technical Interview" />
-        )}
+        {(a11yProps) => <Input {...a11yProps} placeholder="e.g. Technical Interview" />}
       </FormField>
     </div>
   ),
@@ -62,11 +60,7 @@ export const WithValidationError: Story = {
         error={args.error}
       >
         {(a11yProps) => (
-          <Input
-            {...a11yProps}
-            invalid={Boolean(args.error)}
-            defaultValue="$180,000 - $120,000"
-          />
+          <Input {...a11yProps} invalid={Boolean(args.error)} defaultValue="$180,000 - $120,000" />
         )}
       </FormField>
     </div>

@@ -1,21 +1,12 @@
-
-import { useState, useLayoutEffect, useRef } from 'react';
-import {
-  Award,
-  Banknote,
-  Building,
-  ExternalLink,
-  History,
-  Laptop,
-  Layers,
-} from 'lucide-react';
-import { getSalaryDisplay } from '../utils/salary';
-import type { SalaryDisplay } from '../utils/salary';
-import { getWorkplaceInfo } from '../utils/workplace';
-import type { WorkplaceInfo } from '../utils/workplace';
+import { Award, Banknote, Building, ExternalLink, History, Laptop, Layers } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { BOARD_COLUMNS } from './landingConstants';
 import type { ComputedLandingBoardVacancy } from './landingConstants';
+import { getSalaryDisplay } from '../utils/salary';
+import { getWorkplaceInfo } from '../utils/workplace';
+import type { SalaryDisplay } from '../utils/salary';
 import SkeletonBar from './SkeletonBar';
+import type { WorkplaceInfo } from '../utils/workplace';
 
 export interface LandingKanbanCardProps {
   vacancy: ComputedLandingBoardVacancy;
@@ -39,10 +30,7 @@ function resolveMatchTier(matchScore: number | null): string {
   return 'match-low';
 }
 
-function buildLandingCardClassName(
-  props: LandingKanbanCardProps,
-  matchTier: string
-): string {
+function buildLandingCardClassName(props: LandingKanbanCardProps, matchTier: string): string {
   return [
     'kanban-card',
     'landing-kanban-card',
@@ -60,7 +48,7 @@ function renderCardTopSection(
   vacancy: ComputedLandingBoardVacancy,
   status: string,
   lane: number | null,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const showLaneBadge = status === 'Собеседование' && lane != null;
   return (
@@ -80,9 +68,7 @@ function renderCardTopSection(
 
       <div className="card-status-indicators">
         {showLaneBadge && (
-          <span className="card-lane-badge">
-            {isEn ? `stage ${lane + 1}` : `этап ${lane + 1}`}
-          </span>
+          <span className="card-lane-badge">{isEn ? `stage ${lane + 1}` : `этап ${lane + 1}`}</span>
         )}
       </div>
     </div>
@@ -136,11 +122,7 @@ function renderCardMetaRow(args: {
   );
 }
 
-function renderCardSummaryAndTech(
-  showSummary: boolean,
-  summaryText: string,
-  techStack: string[]
-) {
+function renderCardSummaryAndTech(showSummary: boolean, summaryText: string, techStack: string[]) {
   if (!showSummary) {
     return (
       <>
@@ -170,10 +152,7 @@ function renderCardSummaryAndTech(
   );
 }
 
-function renderHistoryIndicator(
-  vacancy: ComputedLandingBoardVacancy,
-  justMoved: boolean
-) {
+function renderHistoryIndicator(vacancy: ComputedLandingBoardVacancy, justMoved: boolean) {
   if (vacancy.history_count <= 0) return null;
   return (
     <span className={`card-history-indicator ${justMoved ? 'is-history-pop' : ''}`}>
@@ -188,7 +167,7 @@ function renderCardFooter(
   vacancy: ComputedLandingBoardVacancy,
   createdText: string,
   colIndex: number,
-  flags: { justMoved: boolean; justMovedBack: boolean }
+  flags: { justMoved: boolean; justMovedBack: boolean },
 ) {
   const dimLeft = colIndex <= 0 && !flags.justMovedBack;
   const dimRight = colIndex >= BOARD_COLUMNS.length - 1 && !flags.justMoved;
@@ -255,10 +234,7 @@ export default function LandingKanbanCard(props: LandingKanbanCardProps) {
   return (
     <div className={buildLandingCardClassName(props, matchTier)}>
       <div className="card-grid-content">
-        <div
-          className="card-grid-body"
-          style={gridHeight ? { minHeight: gridHeight } : undefined}
-        >
+        <div className="card-grid-body" style={gridHeight ? { minHeight: gridHeight } : undefined}>
           <div className="card-grid-body-content" ref={contentRef}>
             {renderCardTopSection(vacancy, status, lane, isEn)}
             {renderCardMetaRow({

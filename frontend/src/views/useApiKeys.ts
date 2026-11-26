@@ -1,9 +1,8 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from '../i18n/I18nContext';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ApiError } from '../services/apiClient';
 import type { ApiKeyItem } from '../types/models';
 import { apiKeyService } from '../services/apiKeyService';
-import { ApiError } from '../services/apiClient';
+import { useTranslation } from '../i18n/I18nContext';
 
 async function requestCreateApiKey(name: string): Promise<string | null> {
   try {
@@ -85,5 +84,16 @@ export function useApiKeys(hasApiAccess: boolean) {
     }
   };
 
-  return { apiKeys, newKeyName, setNewKeyName, generatingKey, createdKeyToken, copiedKey, loading, handleGenerateApiKey, handleCopyToken, handleRevokeApiKey };
+  return {
+    apiKeys,
+    newKeyName,
+    setNewKeyName,
+    generatingKey,
+    createdKeyToken,
+    copiedKey,
+    loading,
+    handleGenerateApiKey,
+    handleCopyToken,
+    handleRevokeApiKey,
+  };
 }

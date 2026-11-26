@@ -1,8 +1,8 @@
+import type { CVSyncStatus } from './cv.types';
+import CVSyncStatusBadge from './CVSyncStatusBadge';
 import React from 'react';
 import { Text } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import CVSyncStatusBadge from './CVSyncStatusBadge';
-import type { CVSyncStatus } from './cv.types';
 
 export interface CVPageHeaderProps {
   syncStatus: CVSyncStatus;

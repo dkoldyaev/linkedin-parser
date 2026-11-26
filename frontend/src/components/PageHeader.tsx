@@ -1,12 +1,12 @@
+import { Button, Header, Icon } from '@blueprint/ui-kit';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Download } from 'lucide-react';
-import { Header, Button, Icon } from '@blueprint/ui-kit';
-import SettingsModal from './SettingsModal';
+import { Link } from 'react-router-dom';
 import LoginModal from './LoginModal';
+import SettingsModal from './SettingsModal';
 import { useMenu } from './menuContext';
-import { useTranslation } from '../i18n/I18nContext';
 import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface PageHeaderProps {
   user?: User | null;
@@ -32,7 +32,11 @@ function formatHeaderUser(user?: User | null) {
 }
 
 /** Header for pages other than the board (the board renders its own header with search). */
-export default function PageHeader({ user, onLogout, onUserUpdated }: PageHeaderProps): React.ReactElement {
+export default function PageHeader({
+  user,
+  onLogout,
+  onUserUpdated,
+}: PageHeaderProps): React.ReactElement {
   const { t } = useTranslation();
   const { open: menuOpen, toggle: toggleMenu } = useMenu();
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme);
@@ -56,12 +60,7 @@ export default function PageHeader({ user, onLogout, onUserUpdated }: PageHeader
   };
 
   const downloadAction = user ? (
-    <Button
-      asChild
-      variant="ghost"
-      size="icon"
-      title={t('nav.download_extension')}
-    >
+    <Button asChild variant="ghost" size="icon" title={t('nav.download_extension')}>
       <a
         href="/extension.zip"
         download

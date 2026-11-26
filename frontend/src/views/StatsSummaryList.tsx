@@ -27,20 +27,42 @@ export default function StatsSummaryList({
   return (
     <ul className="summary-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
       <li style={SUMMARY_ITEM_STYLE}>
-        <Text variant="body-sm" tone="secondary">{t('pages.stats.total_vacancies')}</Text>
-        <Text variant="mono" weight="bold" tone="primary">{totalVacancies}</Text>
+        <Text variant="body-sm" tone="secondary">
+          {t('pages.stats.total_vacancies')}
+        </Text>
+        <Text variant="mono" weight="bold" tone="primary">
+          {totalVacancies}
+        </Text>
       </li>
       <li style={SUMMARY_ITEM_STYLE}>
-        <Text variant="body-sm" tone="secondary">{t('pages.stats.last7')}</Text>
-        <Text variant="mono" weight="bold" tone="primary">{last7}</Text>
+        <Text variant="body-sm" tone="secondary">
+          {t('pages.stats.last7')}
+        </Text>
+        <Text variant="mono" weight="bold" tone="primary">
+          {last7}
+        </Text>
       </li>
       <li style={SUMMARY_ITEM_STYLE}>
-        <Text variant="body-sm" tone="secondary">{t('pages.stats.last30')}</Text>
-        <Text variant="mono" weight="bold" tone="primary">{last30}</Text>
+        <Text variant="body-sm" tone="secondary">
+          {t('pages.stats.last30')}
+        </Text>
+        <Text variant="mono" weight="bold" tone="primary">
+          {last30}
+        </Text>
       </li>
-      <li style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--ui-space-2) var(--ui-space-4)' }}>
-        <Text variant="body-sm" tone="secondary">{t('pages.stats.active_days')}</Text>
-        <Text variant="mono" weight="bold" tone="primary">{activeDays}</Text>
+      <li
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: 'var(--ui-space-2) var(--ui-space-4)',
+        }}
+      >
+        <Text variant="body-sm" tone="secondary">
+          {t('pages.stats.active_days')}
+        </Text>
+        <Text variant="mono" weight="bold" tone="primary">
+          {activeDays}
+        </Text>
       </li>
     </ul>
   );

@@ -29,7 +29,17 @@
     "max-params": ["error", { "max": 4 }],
     "no-nested-ternary": "error",
     "unicorn/no-nested-ternary": "error",
-    "no-unused-vars": "error"
+    "no-unused-vars": "error",
+    "sort-imports": [
+      "error",
+      {
+        "ignoreCase": true,
+        "ignoreDeclarationSort": false,
+        "ignoreMemberSort": false,
+        "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
+        "allowSeparatedGroups": true
+      }
+    ]
   },
   "overrides": [
     {

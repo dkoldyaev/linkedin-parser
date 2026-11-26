@@ -1,8 +1,8 @@
-import React from 'react';
 import { Table, Text } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import React from 'react';
 import UserManagementRow from './UserManagementRow';
 import type { UserManagementTableProps } from './userManagement.types';
+import { useTranslation } from '../i18n/I18nContext';
 
 export type { UserManagementTableProps };
 
@@ -18,14 +18,27 @@ export default function UserManagementTable(props: UserManagementTableProps): Re
   const { t } = useTranslation();
 
   return (
-    <div style={{ overflowX: 'auto', border: '1px solid var(--ui-border-subtle)', background: 'var(--ui-bg-surface)' }}>
+    <div
+      style={{
+        overflowX: 'auto',
+        border: '1px solid var(--ui-border-subtle)',
+        background: 'var(--ui-bg-surface)',
+      }}
+    >
       <Table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead>
-          <tr style={{ borderBottom: '1px solid var(--ui-border-subtle)', background: 'var(--ui-bg-subtle)' }}>
+          <tr
+            style={{
+              borderBottom: '1px solid var(--ui-border-subtle)',
+              background: 'var(--ui-bg-subtle)',
+            }}
+          >
             <th style={TH_STYLE}>{t('pages.userManagement.th_user')}</th>
             <th style={TH_STYLE}>{t('pages.userManagement.th_email')}</th>
             <th style={TH_STYLE}>{t('pages.userManagement.th_flags')}</th>
-            <th style={{ ...TH_STYLE, textAlign: 'right' }}>{t('pages.userManagement.th_actions')}</th>
+            <th style={{ ...TH_STYLE, textAlign: 'right' }}>
+              {t('pages.userManagement.th_actions')}
+            </th>
           </tr>
         </thead>
         <tbody>

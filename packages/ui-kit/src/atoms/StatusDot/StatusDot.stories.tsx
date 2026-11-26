@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { StatusDot } from './StatusDot';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { StatusDot } from './StatusDot';
 
 const meta: Meta<typeof StatusDot> = {
   title: 'Atoms/StatusDot',

@@ -1,11 +1,6 @@
-
-import {
-  ArrowRight,
-  Search,
-  UploadCloud,
-} from 'lucide-react';
-import { LINKEDIN_EXTRACTED_LINKS } from './landingConstants';
+import { ArrowRight, Search, UploadCloud } from 'lucide-react';
 import type { ExtractedLinkPreset } from './landingPresets';
+import { LINKEDIN_EXTRACTED_LINKS } from './landingConstants';
 import SkeletonBar from './SkeletonBar';
 
 export interface LandingLinkedInOverlayProps {
@@ -26,7 +21,7 @@ function renderLinkedInJobRow(
   item: ExtractedLinkPreset,
   idx: number,
   filledCount: number,
-  flyingIdx: number | null
+  flyingIdx: number | null,
 ) {
   const isExtracted = idx < filledCount;
   const isFlyingNow = idx === flyingIdx;
@@ -59,7 +54,7 @@ function renderLinkedInWindow(
   links: ExtractedLinkPreset[],
   roleLabel: string,
   filledCount: number,
-  flyingIdx: number | null
+  flyingIdx: number | null,
 ) {
   const activeJob = links[flyingIdx !== null ? flyingIdx : 2] || links[0];
 
@@ -89,9 +84,7 @@ function renderLinkedInWindow(
 
       <div className="landing-li-split">
         <div className="landing-li-list">
-          {links.map((item, idx) =>
-            renderLinkedInJobRow(item, idx, filledCount, flyingIdx)
-          )}
+          {links.map((item, idx) => renderLinkedInJobRow(item, idx, filledCount, flyingIdx))}
         </div>
 
         <div className="landing-li-detail-pane">
@@ -119,10 +112,7 @@ function renderLinkedInWindow(
   );
 }
 
-function renderFlightBridge(
-  links: ExtractedLinkPreset[],
-  flyingIdx: number | null
-) {
+function renderFlightBridge(links: ExtractedLinkPreset[], flyingIdx: number | null) {
   return (
     <div className="landing-li-flight-bridge">
       <svg
@@ -146,13 +136,8 @@ function renderFlightBridge(
       </svg>
 
       {flyingIdx !== null && (
-        <div
-          key={flyingIdx}
-          className={`landing-flying-single-pill from-row-${flyingIdx}`}
-        >
-          <span className="flying-pill-url">
-            {links[flyingIdx]?.shortUrl || ''}
-          </span>
+        <div key={flyingIdx} className={`landing-flying-single-pill from-row-${flyingIdx}`}>
+          <span className="flying-pill-url">{links[flyingIdx]?.shortUrl || ''}</span>
           <ArrowRight size={10} />
         </div>
       )}
@@ -163,13 +148,11 @@ function renderFlightBridge(
 function renderBatchImportTextareaContent(
   links: ExtractedLinkPreset[],
   filledCount: number,
-  isButtonLit: boolean
+  isButtonLit: boolean,
 ) {
   if (filledCount === 0) {
     return (
-      <span className="landing-textarea-placeholder">
-        https://www.linkedin.com/jobs/view/...
-      </span>
+      <span className="landing-textarea-placeholder">https://www.linkedin.com/jobs/view/...</span>
     );
   }
   return links.slice(0, filledCount).map((item, idx) => (
@@ -184,11 +167,7 @@ function renderBatchImportTextareaContent(
   ));
 }
 
-function renderBatchImportModalFooter(
-  isEn: boolean,
-  isButtonLit: boolean,
-  filledCount: number
-) {
+function renderBatchImportModalFooter(isEn: boolean, isButtonLit: boolean, filledCount: number) {
   const countSuffix = filledCount > 0 ? ` (${filledCount})` : '';
   return (
     <div className="modal-footer landing-batch-footer">
@@ -214,7 +193,7 @@ function renderBatchImportModal(
   links: ExtractedLinkPreset[],
   filledCount: number,
   isButtonLit: boolean,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const headerText = isEn ? 'Batch Import Vacancies' : 'Пакетный импорт вакансий';
   const labelText = isEn
@@ -240,12 +219,14 @@ function renderBatchImportModal(
           </div>
 
           <div
-            className={`form-textarea landing-batch-textarea ${
-              filledCount > 0 ? 'has-urls' : ''
-            }`}
+            className={`form-textarea landing-batch-textarea ${filledCount > 0 ? 'has-urls' : ''}`}
           >
             {renderBatchImportTextareaContent(links, filledCount, isButtonLit)}
-            {!isButtonLit && <span className="tw-cursor" aria-hidden="true">▋</span>}
+            {!isButtonLit && (
+              <span className="tw-cursor" aria-hidden="true">
+                ▋
+              </span>
+            )}
           </div>
         </div>
 
@@ -286,7 +267,10 @@ export default function LandingLinkedInOverlay({
   if (!state.isVisible) return null;
 
   return (
-    <div className={`landing-li-scene ${state.isDocked ? 'is-docked' : 'is-active'}`} aria-hidden="true">
+    <div
+      className={`landing-li-scene ${state.isDocked ? 'is-docked' : 'is-active'}`}
+      aria-hidden="true"
+    >
       {renderLinkedInWindow(links, roleLabel, state.filledCount, state.flyingIdx)}
       {renderFlightBridge(links, state.flyingIdx)}
       {renderBatchImportModal(links, state.filledCount, state.isButtonLit, isEn)}

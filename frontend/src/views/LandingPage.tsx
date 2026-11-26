@@ -1,23 +1,23 @@
-import { useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Inbox } from 'lucide-react';
-import { useTranslation } from '../i18n/I18nContext';
-import { resolveRolePreset } from './landingPresets';
+import './LandingPage.css';
 import {
   BOARD_COLUMNS,
-  SUB_SCREENS,
+  type ComputedLandingBoardVacancy,
   computeLandingBoardVacancies,
   type LandingBoardColumn,
-  type ComputedLandingBoardVacancy,
+  SUB_SCREENS,
 } from './landingConstants';
-import SkeletonBar from './SkeletonBar';
+import { useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Inbox } from 'lucide-react';
 import LandingKanbanCard from './LandingKanbanCard';
-import LandingLinkedInOverlay from './LandingLinkedInOverlay';
-import LandingVacancyModal from './LandingVacancyModal';
 import LandingLeftNarrative from './LandingLeftNarrative';
+import LandingLinkedInOverlay from './LandingLinkedInOverlay';
 import LandingScrollHintBar from './LandingScrollHintBar';
+import LandingVacancyModal from './LandingVacancyModal';
+import { resolveRolePreset } from './landingPresets';
+import SkeletonBar from './SkeletonBar';
 import { useLandingScrollController } from './useLandingScrollController';
-import './LandingPage.css';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface LandingPageProps {
   onFinish?: () => void;
@@ -51,7 +51,7 @@ function renderLandingBoardColumn(
     showCardMatch: boolean;
     isEn: boolean;
   },
-  t: (key: string, params?: Record<string, string | number>) => string
+  t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   const colCards = boardVacancies.filter((v) => v.currentStatus === col.id);
 
@@ -130,7 +130,7 @@ function renderStageCanvas(args: {
 
       <div className="kanban-board landing-kanban-board">
         {BOARD_COLUMNS.map((col) =>
-          renderLandingBoardColumn(col, args.boardVacancies, columnFlags, args.t)
+          renderLandingBoardColumn(col, args.boardVacancies, columnFlags, args.t),
         )}
       </div>
 
@@ -175,8 +175,7 @@ export default function LandingPage({ onFinish }: LandingPageProps) {
     navigate('/', { replace: true });
   }, [navigate, onFinish]);
 
-  const { pageRef, scrollState, scrollToSubScreen } =
-    useLandingScrollController(finishToBoard);
+  const { pageRef, scrollState, scrollToSubScreen } = useLandingScrollController(finishToBoard);
 
   const activeSubIdx = scrollState.idx;
   const isReverse = scrollState.idx < scrollState.prevIdx;
@@ -198,7 +197,7 @@ export default function LandingPage({ onFinish }: LandingPageProps) {
       scrollState.prevFunnelStage,
       isReverse,
       activePreset.vacancies,
-    ]
+    ],
   );
 
   return (

@@ -1,14 +1,14 @@
+import { cleanText, cleanUrlParams, extractCanonicalUrl, parseSalaryString } from '../helpers';
 import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace, parseSalaryString, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
+import { VacancyData } from '../types';
 
 export class FLRuParser extends BaseParser {
-  name = "flru";
-  source = "FL.ru";
+  name = 'flru';
+  source = 'FL.ru';
   priority = 10;
   needs_extension = false;
-  domains = ["fl.ru"];
+  domains = ['fl.ru'];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('fl.ru');
@@ -37,7 +37,7 @@ export class FLRuParser extends BaseParser {
     if (!html) return { url, source: this.source, job_id };
 
     const doc = createDocument(html);
-    
+
     let title: string | undefined;
     let description: string | undefined;
     let is_closed = false;
@@ -46,7 +46,7 @@ export class FLRuParser extends BaseParser {
     let salary_currency: string | undefined;
     let salary_period: string | undefined;
 
-    const h1 = doc.querySelector("h1");
+    const h1 = doc.querySelector('h1');
     if (h1) title = h1.textContent?.trim();
 
     const descEl = doc.querySelector('.b-layout__txt_lineheight_1');
@@ -54,7 +54,7 @@ export class FLRuParser extends BaseParser {
 
     const salaryEl = doc.querySelector('.b-layout__title span.b-layout__txt');
     if (salaryEl) {
-      const salStr = salaryEl.textContent || "";
+      const salStr = salaryEl.textContent || '';
       const parsed = parseSalaryString(salStr);
       salary_min = parsed.salary_min;
       salary_max = parsed.salary_max;
@@ -62,8 +62,8 @@ export class FLRuParser extends BaseParser {
       salary_period = parsed.salary_period;
     }
 
-    const text = doc.body.textContent?.toLowerCase() || "";
-    if (text.includes("проект закрыт") || text.includes("заказ закрыт")) {
+    const text = doc.body.textContent?.toLowerCase() || '';
+    if (text.includes('проект закрыт') || text.includes('заказ закрыт')) {
       is_closed = true;
     }
 
@@ -72,12 +72,12 @@ export class FLRuParser extends BaseParser {
       source: this.source,
       title,
       description: description?.substring(0, 15000),
-      workplace_type: "remote", // Freelance is inherently remote
+      workplace_type: 'remote', // Freelance is inherently remote
       is_closed,
       salary_min,
       salary_max,
       salary_currency,
-      salary_period
+      salary_period,
     };
   }
 }

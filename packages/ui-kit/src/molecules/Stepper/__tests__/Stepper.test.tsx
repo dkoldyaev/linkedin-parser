@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Stepper } from '../Stepper';
 
 describe('Stepper molecule', () => {

@@ -1,7 +1,3 @@
-import {
-  STATUS_REJECTED,
-  DEFAULT_COLUMNS,
-} from '../../constants/columns';
 import type {
   BoardColumn,
   CompatibilityAnalysis,
@@ -11,6 +7,7 @@ import type {
   Vacancy,
   VacancyHistoryItem,
 } from '../../types/models';
+import { DEFAULT_COLUMNS, STATUS_REJECTED } from '../../constants/columns';
 import type { FormatDateFn, TranslateFn } from '../../i18n/I18nContext';
 import type { ReportSectionGroup, SemanticTone } from '@blueprint/ui-kit';
 
@@ -36,7 +33,7 @@ export function formatStageLabel(
   colId: string,
   lane: number | null | undefined,
   modalColumns: BoardColumn[],
-  t: TranslateFn
+  t: TranslateFn,
 ): string {
   const colName = t(`kanban.columns.${colId}`) || colId;
   const colObj = modalColumns.find((c) => c.id === colId);
@@ -46,27 +43,11 @@ export function formatStageLabel(
   return colName;
 }
 
-export function buildStageOptions(modalColumns: BoardColumn[], t: TranslateFn) {
-  return modalColumns.map((col) => ({
-    value: col.id,
-    label: t(`kanban.columns.${col.id}`) || col.name || col.id,
-  }));
-}
-
-export function buildWorkplaceOptions(t: TranslateFn) {
-  return [
-    { value: '', label: t('vacancyModal.not_specified') },
-    { value: 'remote', label: t('workplace.full_remote') },
-    { value: 'hybrid', label: t('workplace.full_hybrid') },
-    { value: 'on-site', label: t('workplace.full_onsite') },
-  ];
-}
-
 export function buildHistoryItems(
   historyList: VacancyHistoryItem[] | undefined,
   modalColumns: BoardColumn[],
   t: TranslateFn,
-  formatDate: FormatDateFn
+  formatDate: FormatDateFn,
 ) {
   return (historyList || []).map((h, idx) => ({
     id: String(h.id || idx),
@@ -149,7 +130,7 @@ function pushSectionIfPresent<T>(
   list: ReportSectionGroup[],
   items: T[] | undefined,
   buildFn: (arr: T[], t: TranslateFn) => ReportSectionGroup,
-  t: TranslateFn
+  t: TranslateFn,
 ) {
   if (items && items.length > 0) {
     list.push(buildFn(items, t));
@@ -158,7 +139,7 @@ function pushSectionIfPresent<T>(
 
 export function buildCompatibilitySections(
   compatibility: CompatibilityAnalysis | null | undefined,
-  t: TranslateFn
+  t: TranslateFn,
 ): ReportSectionGroup[] {
   if (!compatibility) return [];
   const sections: ReportSectionGroup[] = [];
@@ -169,30 +150,14 @@ export function buildCompatibilitySections(
 }
 
 export function buildRecommendationsList(
-  compatibility: CompatibilityAnalysis | null | undefined
+  compatibility: CompatibilityAnalysis | null | undefined,
 ): string[] {
   return (compatibility?.recommendations || [])
     .map((r) => (typeof r === 'string' ? r : r.text || r.title || ''))
     .filter(Boolean);
 }
 
-export function resolveCompatibilityDisplayScore(
-  compatibility: CompatibilityAnalysis | null | undefined,
-  matchScore: number | undefined
-): number | undefined {
-  if (!compatibility) return matchScore;
-  if (compatibility.calculated_score != null) {
-    return Math.round(compatibility.calculated_score);
-  }
-  if (compatibility.overall_score != null) {
-    return Math.round(compatibility.overall_score);
-  }
-  return matchScore;
-}
-
-export function resolveCompatScoreTone(
-  displayScore: number | undefined | null
-): SemanticTone {
+export function resolveCompatScoreTone(displayScore: number | undefined | null): SemanticTone {
   if (displayScore == null) return 'neutral';
   if (displayScore >= 70) return 'success';
   if (displayScore >= 45) return 'warning';
@@ -211,7 +176,7 @@ function resolveSeniorityStatusLabel(status: string | undefined, t: TranslateFn)
 
 export function resolveSeniorityInfo(
   compatibility: CompatibilityAnalysis | null | undefined,
-  t: TranslateFn
+  t: TranslateFn,
 ): {
   statusLabel: string;
   statusTone: 'success' | 'warning' | 'danger';

@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Modal.module.css';
 
 export interface ModalBodyProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -16,16 +16,8 @@ export interface ModalBodyProps extends React.HTMLAttributes<HTMLDivElement> {
  * Snaps to the 32px blueprint grid with configurable padding variants.
  */
 export const ModalBody = React.forwardRef<HTMLDivElement, ModalBodyProps>(function ModalBody(
-  {
-    padding = 'md',
-    gap = 'sm',
-    scrollable = true,
-    children,
-    className,
-    onScroll,
-    ...restProps
-  },
-  ref
+  { padding = 'md', gap = 'sm', scrollable = true, children, className, onScroll, ...restProps },
+  ref,
 ): React.ReactElement {
   return (
     <div
@@ -36,7 +28,7 @@ export const ModalBody = React.forwardRef<HTMLDivElement, ModalBodyProps>(functi
         styles[`body-padding-${padding}`],
         gap && styles[`body-gap-${gap}`],
         !scrollable && styles.bodyNoScroll,
-        className
+        className,
       )}
       {...restProps}
     >

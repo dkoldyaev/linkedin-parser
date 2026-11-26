@@ -1,6 +1,6 @@
-import React from 'react';
-import { LogIn } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import { LogIn } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface HomeGuestPromotionButtonProps {
@@ -19,12 +19,7 @@ export default function HomeGuestPromotionButton({
   if (!isAnonymous) return null;
 
   return (
-    <Button
-      variant="secondary"
-      size="sm"
-      onClick={onOpenGuestAuth}
-      startIcon={LOGIN_ICON}
-    >
+    <Button variant="secondary" size="sm" onClick={onOpenGuestAuth} startIcon={LOGIN_ICON}>
       {t('auth.save_progress_btn')}
     </Button>
   );

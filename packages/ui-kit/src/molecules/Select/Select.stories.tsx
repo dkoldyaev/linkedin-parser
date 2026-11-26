@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Select } from './Select';
+import React, { useState } from 'react';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Select } from './Select';
 
 const meta: Meta<typeof Select> = {
   title: 'Molecules/Select',

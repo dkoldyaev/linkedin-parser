@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
 import {
   Badge,
   Button,
   Icon,
   Skeleton,
   Stepper,
+  type StepperItemData,
   Text,
   Textarea,
-  type StepperItemData,
 } from '@blueprint/ui-kit';
 import { Check, Edit3, History, MessageSquare, Plus, Trash2 } from 'lucide-react';
-import { useTranslation, type TranslateFn } from '../../i18n/I18nContext';
+import React, { useState } from 'react';
+import { type TranslateFn, useTranslation } from '../../i18n/I18nContext';
 import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
 import { VacancySection } from './VacancySection';
 

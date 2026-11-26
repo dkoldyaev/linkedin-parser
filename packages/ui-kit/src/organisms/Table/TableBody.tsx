@@ -1,7 +1,7 @@
-import React from 'react';
-import { useGridScroll } from '../../hooks';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Table.module.css';
+import { useGridScroll } from '../../hooks';
 
 export interface TableBodyProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly scrollable?: boolean;
@@ -18,50 +18,48 @@ export interface TableBodyProps extends React.HTMLAttributes<HTMLDivElement> {
  * Scrollable vertical body for flex Table columns or table body containers.
  * Integrates `useGridScroll` for 32px blueprint grid snap-scrolling.
  */
-export const TableBody = React.forwardRef<HTMLDivElement, TableBodyProps>(
-  function TableBody(
-    {
-      scrollable = true,
-      snapScroll = true,
-      gap = 'none',
-      padding = 'none',
-      emptyState,
-      children,
-      className,
-      onScroll,
-      ...restProps
-    },
-    ref
-  ): React.ReactElement {
-    const handleGridScroll = useGridScroll();
+export const TableBody = React.forwardRef<HTMLDivElement, TableBodyProps>(function TableBody(
+  {
+    scrollable = true,
+    snapScroll = true,
+    gap = 'none',
+    padding = 'none',
+    emptyState,
+    children,
+    className,
+    onScroll,
+    ...restProps
+  },
+  ref,
+): React.ReactElement {
+  const handleGridScroll = useGridScroll();
 
-    const handleScrollCombined = (event: React.UIEvent<HTMLDivElement>) => {
-      if (snapScroll) {
-        handleGridScroll(event, 'y');
-      }
-      onScroll?.(event);
-    };
+  const handleScrollCombined = (event: React.UIEvent<HTMLDivElement>) => {
+    if (snapScroll) {
+      handleGridScroll(event, 'y');
+    }
+    onScroll?.(event);
+  };
 
-    const hasChildren = React.Children.count(children) > 0;
+  const hasChildren = React.Children.count(children) > 0;
 
-    return (
-      <div
-        ref={ref}
-        onScroll={handleScrollCombined}
-        className={cn(
-          styles.body,
-          scrollable ? styles.bodyScrollable : styles.bodyNoScroll,
-          styles[`bodyGap${capitalize(gap)}`],
-          styles[`bodyPadding${capitalize(padding)}`],
-          className
-        )}
-        {...restProps}
-      >
-        {hasChildren ? children : emptyState}
-      </div>
-    );
-  }
-);
+  return (
+    <div
+      ref={ref}
+      onScroll={handleScrollCombined}
+      className={cn(
+        styles.body,
+        scrollable ? styles.bodyScrollable : styles.bodyNoScroll,
+        styles[`bodyGap${capitalize(gap)}`],
+        styles[`bodyPadding${capitalize(padding)}`],
+        className,
+      )}
+      {...restProps}
+    >
+      {hasChildren ? children : emptyState}
+    </div>
+  );
+});
 
 function capitalize(value: string): string {
   if (value.length === 0) {

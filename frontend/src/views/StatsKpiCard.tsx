@@ -29,9 +29,7 @@ export default function StatsKpiCard({
 }: StatsKpiCardProps): React.ReactElement {
   return (
     <div id={id} style={KPI_CARD_STYLE}>
-      <div style={{ color: iconColor }}>
-        {icon}
-      </div>
+      <div style={{ color: iconColor }}>{icon}</div>
       <div>
         <Text variant="caption" tone="secondary">
           {label}

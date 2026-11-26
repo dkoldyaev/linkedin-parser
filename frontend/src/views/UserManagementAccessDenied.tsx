@@ -1,6 +1,6 @@
+import { Icon, PageLayout, Text } from '@blueprint/ui-kit';
 import React from 'react';
 import { ShieldAlert } from 'lucide-react';
-import { PageLayout, Icon, Text } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface UserManagementAccessDeniedProps {
@@ -27,7 +27,12 @@ export default function UserManagementAccessDenied({
         <div style={{ color: 'var(--ui-danger)', marginBottom: 'var(--ui-space-3)' }}>
           <Icon icon={ShieldAlert} size="lg" />
         </div>
-        <Text variant="title" weight="bold" tone="primary" style={{ marginBottom: 'var(--ui-space-2)' }}>
+        <Text
+          variant="title"
+          weight="bold"
+          tone="primary"
+          style={{ marginBottom: 'var(--ui-space-2)' }}
+        >
           {t('pages.userManagement.access_denied')}
         </Text>
         <Text variant="body" tone="secondary">

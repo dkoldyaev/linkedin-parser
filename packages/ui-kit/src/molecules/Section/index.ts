@@ -6,9 +6,4 @@ export {
   type SectionHeaderProps,
   type SectionPadding,
 } from './Section';
-export {
-  SectionContext,
-  useSectionContext,
-  type SectionContextValue,
-} from './SectionContext';
-
+export { SectionContext, useSectionContext, type SectionContextValue } from './SectionContext';

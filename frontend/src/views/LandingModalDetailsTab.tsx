@@ -1,14 +1,7 @@
-
+import { Banknote, ChevronDown, ChevronUp, FileText, Sparkles } from 'lucide-react';
+import type { BloatItemPreset, LandingVacancyPreset } from './landingPresets';
 import React from 'react';
-import {
-  Banknote,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Sparkles,
-} from 'lucide-react';
 import type { SalaryDisplay } from '../utils/salary';
-import type { LandingVacancyPreset, BloatItemPreset } from './landingPresets';
 import SkeletonBar from './SkeletonBar';
 
 export interface LandingModalDetailsTabProps {
@@ -67,7 +60,7 @@ function renderSalaryBoundField(
   label: string,
   typedValue: string,
   fallbackValue: number | string | undefined,
-  isTyping: boolean
+  isTyping: boolean,
 ) {
   return (
     <div className="salary-field-item">
@@ -87,9 +80,7 @@ function renderStaticSalaryField(label: string, value: string) {
   return (
     <div className="salary-field-item">
       <span className="salary-field-label">{label}</span>
-      <div className="form-input salary-field-input landing-static-input">
-        {value}
-      </div>
+      <div className="form-input salary-field-input landing-static-input">{value}</div>
     </div>
   );
 }
@@ -126,7 +117,10 @@ function renderSalarySection(props: LandingModalDetailsTabProps) {
   return (
     <div className={`form-group vacancy-salary ${isFocused ? 'is-section-focused' : ''}`}>
       <div className="vacancy-salary-header">
-        <div className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+        <div
+          className="form-label"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}
+        >
           <Banknote size={15} color="var(--aspen-mint)" />
           <span style={{ fontWeight: 600 }}>{labels.salary}</span>
         </div>
@@ -140,22 +134,16 @@ function renderSalarySection(props: LandingModalDetailsTabProps) {
           labels.min,
           salaryMin,
           vacancy.salary_min || 100000,
-          isStepInRange(salaryTypingStep, 1, 3)
+          isStepInRange(salaryTypingStep, 1, 3),
         )}
         {renderSalaryBoundField(
           labels.max,
           salaryMax,
           vacancy.salary_max || 140000,
-          isStepInRange(salaryTypingStep, 4, 6)
+          isStepInRange(salaryTypingStep, 4, 6),
         )}
-        {renderStaticSalaryField(
-          labels.currency,
-          resolveCurrencyLabel(vacancy.salary_currency)
-        )}
-        {renderStaticSalaryField(
-          labels.period,
-          resolvePeriodLabel(vacancy.salary_period, isEn)
-        )}
+        {renderStaticSalaryField(labels.currency, resolveCurrencyLabel(vacancy.salary_currency))}
+        {renderStaticSalaryField(labels.period, resolvePeriodLabel(vacancy.salary_period, isEn))}
       </div>
     </div>
   );
@@ -222,7 +210,9 @@ function renderSummaryAndTokens(args: {
         <p className="vacancy-ai-summary-text">
           <span>{args.summaryText.slice(0, args.summaryTypedChars)}</span>
           {args.summaryTypedChars < args.summaryText.length && (
-            <span className="tw-cursor" aria-hidden="true">▋</span>
+            <span className="tw-cursor" aria-hidden="true">
+              ▋
+            </span>
           )}
           <span className="tw-ghost" aria-hidden="true">
             {args.summaryText.slice(args.summaryTypedChars)}
@@ -244,75 +234,72 @@ function renderSummaryAndTokens(args: {
   );
 }
 
-const LandingModalDetailsTab = React.forwardRef<
-  HTMLDivElement,
-  LandingModalDetailsTabProps
->(function LandingModalDetailsTab(props, bloatRef) {
-  const { isDescriptionPresented, isBloatCollapsed, isEn, bloatItems } = props;
+const LandingModalDetailsTab = React.forwardRef<HTMLDivElement, LandingModalDetailsTabProps>(
+  function LandingModalDetailsTab(props, bloatRef) {
+    const { isDescriptionPresented, isBloatCollapsed, isEn, bloatItems } = props;
 
-  return (
-    <>
-      {renderSalarySection(props)}
+    return (
+      <>
+        {renderSalarySection(props)}
 
-      {!isDescriptionPresented ? (
-        renderDescriptionSkeleton()
-      ) : (
-        <>
-          <div
-            ref={bloatRef}
-            className={`form-group orig-desc-section landing-bloat-section ${
-              isBloatCollapsed ? 'is-collapsed' : 'is-expanded'
-            }`}
-          >
-            <div className="orig-desc-header">
-              <div className="orig-desc-header-title">
-                <FileText size={14} />
-                <span>
-                  {isEn
-                    ? 'Original LinkedIn Description (4,180 chars)'
-                    : 'Оригинальное описание из LinkedIn (4 180 симв.)'}
-                </span>
-              </div>
-              <div className="orig-desc-header-action">
-                <span
-                  className={`landing-compression-badge ${
-                    isBloatCollapsed ? 'is-done' : 'is-raw'
-                  }`}
-                >
-                  {resolveCompressionBadgeText(isBloatCollapsed, isEn)}
-                </span>
-                {isBloatCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-              </div>
-            </div>
-
-            <div className="landing-bloat-collapsible">
-              {bloatItems.map((block) => (
-                <div
-                  key={block.id}
-                  className={`landing-bloat-paragraph ${
-                    block.isBloat ? 'is-corporate-water' : 'is-real-signal'
-                  }`}
-                >
-                  <span className="landing-bloat-tag">
-                    {isEn ? block.labelEn : block.label}
+        {!isDescriptionPresented ? (
+          renderDescriptionSkeleton()
+        ) : (
+          <>
+            <div
+              ref={bloatRef}
+              className={`form-group orig-desc-section landing-bloat-section ${
+                isBloatCollapsed ? 'is-collapsed' : 'is-expanded'
+              }`}
+            >
+              <div className="orig-desc-header">
+                <div className="orig-desc-header-title">
+                  <FileText size={14} />
+                  <span>
+                    {isEn
+                      ? 'Original LinkedIn Description (4,180 chars)'
+                      : 'Оригинальное описание из LinkedIn (4 180 симв.)'}
                   </span>
-                  <p>{isEn ? block.textEn : block.text}</p>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="orig-desc-header-action">
+                  <span
+                    className={`landing-compression-badge ${
+                      isBloatCollapsed ? 'is-done' : 'is-raw'
+                    }`}
+                  >
+                    {resolveCompressionBadgeText(isBloatCollapsed, isEn)}
+                  </span>
+                  {isBloatCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </div>
+              </div>
 
-          {renderSummaryAndTokens({
-            isSummaryPresented: props.isSummaryPresented,
-            isEn,
-            summaryText: props.summaryText,
-            summaryTypedChars: props.summaryTypedChars,
-            techStack: props.vacancy.tech_stack,
-          })}
-        </>
-      )}
-    </>
-  );
-});
+              <div className="landing-bloat-collapsible">
+                {bloatItems.map((block) => (
+                  <div
+                    key={block.id}
+                    className={`landing-bloat-paragraph ${
+                      block.isBloat ? 'is-corporate-water' : 'is-real-signal'
+                    }`}
+                  >
+                    <span className="landing-bloat-tag">{isEn ? block.labelEn : block.label}</span>
+                    <p>{isEn ? block.textEn : block.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {renderSummaryAndTokens({
+              isSummaryPresented: props.isSummaryPresented,
+              isEn,
+              summaryText: props.summaryText,
+              summaryTypedChars: props.summaryTypedChars,
+              techStack: props.vacancy.tech_stack,
+            })}
+          </>
+        )}
+      </>
+    );
+  },
+);
 
 export default LandingModalDetailsTab;

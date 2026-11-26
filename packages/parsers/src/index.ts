@@ -4,19 +4,19 @@ export * from './helpers';
 export * from './locationParser';
 export { registry, Registry } from './registry';
 
-import { registry } from './registry';
-import { GlassdoorParser } from './parsers/glassdoor';
-import { GeekJobParser } from './parsers/geekjob';
-import { LayboardParser } from './parsers/layboard';
-import { HabrParser } from './parsers/habr';
 import { AvitoParser } from './parsers/avito';
-import { RabotaRuParser } from './parsers/rabotaru';
 import { FLRuParser } from './parsers/flru';
-import { LinkedInParser } from './parsers/linkedin';
-import { UpworkParser } from './parsers/upwork';
-import { SuperJobParser } from './parsers/superjob';
+import { GeekJobParser } from './parsers/geekjob';
+import { GlassdoorParser } from './parsers/glassdoor';
+import { HabrParser } from './parsers/habr';
 import { IndeedParser } from './parsers/indeed';
+import { LayboardParser } from './parsers/layboard';
+import { LinkedInParser } from './parsers/linkedin';
+import { RabotaRuParser } from './parsers/rabotaru';
+import { registry } from './registry';
+import { SuperJobParser } from './parsers/superjob';
 import { UniversalParser } from './parsers/universal';
+import { UpworkParser } from './parsers/upwork';
 
 registry.register(new GlassdoorParser());
 registry.register(new GeekJobParser());

@@ -1,5 +1,5 @@
-import type { User } from '../types/models';
 import type { CVSyncStatus, ServerCVData } from './useCVManagement';
+import type { User } from '../types/models';
 
 export type { CVSyncStatus, ServerCVData };
 

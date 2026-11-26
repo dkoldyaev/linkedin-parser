@@ -1,12 +1,12 @@
+import { Icon, Modal, ModalHeader } from '@blueprint/ui-kit';
+import BatchDuplicateWarningView from './BatchDuplicateWarningView';
+import BatchImportFormView from './BatchImportFormView';
+import BatchImportResultView from './BatchImportResultView';
+import ExtensionPromptModal from './ExtensionPromptModal';
 import React from 'react';
 import { UploadCloud } from 'lucide-react';
-import { Modal, ModalHeader, Icon } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import ExtensionPromptModal from './ExtensionPromptModal';
-import BatchDuplicateWarningView from './BatchDuplicateWarningView';
-import BatchImportResultView from './BatchImportResultView';
-import BatchImportFormView from './BatchImportFormView';
 import { useBatchImportController } from './useBatchImportController';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface BatchImportModalProps {
   isOpen: boolean;
@@ -56,11 +56,7 @@ export default function BatchImportModal({
   return (
     <>
       <Modal isOpen={isOpen} onClose={ctrl.handleClose} size="lg">
-        <ModalHeader
-          title={t('batchModal.title')}
-          icon={UPLOAD_ICON}
-          onClose={ctrl.handleClose}
-        />
+        <ModalHeader title={t('batchModal.title')} icon={UPLOAD_ICON} onClose={ctrl.handleClose} />
         {bodyView}
       </Modal>
 

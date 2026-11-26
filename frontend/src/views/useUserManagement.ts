@@ -1,9 +1,8 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import type { User } from '../types/models';
-import { useTranslation } from '../i18n/I18nContext';
-import { userService } from '../services/userService';
+import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../services/apiClient';
+import type { User } from '../types/models';
+import { userService } from '../services/userService';
+import { useTranslation } from '../i18n/I18nContext';
 
 function buildInitialEditingFlags(data: User[]): Record<number, string[]> {
   const initial: Record<number, string[]> = {};
@@ -14,9 +13,7 @@ function buildInitialEditingFlags(data: User[]): Record<number, string[]> {
 }
 
 function toggleFlagList(current: string[], flagKey: string): string[] {
-  return current.includes(flagKey)
-    ? current.filter((k) => k !== flagKey)
-    : [...current, flagKey];
+  return current.includes(flagKey) ? current.filter((k) => k !== flagKey) : [...current, flagKey];
 }
 
 export function filterUsersByQuery(users: User[], search: string): User[] {
@@ -81,7 +78,9 @@ export function useUserManagement(hasAccess: boolean) {
       setStatusMsg(null);
       setErrorMsg(null);
       await putUserFeatureFlags(targetUser.id, editingFlags[targetUser.id] || []);
-      setStatusMsg(t('pages.userManagement.flags_saved_success', { email: targetUser.email || '' }));
+      setStatusMsg(
+        t('pages.userManagement.flags_saved_success', { email: targetUser.email || '' }),
+      );
       setTimeout(() => setStatusMsg(null), 3000);
       fetchUsers();
     } catch (err) {
@@ -92,5 +91,16 @@ export function useUserManagement(hasAccess: boolean) {
     }
   };
 
-  return { users, loading, search, setSearch, editingFlags, savingUserId, statusMsg, errorMsg, handleToggleFlag, handleSaveFlags };
+  return {
+    users,
+    loading,
+    search,
+    setSearch,
+    editingFlags,
+    savingUserId,
+    statusMsg,
+    errorMsg,
+    handleToggleFlag,
+    handleSaveFlags,
+  };
 }

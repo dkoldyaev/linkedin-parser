@@ -10,7 +10,7 @@ import { type RefObject, useEffect, useRef } from 'react';
 export function useClickOutside<T extends HTMLElement>(
   ref: RefObject<T | null>,
   handler: (event: MouseEvent | TouchEvent) => void,
-  enabled?: boolean
+  enabled?: boolean,
 ): void {
   const handlerRef = useRef(handler);
   handlerRef.current = handler;

@@ -1,14 +1,14 @@
+import type { BoardColumn, User, Vacancy } from '../types/models';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Header } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { useMenu } from '../components/menuContext';
-import SettingsModal from '../components/SettingsModal';
-import HomeSearchBar from './HomeSearchBar';
 import HomeExtensionDownloadButton from './HomeExtensionDownloadButton';
-import HomePrimaryActions from './HomePrimaryActions';
 import HomeGuestPromotionButton from './HomeGuestPromotionButton';
-import type { User, BoardColumn, Vacancy } from '../types/models';
+import HomePrimaryActions from './HomePrimaryActions';
+import HomeSearchBar from './HomeSearchBar';
+import { Link } from 'react-router-dom';
+import SettingsModal from '../components/SettingsModal';
+import { useMenu } from '../components/menuContext';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface HomeHeaderSectionProps {
   user?: User | null;

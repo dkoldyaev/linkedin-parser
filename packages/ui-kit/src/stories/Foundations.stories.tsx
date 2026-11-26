@@ -1,5 +1,3 @@
-import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   AlertCircle,
   AlertTriangle,
@@ -26,15 +24,17 @@ import {
   X,
 } from 'lucide-react';
 import {
-  COLOR_TOKENS,
-  SPACING_TOKENS,
-  TYPOGRAPHY_TOKENS,
   Badge,
   Card,
+  COLOR_TOKENS,
   Icon,
+  SPACING_TOKENS,
   Text,
+  TYPOGRAPHY_TOKENS,
   useCopyToClipboard,
 } from '../index';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 import styles from './Foundations.module.css';
 
 const meta: Meta = {
@@ -91,7 +91,8 @@ function ColorsCatalog(): React.ReactElement {
           Color Tokens (Click any card to copy CSS variable)
         </Text>
         <Text variant="caption" tone="secondary">
-          Unified semantic palette replacing fragmented hex/rgba literals across index.css, design-system.css, and LandingPage.css.
+          Unified semantic palette replacing fragmented hex/rgba literals across index.css,
+          design-system.css, and LandingPage.css.
         </Text>
       </div>
       <div className={styles.grid}>
@@ -104,9 +105,7 @@ function ColorsCatalog(): React.ReactElement {
               className={styles.swatchCard}
               onClick={() => void copy(`var(${token.cssVar})`)}
             >
-              <div
-                className={`${styles.swatchPreview} ${PREVIEW_CLASS_MAP[token.cssVar] ?? ''}`}
-              />
+              <div className={`${styles.swatchPreview} ${PREVIEW_CLASS_MAP[token.cssVar] ?? ''}`} />
               <div className={styles.swatchMeta}>
                 <Badge size="sm" tone={isCopied ? 'success' : 'accent'}>
                   {isCopied ? 'COPIED TO CLIPBOARD' : token.name}
@@ -164,8 +163,7 @@ function TypographyCatalog(): React.ReactElement {
             >
               <Text
                 variant={
-                  token.cssVar.includes('font-mono') ||
-                  token.cssVar.includes('xs')
+                  token.cssVar.includes('font-mono') || token.cssVar.includes('xs')
                     ? 'mono-label'
                     : token.cssVar.includes('2xl')
                       ? 'display'
@@ -198,7 +196,8 @@ function SpacingCatalog(): React.ReactElement {
           Spacing & 32px Blueprint Grid
         </Text>
         <Text variant="caption" tone="secondary">
-          All interactive controls snap to multiples of --ui-grid-unit (8px) and --ui-grid-cell (32px). Click any bar to copy.
+          All interactive controls snap to multiples of --ui-grid-unit (8px) and --ui-grid-cell
+          (32px). Click any bar to copy.
         </Text>
       </div>
       <div className={styles.spacingList}>
@@ -214,10 +213,12 @@ function SpacingCatalog(): React.ReactElement {
               <Text variant="mono" weight="semibold">
                 {token.cssVar}
               </Text>
-              <div
-                className={`${styles.spacingBar} ${SPACING_CLASS_MAP[token.cssVar] ?? ''}`}
-              />
-              {isCopied && <Badge size="xs" tone="success">Copied!</Badge>}
+              <div className={`${styles.spacingBar} ${SPACING_CLASS_MAP[token.cssVar] ?? ''}`} />
+              {isCopied && (
+                <Badge size="xs" tone="success">
+                  Copied!
+                </Badge>
+              )}
             </button>
           );
         })}
@@ -359,11 +360,7 @@ function IconsCatalog(): React.ReactElement {
               className={styles.iconCard}
               onClick={() => void copy(snippet)}
             >
-              <Icon
-                icon={entry.icon}
-                size="lg"
-                tone={isCopied ? 'success' : 'accent'}
-              />
+              <Icon icon={entry.icon} size="lg" tone={isCopied ? 'success' : 'accent'} />
               <Text variant="mono">{entry.name}</Text>
               <Badge size="sm" tone={isCopied ? 'success' : 'neutral'}>
                 {isCopied ? 'Copied JSX' : 'Copy JSX'}

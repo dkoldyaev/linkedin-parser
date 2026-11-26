@@ -37,7 +37,7 @@ export function cn(...inputs: ClassValue[]): string {
 
     if (typeof input === 'object') {
       for (const [key, value] of Object.entries(input)) {
-        if (Boolean(value)) {
+        if (value) {
           classes.push(key);
         }
       }

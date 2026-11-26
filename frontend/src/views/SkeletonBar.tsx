@@ -1,4 +1,3 @@
-
 export interface SkeletonBarProps {
   width?: number | string;
   height?: number | string;

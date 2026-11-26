@@ -1,21 +1,27 @@
+import {
+  cleanText,
+  cleanUrlParams,
+  extractCanonicalUrl,
+  normalizeWorkplace,
+  parseSalaryString,
+} from '../helpers';
 import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace, parseSalaryString, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
+import { VacancyData } from '../types';
 
 export class SuperJobParser extends BaseParser {
-  name = "superjob";
-  source = "SuperJob";
+  name = 'superjob';
+  source = 'SuperJob';
   priority = 10;
   needs_extension = false;
-  domains = ["superjob.ru"];
+  domains = ['superjob.ru'];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('superjob.ru');
   }
 
   extractJobId(url: string): string | null {
-    const m = url.match(/-(\d+)\.html/) || url.match(/\/vakansii\/[^\/?#]+-(\d+)/);
+    const m = url.match(/-(\d+)\.html/) || url.match(/\/vakansii\/[^/?#]+-(\d+)/);
     return m ? m[1] : null;
   }
 
@@ -33,7 +39,7 @@ export class SuperJobParser extends BaseParser {
     if (!html) return { url, source: this.source, job_id };
 
     const doc = createDocument(html);
-    
+
     let title: string | undefined;
     let company: string | undefined;
     let location: string | undefined;
@@ -45,12 +51,12 @@ export class SuperJobParser extends BaseParser {
     let salary_currency: string | undefined;
     let salary_period: string | undefined;
 
-    const h1 = doc.querySelector("h1");
+    const h1 = doc.querySelector('h1');
     if (h1) title = h1.textContent?.trim();
 
     const companyEls = Array.from(doc.querySelectorAll('a, span'));
     for (const el of companyEls) {
-      const href = el.getAttribute('href') || "";
+      const href = el.getAttribute('href') || '';
       if (href.includes('/clients/')) {
         company = el.textContent?.trim();
         break;
@@ -59,45 +65,51 @@ export class SuperJobParser extends BaseParser {
 
     const locEls = Array.from(doc.querySelectorAll('span'));
     for (const el of locEls) {
-      const text = el.textContent || "";
-      if (text.includes('Москва') || text.includes('Санкт-Петербург') || text.includes('город')) { // Simple heuristic
-         if (text.length < 50 && !location) {
-           location = text;
-           city = location;
-         }
+      const text = el.textContent || '';
+      if (text.includes('Москва') || text.includes('Санкт-Петербург') || text.includes('город')) {
+        // Simple heuristic
+        if (text.length < 50 && !location) {
+          location = text;
+          city = location;
+        }
       }
     }
 
-    const descEl = doc.querySelector('[class*="VacancyDescription"]') || doc.querySelector('[class*="vacancy-description"]');
+    const descEl =
+      doc.querySelector('[class*="VacancyDescription"]') ||
+      doc.querySelector('[class*="vacancy-description"]');
     if (descEl) description = cleanText(descEl);
-    
+
     if (!description) {
       // Fallback
       const spans = Array.from(doc.querySelectorAll('span'));
       for (const span of spans) {
         if (span.textContent?.includes('Обязанности') || span.textContent?.includes('Требования')) {
-           description = cleanText(span.parentElement || span);
-           break;
+          description = cleanText(span.parentElement || span);
+          break;
         }
       }
     }
 
     const h1Parent = h1?.parentElement;
     if (h1Parent) {
-       const salText = h1Parent.textContent?.replace(title || "", "") || "";
-       if (salText) {
-          const parsed = parseSalaryString(salText);
-          salary_min = parsed.salary_min;
-          salary_max = parsed.salary_max;
-          salary_currency = parsed.salary_currency;
-          salary_period = parsed.salary_period;
-       }
+      const salText = h1Parent.textContent?.replace(title || '', '') || '';
+      if (salText) {
+        const parsed = parseSalaryString(salText);
+        salary_min = parsed.salary_min;
+        salary_max = parsed.salary_max;
+        salary_currency = parsed.salary_currency;
+        salary_period = parsed.salary_period;
+      }
     }
 
-    const workplace_type = normalizeWorkplace(title || "") || normalizeWorkplace(location || "") || normalizeWorkplace(description || "");
+    const workplace_type =
+      normalizeWorkplace(title || '') ||
+      normalizeWorkplace(location || '') ||
+      normalizeWorkplace(description || '');
 
-    const text = doc.body.textContent?.toLowerCase() || "";
-    if (text.includes("вакансия в архиве") || text.includes("вакансия закрыта")) {
+    const text = doc.body.textContent?.toLowerCase() || '';
+    if (text.includes('вакансия в архиве') || text.includes('вакансия закрыта')) {
       is_closed = true;
     }
 
@@ -108,14 +120,14 @@ export class SuperJobParser extends BaseParser {
       company,
       location,
       city,
-      country: "Russia",
+      country: 'Russia',
       description: description?.substring(0, 15000),
       workplace_type: workplace_type || undefined,
       is_closed,
       salary_min,
       salary_max,
       salary_currency,
-      salary_period
+      salary_period,
     };
   }
 }

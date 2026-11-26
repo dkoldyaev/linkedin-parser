@@ -1,10 +1,4 @@
-
-import {
-  Text,
-  Badge,
-  TableHeader,
-  StatusDot,
-} from '@blueprint/ui-kit';
+import { Badge, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export default function AboutOverviewSection() {

@@ -1,6 +1,6 @@
-import React from 'react';
-import { Moon, RefreshCw, Settings, Sun } from 'lucide-react';
 import { Button, Icon } from '../../atoms';
+import { Moon, RefreshCw, Settings, Sun } from 'lucide-react';
+import React from 'react';
 import styles from './Header.module.css';
 
 export interface HeaderActionsProps {
@@ -67,4 +67,3 @@ export function HeaderActions({
     </>
   );
 }
-

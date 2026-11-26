@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Input,
-  Label,
-  Select,
-  type SelectOption,
-} from '@blueprint/ui-kit';
+import { Input, Label, Select, type SelectOption } from '@blueprint/ui-kit';
+import React, { useEffect, useState } from 'react';
 import { Banknote } from 'lucide-react';
+import type { TranslateFn } from '../../i18n/I18nContext';
+import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
 import type { Vacancy } from '../../types/models';
 import { VacancySection } from './VacancySection';
-import { useSave } from './useSave';
 
 export interface SalaryData {
   min: string;
@@ -26,6 +22,32 @@ export interface VacancySalarySectionProps {
   onSaveSalary?: (salary: SalaryData) => Promise<void>;
 }
 
+const CURRENCY_OPTIONS: readonly SelectOption[] = [
+  { value: 'USD', label: 'USD ($)' },
+  { value: 'EUR', label: 'EUR (€)' },
+  { value: 'RUB', label: 'RUB (₽)' },
+  { value: 'GBP', label: 'GBP (£)' },
+];
+
+const GRID_STYLE: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: 12,
+};
+
+function formatDraftBound(val: number | null | undefined): string {
+  return val != null ? String(val) : '';
+}
+
+function buildPeriodOptions(t: TranslateFn): readonly SelectOption[] {
+  return [
+    { value: 'month', label: t('vacancyModal.period_month') || 'В месяц' },
+    { value: 'year', label: t('vacancyModal.period_year') || 'В год' },
+    { value: 'hour', label: t('vacancyModal.period_hour') || 'В час' },
+    { value: 'day', label: t('vacancyModal.period_day') || 'В день' },
+  ];
+}
+
 export function VacancySalarySection({
   salaryMin,
   salaryMax,
@@ -34,33 +56,19 @@ export function VacancySalarySection({
   onSaveSalary,
 }: VacancySalarySectionProps): React.ReactElement {
   const { t } = useTranslation();
-  const [minDraft, setMinDraft] = useState(salaryMin != null ? String(salaryMin) : '');
-  const [maxDraft, setMaxDraft] = useState(salaryMax != null ? String(salaryMax) : '');
+  const [minDraft, setMinDraft] = useState(() => formatDraftBound(salaryMin));
+  const [maxDraft, setMaxDraft] = useState(() => formatDraftBound(salaryMax));
   const [currencyDraft, setCurrencyDraft] = useState(salaryCurrency || 'USD');
   const [periodDraft, setPeriodDraft] = useState(salaryPeriod || 'month');
 
   const [saveSalary, saveStatus] = useSave(onSaveSalary);
 
   useEffect(() => {
-    setMinDraft(salaryMin != null ? String(salaryMin) : '');
-    setMaxDraft(salaryMax != null ? String(salaryMax) : '');
+    setMinDraft(formatDraftBound(salaryMin));
+    setMaxDraft(formatDraftBound(salaryMax));
     setCurrencyDraft(salaryCurrency || 'USD');
     setPeriodDraft(salaryPeriod || 'month');
   }, [salaryMin, salaryMax, salaryCurrency, salaryPeriod]);
-
-  const currencyOptions: readonly SelectOption[] = [
-    { value: 'USD', label: 'USD ($)' },
-    { value: 'EUR', label: 'EUR (€)' },
-    { value: 'RUB', label: 'RUB (₽)' },
-    { value: 'GBP', label: 'GBP (£)' },
-  ];
-
-  const periodOptions: readonly SelectOption[] = [
-    { value: 'month', label: t('vacancyModal.period_month') || 'В месяц' },
-    { value: 'year', label: t('vacancyModal.period_year') || 'В год' },
-    { value: 'hour', label: t('vacancyModal.period_hour') || 'В час' },
-    { value: 'day', label: t('vacancyModal.period_day') || 'В день' },
-  ];
 
   const handleSave = () => {
     saveSalary({
@@ -78,29 +86,21 @@ export function VacancySalarySection({
       onSave={onSaveSalary ? handleSave : undefined}
       saveStatus={saveStatus}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+      <div style={GRID_STYLE}>
         <div>
           <Label>{t('vacancyModal.min')}</Label>
-          <Input
-            type="number"
-            value={minDraft}
-            onChange={(e) => setMinDraft(e.target.value)}
-          />
+          <Input type="number" value={minDraft} onChange={(e) => setMinDraft(e.target.value)} />
         </div>
         <div>
           <Label>{t('vacancyModal.max')}</Label>
-          <Input
-            type="number"
-            value={maxDraft}
-            onChange={(e) => setMaxDraft(e.target.value)}
-          />
+          <Input type="number" value={maxDraft} onChange={(e) => setMaxDraft(e.target.value)} />
         </div>
         <div>
           <Label>{t('vacancyModal.currency')}</Label>
           <Select
             value={currencyDraft}
             onValueChange={setCurrencyDraft}
-            options={currencyOptions}
+            options={CURRENCY_OPTIONS}
           />
         </div>
         <div>
@@ -108,7 +108,7 @@ export function VacancySalarySection({
           <Select
             value={periodDraft}
             onValueChange={setPeriodDraft}
-            options={periodOptions}
+            options={buildPeriodOptions(t)}
           />
         </div>
       </div>

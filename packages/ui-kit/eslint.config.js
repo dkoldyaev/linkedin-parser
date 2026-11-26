@@ -2,17 +2,12 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import boundaries from 'eslint-plugin-boundaries';
 
-const allowTargets = (types) =>
-  types.map((type) => ({ to: { element: { type } } }));
+const allowTargets = (types) => types.map((type) => ({ to: { element: { type } } }));
 
 export default [
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: [
-      'src/**/*.stories.{ts,tsx}',
-      'src/**/*.test.{ts,tsx}',
-      'src/stories/**',
-    ],
+    ignores: ['src/**/*.stories.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/stories/**'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -130,14 +125,20 @@ export default [
             'Inline styles (style={{...}}) are forbidden in ui-kit. Use CSS Modules and --ui-* design tokens instead.',
         },
       ],
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: true,
+          ignoreDeclarationSort: false,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+          allowSeparatedGroups: true,
+        },
+      ],
     },
   },
   {
-    files: [
-      'src/**/*.stories.{ts,tsx}',
-      'src/**/*.test.{ts,tsx}',
-      'src/stories/**/*.{ts,tsx}',
-    ],
+    files: ['src/**/*.stories.{ts,tsx}', 'src/**/*.test.{ts,tsx}', 'src/stories/**/*.{ts,tsx}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -158,8 +159,7 @@ export default [
           patterns: [
             {
               group: ['**/frontend/**', '**/components/**', '**/pages/**', '**/i18n/**'],
-              message:
-                'UI-kit stories and tests must never import from host application code.',
+              message: 'UI-kit stories and tests must never import from host application code.',
             },
           ],
         },
@@ -170,6 +170,16 @@ export default [
           selector: 'JSXAttribute[name.name="style"]',
           message:
             'Inline styles (style={{...}}) are forbidden in ui-kit. Use CSS Modules and --ui-* design tokens instead.',
+        },
+      ],
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: true,
+          ignoreDeclarationSort: false,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+          allowSeparatedGroups: true,
         },
       ],
     },

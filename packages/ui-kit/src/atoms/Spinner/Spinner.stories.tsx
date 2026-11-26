@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Spinner } from './Spinner';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Spinner } from './Spinner';
 
 const meta: Meta<typeof Spinner> = {
   title: 'Atoms/Spinner',

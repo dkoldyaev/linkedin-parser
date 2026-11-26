@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 import { Header } from './Header';
 import { SearchBar } from '../../molecules';
 
@@ -22,22 +22,16 @@ const meta: Meta<typeof Header> = {
 export default meta;
 type Story = StoryObj<typeof Header>;
 
-function InteractiveHeaderStory(
-  args: React.ComponentProps<typeof Header>
-): React.ReactElement {
+function InteractiveHeaderStory(args: React.ComponentProps<typeof Header>): React.ReactElement {
   const [search, setSearch] = useState('');
-  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>(
-    args.theme ?? 'dark'
-  );
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>(args.theme ?? 'dark');
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <Header
       {...args}
       theme={currentTheme}
-      onThemeToggle={() =>
-        setCurrentTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
-      }
+      onThemeToggle={() => setCurrentTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
       menuOpen={menuOpen}
       onMenuToggle={() => setMenuOpen((prev) => !prev)}
       search={
@@ -90,11 +84,7 @@ export const ComposedHeader: Story = {
     <Header
       brand={<Header.Brand title="BLUEPRINT" subtitle="MODULAR DESIGN" />}
       actions={
-        <Header.Actions
-          showThemeToggle
-          theme="dark"
-          onThemeToggle={() => alert('Theme toggle')}
-        />
+        <Header.Actions showThemeToggle theme="dark" onThemeToggle={() => alert('Theme toggle')} />
       }
       userSlot={
         <Header.UserMenu

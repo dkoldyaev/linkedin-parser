@@ -1,6 +1,6 @@
-import React from 'react';
+import { Icon, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import type { LucideIcon } from 'lucide-react';
-import { TableHeader, StatusDot, Text, Icon } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface AboutFeature {

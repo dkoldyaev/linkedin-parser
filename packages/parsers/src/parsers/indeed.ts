@@ -1,39 +1,39 @@
-import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
 import {
   cleanText,
+  cleanUrlParams,
+  extractCanonicalUrl,
   findJsonLd,
   normalizeWorkplace,
   parseJsonLdSalary,
   parseSalaryString,
-  extractCanonicalUrl,
-  cleanUrlParams,
 } from '../helpers';
-import { createDocument } from '../dom';
 import { normalizeCountry, parseLocation } from '../locationParser';
+import { BaseParser } from '../BaseParser';
+import { createDocument } from '../dom';
+import { VacancyData } from '../types';
 
 export class IndeedParser extends BaseParser {
-  name = "indeed";
-  source = "Indeed";
+  name = 'indeed';
+  source = 'Indeed';
   priority = 10;
   needs_extension = true;
   domains = [
-    "indeed.com",
-    "indeed.co.uk",
-    "indeed.de",
-    "indeed.fr",
-    "indeed.ca",
-    "indeed.es",
-    "indeed.it",
-    "indeed.nl",
-    "indeed.ch",
-    "indeed.at",
-    "indeed.be",
-    "indeed.pl",
-    "indeed.com.au",
-    "indeed.co.in",
-    "indeed.co.jp",
-    "indeed.ie"
+    'indeed.com',
+    'indeed.co.uk',
+    'indeed.de',
+    'indeed.fr',
+    'indeed.ca',
+    'indeed.es',
+    'indeed.it',
+    'indeed.nl',
+    'indeed.ch',
+    'indeed.at',
+    'indeed.be',
+    'indeed.pl',
+    'indeed.com.au',
+    'indeed.co.in',
+    'indeed.co.jp',
+    'indeed.ie',
   ];
 
   matches(url: string): boolean {
@@ -78,7 +78,7 @@ export class IndeedParser extends BaseParser {
     }
 
     const doc = createDocument(html);
-    const jld = findJsonLd(html, "JobPosting");
+    const jld = findJsonLd(html, 'JobPosting');
 
     let title: string | undefined;
     let company: string | undefined;
@@ -115,7 +115,7 @@ export class IndeedParser extends BaseParser {
           country = normalizeCountry(String(cName));
         }
         const parts = [addr.streetAddress, city, addr.addressRegion, country].filter(Boolean);
-        location = parts.length > 0 ? parts.join(", ") : city;
+        location = parts.length > 0 ? parts.join(', ') : city;
       }
       if (jld.description) {
         try {
@@ -130,8 +130,8 @@ export class IndeedParser extends BaseParser {
       if (sal.salary_currency !== undefined) salary_currency = sal.salary_currency;
       if (sal.salary_period !== undefined) salary_period = sal.salary_period;
 
-      if (jld.jobLocationType === "TELECOMMUTE") {
-        workplace_type = "remote";
+      if (jld.jobLocationType === 'TELECOMMUTE') {
+        workplace_type = 'remote';
       }
 
       if (jld.validThrough) {
@@ -146,19 +146,26 @@ export class IndeedParser extends BaseParser {
 
     // DOM fallbacks
     if (!title) {
-      const h1 = doc.querySelector('[data-testid="jobsearch-JobInfoHeader-title"], [data-testid="vj-job-title"], h1.jobsearch-JobInfoHeader-title, h1');
+      const h1 = doc.querySelector(
+        '[data-testid="jobsearch-JobInfoHeader-title"], [data-testid="vj-job-title"], h1.jobsearch-JobInfoHeader-title, h1',
+      );
       if (h1) {
         title = h1.textContent?.trim();
       } else {
         const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
         if (ogTitle) {
-          title = ogTitle.replace(/\s*-\s*Indeed\.com\s*$/i, '').replace(/\s*-\s*Remote\s*$/i, '').trim();
+          title = ogTitle
+            .replace(/\s*-\s*Indeed\.com\s*$/i, '')
+            .replace(/\s*-\s*Remote\s*$/i, '')
+            .trim();
         }
       }
     }
 
     if (!company) {
-      const compEl = doc.querySelector('[data-testid="inlineHeader-companyName"], [data-testid="company-name"], [data-testid="company-info-metadata"]');
+      const compEl = doc.querySelector(
+        '[data-testid="inlineHeader-companyName"], [data-testid="company-name"], [data-testid="company-info-metadata"]',
+      );
       if (compEl) {
         const compLink = compEl.querySelector('a');
         if (compLink) {
@@ -169,7 +176,9 @@ export class IndeedParser extends BaseParser {
         }
       }
       if (!company) {
-        const ogDesc = doc.querySelector('meta[property="og:description"]')?.getAttribute('content');
+        const ogDesc = doc
+          .querySelector('meta[property="og:description"]')
+          ?.getAttribute('content');
         if (ogDesc && ogDesc.length < 100) {
           company = ogDesc.trim();
         }
@@ -177,7 +186,9 @@ export class IndeedParser extends BaseParser {
     }
 
     if (!location) {
-      const locEl = doc.querySelector('[data-testid="inlineHeader-companyLocation"], [data-testid="jobsearch-JobInfoHeader-companyLocation"]');
+      const locEl = doc.querySelector(
+        '[data-testid="inlineHeader-companyLocation"], [data-testid="jobsearch-JobInfoHeader-companyLocation"]',
+      );
       if (locEl) {
         location = locEl.textContent?.trim();
         const [c, cnt] = parseLocation(location!);
@@ -188,14 +199,16 @@ export class IndeedParser extends BaseParser {
 
     if (!description) {
       const descEl = doc.querySelector(
-        '#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"], .react-native-html-content, .simple-job-description-html, [data-testid="viewjob-job-content"]'
+        '#jobDescriptionText, [data-testid="jobsearch-JobComponent-description"], .react-native-html-content, .simple-job-description-html, [data-testid="viewjob-job-content"]',
       );
       if (descEl) {
         description = cleanText(descEl);
       } else if (doc.body) {
         // Fallback: extract clean text from document body
         const bodyClone = doc.body.cloneNode(true) as HTMLElement;
-        bodyClone.querySelectorAll('script, style, noscript, nav, header, footer').forEach(el => el.remove());
+        bodyClone
+          .querySelectorAll('script, style, noscript, nav, header, footer')
+          .forEach((el) => el.remove());
         const bodyText = cleanText(bodyClone);
         if (bodyText && bodyText.length > 100) {
           description = bodyText;
@@ -205,7 +218,7 @@ export class IndeedParser extends BaseParser {
 
     if (salary_min === undefined && salary_max === undefined) {
       const salEl = doc.querySelector(
-        '#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"], [data-testid="structured-job-summary"]'
+        '#salaryInfoAndJobType, [data-testid="jobsearch-JobMetadataHeader-item"], [data-testid="jobsearch-OtherJobDetailsContainer"], [data-testid="structured-job-summary"]',
       );
       if (salEl && salEl.textContent) {
         const salData = parseSalaryString(salEl.textContent);
@@ -217,15 +230,35 @@ export class IndeedParser extends BaseParser {
     }
 
     if (!workplace_type) {
-      workplace_type = normalizeWorkplace(title || "") || normalizeWorkplace(location || "") || normalizeWorkplace(description || "");
+      workplace_type =
+        normalizeWorkplace(title || '') ||
+        normalizeWorkplace(location || '') ||
+        normalizeWorkplace(description || '') ||
+        undefined;
       if (!workplace_type) {
-        const textLower = (html || "").toLowerCase();
-        if (["homeoffice", "mobiles arbeiten", "telearbeit", "remote", "wfh", "teletrabajo", "en remoto", "remoto", "télétravail"].some(k => textLower.includes(k))) {
-          workplace_type = "remote";
-        } else if (["hybrid", "híbrido", "hybride"].some(k => textLower.includes(k))) {
-          workplace_type = "hybrid";
-        } else if (["on-site", "onsite", "presencial", "sur site", "vor ort"].some(k => textLower.includes(k))) {
-          workplace_type = "on-site";
+        const textLower = (html || '').toLowerCase();
+        if (
+          [
+            'homeoffice',
+            'mobiles arbeiten',
+            'telearbeit',
+            'remote',
+            'wfh',
+            'teletrabajo',
+            'en remoto',
+            'remoto',
+            'télétravail',
+          ].some((k) => textLower.includes(k))
+        ) {
+          workplace_type = 'remote';
+        } else if (['hybrid', 'híbrido', 'hybride'].some((k) => textLower.includes(k))) {
+          workplace_type = 'hybrid';
+        } else if (
+          ['on-site', 'onsite', 'presencial', 'sur site', 'vor ort'].some((k) =>
+            textLower.includes(k),
+          )
+        ) {
+          workplace_type = 'on-site';
         }
       }
     }
@@ -235,18 +268,18 @@ export class IndeedParser extends BaseParser {
         is_closed = true;
       } else {
         const docCopy = createDocument(html);
-        docCopy.querySelectorAll('script, style, noscript').forEach(el => el.remove());
-        const text = docCopy.body?.textContent?.toLowerCase() || "";
+        docCopy.querySelectorAll('script, style, noscript').forEach((el) => el.remove());
+        const text = docCopy.body?.textContent?.toLowerCase() || '';
         if (
-          text.includes("this job has expired") ||
-          text.includes("this job is closed") ||
-          text.includes("no longer accepting applications") ||
-          text.includes("diese stelle ist abgelaufen") ||
-          text.includes("stellenanzeige ist abgelaufen") ||
-          text.includes("este empleo ha expirado") ||
-          text.includes("esta oferta ya no está disponible") ||
-          text.includes("oferta de empleo cerrada") ||
-          text.includes("cette offre a expiré") ||
+          text.includes('this job has expired') ||
+          text.includes('this job is closed') ||
+          text.includes('no longer accepting applications') ||
+          text.includes('diese stelle ist abgelaufen') ||
+          text.includes('stellenanzeige ist abgelaufen') ||
+          text.includes('este empleo ha expirado') ||
+          text.includes('esta oferta ya no está disponible') ||
+          text.includes('oferta de empleo cerrada') ||
+          text.includes('cette offre a expiré') ||
           text.includes("cette offre n'est plus disponible")
         ) {
           is_closed = true;
@@ -270,7 +303,7 @@ export class IndeedParser extends BaseParser {
       salary_max,
       salary_currency,
       salary_period,
-      is_closed
+      is_closed,
     };
   }
 }

@@ -1,5 +1,5 @@
-import React, { forwardRef } from 'react';
 import { ICON_SIZE_PX, type IconSize } from '../../tokens';
+import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
 import styles from './Icon.module.css';
 
@@ -35,15 +35,8 @@ export interface IconProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Uses tokenized sizes from `ICON_SIZE_PX` (`2xs`..`xl`) and semantic tones.
  */
 export const Icon = forwardRef<HTMLSpanElement, IconProps>(function Icon(
-  {
-    icon: IconComponent,
-    size = 'md',
-    tone = 'inherit',
-    label,
-    className,
-    ...rest
-  },
-  ref
+  { icon: IconComponent, size = 'md', tone = 'inherit', label, className, ...rest },
+  ref,
 ) {
   const pixelSize = ICON_SIZE_PX[size];
 
@@ -53,15 +46,10 @@ export const Icon = forwardRef<HTMLSpanElement, IconProps>(function Icon(
       role={label !== undefined ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label === undefined ? 'true' : undefined}
-      className={cn(
-        styles.icon,
-        styles[`size-${size}`],
-        styles[`tone-${tone}`],
-        className
-      )}
+      className={cn(styles.icon, styles[`size-${size}`], styles[`tone-${tone}`], className)}
       {...rest}
     >
-      <IconComponent size={pixelSize} strokeWidth={2} aria-hidden={true} />
+      <IconComponent size={pixelSize} strokeWidth={2} aria-hidden />
     </span>
   );
 });

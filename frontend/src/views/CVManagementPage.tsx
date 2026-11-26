@@ -1,11 +1,11 @@
-import React from 'react';
-import { PageLayout, AlertBanner } from '@blueprint/ui-kit';
-import { useAuth } from '../components/AppShell';
-import { useTranslation } from '../i18n/I18nContext';
-import { useCVManagement } from './useCVManagement';
-import CVPageHeader from './CVPageHeader';
+import { AlertBanner, PageLayout } from '@blueprint/ui-kit';
 import CVEditorSection from './CVEditorSection';
+import CVPageHeader from './CVPageHeader';
 import type { CVPageProps } from './cv.types';
+import React from 'react';
+import { useAuth } from '../components/AppShell';
+import { useCVManagement } from './useCVManagement';
+import { useTranslation } from '../i18n/I18nContext';
 
 export default function CVManagementPage({ user }: CVPageProps): React.ReactElement {
   const auth = useAuth();
@@ -34,7 +34,14 @@ export default function CVManagementPage({ user }: CVPageProps): React.ReactElem
       className="cv-page"
       header={<CVPageHeader syncStatus={syncStatus} approvedRevision={approvedRevision} />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)', padding: 'var(--ui-space-4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--ui-space-4)',
+          padding: 'var(--ui-space-4)',
+        }}
+      >
         {error && <AlertBanner tone="danger" title={error} />}
         {message && <AlertBanner tone="success" title={message} />}
 

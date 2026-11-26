@@ -10,9 +10,7 @@ export interface UseCopyToClipboardReturn {
  * Copies text to the clipboard and resets `isCopied` after `resetDelayMs` milliseconds.
  * Used in VacancyModal, ExtensionPromptModal, and Storybook token swatches.
  */
-export function useCopyToClipboard(
-  resetDelayMs?: number
-): UseCopyToClipboardReturn {
+export function useCopyToClipboard(resetDelayMs?: number): UseCopyToClipboardReturn {
   const delay = resetDelayMs !== undefined ? resetDelayMs : 2000;
   const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -55,7 +53,7 @@ export function useCopyToClipboard(
         return false;
       }
     },
-    [delay]
+    [delay],
   );
 
   return {

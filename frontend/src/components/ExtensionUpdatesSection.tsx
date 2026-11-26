@@ -1,8 +1,8 @@
-import React from 'react';
-import { Sparkles, Layers, ShieldAlert } from 'lucide-react';
 import { Icon, Text } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { Layers, ShieldAlert, Sparkles } from 'lucide-react';
 import type { ExtensionUpdateItem } from '../utils/extension';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ExtensionUpdatesSectionProps {
   isUpdate: boolean;
@@ -46,7 +46,14 @@ export default function ExtensionUpdatesSection({
         >
           {headerTitle}
         </Text>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)', marginTop: 'var(--ui-space-2)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--ui-space-2)',
+            marginTop: 'var(--ui-space-2)',
+          }}
+        >
           {updates.map((up) => {
             const dateSuffix = up.date ? ` (${up.date})` : '';
             return (

@@ -1,6 +1,6 @@
+import { AlertBanner, Button, Icon, Input } from '@blueprint/ui-kit';
+import { Check, Copy } from 'lucide-react';
 import React from 'react';
-import { Copy, Check } from 'lucide-react';
-import { AlertBanner, Input, Button, Icon } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface ApiKeyCreatedBannerProps {
@@ -21,10 +21,7 @@ export default function ApiKeyCreatedBanner({
 
   return (
     <div style={{ marginTop: 'var(--ui-space-4)' }}>
-      <AlertBanner
-        tone="warning"
-        title={t('settingsModal.new_key_warning')}
-      />
+      <AlertBanner tone="warning" title={t('settingsModal.new_key_warning')} />
       <div style={{ display: 'flex', gap: 'var(--ui-space-2)', marginTop: 'var(--ui-space-2)' }}>
         <Input
           readOnly

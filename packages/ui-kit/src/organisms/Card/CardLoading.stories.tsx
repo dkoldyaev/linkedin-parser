@@ -1,8 +1,7 @@
+import { CardCollapsedLoading, CardFullLoading } from './index';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CardCollapsedLoading } from './CardCollapsedLoading';
-import { CardFullLoading } from './CardFullLoading';
-import { Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Text } from '../../atoms';
 
 const meta: Meta = {
   title: 'Organisms/Card/CardLoading',
@@ -37,4 +36,3 @@ export const CollapsedLoading: StoryObj<typeof CardCollapsedLoading> = {
     </div>
   ),
 };
-

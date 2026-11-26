@@ -1,5 +1,5 @@
-import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
+import type React from 'react';
 
 function isInteractiveChildFocused(element: HTMLElement): boolean {
   if (document.querySelector('.kanban-card.is-dragging')) return true;
@@ -8,7 +8,10 @@ function isInteractiveChildFocused(element: HTMLElement): boolean {
   return focused.matches('input, textarea, select, [contenteditable="true"]');
 }
 
-function getScrollMetrics(element: HTMLElement, horizontal: boolean): { position: number; maximum: number } {
+function getScrollMetrics(
+  element: HTMLElement,
+  horizontal: boolean,
+): { position: number; maximum: number } {
   if (horizontal) {
     return {
       position: element.scrollLeft,
@@ -48,8 +51,12 @@ export function useGridScroll(): (event: React.UIEvent<HTMLElement>, axis?: 'x' 
   const pointerDown = useRef<boolean>(false);
 
   useEffect(() => {
-    const down = () => { pointerDown.current = true; };
-    const up = () => { pointerDown.current = false; };
+    const down = () => {
+      pointerDown.current = true;
+    };
+    const up = () => {
+      pointerDown.current = false;
+    };
     window.addEventListener('pointerdown', down);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);

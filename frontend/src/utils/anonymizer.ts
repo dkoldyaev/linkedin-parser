@@ -23,7 +23,7 @@ export function hashString(str?: string | null): string {
   let hash = 5381;
   const cleanStr = String(str).trim().toLowerCase();
   for (let i = 0; i < cleanStr.length; i++) {
-    hash = ((hash << 5) + hash) + cleanStr.charCodeAt(i);
+    hash = (hash << 5) + hash + cleanStr.charCodeAt(i);
     hash |= 0;
   }
   const hex = (hash >>> 0).toString(16).padStart(8, '0');
@@ -44,7 +44,7 @@ export function extractPotentialCompanies(_text?: string | null): string[] {
  */
 export function anonymizeCVText(
   inputText?: unknown,
-  _customReplacements?: AnonymizationMapping[]
+  _customReplacements?: AnonymizationMapping[],
 ): AnonymizeResult {
   if (!inputText || typeof inputText !== 'string') {
     return {
@@ -75,7 +75,7 @@ export function deanonymizeCVText(text?: unknown, mappings?: AnonymizationMappin
   if (!Array.isArray(mappings) || mappings.length === 0) return text;
 
   const sortedMappings = [...mappings].sort(
-    (a, b) => (b.placeholder || '').length - (a.placeholder || '').length
+    (a, b) => (b.placeholder || '').length - (a.placeholder || '').length,
   );
 
   let restored = text;

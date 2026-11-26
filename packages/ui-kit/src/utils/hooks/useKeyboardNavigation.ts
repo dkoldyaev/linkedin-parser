@@ -19,13 +19,12 @@ export interface UseKeyboardNavigationReturn {
  * Provides roving/arrow-key keyboard navigation for lists, menus, palettes, and Kanban columns.
  */
 export function useKeyboardNavigation<T>(
-  options: UseKeyboardNavigationOptions<T>
+  options: UseKeyboardNavigationOptions<T>,
 ): UseKeyboardNavigationReturn {
   const { items, initialIndex, loop, orientation, onSelect, onEscape } = options;
   const resolvedInitial = initialIndex !== undefined ? initialIndex : 0;
   const shouldLoop = loop !== undefined ? loop : true;
-  const resolvedOrientation =
-    orientation !== undefined ? orientation : 'vertical';
+  const resolvedOrientation = orientation !== undefined ? orientation : 'vertical';
 
   const [activeIndex, setActiveIndex] = useState<number>(resolvedInitial);
 
@@ -96,7 +95,7 @@ export function useKeyboardNavigation<T>(
         onEscape();
       }
     },
-    [items, shouldLoop, resolvedOrientation, onSelect, onEscape, activeIndex]
+    [items, shouldLoop, resolvedOrientation, onSelect, onEscape, activeIndex],
   );
 
   return {

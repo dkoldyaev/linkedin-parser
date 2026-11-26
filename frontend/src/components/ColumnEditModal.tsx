@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import { Edit3, Palette, Layers } from 'lucide-react';
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  AlertBanner,
   Button,
+  Checkbox,
+  ColorPicker,
   Icon,
   Input,
-  Checkbox,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Text,
-  AlertBanner,
-  ColorPicker,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { BASE_STATUSES } from '../constants/columns';
+import { Edit3, Layers, Palette } from 'lucide-react';
+import React, { useState } from 'react';
 import { resolveHexFromPalette, resolvePaletteFromHex } from './columnPalette';
+import { BASE_STATUSES } from '../constants/columns';
 import type { BoardColumn } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ColumnUpdatePayload {
   new_name?: string;
@@ -82,7 +82,7 @@ function resolveErrorMessage(err: unknown): string {
 function useColumnEditForm(
   column: BoardColumn | null,
   onSave: (colId: string, payload: ColumnUpdatePayload) => Promise<void> | void,
-  onClose: () => void
+  onClose: () => void,
 ) {
   const [draft, setDraft] = useState<ColumnDraft>(() => buildColumnDraft(column));
   const [loading, setLoading] = useState(false);

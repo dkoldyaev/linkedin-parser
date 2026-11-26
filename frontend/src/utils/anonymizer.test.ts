@@ -1,13 +1,13 @@
-import { describe, it } from 'vitest';
-import assert from 'node:assert/strict';
 import {
   anonymizeCVText,
   deanonymizeCVText,
   deanonymizeObject,
   extractPotentialCompanies,
-  hashString,
   getHashedPlaceholder,
+  hashString,
 } from './anonymizer';
+import { describe, it } from 'vitest';
+import assert from 'node:assert/strict';
 
 describe('Current CV processing contract (anonymization disabled)', () => {
   it('preserves source text and does not claim to have anonymized entities', () => {
@@ -40,7 +40,7 @@ describe('Current CV processing contract (anonymization disabled)', () => {
     const mappings = [{ placeholder: '[EMAIL_1]', original: 'alice@example.com' }];
     assert.equal(
       deanonymizeCVText('[EMAIL_1] [EMAIL_1]', mappings),
-      'alice@example.com alice@example.com'
+      'alice@example.com alice@example.com',
     );
     assert.deepEqual(deanonymizeObject({ a: ['[EMAIL_1]', null, 7] }, mappings), {
       a: ['alice@example.com', null, 7],

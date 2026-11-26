@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { Badge } from '../../../atoms/Badge';
 import { TokenList } from '../TokenList';
 
@@ -9,7 +9,7 @@ describe('TokenList molecule', () => {
       <TokenList data-testid="token-list">
         <Badge>TypeScript</Badge>
         <Badge>React</Badge>
-      </TokenList>
+      </TokenList>,
     );
 
     expect(screen.getByTestId('token-list')).toBeInTheDocument();

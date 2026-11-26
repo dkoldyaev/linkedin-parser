@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { CollapsibleSection } from '../CollapsibleSection';
 
 describe('CollapsibleSection molecule', () => {
@@ -7,7 +7,7 @@ describe('CollapsibleSection molecule', () => {
     render(
       <CollapsibleSection title="Системная диагностика">
         <div>Содержимое секции</div>
-      </CollapsibleSection>
+      </CollapsibleSection>,
     );
 
     expect(screen.getByText('Системная диагностика')).toBeTruthy();
@@ -22,7 +22,7 @@ describe('CollapsibleSection molecule', () => {
         accessory={<span data-testid="custom-tag">Параметры</span>}
       >
         <div>Содержимое секции</div>
-      </CollapsibleSection>
+      </CollapsibleSection>,
     );
 
     expect(screen.getByTestId('custom-tag')).toBeTruthy();
@@ -32,7 +32,7 @@ describe('CollapsibleSection molecule', () => {
     render(
       <CollapsibleSection title="Системная диагностика">
         <div>Содержимое секции</div>
-      </CollapsibleSection>
+      </CollapsibleSection>,
     );
 
     fireEvent.click(screen.getByText('Системная диагностика'));
@@ -50,7 +50,7 @@ describe('CollapsibleSection molecule', () => {
         accessory={<button type="button">Действие</button>}
       >
         <div>Содержимое секции</div>
-      </CollapsibleSection>
+      </CollapsibleSection>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Действие' }));

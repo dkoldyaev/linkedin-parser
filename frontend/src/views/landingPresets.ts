@@ -35,7 +35,10 @@ export interface LandingBloatItem {
 
 export type BloatItemPreset = LandingBloatItem;
 
-export interface LandingVacancyPreset extends Omit<LandingVacancy, 'status' | 'tech_stack' | 'ai_summary' | 'created_at'> {
+export interface LandingVacancyPreset extends Omit<
+  LandingVacancy,
+  'status' | 'tech_stack' | 'ai_summary' | 'created_at'
+> {
   status?: string;
   tech_stack: string[];
   ai_summary: string;
@@ -129,15 +132,6 @@ export function resolveRolePreset(rawRole?: string | null): RolePreset {
   }
   return ROLE_PRESETS[DEFAULT_ROLE];
 }
-
-export const ROLE_OPTIONS = [
-  { key: 'backend', label: 'Бэкенд', labelEn: 'Backend', icon: '🛠', tag: 'GO · KAFKA · HIGHLOAD', tagEn: 'GO · KAFKA · HIGHLOAD' },
-  { key: 'frontend', label: 'Фронтенд', labelEn: 'Frontend', icon: '⚡', tag: 'REACT · TS · WASM', tagEn: 'REACT · TS · WASM' },
-  { key: 'designer', label: 'Дизайн', labelEn: 'Product Design', icon: '🎨', tag: 'FIGMA · DESIGN SYSTEMS', tagEn: 'FIGMA · DESIGN SYSTEMS' },
-  { key: 'marketer', label: 'Маркетинг', labelEn: 'Marketing', icon: '📈', tag: 'GROWTH · B2B · CAC', tagEn: 'GROWTH · B2B · CAC' },
-  { key: 'ad_manager', label: 'Реклама', labelEn: 'Ad & Performance', icon: '📢', tag: 'META · GOOGLE · ROAS', tagEn: 'META · GOOGLE · ROAS' },
-  { key: 'product', label: 'Продакт', labelEn: 'Product Management', icon: '🧭', tag: 'ROADMAP · A/B · P&L', tagEn: 'ROADMAP · A/B · P&L' },
-];
 
 export const ROLE_PRESETS: Record<string, RolePreset> = {
   backend: {
@@ -403,7 +397,8 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
           'Разработка ультрабыстрого offline-first интерфейса на React 19, TypeScript и IndexedDB. Оптимизация 60 FPS рендеринга, кастомный виртуализатор списков и Web Workers.',
         ai_summary_en:
           'Build ultra-fast offline-first web client in React 19, TypeScript, and IndexedDB. 60 FPS rendering optimization, custom list virtualization, and Web Workers.',
-        company_info: 'Инструмент управления разработкой нового поколения с акцентом на скорость отклика.',
+        company_info:
+          'Инструмент управления разработкой нового поколения с акцентом на скорость отклика.',
         tech_stack: ['TypeScript', 'React 19', 'IndexedDB', 'Web Workers', 'Vite'],
         tags: ['frontend', 'performance'],
         created_at: '14 мая',
@@ -739,8 +734,10 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
           requirement: 'Интерактивное микро-прототипирование в ProtoPie',
           requirementEn: 'Complex sensor & variable prototyping in ProtoPie',
           severity: 'medium',
-          reason: 'В портфолио показаны кликабельные прототипы Figma, но ProtoPie явно не упомянут.',
-          reasonEn: 'Figma interactive prototypes shown in portfolio; ProtoPie not explicitly listed.',
+          reason:
+            'В портфолио показаны кликабельные прототипы Figma, но ProtoPie явно не упомянут.',
+          reasonEn:
+            'Figma interactive prototypes shown in portfolio; ProtoPie not explicitly listed.',
         },
         {
           requirement: 'Базовый 3D-моделинг (Blender / Spline)',
@@ -950,20 +947,25 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
           requirement: 'Опыт работы с ABM-платформами (Demandbase / 6sense)',
           requirementEn: 'Hands-on experience with ABM suites (Demandbase / 6sense)',
           severity: 'medium',
-          reason: 'В CV указан LinkedIn Campaign Manager и HubSpot, но нет специализированных ABM-платформ.',
-          reasonEn: 'LinkedIn Campaign Manager and HubSpot documented; specialized ABM suites not listed.',
+          reason:
+            'В CV указан LinkedIn Campaign Manager и HubSpot, но нет специализированных ABM-платформ.',
+          reasonEn:
+            'LinkedIn Campaign Manager and HubSpot documented; specialized ABM suites not listed.',
         },
         {
           requirement: 'Продвинутая настройка автоматизации в Marketo',
           requirementEn: 'Enterprise lead scoring and automation in Marketo',
           severity: 'low',
-          reason: 'В резюме подробно описан HubSpot Enterprise, переход на Marketo не составит труда.',
-          reasonEn: 'HubSpot Enterprise mastery documented; Marketo ramp-up will be straightforward.',
+          reason:
+            'В резюме подробно описан HubSpot Enterprise, переход на Marketo не составит труда.',
+          reasonEn:
+            'HubSpot Enterprise mastery documented; Marketo ramp-up will be straightforward.',
         },
       ],
       critical_gaps: [
         {
-          requirement: 'Свободный бизнес-английский (C2 / Native) для публичных выступлений в Лондоне',
+          requirement:
+            'Свободный бизнес-английский (C2 / Native) для публичных выступлений в Лондоне',
           requirementEn: 'Fluent executive English (C2 / Native) for London keynote presentations',
           reason:
             'В резюме указан уровень Upper-Intermediate (B2/C1) — для роли Head of Growth потребуется подтвердить C2.',
@@ -1161,7 +1163,8 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
           requirement: 'Автоматизация закупки через Google Ads Scripts / Marketing API',
           requirementEn: 'Custom bid automation via Google Ads Scripts & Marketing APIs',
           severity: 'medium',
-          reason: 'В CV указан ручной и полуавтоматический smart-bidding, навыки скриптинга не описаны.',
+          reason:
+            'В CV указан ручной и полуавтоматический smart-bidding, навыки скриптинга не описаны.',
           reasonEn: 'Smart-bidding documented in CV; Python/JavaScript bidding scripts not listed.',
         },
         {
@@ -1174,7 +1177,8 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
       ],
       critical_gaps: [
         {
-          requirement: 'Обязателен опыт работы с бюджетами от $300k/мес в e-commerce / delivery приложениях',
+          requirement:
+            'Обязателен опыт работы с бюджетами от $300k/мес в e-commerce / delivery приложениях',
           requirementEn: 'Mandatory experience managing $300k+/mo in food delivery/e-commerce apps',
           reason:
             'В резюме подтвержден опыт со спендом $380k/мес — совпадение подтверждено, критических стоп-факторов нет.',
@@ -1372,8 +1376,10 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
           requirement: 'Опыт запуска финтех-продуктов в юрисдикции FCA / PSD2',
           requirementEn: 'Fintech compliance & payment regulations (FCA / PSD2 SCA)',
           severity: 'medium',
-          reason: 'В резюме упомянуты платежные шлюзы, но нет прямого опыта сертификации по PSD2 SCA.',
-          reasonEn: 'Payment gateways documented in CV; direct PSD2 SCA regulatory compliance not listed.',
+          reason:
+            'В резюме упомянуты платежные шлюзы, но нет прямого опыта сертификации по PSD2 SCA.',
+          reasonEn:
+            'Payment gateways documented in CV; direct PSD2 SCA regulatory compliance not listed.',
         },
         {
           requirement: 'Управление P&L продукта от $10M ARR',
@@ -1385,7 +1391,8 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
       ],
       critical_gaps: [
         {
-          requirement: 'Гибридный формат в Стокгольме (2 дня в офисе в неделю, релокация предоставляется)',
+          requirement:
+            'Гибридный формат в Стокгольме (2 дня в офисе в неделю, релокация предоставляется)',
           requirementEn: 'Hybrid schedule in Stockholm (2 days/week in office, relocation offered)',
           reason:
             'В резюме указан Лиссабон — кандидат должен подтвердить готовность принять релокационный пакет.',
@@ -1406,4 +1413,3 @@ export const ROLE_PRESETS: Record<string, RolePreset> = {
     },
   },
 };
-

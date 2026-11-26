@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Label } from './Label';
-import { Text } from '../Text';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Text } from '../Text';
 
 const meta: Meta<typeof Label> = {
   title: 'Atoms/Label',
@@ -23,11 +23,7 @@ export const RequiredAndDisabled: Story = {
     <div className={layoutStyles.stack}>
       <Label required>Required Field Label</Label>
       <Label disabled>Disabled Field Label</Label>
-      <Text
-        variant="mono-label"
-        tone="accent"
-        snapToGrid
-      >
+      <Text variant="mono-label" tone="accent" snapToGrid>
         Related Text Atom (mono-label variant)
       </Text>
     </div>

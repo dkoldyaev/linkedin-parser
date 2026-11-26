@@ -1,57 +1,33 @@
-import React, { forwardRef } from 'react';
-import { Slot } from '@radix-ui/react-slot';
+import { Blockquote, type BlockquoteProps, type BlockquoteTone } from './Blockquote';
+import { Code, type CodeProps, Kbd, type KbdProps } from './Code';
 import type { FontSizeToken, PaletteTone } from '../../tokens';
-import { cn } from '../../utils';
-import { Paragraph, type ParagraphProps } from './Paragraph';
+import { Heading, type HeadingLevel, type HeadingProps } from './Heading';
+import { Link, type LinkProps } from './Link';
 import {
   List,
-  OrderedList,
-  UnorderedList,
   ListItem,
-  type ListProps,
-  type OrderedListProps,
-  type UnorderedListProps,
   type ListItemProps,
+  type ListProps,
   type ListSpacing,
+  OrderedList,
+  type OrderedListProps,
+  UnorderedList,
+  type UnorderedListProps,
 } from './List';
-import { Blockquote, type BlockquoteProps, type BlockquoteTone } from './Blockquote';
-import { Heading, type HeadingProps, type HeadingLevel } from './Heading';
-import { Code, Kbd, type CodeProps, type KbdProps } from './Code';
-import { Link, type LinkProps } from './Link';
+import { Paragraph, type ParagraphProps } from './Paragraph';
+import React, { forwardRef } from 'react';
+import { cn } from '../../utils';
+import { Slot } from '@radix-ui/react-slot';
 import styles from './Text.module.css';
 
 export type TextElement =
-  | 'span'
-  | 'p'
-  | 'div'
-  | 'h1'
-  | 'h2'
-  | 'h3'
-  | 'h4'
-  | 'label'
-  | 'code'
-  | 'strong'
-  | 'time';
+  'span' | 'p' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'label' | 'code' | 'strong' | 'time';
 
 export type TextVariant =
-  | 'body'
-  | 'body-sm'
-  | 'caption'
-  | 'mono'
-  | 'mono-label'
-  | 'title'
-  | 'heading'
-  | 'display';
+  'body' | 'body-sm' | 'caption' | 'mono' | 'mono-label' | 'title' | 'heading' | 'display';
 
 export type TextTone =
-  | 'primary'
-  | 'secondary'
-  | 'muted'
-  | 'accent'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info';
+  'primary' | 'secondary' | 'muted' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
 
 export type TextWeight = 'regular' | 'medium' | 'semibold' | 'bold';
 
@@ -105,7 +81,7 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
     children,
     ...rest
   },
-  ref
+  ref,
 ) {
   const Component: React.ElementType = asChild ? Slot : as;
   const isInline = as === 'span' || as === 'code' || as === 'strong';
@@ -117,10 +93,7 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
         ? styles['lineHeight-half']
         : undefined;
 
-  const colorClass =
-    palette !== undefined
-      ? styles[`palette-${palette}`]
-      : styles[`tone-${tone}`];
+  const colorClass = palette !== undefined ? styles[`palette-${palette}`] : styles[`tone-${tone}`];
 
   return (
     <Component
@@ -135,9 +108,8 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
         lineHeightClass,
         hasIcons && styles.withIcons,
         truncate && !hasIcons && styles.truncate,
-        snapToGrid &&
-          (isInline ? styles.snapToGridInline : styles.snapToGrid),
-        className
+        snapToGrid && (isInline ? styles.snapToGridInline : styles.snapToGrid),
+        className,
       )}
       {...rest}
     >
@@ -146,11 +118,7 @@ const TextBase = forwardRef<HTMLElement, TextProps>(function Text(
           {startIcon}
         </span>
       )}
-      {hasIcons && truncate ? (
-        <span className={styles.truncate}>{children}</span>
-      ) : (
-        children
-      )}
+      {hasIcons && truncate ? <span className={styles.truncate}>{children}</span> : children}
       {endIcon !== undefined && (
         <span className={styles.iconSlot} aria-hidden="true">
           {endIcon}

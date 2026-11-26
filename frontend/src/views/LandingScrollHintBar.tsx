@@ -1,4 +1,3 @@
-
 import { ChevronDown } from 'lucide-react';
 import { SUB_SCREENS } from './landingConstants';
 
@@ -35,7 +34,7 @@ function resolveIntermediateHintSubtitle(
   activeSubIdx: number,
   importStage: number,
   funnelStage: number,
-  isEn: boolean
+  isEn: boolean,
 ): string {
   if (activeSubIdx === 0 && importStage < 4) {
     return formatImportHint(importStage, isEn);
@@ -90,11 +89,7 @@ export default function LandingScrollHintBar({
 
   return (
     <div className="landing-scroll-hint-bar landing-stage-center-scroll">
-      <div
-        className={`landing-scroll-hint-btn ${
-          isInitialPulse ? 'is-initial-pulse' : ''
-        }`}
-      >
+      <div className={`landing-scroll-hint-btn ${isInitialPulse ? 'is-initial-pulse' : ''}`}>
         <div className="landing-scroll-hint-left">
           <span className="landing-scroll-mouse" aria-hidden="true">
             <span className="landing-scroll-mouse-wheel" />
@@ -104,12 +99,7 @@ export default function LandingScrollHintBar({
               {isEn ? 'SCROLL DOWN · CONTINUE' : 'SCROLL DOWN · КРУТИТЕ ВНИЗ'}
             </span>
             <span className="landing-scroll-hint-sub">
-              {resolveIntermediateHintSubtitle(
-                activeSubIdx,
-                importStage,
-                funnelStage,
-                isEn
-              )}
+              {resolveIntermediateHintSubtitle(activeSubIdx, importStage, funnelStage, isEn)}
             </span>
           </div>
         </div>

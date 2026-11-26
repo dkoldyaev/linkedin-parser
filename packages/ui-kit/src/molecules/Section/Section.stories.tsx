@@ -1,9 +1,9 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Banknote, FileText, Sparkles, StickyNote } from 'lucide-react';
-import { Section, SectionBody } from './Section';
-import { SectionHeader } from '../SectionHeader';
 import { Badge, Button, Icon, Paragraph, Text } from '../../atoms';
+import { Banknote, FileText, Sparkles, StickyNote } from 'lucide-react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Section, SectionBody } from './Section';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { SectionHeader } from '../SectionHeader';
 
 const meta: Meta<typeof Section> = {
   title: 'Molecules/Section',

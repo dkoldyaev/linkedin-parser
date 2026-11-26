@@ -140,10 +140,4 @@
   .gap-lg {
     gap: var(--ui-space-4);
   }
-
-  .headerInsideSection {
-    padding-left: 0;
-    padding-right: 0;
-  }
 }
-

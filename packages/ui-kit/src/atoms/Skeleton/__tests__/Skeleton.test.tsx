@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { render } from '@testing-library/react';
 import { Skeleton } from '../Skeleton';
 
 describe('Skeleton atom', () => {
@@ -11,9 +11,7 @@ describe('Skeleton atom', () => {
   });
 
   it('applies width and height classes', () => {
-    const { container } = render(
-      <Skeleton variant="circle" width="50" height="xl" />
-    );
+    const { container } = render(<Skeleton variant="circle" width="50" height="xl" />);
     const el = container.firstChild as HTMLElement;
     expect(el.className).toMatch(/circle/);
     expect(el.className).toMatch(/w50/);

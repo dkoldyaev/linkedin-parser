@@ -1,6 +1,6 @@
-import React from 'react';
 import { Paragraph, Skeleton } from '@blueprint/ui-kit';
 import { Building2 } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../i18n/I18nContext';
 import { VacancySection } from './VacancySection';
 

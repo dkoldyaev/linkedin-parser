@@ -1,7 +1,7 @@
+import { type SalaryData, VacancySalarySection } from './VacancySalarySection';
 import React from 'react';
-import { VacancySalarySection, type SalaryData } from './VacancySalarySection';
-import { VacancyDescriptionSection } from './VacancyDescriptionSection';
 import type { Vacancy } from '../../types/models';
+import { VacancyDescriptionSection } from './VacancyDescriptionSection';
 import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyRawDataTabProps {

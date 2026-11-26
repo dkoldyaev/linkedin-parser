@@ -1,19 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
-import type React from 'react';
-import { useTranslation } from '../i18n/I18nContext';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import type { ColumnCreatePayload } from './ColumnCreateModal';
-import type { ColumnUpdatePayload } from './ColumnEditModal';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { useCallback, useEffect, useState } from 'react';
 import type { BoardColumn } from '../types/models';
+import type { ColumnCreatePayload } from './ColumnCreateModal';
 import { columnService } from '../services/columnService';
-import { settingsService } from '../services/settingsService';
+import type { ColumnUpdatePayload } from './ColumnEditModal';
+import type React from 'react';
 import type { RemoteSettingsData } from '../services/settings.types';
+import { settingsService } from '../services/settingsService';
+import { useTranslation } from '../i18n/I18nContext';
 
 function useColumnCrudHandlers(
   columnsList: BoardColumn[],
   setColumnsList: (cols: BoardColumn[]) => void,
   onColumnsUpdated: ((columns: BoardColumn[]) => void) | undefined,
-  fetchSettings: () => void
+  fetchSettings: () => void,
 ) {
   const updateColumnsList = (updated: BoardColumn[]) => {
     setColumnsList(updated);
@@ -66,7 +66,11 @@ function trackGeneralSettingsSaved(locale: string, format: string, currency: str
   trackEvent(EVENTS.SALARY_CURRENCY_CHANGE, { currency });
 }
 
-async function postGeneralSettings(locale: string, format: string, currency: string): Promise<boolean> {
+async function postGeneralSettings(
+  locale: string,
+  format: string,
+  currency: string,
+): Promise<boolean> {
   try {
     await settingsService.saveSettings({
       locale,
@@ -79,10 +83,15 @@ async function postGeneralSettings(locale: string, format: string, currency: str
   }
 }
 
-export function useSettingsController(isOpen: boolean, onColumnsUpdated?: (columns: BoardColumn[]) => void) {
+export function useSettingsController(
+  isOpen: boolean,
+  onColumnsUpdated?: (columns: BoardColumn[]) => void,
+) {
   const i18n = useTranslation();
   const [selectedLocale, setSelectedLocale] = useState<string>(i18n.locale || 'ru');
-  const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(i18n.salaryDisplayFormat || 'month');
+  const [selectedSalaryFormat, setSelectedSalaryFormat] = useState(
+    i18n.salaryDisplayFormat || 'month',
+  );
   const [selectedCurrency, setSelectedCurrency] = useState(i18n.salaryTargetCurrency || '');
   const [columnsList, setColumnsList] = useState<BoardColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -107,7 +116,7 @@ export function useSettingsController(isOpen: boolean, onColumnsUpdated?: (colum
         setColumnsList(data.columns);
       }
     },
-    [i18n]
+    [i18n],
   );
 
   const fetchSettings = useCallback(() => {
@@ -142,7 +151,12 @@ export function useSettingsController(isOpen: boolean, onColumnsUpdated?: (colum
     }
   };
 
-  const colHandlers = useColumnCrudHandlers(columnsList, setColumnsList, onColumnsUpdated, fetchSettings);
+  const colHandlers = useColumnCrudHandlers(
+    columnsList,
+    setColumnsList,
+    onColumnsUpdated,
+    fetchSettings,
+  );
 
   return {
     selectedLocale,

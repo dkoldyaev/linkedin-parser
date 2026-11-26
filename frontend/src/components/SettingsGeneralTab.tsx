@@ -1,12 +1,6 @@
-import React from 'react';
+import { AlertBanner, Button, Icon, Select, Text } from '@blueprint/ui-kit';
 import { Check, Globe } from 'lucide-react';
-import {
-  Button,
-  Icon,
-  Select,
-  Text,
-  AlertBanner,
-} from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface SettingsGeneralTabProps {
@@ -62,9 +56,7 @@ export default function SettingsGeneralTab({
       onSubmit={onSubmit}
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}
     >
-      {savedSuccess && (
-        <AlertBanner tone="success" title={t('settingsModal.saved_notification')} />
-      )}
+      {savedSuccess && <AlertBanner tone="success" title={t('settingsModal.saved_notification')} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-2)' }}>
         <Text variant="caption" weight="medium" startIcon={GLOBE_ICON}>

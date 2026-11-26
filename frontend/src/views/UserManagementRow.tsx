@@ -1,9 +1,9 @@
-import React from 'react';
-import { Check } from 'lucide-react';
-import { Text, Badge, Checkbox, Button, Icon } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import type { User } from '../types/models';
+import { Badge, Button, Checkbox, Icon, Text } from '@blueprint/ui-kit';
 import type { AvailableFeatureFlag } from './userManagement.types';
+import { Check } from 'lucide-react';
+import React from 'react';
+import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface UserManagementRowProps {
   user: User;
@@ -61,10 +61,7 @@ export default function UserManagementRow({
                   cursor: 'pointer',
                 }}
               >
-                <Checkbox
-                  checked={isChecked}
-                  onChange={() => onToggleFlag(user.id, flag.key)}
-                />
+                <Checkbox checked={isChecked} onChange={() => onToggleFlag(user.id, flag.key)} />
                 <Badge
                   variant={isChecked ? 'solid' : 'outline'}
                   tone={isChecked ? 'accent' : 'neutral'}

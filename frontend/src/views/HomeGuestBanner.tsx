@@ -1,7 +1,7 @@
-import React from 'react';
 import { AlertBanner, Button } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import React from 'react';
 import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface HomeGuestBannerProps {
   user: User | null | undefined;
@@ -25,11 +25,7 @@ export default function HomeGuestBanner({
   }
 
   return (
-    <AlertBanner
-      tone="info"
-      onDismiss={onDismiss}
-      style={{ width: '100%', borderRadius: 0 }}
-    >
+    <AlertBanner tone="info" onDismiss={onDismiss} style={{ width: '100%', borderRadius: 0 }}>
       <div
         style={{
           display: 'flex',

@@ -1,11 +1,10 @@
-import React from 'react';
 import { Label, Text } from '../../atoms';
-import { useId } from '../../hooks';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './FormField.module.css';
+import { useId } from '../../hooks';
 
-export interface FormFieldProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+export interface FormFieldProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   readonly label?: React.ReactNode;
   readonly htmlFor?: string;
   readonly required?: boolean;
@@ -53,8 +52,7 @@ export function FormField({
   if (hasHint) {
     describedByParts.push(hintId);
   }
-  const ariaDescribedBy =
-    describedByParts.length > 0 ? describedByParts.join(' ') : undefined;
+  const ariaDescribedBy = describedByParts.length > 0 ? describedByParts.join(' ') : undefined;
 
   const renderedChildren =
     typeof children === 'function'

@@ -1,13 +1,13 @@
-import React from 'react';
 import {
+  AlertBanner,
+  Button,
+  Input,
   ModalBody,
   ModalFooter,
-  Button,
-  Textarea,
-  Input,
   Text,
-  AlertBanner,
+  Textarea,
 } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface BatchImportFormViewProps {
@@ -38,11 +38,7 @@ export default function BatchImportFormView({
     <form onSubmit={onSubmit}>
       <ModalBody>
         {error && (
-          <AlertBanner
-            tone="danger"
-            title={error}
-            style={{ marginBottom: 'var(--ui-space-4)' }}
-          />
+          <AlertBanner tone="danger" title={error} style={{ marginBottom: 'var(--ui-space-4)' }} />
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
@@ -86,12 +82,7 @@ export default function BatchImportFormView({
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {t('batchModal.cancel_btn')}
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isSubmitDisabled}
-            loading={loading}
-          >
+          <Button type="submit" variant="primary" disabled={isSubmitDisabled} loading={loading}>
             {t('batchModal.submit_btn')}
           </Button>
         </ModalFooter.Actions>

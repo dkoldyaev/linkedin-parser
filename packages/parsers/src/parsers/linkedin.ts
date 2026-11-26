@@ -1,25 +1,26 @@
-import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
 import { cleanText, normalizeWorkplace } from '../helpers';
+import { BaseParser } from '../BaseParser';
 import { createDocument } from '../dom';
+import { VacancyData } from '../types';
 
 export class LinkedInParser extends BaseParser {
-  name = "linkedin";
-  source = "LinkedIn";
+  name = 'linkedin';
+  source = 'LinkedIn';
   priority = 20;
   needs_extension = false;
-  domains = ["linkedin.com"];
+  domains = ['linkedin.com'];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('linkedin.com/jobs');
   }
 
   extractJobId(url: string): string | null {
-    const match = url.match(/view\/(\d+)/) || url.match(/currentJobId=(\d+)/) || url.match(/jobPosting:(\d+)/);
+    const match =
+      url.match(/view\/(\d+)/) || url.match(/currentJobId=(\d+)/) || url.match(/jobPosting:(\d+)/);
     return match ? match[1] : null;
   }
 
-  normalizeUrl(url: string, html?: string): string {
+  normalizeUrl(url: string, _html?: string): string {
     const jobId = this.extractJobId(url);
     if (jobId) {
       return `https://www.linkedin.com/jobs/view/${jobId}/`;
@@ -33,7 +34,7 @@ export class LinkedInParser extends BaseParser {
     if (!html) return { url, source: this.source, job_id };
 
     const doc = createDocument(html);
-    
+
     let title: string | undefined;
     let company: string | undefined;
     let company_url: string | undefined;
@@ -74,8 +75,10 @@ export class LinkedInParser extends BaseParser {
     }
 
     const locGuest = doc.querySelector('.topcard__flavor--bullet');
-    const locAuth = doc.querySelector('.job-details-jobs-unified-top-card__primary-description-container span.tvm__text');
-    
+    const locAuth = doc.querySelector(
+      '.job-details-jobs-unified-top-card__primary-description-container span.tvm__text',
+    );
+
     if (locAuth) {
       location = locAuth.textContent?.trim();
       city = location;
@@ -85,17 +88,23 @@ export class LinkedInParser extends BaseParser {
     }
 
     const descGuest = doc.querySelector('.show-more-less-html__markup');
-    const descAuth = doc.querySelector('.jobs-description__container') || doc.querySelector('#job-details');
-    
+    const descAuth =
+      doc.querySelector('.jobs-description__container') || doc.querySelector('#job-details');
+
     if (descAuth) description = cleanText(descAuth);
     else if (descGuest) description = cleanText(descGuest);
 
-    const workplace_type = normalizeWorkplace(title || "") || normalizeWorkplace(location || "") || normalizeWorkplace(description || "");
+    const workplace_type =
+      normalizeWorkplace(title || '') ||
+      normalizeWorkplace(location || '') ||
+      normalizeWorkplace(description || '');
 
-    const text = doc.body.textContent?.toLowerCase() || "";
-    if (text.includes("no longer accepting applications") || 
-        text.includes("job is closed") || 
-        text.includes("вакансия закрыта")) {
+    const text = doc.body.textContent?.toLowerCase() || '';
+    if (
+      text.includes('no longer accepting applications') ||
+      text.includes('job is closed') ||
+      text.includes('вакансия закрыта')
+    ) {
       is_closed = true;
     }
 
@@ -110,7 +119,7 @@ export class LinkedInParser extends BaseParser {
       city,
       description: description?.substring(0, 15000),
       workplace_type: workplace_type || undefined,
-      is_closed
+      is_closed,
     };
   }
 }

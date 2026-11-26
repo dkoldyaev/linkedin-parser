@@ -1,16 +1,15 @@
-import React from 'react';
-import { Menu, Plus, X } from 'lucide-react';
 import { Button, Icon, Spinner } from '../../atoms';
-import { cn } from '../../utils';
-import { HeaderBrand, type HeaderBrandProps } from './HeaderBrand';
-import { HeaderUserMenu, type HeaderUser, type HeaderUserProps } from './HeaderUserMenu';
 import { HeaderActions, type HeaderActionsProps } from './HeaderActions';
+import { HeaderBrand, type HeaderBrandProps } from './HeaderBrand';
+import { type HeaderUser, HeaderUserMenu, type HeaderUserProps } from './HeaderUserMenu';
+import { Menu, Plus, X } from 'lucide-react';
+import { cn } from '../../utils';
+import React from 'react';
 import styles from './Header.module.css';
 
 export type { HeaderUser, HeaderBrandProps, HeaderUserProps, HeaderActionsProps };
 
-export interface HeaderProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, 'title'> {
+export interface HeaderProps extends Omit<React.HTMLAttributes<HTMLElement>, 'title'> {
   readonly title?: React.ReactNode;
   readonly subtitle?: React.ReactNode;
   readonly brandIcon?: React.ReactNode;
@@ -99,11 +98,7 @@ function HeaderBase({
       {brand !== undefined ? (
         brand
       ) : (
-        <HeaderBrand
-          title={title}
-          subtitle={subtitle}
-          brandIcon={brandIcon}
-        />
+        <HeaderBrand title={title} subtitle={subtitle} brandIcon={brandIcon} />
       )}
 
       {navigation !== undefined && (

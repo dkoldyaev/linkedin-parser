@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import type { Vacancy, BoardColumn } from '../types/models';
-import { vacancyService } from '../services/vacancyService';
 import { applyVacancyUpdateToList, type TranslateFn } from './homeFilterHelpers';
+import type { BoardColumn, Vacancy } from '../types/models';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import React, { useCallback, useState } from 'react';
+import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
+import { vacancyService } from '../services/vacancyService';
 
 export interface UseVacancyBoardActionsArgs {
   vacancies: Vacancy[];
@@ -20,7 +20,7 @@ export interface UseVacancyBoardActionsArgs {
 function resolveTargetLane(
   columns: BoardColumn[],
   newStatus: string,
-  lane: number | undefined
+  lane: number | undefined,
 ): number {
   const targetCol = columns.find((c) => c.id === newStatus);
   return targetCol?.has_lanes ? lane || 0 : 0;
@@ -53,7 +53,7 @@ function computeReorderedVacancy(v: Vacancy, opts: ReorderComputeOptions): Vacan
 
 async function patchVacancyStatusList(
   vacancyIds: number[],
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<Vacancy[]> {
   return Promise.all(vacancyIds.map((vid) => vacancyService.patchDetail(vid, payload)));
 }
@@ -62,7 +62,7 @@ async function patchBulkVacancyTag(
   selectedIds: number[],
   vacancies: Vacancy[],
   tagName: string,
-  mode: 'add' | 'remove'
+  mode: 'add' | 'remove',
 ): Promise<Vacancy[]> {
   const results = await Promise.all(
     selectedIds.map(async (id) => {
@@ -75,15 +75,12 @@ async function patchBulkVacancyTag(
         tags.delete(tagName);
       }
       return vacancyService.patchDetail(id, { tags: Array.from(tags) });
-    })
+    }),
   );
   return results.filter((item): item is Vacancy => item !== null);
 }
 
-function mergeUpdatedVacanciesInMemory(
-  prev: Vacancy[],
-  updatedItems: Vacancy[]
-): Vacancy[] {
+function mergeUpdatedVacanciesInMemory(prev: Vacancy[], updatedItems: Vacancy[]): Vacancy[] {
   if (updatedItems.length === 0) return prev;
   const byId = new Map(updatedItems.map((u) => [u.id, u]));
   return prev.map((v) => {
@@ -93,12 +90,7 @@ function mergeUpdatedVacanciesInMemory(
 }
 
 function createReorderHandler(args: UseVacancyBoardActionsArgs) {
-  return async (
-    status: string,
-    ids: number[],
-    lane?: number,
-    movedId?: number | null
-  ) => {
+  return async (status: string, ids: number[], lane?: number, movedId?: number | null) => {
     const resolvedLane = lane || 0;
     const resolvedMovedId = movedId !== undefined ? movedId : null;
     const positions = new Map(ids.map((id, i) => [id, i]));
@@ -112,8 +104,8 @@ function createReorderHandler(args: UseVacancyBoardActionsArgs) {
           hasLanes,
           lane: resolvedLane,
           movedId: resolvedMovedId,
-        })
-      )
+        }),
+      ),
     );
 
     try {
@@ -128,14 +120,10 @@ function createReorderHandler(args: UseVacancyBoardActionsArgs) {
 }
 
 function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
-  const handleStatusChange = async (
-    vacancyId: number,
-    newStatus: string,
-    lane?: number
-  ) => {
+  const handleStatusChange = async (vacancyId: number, newStatus: string, lane?: number) => {
     const targetLane = resolveTargetLane(args.columns, newStatus, lane);
     args.setVacancies((prev) =>
-      prev.map((v) => (v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v))
+      prev.map((v) => (v.id === vacancyId ? { ...v, status: newStatus, lane: targetLane } : v)),
     );
 
     try {
@@ -147,7 +135,7 @@ function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
       args.onOpenVacancyPatched(updatedVacancy);
       args.showToast(
         args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }),
-        'success'
+        'success',
       );
     } catch (err) {
       console.error('Failed to update status', err);
@@ -161,13 +149,13 @@ function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
   const handleStatusChangeMulti = async (
     vacancyIds: number[],
     newStatus: string,
-    lane?: number
+    lane?: number,
   ) => {
     const targetLane = resolveTargetLane(args.columns, newStatus, lane);
     args.setVacancies((prev) =>
       prev.map((v) =>
-        vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v
-      )
+        vacancyIds.includes(v.id) ? { ...v, status: newStatus, lane: targetLane } : v,
+      ),
     );
     try {
       const updated = await patchVacancyStatusList(vacancyIds, {
@@ -177,7 +165,7 @@ function useBoardDragHandlers(args: UseVacancyBoardActionsArgs) {
       args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
       args.showToast(
         args.t('nav.moved_to', { status: args.t(`kanban.columns.${newStatus}`) }),
-        'success'
+        'success',
       );
     } catch (err) {
       console.error('Failed to update status', err);
@@ -194,9 +182,7 @@ function useBulkSelectionHandlers(args: UseVacancyBoardActionsArgs) {
   const [bulkTagInput, setBulkTagInput] = useState('');
 
   const toggleSelect = useCallback((id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
 
   const handleBulkAddTag = async () => {
@@ -277,9 +263,7 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
     const rejectedStatusId = resolveRejectedStatusId(args.columns);
     const targets = args.vacancies.filter(
       (v) =>
-        Boolean(v.is_closed) &&
-        v.status !== rejectedStatusId &&
-        !args.hiddenVacancyIds.has(v.id)
+        Boolean(v.is_closed) && v.status !== rejectedStatusId && !args.hiddenVacancyIds.has(v.id),
     );
     if (targets.length === 0) return;
     const confirmMsg = args.t('nav.move_all_to_rejected_confirm', {
@@ -292,13 +276,13 @@ export function useVacancyBoardActions(args: UseVacancyBoardActionsArgs) {
     try {
       const ids = targets.map((v) => v.id);
       args.setVacancies((prev) =>
-        prev.map((v) => (ids.includes(v.id) ? { ...v, status: rejectedStatusId } : v))
+        prev.map((v) => (ids.includes(v.id) ? { ...v, status: rejectedStatusId } : v)),
       );
       const updated = await patchVacancyStatusList(ids, { status: rejectedStatusId });
       args.setVacancies((prev) => mergeUpdatedVacanciesInMemory(prev, updated));
       args.showToast(
         args.t('nav.move_all_to_rejected_success', { count: targets.length }),
-        'success'
+        'success',
       );
     } catch (err) {
       console.error('Failed to move all to rejected', err);

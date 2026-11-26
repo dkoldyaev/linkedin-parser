@@ -1,4 +1,4 @@
-import type { RequestOptions, ApiErrorDetail } from './apiClient.types';
+import type { ApiErrorDetail, RequestOptions } from './apiClient.types';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -15,7 +15,7 @@ export class ApiError extends Error {
 }
 
 function buildQueryString(
-  params: Record<string, string | number | boolean | undefined | null> | undefined
+  params: Record<string, string | number | boolean | undefined | null> | undefined,
 ): string {
   if (!params) return '';
   const searchParams = new URLSearchParams();
@@ -106,11 +106,7 @@ function executeSilentTokenRefresh(): Promise<boolean> {
   return activeRefreshPromise;
 }
 
-async function fetchWithAuthRetry(
-  url: string,
-  path: string,
-  init: RequestInit
-): Promise<Response> {
+async function fetchWithAuthRetry(url: string, path: string, init: RequestInit): Promise<Response> {
   const res = await fetch(url, init);
   if (res.status !== 401 || !shouldAttemptSilentRefresh(path)) {
     return res;

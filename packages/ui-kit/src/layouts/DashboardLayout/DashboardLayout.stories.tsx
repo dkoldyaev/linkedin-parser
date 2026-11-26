@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { DashboardLayout } from './DashboardLayout';
+import { Badge, StatusDot, Text } from '../../atoms';
 import { Card, Header, Table, TableBody, TableCell, TableCol, TableHeader } from '../../organisms';
 import { FilterBar, SearchBar } from '../../molecules';
-import { Text } from '../../atoms';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
+import { DashboardLayout } from './DashboardLayout';
 
 const meta: Meta<typeof DashboardLayout> = {
   title: 'Layouts/DashboardLayout',
@@ -64,25 +64,55 @@ function UniversalDashboardDemo(): React.ReactElement {
     >
       <Table layout="columns" snapScroll fullHeight>
         <TableCol gridUnits={10}>
-          <TableHeader index="[ 01 ]" indicatorColor="blue" title="Queued" badge="2" />
+          <TableHeader>
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 01 ]
+            </Text>
+            <StatusDot palette="blue" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+              Queued
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              2
+            </Badge>
+          </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
               <Card title="Design Tokens Audit" subtitle="Core System" accentTone="accent" />
             </TableCell>
             <TableCell padding="none">
-              <Card title="Accessibility Verification" subtitle="QA Pipeline" accentTone="success" />
+              <Card
+                title="Accessibility Verification"
+                subtitle="QA Pipeline"
+                accentTone="success"
+              />
             </TableCell>
           </TableBody>
         </TableCol>
         <TableCol gridUnits={10}>
-          <TableHeader index="[ 02 ]" indicatorColor="emerald" title="Completed" badge="1" />
+          <TableHeader>
+            <Text as="span" variant="mono" weight="semibold" tone="accent">
+              [ 02 ]
+            </Text>
+            <StatusDot palette="emerald" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+              Completed
+            </Text>
+            <Badge variant="counter" size="xs" tone="neutral">
+              1
+            </Badge>
+          </TableHeader>
           <TableBody scrollable snapScroll padding="sm" gap="sm">
             <TableCell padding="none">
               <Card
                 title="Standalone Package Build"
                 subtitle="@blueprint/ui-kit"
                 accentTone="success"
-                footer={<Text variant="caption" tone="muted">Verified</Text>}
+                footer={
+                  <Text variant="caption" tone="muted">
+                    Verified
+                  </Text>
+                }
               />
             </TableCell>
           </TableBody>

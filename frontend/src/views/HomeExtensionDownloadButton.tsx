@@ -1,6 +1,6 @@
-import React from 'react';
-import { Download } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import { Download } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 const DOWNLOAD_ICON = <Icon icon={Download} size="xs" />;
@@ -10,12 +10,7 @@ export default function HomeExtensionDownloadButton(): React.ReactElement {
   const title = t('nav.download_extension');
 
   return (
-    <Button
-      asChild
-      variant="ghost"
-      size="icon"
-      title={title}
-    >
+    <Button asChild variant="ghost" size="icon" title={title}>
       <a
         href="/extension.zip"
         download

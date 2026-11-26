@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
-import { Icon, Text } from '../../atoms';
 import { cn, useOverlayContainer } from '../../utils';
+import { Icon, Text } from '../../atoms';
+import { forwardRef } from 'react';
 import styles from './Select.module.css';
 
 export interface SelectOption {
@@ -11,7 +11,10 @@ export interface SelectOption {
   readonly disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value' | 'defaultValue' | 'onChange'> {
+export interface SelectProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'value' | 'defaultValue' | 'onChange'
+> {
   readonly id?: string;
   readonly value?: string;
   readonly defaultValue?: string;
@@ -49,12 +52,11 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
     variant = 'default',
     ...rest
   },
-  ref
+  ref,
 ) {
   const overlayContainer = useOverlayContainer();
   const isFilter = variant === 'filter';
-  const hasSelectedValue =
-    value !== undefined && value !== '' && value !== EMPTY_VALUE_SENTINEL;
+  const hasSelectedValue = value !== undefined && value !== '' && value !== EMPTY_VALUE_SENTINEL;
 
   const hasEmptyOption = options.some((opt) => opt.value === '');
 
@@ -99,7 +101,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
           isFilter && styles.triggerFilter,
           isFilter && hasSelectedValue && styles.triggerFilterActive,
           invalid && styles.invalid,
-          className
+          className,
         )}
         {...rest}
       >
@@ -115,11 +117,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(function Select
       </SelectPrimitive.Trigger>
 
       <SelectPrimitive.Portal container={overlayContainer}>
-        <SelectPrimitive.Content
-          position="popper"
-          sideOffset={4}
-          className={styles.content}
-        >
+        <SelectPrimitive.Content position="popper" sideOffset={4} className={styles.content}>
           <SelectPrimitive.Viewport className={styles.viewport}>
             {options.map((option) => {
               const itemVal = option.value === '' ? EMPTY_VALUE_SENTINEL : option.value;

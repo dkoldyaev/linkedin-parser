@@ -1,6 +1,6 @@
-import React from 'react';
-import { ExternalLink, Code2 } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import { Code2, ExternalLink } from 'lucide-react';
+import React from 'react';
 
 const EXTERNAL_LINK_ICON = <Icon icon={ExternalLink} size="xs" />;
 const CODE2_ICON = <Icon icon={Code2} size="xs" />;

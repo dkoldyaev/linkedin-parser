@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
 import { act, fireEvent, render, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import React, { useRef } from 'react';
 import {
   useBlueprintGrid,
   useClickOutside,
+  useContainerQuery,
   useControllableState,
   useCopyToClipboard,
   useDebounce,
@@ -14,15 +15,12 @@ import {
   useId,
   useKeyboardNavigation,
   useMediaQuery,
-  useContainerQuery,
 } from '../index';
 
 describe('ui-kit hooks', () => {
   describe('useId', () => {
     it('returns explicit id when provided and generates prefixed id otherwise', () => {
-      const { result: explicitResult } = renderHook(() =>
-        useId('field', 'custom-id')
-      );
+      const { result: explicitResult } = renderHook(() => useId('field', 'custom-id'));
       expect(explicitResult.current).toBe('custom-id');
 
       const { result: prefixedResult } = renderHook(() => useId('blueprint'));
@@ -37,7 +35,7 @@ describe('ui-kit hooks', () => {
         useControllableState<number>({
           defaultProp: 10,
           onChange,
-        })
+        }),
       );
 
       expect(result.current[0]).toBe(10);
@@ -58,7 +56,7 @@ describe('ui-kit hooks', () => {
           defaultIsOpen: false,
           onOpen,
           onClose,
-        })
+        }),
       );
 
       expect(result.current.isOpen).toBe(false);
@@ -80,10 +78,9 @@ describe('ui-kit hooks', () => {
   describe('useDebounce', () => {
     it('delays updating the value until the timeout elapses', () => {
       vi.useFakeTimers();
-      const { result, rerender } = renderHook(
-        ({ val }) => useDebounce(val, 250),
-        { initialProps: { val: 'initial' } }
-      );
+      const { result, rerender } = renderHook(({ val }) => useDebounce(val, 250), {
+        initialProps: { val: 'initial' },
+      });
 
       expect(result.current).toBe('initial');
       rerender({ val: 'updated' });
@@ -103,10 +100,7 @@ describe('ui-kit hooks', () => {
       window.matchMedia = vi.fn().mockImplementation((query: string) => ({
         matches: query.includes('767px'),
         media: query,
-        addEventListener: (
-          _type: string,
-          cb: (ev: MediaQueryListEvent) => void
-        ) => {
+        addEventListener: (_type: string, cb: (ev: MediaQueryListEvent) => void) => {
           if (query.includes('767px')) {
             mobileListener = cb;
           }
@@ -114,9 +108,7 @@ describe('ui-kit hooks', () => {
         removeEventListener: vi.fn(),
       }));
 
-      const { result } = renderHook(() =>
-        useMediaQuery({ mobile: '1-col', desktop: '4-col' })
-      );
+      const { result } = renderHook(() => useMediaQuery({ mobile: '1-col', desktop: '4-col' }));
       expect(result.current).toBe('1-col');
 
       act(() => {
@@ -139,7 +131,7 @@ describe('ui-kit hooks', () => {
         useContainerQuery('default', [
           { max: 500, value: 'compact' },
           { min: 501, value: 'wide' },
-        ])
+        ]),
       );
 
       const [refCallback, currentValue] = result.current;
@@ -222,7 +214,7 @@ describe('ui-kit hooks', () => {
           loop: true,
           orientation: 'vertical',
           onSelect,
-        })
+        }),
       );
 
       const makeKeyEvent = (key: string) =>
@@ -249,10 +241,9 @@ describe('ui-kit hooks', () => {
       const { result } = renderHook(() =>
         useForm({
           initialValues: { title: '' },
-          validate: (vals) =>
-            vals.title.trim().length === 0 ? { title: 'Required' } : {},
+          validate: (vals) => (vals.title.trim().length === 0 ? { title: 'Required' } : {}),
           onSubmit,
-        })
+        }),
       );
 
       let success = false;
@@ -300,18 +291,10 @@ describe('ui-kit hooks', () => {
         return (
           <div ref={containerRef} data-testid="bp-root">
             <div className="bp-grid-row" data-cols="2" data-testid="bp-row">
-              <div
-                className="bp-snap"
-                data-min-grids="2"
-                data-testid="bp-cell-1"
-              >
+              <div className="bp-snap" data-min-grids="2" data-testid="bp-cell-1">
                 Cell 1
               </div>
-              <div
-                className="bp-snap"
-                data-min-grids="3"
-                data-testid="bp-cell-2"
-              >
+              <div className="bp-snap" data-min-grids="3" data-testid="bp-cell-2">
                 Cell 2
               </div>
             </div>

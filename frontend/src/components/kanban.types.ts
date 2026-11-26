@@ -1,5 +1,5 @@
-import type React from 'react';
 import type { BoardColumn, Vacancy } from '../types/models';
+import type React from 'react';
 
 export interface KanbanBoardProps {
   vacancies: Vacancy[];
@@ -10,12 +10,7 @@ export interface KanbanBoardProps {
   selectedIds?: number[];
   onToggleSelect?: (vacancyId: number) => void;
   onStatusChangeMulti?: (vacancyIds: number[], newStatus: string, lane?: number) => void;
-  onReorder?: (
-    columnId: string,
-    ids: number[],
-    lane: number,
-    movedId: number | null
-  ) => void;
+  onReorder?: (columnId: string, ids: number[], lane: number, movedId: number | null) => void;
   hiddenVacancyIds?: Set<number>;
 }
 

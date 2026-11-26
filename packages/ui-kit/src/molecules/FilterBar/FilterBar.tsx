@@ -1,10 +1,10 @@
-import React from 'react';
 import { Badge, Text } from '../../atoms';
-import { Select, type SelectOption } from '../Select';
-import { TokenList } from '../TokenList';
 import { FilterBarReset, type FilterBarResetProps } from './FilterBarReset';
+import { Select, type SelectOption } from '../Select';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './FilterBar.module.css';
+import { TokenList } from '../TokenList';
 
 export { FilterBarReset, type FilterBarResetProps };
 
@@ -55,16 +55,10 @@ function FilterBarBase({
   ...rest
 }: FilterBarProps): React.ReactElement {
   const computedHasActive =
-    hasActiveFilters ??
-    (selects.some((s) => s.value !== '') || selectedTags.length > 0);
+    hasActiveFilters ?? (selects.some((s) => s.value !== '') || selectedTags.length > 0);
 
   return (
-    <div
-      role="toolbar"
-      aria-label="Filters"
-      className={cn(styles.filterBar, className)}
-      {...rest}
-    >
+    <div role="toolbar" aria-label="Filters" className={cn(styles.filterBar, className)} {...rest}>
       <div className={styles.controlsGroup}>
         {selects.map((filter, index) => (
           <React.Fragment key={filter.id}>

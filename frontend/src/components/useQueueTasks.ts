@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { QueueTask } from '../types/models';
+import { useCallback, useEffect, useState } from 'react';
 import { queueService } from '../services/queueService';
+import type { QueueTask } from '../types/models';
 
 export function getTaskIdentifier(task: QueueTask): string | number {
   return task.task_id ?? task.id ?? task.url;
@@ -12,7 +12,11 @@ export function getTaskLabel(task: QueueTask): string {
   return `${task.title} at ${company}`;
 }
 
-export function useQueueTasks(isOpen: boolean, queueRemaining?: number, onRefreshQueue?: () => void) {
+export function useQueueTasks(
+  isOpen: boolean,
+  queueRemaining?: number,
+  onRefreshQueue?: () => void,
+) {
   const [tasks, setTasks] = useState<QueueTask[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

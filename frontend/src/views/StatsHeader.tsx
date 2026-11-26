@@ -1,6 +1,6 @@
-import React from 'react';
+import { Badge, Icon, Text } from '@blueprint/ui-kit';
 import { Flame } from 'lucide-react';
-import { Badge, Text, Icon } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface StatsHeaderProps {

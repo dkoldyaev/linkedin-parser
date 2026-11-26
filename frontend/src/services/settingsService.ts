@@ -1,5 +1,9 @@
 import { ApiClient, apiClient as defaultApiClient } from './apiClient';
-import type { RemoteSettingsData, SaveSettingsPayload, ExchangeRatesResponse } from './settings.types';
+import type {
+  ExchangeRatesResponse,
+  RemoteSettingsData,
+  SaveSettingsPayload,
+} from './settings.types';
 
 export class SettingsService {
   private readonly client: ApiClient;

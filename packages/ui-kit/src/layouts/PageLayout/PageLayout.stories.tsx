@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { PageLayout } from './PageLayout';
-import { Card, Header } from '../../organisms';
-import { AlertBanner } from '../../molecules';
 import { Button, Text } from '../../atoms';
+import { Card, Header } from '../../organisms';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { AlertBanner } from '../../molecules';
+import { PageLayout } from './PageLayout';
 
 const meta: Meta<typeof PageLayout> = {
   title: 'Layouts/PageLayout',
@@ -25,7 +25,11 @@ export const DefaultBlueprintPage: Story = {
           subtitle="PAGE LAYOUT"
           showThemeToggle
           user={{ name: 'Alex Morgan' }}
-          actions={<Button size="sm" variant="primary">Dashboard</Button>}
+          actions={
+            <Button size="sm" variant="primary">
+              Dashboard
+            </Button>
+          }
         />
       }
       banner={
@@ -44,7 +48,8 @@ export const DefaultBlueprintPage: Story = {
         subtitle="Universal layout container with zero domain coupling."
       >
         <Text as="p" variant="body">
-          This PageLayout provides the 32px Blueprint drafting grid, semantic header/main/footer landmarks, and optional system banner slot.
+          This PageLayout provides the 32px Blueprint drafting grid, semantic header/main/footer
+          landmarks, and optional system banner slot.
         </Text>
       </Card>
     </PageLayout>

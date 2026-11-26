@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { Puzzle, ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Puzzle, Sparkles } from 'lucide-react';
 import {
+  Button,
+  Checkbox,
+  Icon,
   Modal,
-  ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
-  Icon,
-  Checkbox,
-  Text,
+  ModalHeader,
   Paragraph,
+  Text,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
 import {
   dismissExtensionPrompt,
-  getUpdatesBetween,
   type ExtensionChangelog,
+  getUpdatesBetween,
 } from '../utils/extension';
-import ExtensionUpdatesSection from './ExtensionUpdatesSection';
+import React, { useState } from 'react';
 import ExtensionInstructionsSection from './ExtensionInstructionsSection';
+import ExtensionUpdatesSection from './ExtensionUpdatesSection';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ExtensionPromptModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const ARROW_ICON = <Icon icon={ArrowRight} size="xs" />;
 function getUpdateCopy(
   currentVersion: string | null | undefined,
   latestVersion: string | null | undefined,
-  t: (path: string, params?: Record<string, string | number>) => string
+  t: (path: string, params?: Record<string, string | number>) => string,
 ) {
   return {
     title: t('extensionModal.title_update'),
@@ -66,13 +66,17 @@ function getInstallCopy(t: (path: string) => string) {
 
 function resolveModalMode(
   mode?: 'not_installed' | 'outdated' | null,
-  reason?: 'not_installed' | 'outdated' | null
+  reason?: 'not_installed' | 'outdated' | null,
 ): 'not_installed' | 'outdated' {
   if (mode === 'outdated' || reason === 'outdated') return 'outdated';
   return 'not_installed';
 }
 
-function resolveModalViewData(props: ExtensionPromptModalProps, locale: string, t: (path: string, params?: Record<string, string | number>) => string) {
+function resolveModalViewData(
+  props: ExtensionPromptModalProps,
+  locale: string,
+  t: (path: string, params?: Record<string, string | number>) => string,
+) {
   const effectiveMode = resolveModalMode(props.mode, props.reason);
   const isUpdate = effectiveMode === 'outdated';
   const updates = isUpdate ? getUpdatesBetween(props.changelog, props.currentVersion, locale) : [];
@@ -83,7 +87,7 @@ function resolveModalViewData(props: ExtensionPromptModalProps, locale: string, 
 }
 
 export default function ExtensionPromptModal(
-  props: ExtensionPromptModalProps
+  props: ExtensionPromptModalProps,
 ): React.ReactElement | null {
   const { t, locale } = useTranslation();
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -120,9 +124,7 @@ export default function ExtensionPromptModal(
 
       <ModalBody>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-          <Paragraph tone="secondary">
-            {copy.intro}
-          </Paragraph>
+          <Paragraph tone="secondary">{copy.intro}</Paragraph>
           <ExtensionUpdatesSection isUpdate={isUpdate} updates={updates} />
           <ExtensionInstructionsSection isUpdate={isUpdate} latestVersion={props.latestVersion} />
 

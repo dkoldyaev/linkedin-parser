@@ -1,11 +1,11 @@
 import {
-  STATUS_NOT_CONTACTED,
   STATUS_CONTACTED,
   STATUS_INTERVIEW,
+  STATUS_NOT_CONTACTED,
   STATUS_OFFER,
 } from '../constants/columns';
-import { resolveRolePreset } from './landingPresets';
 import type { LandingVacancyPreset } from './landingPresets';
+import { resolveRolePreset } from './landingPresets';
 
 export interface LandingBoardColumn {
   id: string;
@@ -285,7 +285,7 @@ export interface ComputedLandingBoardVacancy extends LandingVacancyPreset {
 function resolveEffectiveFunnelStages(
   currentSub: LandingSubScreen,
   funnelStage: number,
-  prevFunnelStage: number
+  prevFunnelStage: number,
 ) {
   if (currentSub.id === '1.2') {
     return { effectiveStage: 0, prevEffectiveStage: prevFunnelStage };
@@ -299,7 +299,7 @@ function resolveEffectiveFunnelStages(
 function resolvePositionEntry(
   map: Record<number, FunnelCardStagePosition>,
   primaryId: number,
-  fallbackId: number
+  fallbackId: number,
 ): FunnelCardStagePosition | undefined {
   return map[primaryId] || map[fallbackId];
 }
@@ -312,7 +312,7 @@ function mapDemoVacancyToBoardState(
     prevMap: Record<number, FunnelCardStagePosition>;
     stageChanged: boolean;
     arrivedFromImport: boolean;
-  }
+  },
 ): ComputedLandingBoardVacancy | null {
   const fallbackId = 101 + vIdx;
   const demoId = v.id || fallbackId;
@@ -321,9 +321,7 @@ function mapDemoVacancyToBoardState(
 
   const prevPos = resolvePositionEntry(ctx.prevMap, demoId, fallbackId);
   const curColIdx = BOARD_COLUMNS.findIndex((c) => c.id === stagePos.status);
-  const prevColIdx = prevPos
-    ? BOARD_COLUMNS.findIndex((c) => c.id === prevPos.status)
-    : curColIdx;
+  const prevColIdx = prevPos ? BOARD_COLUMNS.findIndex((c) => c.id === prevPos.status) : curColIdx;
 
   return {
     ...v,
@@ -347,7 +345,7 @@ export function computeLandingBoardVacancies(args: {
   const { effectiveStage, prevEffectiveStage } = resolveEffectiveFunnelStages(
     args.currentSub,
     args.funnelStage,
-    args.prevFunnelStage
+    args.prevFunnelStage,
   );
 
   const currentMap = FUNNEL_STEP_POSITIONS[effectiveStage] || FUNNEL_STEP_POSITIONS[6];
@@ -363,7 +361,7 @@ export function computeLandingBoardVacancies(args: {
         prevMap,
         stageChanged,
         arrivedFromImport,
-      })
+      }),
     )
     .filter((item): item is ComputedLandingBoardVacancy => item !== null);
 }

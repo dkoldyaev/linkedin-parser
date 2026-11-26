@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import HomePage from './views/HomePage';
+import { I18nProvider } from './i18n/I18nContext';
 import { MemoryRouter } from 'react-router-dom';
 import { OverlayProvider } from '@blueprint/ui-kit';
-import { I18nProvider } from './i18n/I18nContext';
-import HomePage from './views/HomePage';
 
 interface MockEventSourceInstance {
   url: string;
@@ -52,7 +52,7 @@ describe('Symfony /api/v2 + Mercure Realtime SPA Integration', () => {
             mercure_hub_url: '/.well-known/mercure',
             mercure_topic: 'vacancies:7',
           }),
-          { status: 200 }
+          { status: 200 },
         );
       }
       if (strUrl.includes('/api/v2/queue/sync')) {
@@ -77,7 +77,7 @@ describe('Symfony /api/v2 + Mercure Realtime SPA Integration', () => {
             />
           </I18nProvider>
         </MemoryRouter>
-      </OverlayProvider>
+      </OverlayProvider>,
     );
 
     await waitFor(() => {
@@ -91,9 +91,9 @@ describe('Symfony /api/v2 + Mercure Realtime SPA Integration', () => {
       es.onopen?.();
     });
 
-    expect(
-      requestedUrls.some((r) => r.url === '/api/v2/queue/sync' && r.method === 'POST')
-    ).toBe(true);
+    expect(requestedUrls.some((r) => r.url === '/api/v2/queue/sync' && r.method === 'POST')).toBe(
+      true,
+    );
 
     // 1. Open card arrives via Mercure -> visible on board
     await act(async () => {

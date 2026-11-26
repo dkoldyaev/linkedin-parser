@@ -1,15 +1,15 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { AppShell } from './components/AppShell';
-import HomePage from './views/HomePage';
+import { Route, Routes } from 'react-router-dom';
 import AboutPage from './views/AboutPage';
 import ApiKeysPage from './views/ApiKeysPage';
+import { AppShell } from './components/AppShell';
 import CVManagementPage from './views/CVManagementPage';
+import HomePage from './views/HomePage';
 import LandingPage from './views/LandingPage';
-import StatsPage from './views/StatsPage';
-import UserManagementPage from './views/UserManagementPage';
 import NotFoundPage from './views/NotFoundPage';
+import React from 'react';
+import StatsPage from './views/StatsPage';
 import type { User } from './types/models';
+import UserManagementPage from './views/UserManagementPage';
 
 export interface AppRouterProps {
   initialUser?: User | null;

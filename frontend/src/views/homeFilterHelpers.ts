@@ -1,4 +1,4 @@
-import { trackEvent, EVENTS } from '../utils/analytics';
+import { EVENTS, trackEvent } from '../utils/analytics';
 import type { Vacancy } from '../types/models';
 
 export type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -57,19 +57,6 @@ export function hasAnyActiveFilter(filters: Partial<HomeFilterState> | undefined
   return hasAnyNonSearchFilter(filters);
 }
 
-export function shouldShowFilterBar(
-  filters: HomeFilterState,
-  meta: HomeMetadataLists
-): boolean {
-  const totalMetaItems =
-    meta.allCountries.length +
-    meta.allCities.length +
-    meta.allSources.length +
-    meta.allTags.length;
-  if (totalMetaItems > 0) return true;
-  return hasAnyNonSearchFilter(filters);
-}
-
 interface DynamicListSelectConfig {
   id: string;
   labelKey: string;
@@ -108,7 +95,7 @@ function buildDynamicListSelect(cfg: DynamicListSelectConfig) {
 function buildWorkplaceSelect(
   selectedWorkplaceType: string,
   onWorkplaceChange: (val: string) => void,
-  t: TranslateFn
+  t: TranslateFn,
 ) {
   return {
     id: 'workplace',
@@ -131,7 +118,7 @@ function buildWorkplaceSelect(
 function buildClosedSelect(
   selectedClosed: string,
   onClosedChange: (val: string) => void,
-  t: TranslateFn
+  t: TranslateFn,
 ) {
   return {
     id: 'closed',
@@ -154,7 +141,7 @@ export function buildFilterSelects(
   filters: HomeFilterState,
   meta: HomeMetadataLists,
   handlers: HomeFilterHandlers,
-  t: TranslateFn
+  t: TranslateFn,
 ) {
   const countrySelect = buildDynamicListSelect({
     id: 'country',
@@ -178,7 +165,7 @@ export function buildFilterSelects(
   const workplaceSelect = buildWorkplaceSelect(
     filters.selectedWorkplaceType,
     handlers.onWorkplaceChange,
-    t
+    t,
   );
   const sourceSelect = buildDynamicListSelect({
     id: 'source',
@@ -191,14 +178,10 @@ export function buildFilterSelects(
     },
     t,
   });
-  const closedSelect = buildClosedSelect(
-    filters.selectedClosed,
-    handlers.onClosedChange,
-    t
-  );
+  const closedSelect = buildClosedSelect(filters.selectedClosed, handlers.onClosedChange, t);
 
   return [countrySelect, citySelect, workplaceSelect, sourceSelect, closedSelect].filter(
-    (item): item is NonNullable<typeof item> => item !== null
+    (item): item is NonNullable<typeof item> => item !== null,
   );
 }
 
@@ -210,7 +193,7 @@ export function matchesClosedFilter(vacancy: Vacancy, selectedClosed: string): b
 
 function matchesCaseInsensitiveField(
   fieldValue: string | null | undefined,
-  filterValue: string | undefined
+  filterValue: string | undefined,
 ): boolean {
   if (!filterValue || filterValue.trim() === '') return true;
   const actual = (fieldValue ? fieldValue : '').trim().toLowerCase();
@@ -253,13 +236,14 @@ function matchesSelectFilters(vacancy: Vacancy, filters: Partial<HomeFilterState
   if (!matchesTagFilter(vacancy, filters.selectedTag)) return false;
   if (!matchesCaseInsensitiveField(vacancy.country, filters.selectedCountry)) return false;
   if (!matchesCaseInsensitiveField(vacancy.city, filters.selectedCity)) return false;
-  if (!matchesCaseInsensitiveField(vacancy.workplace_type, filters.selectedWorkplaceType)) return false;
+  if (!matchesCaseInsensitiveField(vacancy.workplace_type, filters.selectedWorkplaceType))
+    return false;
   return matchesCaseInsensitiveField(vacancy.source, filters.selectedSource);
 }
 
 export function matchesFilters(
   vacancy: Vacancy,
-  filters: Partial<HomeFilterState> | undefined
+  filters: Partial<HomeFilterState> | undefined,
 ): boolean {
   if (!vacancy) return false;
   if (!filters) return true;
@@ -269,7 +253,7 @@ export function matchesFilters(
 
 export function computeHiddenVacancyIds(
   vacancies: Vacancy[],
-  filters: Partial<HomeFilterState> | undefined
+  filters: Partial<HomeFilterState> | undefined,
 ): Set<number> {
   if (!filters || !hasAnyActiveFilter(filters)) {
     return new Set<number>();

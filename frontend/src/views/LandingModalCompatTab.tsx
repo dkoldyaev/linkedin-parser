@@ -1,4 +1,3 @@
-
 import type { CompatibilityPreset } from './landingPresets';
 import SkeletonBar from './SkeletonBar';
 
@@ -17,7 +16,7 @@ function renderOptionalEvidenceQuote(
   idx: number,
   subScreenId: string,
   isShown: boolean,
-  evText: string | undefined
+  evText: string | undefined,
 ) {
   if (idx !== 0 || subScreenId !== '3.1' || !isShown || !evText) {
     return null;
@@ -28,7 +27,7 @@ function renderOptionalEvidenceQuote(
 function renderMatchedRequirementItem(
   m: CompatibilityPreset['matched_requirements'][number],
   idx: number,
-  ctx: { visibleMatchCount: number; subScreenId: string; isEn: boolean }
+  ctx: { visibleMatchCount: number; subScreenId: string; isEn: boolean },
 ) {
   const isShown = idx < ctx.visibleMatchCount;
   const reqText = ctx.isEn ? m.requirementEn : m.requirement;
@@ -42,9 +41,7 @@ function renderMatchedRequirementItem(
       }`}
     >
       <div className="landing-compat-row-main">
-        <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>
-          &bull; {reqText}
-        </span>
+        <span style={{ color: 'var(--aspen-mint)', fontWeight: 600 }}>&bull; {reqText}</span>
       </div>
       {renderOptionalEvidenceQuote(idx, ctx.subScreenId, isShown, evText)}
     </div>
@@ -55,7 +52,7 @@ function renderMatchedGroup(
   compatibility: CompatibilityPreset,
   visibleMatchCount: number,
   subScreenId: string,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const titleText = isEn
     ? `MATCH / Confirmed Requirements (${compatibility.matched_requirements.length}):`
@@ -69,7 +66,7 @@ function renderMatchedGroup(
       </div>
       <div className="compatibility-list">
         {compatibility.matched_requirements.map((m, idx) =>
-          renderMatchedRequirementItem(m, idx, ctx)
+          renderMatchedRequirementItem(m, idx, ctx),
         )}
       </div>
     </div>
@@ -79,7 +76,7 @@ function renderMatchedGroup(
 function renderMissingGroup(
   compatibility: CompatibilityPreset,
   visibleMissingCount: number,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const titleText = isEn
     ? `MISSING / Unconfirmed Requirements (${compatibility.missing_requirements.length}):`
@@ -115,7 +112,7 @@ function renderCriticalAndRecsGroups(
   compatibility: CompatibilityPreset,
   visibleCriticalCount: number,
   visibleRecsCount: number,
-  isEn: boolean
+  isEn: boolean,
 ) {
   const recsList = isEn
     ? compatibility.recommendationsEn || compatibility.recommendations || []
@@ -164,9 +161,7 @@ function renderCriticalAndRecsGroups(
             return (
               <li
                 key={rec}
-                className={`landing-compat-row ${
-                  isShown ? 'is-printed' : 'is-pending-print'
-                }`}
+                className={`landing-compat-row ${isShown ? 'is-printed' : 'is-pending-print'}`}
               >
                 {rec}
               </li>
@@ -207,12 +202,7 @@ export default function LandingModalCompatTab({
             </div>
           </div>
         ) : (
-          renderCriticalAndRecsGroups(
-            compatibility,
-            visibleCriticalCount,
-            visibleRecsCount,
-            isEn
-          )
+          renderCriticalAndRecsGroups(compatibility, visibleCriticalCount, visibleRecsCount, isEn)
         )}
       </div>
     </div>

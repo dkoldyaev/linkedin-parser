@@ -1,8 +1,8 @@
+import { Badge, Icon } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Tag } from 'lucide-react';
 import { TokenList } from './TokenList';
-import { Badge, Icon } from '../../atoms';
-import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof TokenList> = {
   title: 'Molecules/TokenList',

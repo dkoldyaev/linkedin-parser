@@ -158,10 +158,18 @@
     line-height: var(--ui-line-height-normal);
   }
 
-  .paragraphSpacingNone { margin-bottom: var(--ui-space-0); }
-  .paragraphSpacingSm { margin-bottom: var(--ui-space-2); }
-  .paragraphSpacingMd { margin-bottom: var(--ui-space-3); }
-  .paragraphSpacingLg { margin-bottom: var(--ui-space-4); }
+  .paragraphSpacingNone {
+    margin-bottom: var(--ui-space-0);
+  }
+  .paragraphSpacingSm {
+    margin-bottom: var(--ui-space-2);
+  }
+  .paragraphSpacingMd {
+    margin-bottom: var(--ui-space-3);
+  }
+  .paragraphSpacingLg {
+    margin-bottom: var(--ui-space-4);
+  }
 
   /* Lists */
   .list {

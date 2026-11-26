@@ -1,8 +1,8 @@
+import { Button, Icon } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Trash2, XCircle } from 'lucide-react';
-import { ModalFooter } from './ModalFooter';
-import { Button, Icon } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { ModalFooter } from './ModalFooter';
 
 const meta: Meta<typeof ModalFooter> = {
   title: 'Organisms/Modal/ModalFooter',

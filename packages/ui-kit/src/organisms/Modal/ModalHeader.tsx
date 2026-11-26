@@ -1,13 +1,12 @@
-import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
 import { cn } from '../../utils';
-import { useModalContext } from './ModalContext';
+import React from 'react';
 import styles from './Modal.module.css';
+import { useModalContext } from './ModalContext';
+import { X } from 'lucide-react';
 
-export interface ModalHeaderProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface ModalHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly title?: React.ReactNode;
   readonly description?: React.ReactNode;
   /** Primary icon displayed alongside title in the header */
@@ -74,56 +73,70 @@ function ModalHeaderRoot({
 
   return (
     <div
-      className={cn(styles.header, hasTabs && styles.headerWithTabs, className)}
+      data-bp-snap=""
+      data-min-grids="2"
+      className={cn(styles.header, 'bp-snap', hasTabs && styles.headerWithTabs, className)}
       {...restProps}
     >
-      {showTopRow && (
-        <div className={styles.headerTop}>
-          <div className={styles.titleGroup}>
-            {title !== undefined && (
-              <div className={styles.titleRow}>
-                {icon !== undefined && (
-                  <span aria-hidden="true" className={styles.headerIconWrapper}>
-                    {icon}
-                  </span>
-                )}
-                {isInsideDialog ? (
-                  <DialogPrimitive.Title asChild>
+      <div className={styles.headerBeforeTabs}>
+        {showTopRow && (
+          <div className={styles.headerTop}>
+            <div className={styles.titleGroup}>
+              {title !== undefined && (
+                <div className={styles.titleRow}>
+                  {icon !== undefined && (
+                    <span aria-hidden="true" className={styles.headerIconWrapper}>
+                      {icon}
+                    </span>
+                  )}
+                  {isInsideDialog ? (
+                    <DialogPrimitive.Title asChild>
+                      <Text as="h2" variant="heading" tone="primary">
+                        {title}
+                      </Text>
+                    </DialogPrimitive.Title>
+                  ) : (
                     <Text as="h2" variant="heading" tone="primary">
                       {title}
                     </Text>
-                  </DialogPrimitive.Title>
+                  )}
+                </div>
+              )}
+              {description !== undefined ? (
+                isInsideDialog ? (
+                  <DialogPrimitive.Description asChild>
+                    <Text as="p" variant="caption" tone="secondary">
+                      {description}
+                    </Text>
+                  </DialogPrimitive.Description>
                 ) : (
-                  <Text as="h2" variant="heading" tone="primary">
-                    {title}
-                  </Text>
-                )}
-              </div>
-            )}
-            {description !== undefined ? (
-              isInsideDialog ? (
-                <DialogPrimitive.Description asChild>
                   <Text as="p" variant="caption" tone="secondary">
                     {description}
                   </Text>
+                )
+              ) : isInsideDialog && title !== undefined ? (
+                <DialogPrimitive.Description className={styles.srOnly}>
+                  Dialog content
                 </DialogPrimitive.Description>
-              ) : (
-                <Text as="p" variant="caption" tone="secondary">
-                  {description}
-                </Text>
-              )
-            ) : isInsideDialog && title !== undefined ? (
-              <DialogPrimitive.Description className={styles.srOnly}>
-                Dialog content
-              </DialogPrimitive.Description>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
 
-          <div className={styles.headerActions}>
-            {actions}
-            {!hideCloseButton && effectiveOnClose !== undefined && (
-              isInsideDialog ? (
-                <DialogPrimitive.Close asChild>
+            <div className={styles.headerActions}>
+              {actions}
+              {!hideCloseButton &&
+                effectiveOnClose !== undefined &&
+                (isInsideDialog ? (
+                  <DialogPrimitive.Close asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={effectiveCloseLabel}
+                      onClick={effectiveOnClose}
+                    >
+                      <Icon icon={X} size="md" />
+                    </Button>
+                  </DialogPrimitive.Close>
+                ) : (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -132,22 +145,12 @@ function ModalHeaderRoot({
                   >
                     <Icon icon={X} size="md" />
                   </Button>
-                </DialogPrimitive.Close>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={effectiveCloseLabel}
-                  onClick={effectiveOnClose}
-                >
-                  <Icon icon={X} size="md" />
-                </Button>
-              )
-            )}
+                ))}
+            </div>
           </div>
-        </div>
-      )}
-      {meta !== undefined && <div className={styles.headerMeta}>{meta}</div>}
+        )}
+        {meta !== undefined && <div className={styles.headerMeta}>{meta}</div>}
+      </div>
       {tabs !== undefined && <div className={styles.headerTabs}>{tabs}</div>}
       {children}
     </div>

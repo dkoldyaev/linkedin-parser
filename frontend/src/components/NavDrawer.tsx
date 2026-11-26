@@ -1,21 +1,21 @@
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
   BarChart3,
   BookOpen,
-  Info,
-  Languages,
   FileText,
+  Info,
   Key,
+  Languages,
+  LayoutDashboard,
   type LucideIcon,
 } from 'lucide-react';
-import { useTranslation } from '../i18n/I18nContext';
-import { useMenu } from './menuContext';
-import { useGridScroll } from '../utils/useGridScroll';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import type { User } from '../types/models';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { settingsService } from '../services/settingsService';
+import { useGridScroll } from '../utils/useGridScroll';
+import { useMenu } from './menuContext';
+import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 interface NavLinkItem {
   to: string;

@@ -117,7 +117,6 @@
   }
 
   .aiSummaryFormGrid {
-    
   }
 
   .companyInfoBox {
@@ -280,7 +279,9 @@
     justify-content: center;
     padding: var(--ui-space-3) 0;
     color: var(--ui-text-muted);
-    transition: color var(--ui-transition-fast), background-color var(--ui-transition-fast);
+    transition:
+      color var(--ui-transition-fast),
+      background-color var(--ui-transition-fast);
   }
 
   .addColumnBtn:hover {

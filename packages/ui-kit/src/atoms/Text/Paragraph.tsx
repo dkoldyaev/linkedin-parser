@@ -1,6 +1,6 @@
-import React from 'react';
-import { cn } from '../../utils';
 import type { TextTone, TextWeight } from './Text';
+import { cn } from '../../utils';
+import React from 'react';
 import styles from './Text.module.css';
 
 export interface ParagraphProps extends React.HTMLAttributes<HTMLParagraphElement> {
@@ -15,35 +15,26 @@ export interface ParagraphProps extends React.HTMLAttributes<HTMLParagraphElemen
 /**
  * Standard typography Paragraph (<p>) component aligned with Blueprint drafting tokens.
  */
-export const Paragraph = React.forwardRef<HTMLParagraphElement, ParagraphProps>(
-  function Paragraph(
-    {
-      spacing = 'md',
-      tone = 'primary',
-      weight,
-      children,
-      className,
-      ...restProps
-    },
-    ref
-  ): React.ReactElement {
-    return (
-      <p
-        ref={ref}
-        className={cn(
-          styles.paragraph,
-          styles[`paragraphSpacing${capitalize(spacing)}`],
-          styles[`tone-${tone}`],
-          weight !== undefined && styles[`weight-${weight}`],
-          className
-        )}
-        {...restProps}
-      >
-        {children}
-      </p>
-    );
-  }
-);
+export const Paragraph = React.forwardRef<HTMLParagraphElement, ParagraphProps>(function Paragraph(
+  { spacing = 'md', tone = 'primary', weight, children, className, ...restProps },
+  ref,
+): React.ReactElement {
+  return (
+    <p
+      ref={ref}
+      className={cn(
+        styles.paragraph,
+        styles[`paragraphSpacing${capitalize(spacing)}`],
+        styles[`tone-${tone}`],
+        weight !== undefined && styles[`weight-${weight}`],
+        className,
+      )}
+      {...restProps}
+    >
+      {children}
+    </p>
+  );
+});
 
 function capitalize(value: string): string {
   if (value.length === 0) {

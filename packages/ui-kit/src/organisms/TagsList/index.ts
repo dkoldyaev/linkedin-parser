@@ -1,6 +1,1 @@
-export {
-  TagsList,
-  TagsListInput,
-  type TagsListProps,
-  type TagsListInputProps,
-} from './TagsList';
+export { TagsList, TagsListInput, type TagsListProps, type TagsListInputProps } from './TagsList';

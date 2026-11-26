@@ -1,12 +1,11 @@
-
 import {
-  SUB_SCREENS,
-  SCREENS_BLOCKS,
-  type LandingSubScreen,
   type LandingScreenBlock,
+  type LandingSubScreen,
+  SCREENS_BLOCKS,
+  SUB_SCREENS,
 } from './landingConstants';
-import TypewriterText from './TypewriterText';
 import SkeletonBar from './SkeletonBar';
+import TypewriterText from './TypewriterText';
 
 export interface LandingLeftNarrativeProps {
   currentScreen: number;
@@ -32,14 +31,11 @@ function renderSubBulletButton(
   subId: string,
   activeSubIdx: number,
   isEn: boolean,
-  onScrollToSubScreen: (subIdOrIdx: string | number) => void
+  onScrollToSubScreen: (subIdOrIdx: string | number) => void,
 ) {
   const subIdx = SUB_SCREENS.findIndex((s) => s.id === subId);
   const sub = SUB_SCREENS[subIdx];
-  const stateClass = resolveProgressStateClass(
-    activeSubIdx === subIdx,
-    activeSubIdx > subIdx
-  );
+  const stateClass = resolveProgressStateClass(activeSubIdx === subIdx, activeSubIdx > subIdx);
   const label = `[${sub.indexLabel}] ${isEn ? sub.captionLabelEn : sub.captionLabel}`;
 
   return (
@@ -56,23 +52,17 @@ function renderSubBulletButton(
   );
 }
 
-function renderVnavGroup(
-  block: LandingScreenBlock,
-  props: LandingLeftNarrativeProps
-) {
+function renderVnavGroup(block: LandingScreenBlock, props: LandingLeftNarrativeProps) {
   const { currentScreen, activeSubIdx, isEn, onScrollToSubScreen } = props;
   const screenStateClass = resolveProgressStateClass(
     currentScreen === block.screen,
-    currentScreen > block.screen
+    currentScreen > block.screen,
   );
   const firstSubId = block.subIds[0];
   const title = isEn ? block.headerTitleEn : block.headerTitle;
 
   return (
-    <div
-      key={block.screen}
-      className={`landing-vnav-group ${screenStateClass}`}
-    >
+    <div key={block.screen} className={`landing-vnav-group ${screenStateClass}`}>
       <button
         type="button"
         className={`landing-vnav-screen-bullet ${screenStateClass}`}
@@ -85,7 +75,7 @@ function renderVnavGroup(
 
       <div className="landing-vnav-sub-bullets">
         {block.subIds.map((subId) =>
-          renderSubBulletButton(subId, activeSubIdx, isEn, onScrollToSubScreen)
+          renderSubBulletButton(subId, activeSubIdx, isEn, onScrollToSubScreen),
         )}
       </div>
     </div>
@@ -160,9 +150,7 @@ function renderScreenBlockHeader(block: LandingScreenBlock, isEn: boolean) {
       <div className="column-title-group">
         <span className="column-index">{block.num}</span>
         <span className="column-dot" style={{ background: block.color }} />
-        <span className="column-name">
-          {isEn ? block.headerTitleEn : block.headerTitle}
-        </span>
+        <span className="column-name">{isEn ? block.headerTitleEn : block.headerTitle}</span>
       </div>
       <span className="bp-col-tag">{isEn ? block.tagEn : block.tag}</span>
     </header>
@@ -172,23 +160,14 @@ function renderScreenBlockHeader(block: LandingScreenBlock, isEn: boolean) {
 function renderScreenBlockHero(block: LandingScreenBlock, isEn: boolean) {
   return (
     <div className="landing-full-block-hero">
-      <div className="landing-block-kicker">
-        {isEn ? block.kickerEn : block.kicker}
-      </div>
-      <h1 className="landing-block-title">
-        {isEn ? block.titleEn : block.title}
-      </h1>
-      <p className="landing-block-lead">
-        {isEn ? block.leadEn : block.lead}
-      </p>
+      <div className="landing-block-kicker">{isEn ? block.kickerEn : block.kicker}</div>
+      <h1 className="landing-block-title">{isEn ? block.titleEn : block.title}</h1>
+      <p className="landing-block-lead">{isEn ? block.leadEn : block.lead}</p>
     </div>
   );
 }
 
-function renderScreenBlockSection(
-  block: LandingScreenBlock,
-  props: LandingLeftNarrativeProps
-) {
+function renderScreenBlockSection(block: LandingScreenBlock, props: LandingLeftNarrativeProps) {
   const { activeSubIdx, currentSub, isEn, onScrollToSubScreen } = props;
   const blockSubItems = block.subIds.map((id) => {
     const subIdx = SUB_SCREENS.findIndex((s) => s.id === id);
@@ -207,9 +186,7 @@ function renderScreenBlockSection(
         <div className="landing-block-captions">
           <div className="landing-block-captions-title">
             <span>
-              {isEn
-                ? 'WHAT IS HAPPENING ON THE RIGHT'
-                : 'ЧТО ПРОИСХОДИТ НА ЭКРАНЕ СПРАВА'}
+              {isEn ? 'WHAT IS HAPPENING ON THE RIGHT' : 'ЧТО ПРОИСХОДИТ НА ЭКРАНЕ СПРАВА'}
             </span>
             <span>[{activeStepBadge}]</span>
           </div>
@@ -222,7 +199,7 @@ function renderScreenBlockSection(
                 activeSubIdx,
                 isEn,
                 onScrollToSubScreen,
-              })
+              }),
             )}
           </div>
         </div>
@@ -253,9 +230,7 @@ export default function LandingLeftNarrative(props: LandingLeftNarrativeProps) {
               transform: `translateY(-${(currentScreen - 1) * 100}%)`,
             }}
           >
-            {SCREENS_BLOCKS.map((block) =>
-              renderScreenBlockSection(block, props)
-            )}
+            {SCREENS_BLOCKS.map((block) => renderScreenBlockSection(block, props))}
           </div>
         </div>
       </div>

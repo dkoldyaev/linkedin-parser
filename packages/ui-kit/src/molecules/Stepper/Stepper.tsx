@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button, Icon } from '../../atoms';
-import { EmptyState } from '../EmptyState';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState } from 'react';
 import { StepperItem, type StepperItemData } from './StepperItem';
 import { cn } from '../../utils';
+import { EmptyState } from '../EmptyState';
 import styles from './Stepper.module.css';
 
 export interface StepperProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -32,19 +32,11 @@ function StepperRoot({
   const [expanded, setExpanded] = useState(false);
 
   if (items.length === 0) {
-    return (
-      <EmptyState
-        title={emptyTitle}
-        description={emptyDescription}
-        className={className}
-      />
-    );
+    return <EmptyState title={emptyTitle} description={emptyDescription} className={className} />;
   }
 
   const canCollapse =
-    maxCollapsedItems !== undefined &&
-    maxCollapsedItems > 0 &&
-    items.length > maxCollapsedItems;
+    maxCollapsedItems !== undefined && maxCollapsedItems > 0 && items.length > maxCollapsedItems;
 
   const hiddenCount = canCollapse ? items.length - maxCollapsedItems : 0;
   const visibleItems =
@@ -67,11 +59,7 @@ function StepperRoot({
 
       <ol className={styles.stepList}>
         {visibleItems.map((item, idx) => (
-          <StepperItem
-            key={item.id}
-            {...item}
-            isLast={idx === visibleItems.length - 1}
-          />
+          <StepperItem key={item.id} {...item} isLast={idx === visibleItems.length - 1} />
         ))}
       </ol>
     </div>

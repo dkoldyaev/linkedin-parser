@@ -1,10 +1,10 @@
 import { ApiClient, apiClient as defaultApiClient } from './apiClient';
-import type { Vacancy, VacancyHistoryItem, CompatibilityAnalysis } from '../types/models';
 import type {
-  VacancyFilterParams,
   BatchDuplicateCheckResponse,
   BatchImportResult,
+  VacancyFilterParams,
 } from './vacancy.types';
+import type { CompatibilityAnalysis, Vacancy, VacancyHistoryItem } from '../types/models';
 
 export class VacancyService {
   private readonly client: ApiClient;
@@ -29,12 +29,7 @@ export class VacancyService {
     return this.client.delete<void>(`/api/v2/vacancies/${id}`);
   }
 
-  reorder(
-    status: string,
-    ids: number[],
-    lane: number,
-    movedId: number | null
-  ): Promise<Vacancy[]> {
+  reorder(status: string, ids: number[], lane: number, movedId: number | null): Promise<Vacancy[]> {
     return this.client.post<Vacancy[]>('/api/v2/vacancies/reorder', {
       status,
       ids,
@@ -75,11 +70,11 @@ export class VacancyService {
   updateHistoryComment(
     vacancyId: number,
     historyId: number | string,
-    comment: string | null
+    comment: string | null,
   ): Promise<VacancyHistoryItem> {
     return this.client.patch<VacancyHistoryItem>(
       `/api/v2/vacancies/${vacancyId}/history/${historyId}`,
-      { comment }
+      { comment },
     );
   }
 
@@ -92,7 +87,7 @@ export class VacancyService {
     return this.client.post<CompatibilityAnalysis>(
       `/api/v2/vacancies/${id}/compatibility`,
       undefined,
-      { params }
+      { params },
     );
   }
 
@@ -103,10 +98,9 @@ export class VacancyService {
   }
 
   checkBatchDuplicates(urls: string[]): Promise<BatchDuplicateCheckResponse> {
-    return this.client.post<BatchDuplicateCheckResponse>(
-      '/api/vacancies/batch/check-duplicates',
-      { urls }
-    );
+    return this.client.post<BatchDuplicateCheckResponse>('/api/vacancies/batch/check-duplicates', {
+      urls,
+    });
   }
 
   batchImport(urls: string[], defaultTags: string[]): Promise<BatchImportResult> {

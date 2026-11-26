@@ -1,6 +1,6 @@
-import React from 'react';
-import { Lock } from 'lucide-react';
 import { Icon, Text } from '@blueprint/ui-kit';
+import { Lock } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export default function ApiKeysAccessDenied(): React.ReactElement {
@@ -20,7 +20,12 @@ export default function ApiKeysAccessDenied(): React.ReactElement {
       <div style={{ color: 'var(--ui-warning)', marginBottom: 'var(--ui-space-3)' }}>
         <Icon icon={Lock} size="lg" />
       </div>
-      <Text variant="title" weight="bold" tone="primary" style={{ marginBottom: 'var(--ui-space-2)' }}>
+      <Text
+        variant="title"
+        weight="bold"
+        tone="primary"
+        style={{ marginBottom: 'var(--ui-space-2)' }}
+      >
         {t('settingsModal.feature_locked_title')}
       </Text>
       <Text variant="body" tone="secondary">

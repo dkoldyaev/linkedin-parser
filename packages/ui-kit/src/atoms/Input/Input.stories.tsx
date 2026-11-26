@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Search } from 'lucide-react';
-import { Input } from './Input';
 import { Icon } from '../Icon';
+import { Input } from './Input';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Search } from 'lucide-react';
 
 const meta: Meta<typeof Input> = {
   title: 'Atoms/Input',

@@ -1,12 +1,12 @@
-import { PageLayout } from '@blueprint/ui-kit';
-import { useAuth } from '../components/AppShell';
-import { useTranslation } from '../i18n/I18nContext';
-import type { User } from '../types/models';
-import { useApiKeys } from './useApiKeys';
 import ApiKeyCreateSection from './ApiKeyCreateSection';
-import ApiKeysListSection from './ApiKeysListSection';
-import ApiKeysHeader from './ApiKeysHeader';
 import ApiKeysAccessDenied from './ApiKeysAccessDenied';
+import ApiKeysHeader from './ApiKeysHeader';
+import ApiKeysListSection from './ApiKeysListSection';
+import { PageLayout } from '@blueprint/ui-kit';
+import { useApiKeys } from './useApiKeys';
+import { useAuth } from '../components/AppShell';
+import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ApiKeysPageProps {
   user?: User | null;
@@ -37,7 +37,9 @@ export default function ApiKeysPage({ user }: ApiKeysPageProps) {
       className="api-keys-page"
       header={<ApiKeysHeader hasApiAccess={hasApiAccess} />}
     >
-      <div style={{ padding: 'var(--ui-space-4)', maxWidth: '960px', margin: '0 auto', width: '100%' }}>
+      <div
+        style={{ padding: 'var(--ui-space-4)', maxWidth: '960px', margin: '0 auto', width: '100%' }}
+      >
         {!hasApiAccess ? (
           <ApiKeysAccessDenied />
         ) : (

@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Table.module.css';
 
 export type TableFooterJustify = 'start' | 'center' | 'end' | 'between';
@@ -22,11 +22,7 @@ export function TableFooter({
   return (
     <div
       role="contentinfo"
-      className={cn(
-        styles.footer,
-        styles[`footerJustify${capitalize(justify)}`],
-        className
-      )}
+      className={cn(styles.footer, styles[`footerJustify${capitalize(justify)}`], className)}
       {...restProps}
     >
       {children}

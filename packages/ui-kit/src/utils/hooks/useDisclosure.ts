@@ -42,7 +42,7 @@ export function useDisclosure(options?: UseDisclosureOptions): UseDisclosureRetu
         }
       }
     },
-    [options]
+    [options],
   );
 
   const [isOpen, setIsOpenState] = useControllableState<boolean>({
@@ -67,7 +67,7 @@ export function useDisclosure(options?: UseDisclosureOptions): UseDisclosureRetu
     (next: boolean) => {
       setIsOpenState(next);
     },
-    [setIsOpenState]
+    [setIsOpenState],
   );
 
   return {

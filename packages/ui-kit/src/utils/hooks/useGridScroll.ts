@@ -1,11 +1,11 @@
-import { type UIEvent, useCallback, useEffect, useRef } from 'react';
 import { GRID_CELL_PX, SCROLL_SETTLE_DELAY_MS } from '../grid';
+import { type UIEvent, useCallback, useEffect, useRef } from 'react';
 
 export type GridScrollAxis = 'x' | 'y';
 
 export type GridScrollHandler = (
   event: UIEvent<HTMLElement> | { readonly currentTarget: HTMLElement },
-  axis?: GridScrollAxis
+  axis?: GridScrollAxis,
 ) => void;
 
 function resolveGridCellPx(): number {
@@ -14,8 +14,7 @@ function resolveGridCellPx(): number {
   }
   const styles = window.getComputedStyle(document.documentElement);
   const rawUiGrid =
-    styles.getPropertyValue('--ui-grid-cell') ||
-    styles.getPropertyValue('--ui-grid');
+    styles.getPropertyValue('--ui-grid-cell') || styles.getPropertyValue('--ui-grid');
   const parsed = Number.parseFloat(rawUiGrid);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : GRID_CELL_PX;
 }
@@ -58,7 +57,7 @@ export function useGridScroll(): GridScrollHandler {
   return useCallback(
     (
       event: UIEvent<HTMLElement> | { readonly currentTarget: HTMLElement },
-      axis?: GridScrollAxis
+      axis?: GridScrollAxis,
     ) => {
       const element = event.currentTarget;
       if (!element || typeof window === 'undefined') {
@@ -74,26 +73,19 @@ export function useGridScroll(): GridScrollHandler {
 
       const settle = () => {
         if (pointerDown.current) {
-          pendingTimers.set(
-            element,
-            window.setTimeout(settle, SCROLL_SETTLE_DELAY_MS)
-          );
+          pendingTimers.set(element, window.setTimeout(settle, SCROLL_SETTLE_DELAY_MS));
           return;
         }
         pendingTimers.delete(element);
 
         if (typeof document !== 'undefined') {
           const focused = document.activeElement;
-          const isDraggingElement = Boolean(
-            document.querySelector('[data-ui-dragging="true"]')
-          );
+          const isDraggingElement = Boolean(document.querySelector('[data-ui-dragging="true"]'));
           const isEditingControl = Boolean(
             focused &&
-              element.contains(focused) &&
-              typeof focused.matches === 'function' &&
-              focused.matches(
-                'input, textarea, select, [contenteditable="true"]'
-              )
+            element.contains(focused) &&
+            typeof focused.matches === 'function' &&
+            focused.matches('input, textarea, select, [contenteditable="true"]'),
           );
           if (isDraggingElement || isEditingControl) {
             return;
@@ -111,32 +103,22 @@ export function useGridScroll(): GridScrollHandler {
         }
 
         const grid = resolveGridCellPx();
-        const target = Math.min(
-          maximum,
-          Math.max(0, Math.round(position / grid) * grid)
-        );
+        const target = Math.min(maximum, Math.max(0, Math.round(position / grid) * grid));
 
         if (Math.abs(position - target) > 0.5) {
           const prefersReducedMotion =
             typeof window.matchMedia === 'function' &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          const behavior: ScrollBehavior = prefersReducedMotion
-            ? 'instant'
-            : 'smooth';
+          const behavior: ScrollBehavior = prefersReducedMotion ? 'instant' : 'smooth';
 
           if (typeof element.scrollTo === 'function') {
-            element.scrollTo(
-              horizontal ? { left: target, behavior } : { top: target, behavior }
-            );
+            element.scrollTo(horizontal ? { left: target, behavior } : { top: target, behavior });
           }
         }
       };
 
-      pendingTimers.set(
-        element,
-        window.setTimeout(settle, SCROLL_SETTLE_DELAY_MS)
-      );
+      pendingTimers.set(element, window.setTimeout(settle, SCROLL_SETTLE_DELAY_MS));
     },
-    []
+    [],
   );
 }

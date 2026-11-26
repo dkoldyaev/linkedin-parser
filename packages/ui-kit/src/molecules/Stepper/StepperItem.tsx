@@ -1,14 +1,7 @@
-import React from 'react';
+import { Badge, type BadgeTone, Icon, StatusDot, type StatusDotTone, Text } from '../../atoms';
 import { ArrowRight } from 'lucide-react';
-import {
-  Badge,
-  Icon,
-  StatusDot,
-  Text,
-  type BadgeTone,
-  type StatusDotTone,
-} from '../../atoms';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Stepper.module.css';
 
 export interface StepperItemData {
@@ -25,8 +18,7 @@ export interface StepperItemData {
 }
 
 export interface StepperItemProps
-  extends StepperItemData,
-    Omit<React.HTMLAttributes<HTMLLIElement>, 'id' | 'children'> {
+  extends StepperItemData, Omit<React.HTMLAttributes<HTMLLIElement>, 'id' | 'children'> {
   readonly isLast?: boolean;
 }
 
@@ -64,12 +56,7 @@ export function StepperItem({
   return (
     <li className={cn(styles.stepItem, active && styles.stepActive, className)} {...rest}>
       <div className={styles.timelineTrack} aria-hidden="true">
-        <StatusDot
-          tone={dotTone}
-          size="md"
-          pulse={active}
-          className={styles.dot}
-        />
+        <StatusDot tone={dotTone} size="md" pulse={active} className={styles.dot} />
         {!isLast && <span className={styles.connector} />}
       </div>
 
@@ -84,11 +71,7 @@ export function StepperItem({
                 <Icon icon={ArrowRight} size="xs" tone="muted" />
               </>
             )}
-            <Badge
-              variant={active ? 'solid' : 'outline'}
-              size="xs"
-              tone={active ? 'accent' : tone}
-            >
+            <Badge variant={active ? 'solid' : 'outline'} size="xs" tone={active ? 'accent' : tone}>
               {label}
             </Badge>
           </div>
@@ -104,9 +87,7 @@ export function StepperItem({
                 {timestamp}
               </Text>
             )}
-            {actions !== undefined && (
-              <div className={styles.actionsSlot}>{actions}</div>
-            )}
+            {actions !== undefined && <div className={styles.actionsSlot}>{actions}</div>}
           </div>
         </div>
 
@@ -116,9 +97,7 @@ export function StepperItem({
           </Text>
         )}
 
-        {contentSlot !== undefined && (
-          <div className={styles.contentSlot}>{contentSlot}</div>
-        )}
+        {contentSlot !== undefined && <div className={styles.contentSlot}>{contentSlot}</div>}
       </div>
     </li>
   );

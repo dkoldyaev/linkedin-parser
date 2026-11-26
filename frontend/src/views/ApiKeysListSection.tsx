@@ -1,17 +1,8 @@
-
-import { Key } from 'lucide-react';
-import {
-  TableHeader,
-  Icon,
-  Badge,
-  Text,
-  EmptyState,
-  Spinner,
-  StatusDot,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import ApiKeyListItem from './ApiKeyListItem';
+import { Badge, EmptyState, Icon, Spinner, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import type { ApiKeyItem } from '../types/models';
+import ApiKeyListItem from './ApiKeyListItem';
+import { Key } from 'lucide-react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ApiKeysListSectionProps {
   apiKeys: ApiKeyItem[];
@@ -31,11 +22,7 @@ export default function ApiKeysListSection({
   let listBody: React.ReactNode = (
     <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
       {apiKeys.map((k) => (
-        <ApiKeyListItem
-          key={k.id}
-          apiKey={k}
-          onRevokeApiKey={onRevokeApiKey}
-        />
+        <ApiKeyListItem key={k.id} apiKey={k} onRevokeApiKey={onRevokeApiKey} />
       ))}
     </ul>
   );
@@ -57,7 +44,9 @@ export default function ApiKeysListSection({
   }
 
   return (
-    <div style={{ border: '1px solid var(--ui-border-subtle)', background: 'var(--ui-bg-surface)' }}>
+    <div
+      style={{ border: '1px solid var(--ui-border-subtle)', background: 'var(--ui-bg-surface)' }}
+    >
       <TableHeader size="sm">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
           <StatusDot tone="accent" size="sm" />

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface TypewriterTextProps {
   text: string;
@@ -13,7 +12,7 @@ function resolveShownLength(
   textLength: number,
   charCount: number,
   active: boolean,
-  completed: boolean
+  completed: boolean,
 ): number {
   if (completed) return textLength;
   if (active) return charCount;
@@ -65,8 +64,14 @@ export default function TypewriterText({
   return (
     <span className={`tw-root ${className}`}>
       <span className="tw-visible">{text.slice(0, shown)}</span>
-      {isTyping && <span className="tw-cursor" aria-hidden="true">▋</span>}
-      <span className="tw-ghost" aria-hidden="true">{text.slice(shown)}</span>
+      {isTyping && (
+        <span className="tw-cursor" aria-hidden="true">
+          ▋
+        </span>
+      )}
+      <span className="tw-ghost" aria-hidden="true">
+        {text.slice(shown)}
+      </span>
     </span>
   );
 }

@@ -1,10 +1,10 @@
 import { useLayoutEffect, useState } from 'react';
-import { GRID_CELL_PX } from '../../utils';
 import type { DataTableColumn } from './types';
+import { GRID_CELL_PX } from '../../utils';
 
 export function useDataTableColumns<T>(
   columns: readonly DataTableColumn<T>[],
-  rootRef: React.RefObject<HTMLElement | null>
+  rootRef: React.RefObject<HTMLElement | null>,
 ): readonly number[] {
   const [colWidths, setColWidths] = useState<readonly number[]>([]);
 
@@ -37,10 +37,7 @@ export function useDataTableColumns<T>(
       });
 
       if (unassignedIndices.length > 0) {
-        const remainingUnits = Math.max(
-          unassignedIndices.length * 3,
-          totalUnits - allocatedUnits
-        );
+        const remainingUnits = Math.max(unassignedIndices.length * 3, totalUnits - allocatedUnits);
         const baseUnits = Math.floor(remainingUnits / unassignedIndices.length);
         const extraUnits = remainingUnits % unassignedIndices.length;
 
@@ -61,4 +58,3 @@ export function useDataTableColumns<T>(
 
   return colWidths;
 }
-

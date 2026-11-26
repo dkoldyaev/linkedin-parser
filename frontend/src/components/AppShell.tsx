@@ -1,16 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { EVENTS, setAnalyticsUser, trackEvent } from '../utils/analytics';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { authService } from '../services/authService';
+import { BoardStoreProvider } from '../store/BoardStoreContext';
 import { Loader2 } from 'lucide-react';
 import LoginModal from './LoginModal';
+import { MenuContext } from './menuContext';
 import NavDrawer from './NavDrawer';
 import PageHeader from './PageHeader';
-import { MenuContext } from './menuContext';
-import { BoardStoreProvider } from '../store/BoardStoreContext';
-import { useTranslation } from '../i18n/I18nContext';
 import { useGridScroll } from '../utils/useGridScroll';
-import { setAnalyticsUser, trackEvent, EVENTS } from '../utils/analytics';
+import { useLocation } from 'react-router-dom';
 import type { User } from '../types/models';
-import { authService } from '../services/authService';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface AuthContextValue {
   user: User | null;
@@ -53,7 +53,7 @@ function alignModalElement(modal: HTMLElement, remeasure: boolean): void {
   }
   const maxHeight = Math.max(
     grid,
-    Math.floor(Math.min(window.innerHeight * 0.9, window.innerHeight - 40) / grid) * grid
+    Math.floor(Math.min(window.innerHeight * 0.9, window.innerHeight - 40) / grid) * grid,
   );
   modal.style.setProperty('--modal-grid-max-height', `${maxHeight}px`);
   const gridWidth = Math.floor(modal.offsetWidth / grid) * grid;
@@ -63,11 +63,11 @@ function alignModalElement(modal: HTMLElement, remeasure: boolean): void {
   modal.style.height = `${Math.min(maxHeight, Math.ceil(modal.offsetHeight / grid) * grid)}px`;
   modal.style.setProperty(
     '--modal-grid-x',
-    `${computeCenteredGridOffset(window.innerWidth, modal.offsetWidth, grid)}px`
+    `${computeCenteredGridOffset(window.innerWidth, modal.offsetWidth, grid)}px`,
   );
   modal.style.setProperty(
     '--modal-grid-y',
-    `${computeCenteredGridOffset(window.innerHeight, modal.offsetHeight, grid)}px`
+    `${computeCenteredGridOffset(window.innerHeight, modal.offsetHeight, grid)}px`,
   );
 }
 
@@ -195,7 +195,7 @@ function isBoardPathname(pathname: string): boolean {
 function isAuthRequiredForRoute(
   pathname: string,
   user: User | null,
-  authLoading: boolean
+  authLoading: boolean,
 ): boolean {
   if (authLoading || user) return false;
   return !isPublicPathname(pathname);
@@ -223,19 +223,19 @@ export function AppShell({ children, initialUser }: AppShellProps): React.ReactE
 
   const { user, setUser, authLoading, checkAuth, handleLogout } = useAuthState(
     initialUser,
-    handleUserResolved
+    handleUserResolved,
   );
 
   useModalGridAlignment();
 
   const menu = useMemo(
     () => ({ open, toggle: () => setOpen((o) => !o), close: () => setOpen(false) }),
-    [open]
+    [open],
   );
 
   const authValue = useMemo(
     () => ({ user, authLoading, checkAuth, handleLogout, setUser }),
-    [user, authLoading, checkAuth, handleLogout, setUser]
+    [user, authLoading, checkAuth, handleLogout, setUser],
   );
 
   const { requiresLoginModal, showPageHeader, shouldSnapScroll, contentClassName } =

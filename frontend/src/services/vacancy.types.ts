@@ -1,5 +1,5 @@
-import type { DuplicateVacancyItem } from '../components/BatchDuplicateWarningView';
 import type { BatchImportResult } from '../components/BatchImportResultView';
+import type { DuplicateVacancyItem } from '../components/BatchDuplicateWarningView';
 
 export interface VacancyFilterParams {
   search?: string;

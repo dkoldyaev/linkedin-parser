@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Stepper } from './Stepper';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Stepper } from './Stepper';
 
 const meta: Meta<typeof Stepper> = {
   title: 'Molecules/Stepper',

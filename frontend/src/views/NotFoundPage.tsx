@@ -1,13 +1,13 @@
+import { ArrowLeft, FileQuestion, LogIn } from 'lucide-react';
+import { Button, EmptyState, Icon, PageLayout } from '@blueprint/ui-kit';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileQuestion, ArrowLeft, LogIn } from 'lucide-react';
-import { PageLayout, EmptyState, Button, Icon } from '@blueprint/ui-kit';
-import PageHeader from '../components/PageHeader';
 import LoginModal from '../components/LoginModal';
-import { useAuth } from '../components/AppShell';
-import { useTranslation } from '../i18n/I18nContext';
+import PageHeader from '../components/PageHeader';
 import { setAnalyticsUser } from '../utils/analytics';
+import { useAuth } from '../components/AppShell';
 import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface NotFoundPageProps {
   showHeader?: boolean;
@@ -32,7 +32,9 @@ const ACTIONS_STYLE: React.CSSProperties = {
   justifyContent: 'center',
 };
 
-export default function NotFoundPage({ showHeader = false }: NotFoundPageProps): React.ReactElement {
+export default function NotFoundPage({
+  showHeader = false,
+}: NotFoundPageProps): React.ReactElement {
   const { locale, t } = useTranslation();
   const { user, handleLogout, setUser } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -61,9 +63,7 @@ export default function NotFoundPage({ showHeader = false }: NotFoundPageProps):
 
   return (
     <>
-      {showHeader && (
-        <PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />
-      )}
+      {showHeader && <PageHeader user={user} onLogout={handleLogout} onUserUpdated={setUser} />}
       <PageLayout gridDeps={[locale]} className="not-found-page">
         <div style={CONTAINER_STYLE}>
           <EmptyState

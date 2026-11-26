@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { Button, Icon, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Plus, Settings } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { SearchBar, type SearchBarProps } from './SearchBar';
-import { Button, Icon, Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof SearchBar> = {
@@ -37,12 +37,7 @@ function ControlledSearchBarStory(props: SearchBarProps): React.ReactElement {
 
   return (
     <div className={layoutStyles.stack}>
-      <SearchBar
-        {...props}
-        value={query}
-        onValueChange={setQuery}
-        aria-label="Filter vacancies"
-      />
+      <SearchBar {...props} value={query} onValueChange={setQuery} aria-label="Filter vacancies" />
     </div>
   );
 }

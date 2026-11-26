@@ -1,15 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   cleanText,
-  findJsonLd,
-  parseJsonLdSalary,
-  normalizeCurrency,
-  normalizePeriod,
-  parseSalaryString,
-  normalizeWorkplace,
   cleanUrlParams,
-  extractCanonicalUrl
+  extractCanonicalUrl,
+  findJsonLd,
+  normalizeWorkplace,
+  parseJsonLdSalary,
+  parseSalaryString,
 } from './helpers';
 import { createDocument } from './dom';
 
@@ -52,9 +50,9 @@ describe('helpers', () => {
         value: {
           unitText: 'YEAR',
           minValue: 100000,
-          maxValue: 150000
-        }
-      }
+          maxValue: 150000,
+        },
+      },
     };
     const parsed = parseJsonLdSalary(data);
     expect(parsed.salary_min).toBe(100000);
@@ -67,21 +65,21 @@ describe('helpers', () => {
     expect(parseSalaryString('от 100 000 ₽ на руки')).toEqual({
       salary_min: 100000,
       salary_currency: 'RUB',
-      salary_period: 'month'
+      salary_period: 'month',
     });
-    
+
     expect(parseSalaryString('$25 - $50 / hr')).toEqual({
       salary_min: 25,
       salary_max: 50,
       salary_currency: 'USD',
-      salary_period: 'hour'
+      salary_period: 'hour',
     });
 
     expect(parseSalaryString('261 900 — 371 000 руб.')).toEqual({
       salary_min: 261900,
       salary_max: 371000,
       salary_currency: 'RUB',
-      salary_period: 'month'
+      salary_period: 'month',
     });
   });
 
@@ -92,9 +90,11 @@ describe('helpers', () => {
   });
 
   it('cleanUrlParams and extractCanonicalUrl work as expected', () => {
-    expect(cleanUrlParams('https://www.example.com/jobs/123?utm_source=test&ref=abc#section')).toBe('https://www.example.com/jobs/123');
-    const htmlWithCanonical = '<html><head><link rel="canonical" href="https://example.com/canonical/job/456"></head></html>';
+    expect(cleanUrlParams('https://www.example.com/jobs/123?utm_source=test&ref=abc#section')).toBe(
+      'https://www.example.com/jobs/123',
+    );
+    const htmlWithCanonical =
+      '<html><head><link rel="canonical" href="https://example.com/canonical/job/456"></head></html>';
     expect(extractCanonicalUrl(htmlWithCanonical)).toBe('https://example.com/canonical/job/456');
   });
 });
-

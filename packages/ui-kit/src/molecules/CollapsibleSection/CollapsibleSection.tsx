@@ -1,11 +1,13 @@
 import React, { forwardRef } from 'react';
-import { SectionHeader } from '../SectionHeader';
 import { useBlueprintGrid, useControllableState } from '../../hooks';
 import { cn } from '../../utils';
+import { SectionHeader } from '../SectionHeader';
 import styles from './CollapsibleSection.module.css';
 
-export interface CollapsibleSectionProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface CollapsibleSectionProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'title'
+> {
   readonly title: React.ReactNode;
   readonly icon?: React.ReactNode;
   readonly badge?: React.ReactNode;
@@ -41,7 +43,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       className,
       ...rest
     },
-    ref
+    ref,
   ) {
     const [isOpen, setIsOpen] = useControllableState<boolean>({
       value: open,
@@ -65,11 +67,7 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
     };
 
     return (
-      <div
-        ref={setMergedRef}
-        className={cn(styles.section, className)}
-        {...rest}
-      >
+      <div ref={setMergedRef} className={cn(styles.section, className)} {...rest}>
         <SectionHeader
           title={title}
           icon={icon}
@@ -94,5 +92,5 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
         )}
       </div>
     );
-  }
+  },
 );

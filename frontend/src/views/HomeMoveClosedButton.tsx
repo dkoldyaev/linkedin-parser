@@ -1,7 +1,7 @@
-import React from 'react';
-import { XCircle } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
+import { XCircle } from 'lucide-react';
 
 export interface HomeMoveClosedButtonProps {
   selectedClosed: string;

@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Globe } from 'lucide-react';
-import { Icon } from '../../Icon';
 import { Heading } from '../Heading';
-import { Paragraph } from '../Paragraph';
+import { Icon } from '../../Icon';
 import { Link } from '../Link';
+import { Paragraph } from '../Paragraph';
 import { Text } from '../Text';
 
 describe('Typography Atoms', () => {
@@ -13,7 +13,7 @@ describe('Typography Atoms', () => {
       const { container } = render(
         <Heading level={2} tone="accent">
           Accent Heading
-        </Heading>
+        </Heading>,
       );
       const heading = screen.getByRole('heading', { level: 2, name: 'Accent Heading' });
       expect(heading).toBeTruthy();
@@ -23,12 +23,20 @@ describe('Typography Atoms', () => {
     });
 
     it('renders different levels and tone variants', () => {
-      const { rerender } = render(<Heading level={1} tone="danger">Critical Title</Heading>);
+      const { rerender } = render(
+        <Heading level={1} tone="danger">
+          Critical Title
+        </Heading>,
+      );
       let heading = screen.getByRole('heading', { level: 1, name: 'Critical Title' });
       expect(heading.className).toContain('tone-danger');
       expect(heading.className).toContain('headingLevel1');
 
-      rerender(<Heading level={4} tone="success">Success Subtitle</Heading>);
+      rerender(
+        <Heading level={4} tone="success">
+          Success Subtitle
+        </Heading>,
+      );
       heading = screen.getByRole('heading', { level: 4, name: 'Success Subtitle' });
       expect(heading.className).toContain('tone-success');
       expect(heading.className).toContain('headingLevel4');
@@ -54,7 +62,7 @@ describe('Typography Atoms', () => {
           startIcon={<Icon icon={Globe} size="xs" data-testid="globe-icon" />}
         >
           Warning text
-        </Text>
+        </Text>,
       );
       const span = screen.getByText('Warning text');
       expect(span.className).toContain('variant-mono-label');
@@ -66,7 +74,7 @@ describe('Typography Atoms', () => {
       render(
         <Link href="https://example.com" external>
           Example
-        </Link>
+        </Link>,
       );
       const link = screen.getByRole('link', { name: 'Example' });
       expect(link.getAttribute('target')).toBe('_blank');

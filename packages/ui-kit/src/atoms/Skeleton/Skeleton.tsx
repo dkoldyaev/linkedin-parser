@@ -20,7 +20,7 @@ const WIDTH_CLASSES: Record<SkeletonWidth, string | undefined> = {
   '75': styles.w75,
   '85': styles.w85,
   '100': styles.w100,
-  'full': styles.w100,
+  full: styles.w100,
 };
 
 const HEIGHT_CLASSES: Record<SkeletonHeight, string | undefined> = {
@@ -34,32 +34,23 @@ const HEIGHT_CLASSES: Record<SkeletonHeight, string | undefined> = {
 /**
  * Atomic Skeleton component for content loading placeholders on the Blueprint grid.
  */
-export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(
-  function Skeleton(
-    {
-      variant = 'text',
-      width,
-      height,
-      animated = true,
-      className,
-      ...rest
-    },
-    ref
-  ) {
-    return (
-      <div
-        ref={ref}
-        aria-hidden="true"
-        className={cn(
-          styles.skeleton,
-          styles[variant],
-          width && WIDTH_CLASSES[width],
-          height && HEIGHT_CLASSES[height],
-          animated && styles.animated,
-          className
-        )}
-        {...rest}
-      />
-    );
-  }
-);
+export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(function Skeleton(
+  { variant = 'text', width, height, animated = true, className, ...rest },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      aria-hidden="true"
+      className={cn(
+        styles.skeleton,
+        styles[variant],
+        width && WIDTH_CLASSES[width],
+        height && HEIGHT_CLASSES[height],
+        animated && styles.animated,
+        className,
+      )}
+      {...rest}
+    />
+  );
+});

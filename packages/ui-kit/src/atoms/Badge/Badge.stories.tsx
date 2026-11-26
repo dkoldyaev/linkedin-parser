@@ -1,15 +1,7 @@
+import { Award, Ban, CheckCircle2, Clock, MapPin, Sparkles, Tag } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  Award,
-  Ban,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  Sparkles,
-  Tag,
-} from 'lucide-react';
-import { Icon } from '../Icon';
 import { Badge } from './Badge';
+import { Icon } from '../Icon';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Badge> = {
@@ -29,16 +21,7 @@ const meta: Meta<typeof Badge> = {
     },
     palette: {
       control: 'select',
-      options: [
-        'slate',
-        'blue',
-        'cyan',
-        'indigo',
-        'purple',
-        'emerald',
-        'amber',
-        'rose',
-      ],
+      options: ['slate', 'blue', 'cyan', 'indigo', 'purple', 'emerald', 'amber', 'rose'],
     },
     variant: {
       control: 'select',

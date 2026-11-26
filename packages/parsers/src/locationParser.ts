@@ -1,52 +1,69 @@
 export const KNOWN_COUNTRIES = new Set([
-  "russia", "usa", "ukraine", "belarus", "kazakhstan", "cyprus", "georgia",
-  "armenia", "serbia", "germany", "uk", "united kingdom", "spain",
-  "poland", "netherlands", "france", "italy", "turkey", "uae",
-  "united arab emirates", "israel"
+  'russia',
+  'usa',
+  'ukraine',
+  'belarus',
+  'kazakhstan',
+  'cyprus',
+  'georgia',
+  'armenia',
+  'serbia',
+  'germany',
+  'uk',
+  'united kingdom',
+  'spain',
+  'poland',
+  'netherlands',
+  'france',
+  'italy',
+  'turkey',
+  'uae',
+  'united arab emirates',
+  'israel',
 ]);
 
 export const COUNTRY_ALIASES: Record<string, string> = {
-  "рф": "Russia",
-  "россия": "Russia",
-  "ru": "Russia",
-  "сша": "USA",
-  "united states": "USA",
-  "us": "USA",
-  "украина": "Ukraine",
-  "беларусь": "Belarus",
-  "казахстан": "Kazakhstan",
-  "кипр": "Cyprus",
-  "грузия": "Georgia",
-  "армения": "Armenia",
-  "сербия": "Serbia",
-  "германия": "Germany",
-  "великобритания": "UK",
-  "испания": "Spain",
-  "польша": "Poland",
-  "нидерланды": "Netherlands",
-  "франция": "France",
-  "италия": "Italy",
-  "турция": "Turkey",
-  "оаэ": "UAE",
-  "израиль": "Israel",
-  "de": "Germany",
-  "fr": "France",
-  "es": "Spain",
-  "it": "Italy",
-  "pl": "Poland",
-  "at": "Austria",
-  "ch": "Switzerland",
-  "nl": "Netherlands",
-  "se": "Sweden",
-  "no": "Norway",
-  "fi": "Finland",
-  "dk": "Denmark",
-  "ie": "Ireland",
-  "ca": "Canada",
-  "au": "Australia",
-  "cz": "Czechia",
-  "pt": "Portugal",
-  "be": "Belgium"
+  рф: 'Russia',
+  россия: 'Russia',
+  ru: 'Russia',
+  сша: 'USA',
+  'united states': 'USA',
+  us: 'USA',
+  украина: 'Ukraine',
+  беларусь: 'Belarus',
+  казахстан: 'Kazakhstan',
+  кипр: 'Cyprus',
+  грузия: 'Georgia',
+  армения: 'Armenia',
+  сербия: 'Serbia',
+  германия: 'Germany',
+  великобритания: 'UK',
+  испания: 'Spain',
+  польша: 'Poland',
+  нидерланды: 'Netherlands',
+  франция: 'France',
+  италия: 'Italy',
+  турция: 'Turkey',
+  оаэ: 'UAE',
+  израиль: 'Israel',
+  de: 'Germany',
+  fr: 'France',
+  es: 'Spain',
+  it: 'Italy',
+  pl: 'Poland',
+  at: 'Austria',
+  ch: 'Switzerland',
+  nl: 'Netherlands',
+  se: 'Sweden',
+  no: 'Norway',
+  fi: 'Finland',
+  dk: 'Denmark',
+  ie: 'Ireland',
+  ca: 'Canada',
+  au: 'Australia',
+  cz: 'Czechia',
+  pt: 'Portugal',
+  be: 'Belgium',
 };
 
 export function normalizeCountry(country: string): string {
@@ -60,12 +77,15 @@ export function normalizeCountry(country: string): string {
 
 export function parseLocation(location: string): [string | undefined, string | undefined] {
   if (!location) return [undefined, undefined];
-  
+
   let city: string | undefined;
   let country: string | undefined;
 
-  const parts = location.split(/[,/|]/).map(p => p.trim()).filter(Boolean);
-  
+  const parts = location
+    .split(/[,/|]/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   if (parts.length === 1) {
     const single = parts[0];
     const words = single.split(/\s+/);
@@ -80,7 +100,7 @@ export function parseLocation(location: string): [string | undefined, string | u
     }
     if (matchedCountry) {
       country = matchedCountry;
-      if (words.length) city = words.join(" ");
+      if (words.length) city = words.join(' ');
     } else {
       city = single;
     }
@@ -91,7 +111,7 @@ export function parseLocation(location: string): [string | undefined, string | u
       parts.pop();
     }
     if (parts.length) {
-      city = parts.join(", ");
+      city = parts.join(', ');
     }
   }
 

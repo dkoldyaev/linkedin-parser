@@ -15,7 +15,7 @@ export class Registry {
   }
 
   find(url: string): BaseParser | undefined {
-    return this.parsers.find(p => p.matches && p.matches(url));
+    return this.parsers.find((p) => p.matches && p.matches(url));
   }
 
   async parse(url: string, html?: string): Promise<VacancyData> {
@@ -23,7 +23,7 @@ export class Registry {
     if (!parser) {
       throw new Error(`No parser found for url: ${url}`);
     }
-    return await parser.parse(url, html || "");
+    return await parser.parse(url, html || '');
   }
 
   extractJobId(url: string): string | null {

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type { User, Vacancy, QueueTask } from '../types/models';
-import { realtimeService } from '../services/realtimeService';
+import type { QueueTask, User, Vacancy } from '../types/models';
+import React, { useEffect, useRef, useState } from 'react';
+import { type TranslateFn, upsertVacancyInList } from './homeFilterHelpers';
 import { queueService } from '../services/queueService';
-import { upsertVacancyInList, type TranslateFn } from './homeFilterHelpers';
+import { realtimeService } from '../services/realtimeService';
 
 export type BoardModalRealtimeEvent =
   | { type: 'vacancy_updated'; vacancy: Vacancy }
@@ -39,8 +39,7 @@ interface ParsedMercurePayload {
 function parseMercureEventData(rawText: string): ParsedMercurePayload {
   const raw = JSON.parse(rawText);
   const type: string = raw.type || raw.event_type || '';
-  const payload =
-    raw.data && typeof raw.data === 'object' ? { ...raw.data, ...raw } : raw;
+  const payload = raw.data && typeof raw.data === 'object' ? { ...raw.data, ...raw } : raw;
   return { ...payload, type };
 }
 
@@ -50,16 +49,13 @@ function extractIncomingVacancy(payload: ParsedMercurePayload): Vacancy | null {
   return null;
 }
 
-function updateQueueCountFromPayload(
-  payload: ParsedMercurePayload,
-  cb: MercureRealtimeCallbacks
-) {
+function updateQueueCountFromPayload(payload: ParsedMercurePayload, cb: MercureRealtimeCallbacks) {
   if (payload.total_remaining !== undefined) {
     cb.setQueueRemaining(payload.total_remaining);
   }
   if (payload.type === 'queue_state' && Array.isArray(payload.items)) {
     const activeCount = payload.items.filter(
-      (i) => i.status === 'pending' || i.status === 'processing'
+      (i) => i.status === 'pending' || i.status === 'processing',
     ).length;
     cb.setQueueRemaining(activeCount);
   }
@@ -68,7 +64,7 @@ function updateQueueCountFromPayload(
 function handleVacancyCreatedEvent(
   incoming: Vacancy | null,
   cb: MercureRealtimeCallbacks,
-  scheduleRefresh: () => void
+  scheduleRefresh: () => void,
 ) {
   if (!incoming) return;
   cb.setVacancies((prev) => upsertVacancyInList(prev, incoming));
@@ -77,7 +73,7 @@ function handleVacancyCreatedEvent(
       title: incoming.title,
       company: incoming.company ? incoming.company : '',
     }),
-    'success'
+    'success',
   );
   scheduleRefresh();
 }
@@ -85,7 +81,7 @@ function handleVacancyCreatedEvent(
 function handleVacancyUpdatedEvent(
   incoming: Vacancy | null,
   cb: MercureRealtimeCallbacks,
-  scheduleRefresh: () => void
+  scheduleRefresh: () => void,
 ) {
   if (!incoming) return;
   cb.setVacancies((prev) => upsertVacancyInList(prev, incoming));
@@ -102,15 +98,15 @@ function resolvePayloadScore(payload: ParsedMercurePayload): number | undefined 
 
 function handleCompatibilityAnalyzedEvent(
   payload: ParsedMercurePayload,
-  cb: MercureRealtimeCallbacks
+  cb: MercureRealtimeCallbacks,
 ) {
   const matchedId = payload.vacancy_id;
   const newScore = resolvePayloadScore(payload);
   if (!matchedId || newScore === undefined) return;
   cb.setVacancies((prev) =>
     prev.map((v) =>
-      v.id === matchedId ? { ...v, calculated_score: newScore, match_score: newScore } : v
-    )
+      v.id === matchedId ? { ...v, calculated_score: newScore, match_score: newScore } : v,
+    ),
   );
   cb.onModalRealtimeEvent?.({
     type: 'compatibility_analyzed',
@@ -121,7 +117,7 @@ function handleCompatibilityAnalyzedEvent(
 
 function resolveDeletedVacancyId(
   payload: ParsedMercurePayload,
-  incoming: Vacancy | null
+  incoming: Vacancy | null,
 ): number | undefined {
   if (payload.vacancy_id) return payload.vacancy_id;
   if (incoming) return incoming.id;
@@ -132,7 +128,7 @@ function handleVacancyDeletedEvent(
   payload: ParsedMercurePayload,
   incoming: Vacancy | null,
   cb: MercureRealtimeCallbacks,
-  scheduleRefresh: () => void
+  scheduleRefresh: () => void,
 ) {
   const delId = resolveDeletedVacancyId(payload, incoming);
   if (!delId) return;
@@ -145,23 +141,17 @@ function handleVacancyDeletedEvent(
   scheduleRefresh();
 }
 
-function handleTaskFailedEvent(
-  payload: ParsedMercurePayload,
-  cb: MercureRealtimeCallbacks
-) {
+function handleTaskFailedEvent(payload: ParsedMercurePayload, cb: MercureRealtimeCallbacks) {
   const errText = payload.error_code
     ? cb.t(`mercure.errors.${payload.error_code}`)
     : payload.error || cb.t('mercure.errors.ERR_UNKNOWN');
   cb.showToast(
     cb.t('mercure.task_failed', { error: errText, url: payload.url ? payload.url : '' }),
-    'error'
+    'error',
   );
 }
 
-function handleQueueIdleEvent(
-  cb: MercureRealtimeCallbacks,
-  scheduleRefresh: () => void
-) {
+function handleQueueIdleEvent(cb: MercureRealtimeCallbacks, scheduleRefresh: () => void) {
   cb.setQueueRemaining(0);
   cb.showToast(cb.t('mercure.queue_idle'), 'success');
   scheduleRefresh();
@@ -170,7 +160,7 @@ function handleQueueIdleEvent(
 function dispatchMercurePayload(
   payload: ParsedMercurePayload,
   cb: MercureRealtimeCallbacks,
-  scheduleRefresh: () => void
+  scheduleRefresh: () => void,
 ) {
   updateQueueCountFromPayload(payload, cb);
   const incoming = extractIncomingVacancy(payload);
@@ -198,7 +188,7 @@ async function fetchMercureSseUrl(): Promise<string> {
 
 export function useMercureRealtime(
   user: User | null | undefined,
-  callbacks: MercureRealtimeCallbacks
+  callbacks: MercureRealtimeCallbacks,
 ) {
   const [mercureStatus, setMercureStatus] = useState<'connected' | 'connecting'>('connecting');
   const callbacksRef = useRef<MercureRealtimeCallbacks>(callbacks);

@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { vacancyService } from '../../services/vacancyService';
+import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../../services/apiClient';
-import type { Vacancy } from '../../types/models';
 import type { BoardModalEventListener } from '../../store/BoardStoreContext';
+import type { Vacancy } from '../../types/models';
+import { vacancyService } from '../../services/vacancyService';
 
 export interface UseVacancyDetailLoaderArgs {
   vacancyId: number | null;
@@ -29,7 +29,7 @@ export function stripCachedDetailFields(card: Vacancy): Vacancy {
 export function buildResolvedModalVacancy(
   vacancyId: number | null,
   baseCard: Vacancy | null,
-  detail: Vacancy | null
+  detail: Vacancy | null,
 ): Vacancy | null {
   if (vacancyId === null) return null;
   const cleanBase = baseCard ? stripCachedDetailFields(baseCard) : null;
@@ -54,7 +54,7 @@ export function useVacancyDetailLoader({
 }: UseVacancyDetailLoaderArgs) {
   const [detail, setDetail] = useState<Vacancy | null>(null);
   const [loadingDetails, setLoadingDetails] = useState<boolean>(
-    Boolean(isOpen && vacancyId !== null)
+    Boolean(isOpen && vacancyId !== null),
   );
   const [notFound, setNotFound] = useState<boolean>(false);
 
@@ -100,9 +100,7 @@ export function useVacancyDetailLoader({
         setDetail((prev) => (prev ? { ...prev, ...event.vacancy } : prev));
       } else if (event.type === 'compatibility_analyzed' && event.vacancyId === vacancyId) {
         setDetail((prev) =>
-          prev
-            ? { ...prev, calculated_score: event.score, match_score: event.score }
-            : prev
+          prev ? { ...prev, calculated_score: event.score, match_score: event.score } : prev,
         );
       } else if (event.type === 'vacancy_deleted' && event.vacancyId === vacancyId) {
         setNotFound(true);
@@ -116,7 +114,7 @@ export function useVacancyDetailLoader({
         setDetail((prev) => (prev ? { ...prev, ...updated } : updated));
       }
     },
-    [vacancyId]
+    [vacancyId],
   );
 
   return {

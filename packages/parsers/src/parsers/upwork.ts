@@ -1,14 +1,14 @@
+import { cleanText, cleanUrlParams, extractCanonicalUrl, parseSalaryString } from '../helpers';
 import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
-import { cleanText, normalizeWorkplace, parseSalaryString, extractCanonicalUrl, cleanUrlParams } from '../helpers';
 import { createDocument } from '../dom';
+import { VacancyData } from '../types';
 
 export class UpworkParser extends BaseParser {
-  name = "upwork";
-  source = "Upwork";
+  name = 'upwork';
+  source = 'Upwork';
   priority = 20;
   needs_extension = true;
-  domains = ["upwork.com"];
+  domains = ['upwork.com'];
 
   matches(url: string): boolean {
     return url.toLowerCase().includes('upwork.com');
@@ -37,42 +37,45 @@ export class UpworkParser extends BaseParser {
     if (!html) return { url, source: this.source, job_id, is_closed: false };
 
     const doc = createDocument(html);
-    
+
     let title: string | undefined;
     let description: string | undefined;
     let is_closed = false;
     let salary_min: number | undefined;
     let salary_max: number | undefined;
-    let salary_currency: string | undefined = "USD";
+    let salary_currency: string | undefined = 'USD';
     let salary_period: string | undefined;
 
-    const h4 = doc.querySelector("h4");
+    const h4 = doc.querySelector('h4');
     if (h4) title = h4.textContent?.trim();
 
-    const h1 = doc.querySelector("h1");
+    const h1 = doc.querySelector('h1');
     if (!title && h1) title = h1.textContent?.trim();
 
-    const descEl = doc.querySelector('.job-description') || doc.querySelector('[data-test="JobDescription"]');
+    const descEl =
+      doc.querySelector('.job-description') || doc.querySelector('[data-test="JobDescription"]');
     if (descEl) description = cleanText(descEl);
 
     // Try to extract budget or hourly rate
-    const budgetEls = Array.from(doc.querySelectorAll('strong, [data-test="budget"], [data-test="hourly-rate"]'));
+    const budgetEls = Array.from(
+      doc.querySelectorAll('strong, [data-test="budget"], [data-test="hourly-rate"]'),
+    );
     for (const el of budgetEls) {
-      const text = el.textContent || "";
+      const text = el.textContent || '';
       if (text.includes('$')) {
         const parsed = parseSalaryString(text);
         if (parsed.salary_min) {
           salary_min = parsed.salary_min;
           salary_max = parsed.salary_max;
-          salary_currency = parsed.salary_currency || "USD";
+          salary_currency = parsed.salary_currency || 'USD';
           salary_period = parsed.salary_period;
           break;
         }
       }
     }
 
-    const text = doc.body.textContent?.toLowerCase() || "";
-    if (text.includes("this job is closed") || text.includes("no longer available")) {
+    const text = doc.body.textContent?.toLowerCase() || '';
+    if (text.includes('this job is closed') || text.includes('no longer available')) {
       is_closed = true;
     }
 
@@ -82,12 +85,12 @@ export class UpworkParser extends BaseParser {
       job_id,
       title,
       description: description?.substring(0, 15000),
-      workplace_type: "remote", // Upwork is always remote
+      workplace_type: 'remote', // Upwork is always remote
       is_closed,
       salary_min,
       salary_max,
       salary_currency,
-      salary_period
+      salary_period,
     };
   }
 }

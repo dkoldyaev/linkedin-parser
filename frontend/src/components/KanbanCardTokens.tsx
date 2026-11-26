@@ -1,6 +1,6 @@
-import React from 'react';
-import KanbanCardTechTokens from './KanbanCardTechTokens';
 import KanbanCardTagTokens from './KanbanCardTagTokens';
+import KanbanCardTechTokens from './KanbanCardTechTokens';
+import React from 'react';
 
 export interface KanbanCardTokensProps {
   techStack?: string[];

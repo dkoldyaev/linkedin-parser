@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Sparkles } from 'lucide-react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Icon } from '../../../atoms/Icon';
 import { SectionHeader } from '../SectionHeader';
+import { Sparkles } from 'lucide-react';
 
 describe('SectionHeader molecule', () => {
   it('renders title and applies default mono styling', () => {
@@ -12,34 +12,21 @@ describe('SectionHeader molecule', () => {
 
   it('renders leading icon slot with custom element', () => {
     const { container } = render(
-      <SectionHeader
-        title="AI Саммари"
-        icon={<Icon icon={Sparkles} size="sm" tone="success" />}
-      />
+      <SectionHeader title="AI Саммари" icon={<Icon icon={Sparkles} size="sm" tone="success" />} />,
     );
     expect(screen.getByText('AI Саммари')).toBeTruthy();
     expect(container.querySelector('svg')).toBeTruthy();
   });
 
   it('renders accessory action slot', () => {
-    render(
-      <SectionHeader
-        title="Зарплата"
-        accessory={<button type="button">Изменить</button>}
-      />
-    );
+    render(<SectionHeader title="Зарплата" accessory={<button type="button">Изменить</button>} />);
     expect(screen.getByRole('button', { name: 'Изменить' })).toBeTruthy();
   });
 
   it('handles collapsible click and toggle callback', () => {
     const onToggle = vi.fn();
     render(
-      <SectionHeader
-        title="Коллапсируемая секция"
-        collapsible
-        open={false}
-        onToggle={onToggle}
-      />
+      <SectionHeader title="Коллапсируемая секция" collapsible open={false} onToggle={onToggle} />,
     );
 
     const header = screen.getByRole('button', { name: /Коллапсируемая секция/i });
@@ -58,7 +45,7 @@ describe('SectionHeader molecule', () => {
     const { container } = render(
       <Section>
         <SectionHeader title="Внутри секции" />
-      </Section>
+      </Section>,
     );
 
     const header = container.querySelector('h4')?.parentElement?.parentElement;

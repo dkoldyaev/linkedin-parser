@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
   Badge,
   Button,
@@ -14,6 +12,8 @@ import {
   useKeyboardNavigation,
   useMediaQuery,
 } from '../index';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 import layoutStyles from './StoryLayout.module.css';
 
 const meta: Meta = {
@@ -44,23 +44,13 @@ function BlueprintGridAndScrollDemo(): React.ReactElement {
         title="useBlueprintGrid (32px Column & Height Quantization)"
         subtitle="Quantizes .bp-grid-row[data-cols] column widths and snaps .bp-snap heights to exact multiples of 32px (--ui-grid-cell)."
         headerActions={
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => setExtraLines((c) => (c % 4) + 1)}
-          >
+          <Button size="sm" variant="primary" onClick={() => setExtraLines((c) => (c % 4) + 1)}>
             Add Dynamic Content ({extraLines}x)
           </Button>
         }
       >
-        <div
-          className={`bp-grid-row ${layoutStyles.gridDemoRow}`}
-          data-cols="2"
-        >
-          <div
-            className={`bp-snap ${layoutStyles.gridDemoCell}`}
-            data-min-grids="2"
-          >
+        <div className={`bp-grid-row ${layoutStyles.gridDemoRow}`} data-cols="2">
+          <div className={`bp-snap ${layoutStyles.gridDemoCell}`} data-min-grids="2">
             <Text variant="mono-label" tone="accent">
               .bp-snap [data-min-grids=&quot;2&quot;]
             </Text>
@@ -73,10 +63,7 @@ function BlueprintGridAndScrollDemo(): React.ReactElement {
               </Text>
             ))}
           </div>
-          <div
-            className={`bp-snap ${layoutStyles.gridDemoCell}`}
-            data-min-grids="3"
-          >
+          <div className={`bp-snap ${layoutStyles.gridDemoCell}`} data-min-grids="3">
             <Text variant="mono-label" tone="success">
               .bp-snap [data-min-grids=&quot;3&quot;]
             </Text>
@@ -90,9 +77,7 @@ function BlueprintGridAndScrollDemo(): React.ReactElement {
       <Card
         title="useGridScroll (180ms 32px Scroll Settling)"
         subtitle="Scroll the box below and release — scrollTop smoothly settles onto the nearest multiple of 32px."
-        headerActions={
-          <Badge tone="accent">scrollTop: {Math.round(scrollOffset)}px</Badge>
-        }
+        headerActions={<Badge tone="accent">scrollTop: {Math.round(scrollOffset)}px</Badge>}
       >
         <div
           className={layoutStyles.scrollDemoViewport}
@@ -191,10 +176,7 @@ function HooksInteractivePlayground(): React.ReactElement {
           className={layoutStyles.stack}
         >
           {stageItems.map((item, idx) => (
-            <Badge
-              key={item}
-              tone={idx === nav.activeIndex ? 'accent' : 'neutral'}
-            >
+            <Badge key={item} tone={idx === nav.activeIndex ? 'accent' : 'neutral'}>
               {idx === nav.activeIndex ? `▶ ${item}` : item}
             </Badge>
           ))}

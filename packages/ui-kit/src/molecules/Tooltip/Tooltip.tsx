@@ -1,8 +1,8 @@
-import React from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { Text } from '../../atoms';
 import { cn, useOverlayContainer } from '../../utils';
+import React from 'react';
 import styles from './Tooltip.module.css';
+import { Text } from '../../atoms';
 
 export interface TooltipProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> {
   readonly content: React.ReactNode;

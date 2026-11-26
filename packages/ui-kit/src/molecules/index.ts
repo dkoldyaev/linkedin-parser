@@ -4,11 +4,7 @@ export { Select, type SelectOption, type SelectProps } from './Select';
 export { Tabs, type TabItem, type TabsProps } from './Tabs';
 export { Tooltip, type TooltipProps } from './Tooltip';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
-export {
-  AlertBanner,
-  type AlertBannerProps,
-  type AlertBannerTone,
-} from './AlertBanner';
+export { AlertBanner, type AlertBannerProps, type AlertBannerTone } from './AlertBanner';
 export {
   ColorPicker,
   type ColorPickerProps,
@@ -30,10 +26,7 @@ export {
   type StepperItemProps,
   type StepperItemData,
 } from './Stepper';
-export {
-  CollapsibleSection,
-  type CollapsibleSectionProps,
-} from './CollapsibleSection';
+export { CollapsibleSection, type CollapsibleSectionProps } from './CollapsibleSection';
 export {
   Section,
   SectionBody,
@@ -47,11 +40,7 @@ export {
   type SectionHeaderTone,
   type SectionHeaderVariant,
 } from './SectionHeader';
-export {
-  Accordion,
-  type AccordionProps,
-  type AccordionItem,
-} from './Accordion';
+export { Accordion, type AccordionProps, type AccordionItem } from './Accordion';
 export {
   Overlay,
   type OverlayProps,

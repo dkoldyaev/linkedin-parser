@@ -1,6 +1,6 @@
-import React from 'react';
-import { RefreshCw, List, Plus } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import { List, Plus, RefreshCw } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface HomePrimaryActionsProps {
@@ -36,22 +36,12 @@ export default function HomePrimaryActions({
       </Button>
 
       {hasQueue && (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onOpenQueue}
-          startIcon={LIST_ICON}
-        >
+        <Button variant="secondary" size="sm" onClick={onOpenQueue} startIcon={LIST_ICON}>
           {t('nav.queue')} [{queueRemaining}]
         </Button>
       )}
 
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={onAddVacanciesClick}
-        startIcon={PLUS_ICON}
-      >
+      <Button variant="primary" size="sm" onClick={onAddVacanciesClick} startIcon={PLUS_ICON}>
         {t('nav.add_vacancies')}
       </Button>
     </>

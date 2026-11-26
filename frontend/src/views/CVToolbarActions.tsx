@@ -1,9 +1,9 @@
-import React from 'react';
-import { CheckCircle2, Trash2 } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import CVUploadButton from './CVUploadButton';
+import { CheckCircle2, Trash2 } from 'lucide-react';
 import type { CVSyncStatus, ServerCVData } from './cv.types';
+import CVUploadButton from './CVUploadButton';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface CVToolbarActionsProps {
   sourceText: string;

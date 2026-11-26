@@ -1,24 +1,21 @@
-import React from 'react';
+import { type HomePageControllerProps, useHomePageController } from './useHomePageController';
+import type { BoardColumn } from '../types/models';
 import { DashboardLayout } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import KanbanBoard from '../components/KanbanBoard';
-import HomeHeaderSection from './HomeHeaderSection';
-import HomeGuestBanner from './HomeGuestBanner';
 import HomeFilterSection from './HomeFilterSection';
+import HomeGuestBanner from './HomeGuestBanner';
+import HomeHeaderSection from './HomeHeaderSection';
 import HomeModalsContainer from './HomeModalsContainer';
 import HomeToastNotification from './HomeToastNotification';
+import KanbanBoard from '../components/KanbanBoard';
 import NotFoundPage from './NotFoundPage';
-import { useHomePageController, type HomePageControllerProps } from './useHomePageController';
-import type { BoardColumn } from '../types/models';
+import React from 'react';
+import { useTranslation } from '../i18n/I18nContext';
 
 export type HomePageProps = HomePageControllerProps;
 
 export default function HomePage(props: HomePageProps): React.ReactElement {
   const { t } = useTranslation();
-  const { user, onLogout, onUserUpdated, data, modals, actions } = useHomePageController(
-    props,
-    t
-  );
+  const { user, onLogout, onUserUpdated, data, modals, actions } = useHomePageController(props, t);
 
   if (modals.isVacancyNotFound) {
     return <NotFoundPage showHeader />;

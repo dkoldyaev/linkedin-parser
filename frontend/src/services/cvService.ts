@@ -1,5 +1,5 @@
 import { ApiClient, apiClient as defaultApiClient } from './apiClient';
-import type { ServerCVData, SaveCVPayload } from './cvService.types';
+import type { SaveCVPayload, ServerCVData } from './cvService.types';
 
 export class CvService {
   private readonly client: ApiClient;

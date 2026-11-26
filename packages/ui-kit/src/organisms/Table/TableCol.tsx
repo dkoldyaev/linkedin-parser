@@ -1,5 +1,5 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Table.module.css';
 
 export type TableColGridUnits = 6 | 8 | 10 | 12 | 14 | 16;
@@ -21,51 +21,44 @@ const KNOWN_UNITS = new Set([6, 8, 10, 12, 14, 16]);
  * Vertical column container for flex Table.
  * Aligns width to 32px blueprint grid multiples (default: 10 units = 320px).
  */
-export const TableCol = React.forwardRef<HTMLDivElement, TableColProps>(
-  function TableCol(
-    {
-      gridUnits,
-      fluid = false,
-      isDragOver = false,
-      children,
-      className,
-      style,
-      ...restProps
-    },
-    ref
-  ): React.ReactElement {
-    const effectiveUnits = gridUnits ?? (fluid ? undefined : 10);
-    const isKnownUnit = !fluid && typeof effectiveUnits === 'number' && KNOWN_UNITS.has(effectiveUnits);
-    const knownUnitsClass = isKnownUnit
-      ? styles[`colUnits${effectiveUnits}`]
-      : undefined;
+export const TableCol = React.forwardRef<HTMLDivElement, TableColProps>(function TableCol(
+  { gridUnits, fluid = false, isDragOver = false, children, className, style, ...restProps },
+  ref,
+): React.ReactElement {
+  const effectiveUnits = gridUnits ?? (fluid ? undefined : 10);
+  const isKnownUnit =
+    !fluid && typeof effectiveUnits === 'number' && KNOWN_UNITS.has(effectiveUnits);
+  const knownUnitsClass = isKnownUnit ? styles[`colUnits${effectiveUnits}`] : undefined;
 
-    const customGridStyle: React.CSSProperties | undefined =
-      !fluid && typeof effectiveUnits === 'number' && !isKnownUnit
-        ? {
-            flex: `0 0 calc(${effectiveUnits} * var(--ui-grid-cell))`,
-            width: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
-            minWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
-            maxWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
-            ...style,
-          }
-        : style;
+  const customGridStyle: React.CSSProperties | undefined =
+    !fluid && typeof effectiveUnits === 'number' && !isKnownUnit
+      ? {
+          flex: `0 0 calc(${effectiveUnits} * var(--ui-grid-cell))`,
+          width: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
+          minWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
+          maxWidth: `calc(${effectiveUnits} * var(--ui-grid-cell))`,
+          ...style,
+        }
+      : style;
 
-    return (
-      <div
-        ref={ref}
-        role="region"
-        style={customGridStyle}
-        className={cn(
-          styles.col,
-          fluid ? styles.colFluid : knownUnitsClass,
-          isDragOver && styles.colDragOver,
-          className
-        )}
-        {...restProps}
-      >
-        {children}
-      </div>
-    );
-  }
-);
+  const mergedProps: React.HTMLAttributes<HTMLDivElement> = {
+    ...restProps,
+    ...(customGridStyle ? { style: customGridStyle } : {}),
+  };
+
+  return (
+    <div
+      ref={ref}
+      role="region"
+      className={cn(
+        styles.col,
+        fluid ? styles.colFluid : knownUnitsClass,
+        isDragOver && styles.colDragOver,
+        className,
+      )}
+      {...mergedProps}
+    >
+      {children}
+    </div>
+  );
+});

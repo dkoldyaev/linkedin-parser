@@ -1,10 +1,9 @@
-import React from 'react';
 import { useBlueprintGrid, useGridScroll } from '../../hooks';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './DashboardLayout.module.css';
 
-export interface DashboardLayoutProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface DashboardLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly header?: React.ReactNode;
   readonly filterBar?: React.ReactNode;
   readonly toolbar?: React.ReactNode;
@@ -41,11 +40,7 @@ export function DashboardLayout({
   const handleGridScroll = useGridScroll();
 
   return (
-    <div
-      ref={dashboardRef}
-      className={cn(styles.dashboard, 'bp-page', className)}
-      {...rest}
-    >
+    <div ref={dashboardRef} className={cn(styles.dashboard, 'bp-page', className)} {...rest}>
       {header}
       {filterBar !== undefined && (
         <section aria-label="Filters" className={styles.filterBar}>
@@ -79,9 +74,7 @@ export function DashboardLayout({
           {children}
         </main>
       </div>
-      {footer !== undefined && (
-        <footer className={styles.footer}>{footer}</footer>
-      )}
+      {footer !== undefined && <footer className={styles.footer}>{footer}</footer>}
     </div>
   );
 }

@@ -1,17 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { TagsList } from '../TagsList';
 
 describe('TagsList organism', () => {
   it('renders badges and removes an item when deletable', () => {
     const onChange = vi.fn();
-    render(
-      <TagsList
-        value={['React', 'TypeScript']}
-        onChange={onChange}
-        deletable
-      />
-    );
+    render(<TagsList value={['React', 'TypeScript']} onChange={onChange} deletable />);
 
     expect(screen.getByText('React')).toBeInTheDocument();
     expect(screen.getByText('TypeScript')).toBeInTheDocument();
@@ -30,7 +24,7 @@ describe('TagsList organism', () => {
         addable
         separator=","
         placeholder="Add tag..."
-      />
+      />,
     );
 
     const input = screen.getByPlaceholderText('Add tag...');
@@ -44,7 +38,7 @@ describe('TagsList organism', () => {
       <TagsList
         value={['React', 'TypeScript', 'Storybook', 'GraphQL', 'Node.js']}
         maxVisible={2}
-      />
+      />,
     );
 
     expect(screen.getByText('React')).toBeInTheDocument();

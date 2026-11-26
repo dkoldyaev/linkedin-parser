@@ -114,17 +114,14 @@ export function level(count: number, max: number): number {
 function accumulateDailyEntry(
   item: DailyStatsEntry,
   marked: Record<string, number>,
-  added: Record<string, number>
+  added: Record<string, number>,
 ) {
   if (!item.date) return;
   marked[item.date] = (marked[item.date] || 0) + (item.marked || 0);
   added[item.date] = (added[item.date] || 0) + (item.added || 0);
 }
 
-function mergeDailyMapIntoTarget(
-  source: Record<string, number>,
-  target: Record<string, number>
-) {
+function mergeDailyMapIntoTarget(source: Record<string, number>, target: Record<string, number>) {
   for (const [k, v] of Object.entries(source)) {
     target[k] = (target[k] || 0) + v;
   }
@@ -149,7 +146,7 @@ function buildActivityMaps(data: StatsApiData) {
 function buildSingleHeatmapWeek(
   weekStart: Date,
   today: Date,
-  activity: Record<string, number>
+  activity: Record<string, number>,
 ): { col: HeatmapCell[]; nextStart: Date; weekMax: number } {
   const col: HeatmapCell[] = [];
   let cur = new Date(weekStart);
@@ -186,11 +183,7 @@ function buildHeatmapWeeks(today: Date, activity: Record<string, number>) {
   return { weeks, max };
 }
 
-function buildDayBars(
-  today: Date,
-  marked: Record<string, number>,
-  added: Record<string, number>
-) {
+function buildDayBars(today: Date, marked: Record<string, number>, added: Record<string, number>) {
   const bars: DayBarItem[] = [];
   let barMax = 0;
   for (let i = BAR_DAYS - 1; i >= 0; i -= 1) {

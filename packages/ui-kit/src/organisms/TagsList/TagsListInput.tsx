@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { Input, type InputProps } from '../../atoms/Input';
+import React, { useState } from 'react';
 import { cn } from '../../utils';
 import styles from './TagsList.module.css';
 

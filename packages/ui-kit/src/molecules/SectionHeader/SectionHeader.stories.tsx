@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Badge, Button, Icon } from '../../atoms';
 import {
   Banknote,
   Check,
@@ -9,9 +9,9 @@ import {
   Sparkles,
   StickyNote,
 } from 'lucide-react';
-import { SectionHeader } from './SectionHeader';
-import { Badge, Button, Icon } from '../../atoms';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { SectionHeader } from './SectionHeader';
 
 const meta: Meta<typeof SectionHeader> = {
   title: 'Molecules/SectionHeader',
@@ -26,11 +26,7 @@ export const TechStackAddAccessory: Story = {
   args: {
     title: 'Tech Stack',
     accessory: (
-      <Button
-        size="icon-sm"
-        variant="secondary"
-        aria-label="Add technology"
-      >
+      <Button size="icon-sm" variant="secondary" aria-label="Add technology">
         <Icon icon={Plus} size="sm" />
       </Button>
     ),
@@ -42,11 +38,7 @@ export const AiSummaryWithReanalyze: Story = {
     title: 'AI Summary',
     icon: <Icon icon={Sparkles} size="sm" tone="success" />,
     accessory: (
-      <Button
-        size="sm"
-        variant="secondary"
-        startIcon={<Icon icon={RefreshCw} size="xs" />}
-      >
+      <Button size="sm" variant="secondary" startIcon={<Icon icon={RefreshCw} size="xs" />}>
         Re-analyze
       </Button>
     ),
@@ -75,11 +67,7 @@ export const SalaryWithEditAction: Story = {
       </Badge>
     ),
     accessory: (
-      <Button
-        size="sm"
-        variant="secondary"
-        startIcon={<Icon icon={Edit3} size="xs" />}
-      >
+      <Button size="sm" variant="secondary" startIcon={<Icon icon={Edit3} size="xs" />}>
         Edit
       </Button>
     ),
@@ -91,11 +79,7 @@ export const NotesWithSaveAction: Story = {
     title: 'Personal Notes',
     icon: <Icon icon={StickyNote} size="sm" tone="muted" />,
     accessory: (
-      <Button
-        size="sm"
-        variant="secondary"
-        startIcon={<Icon icon={Check} size="xs" />}
-      >
+      <Button size="sm" variant="secondary" startIcon={<Icon icon={Check} size="xs" />}>
         Save
       </Button>
     ),
@@ -105,36 +89,11 @@ export const NotesWithSaveAction: Story = {
 export const SemanticTonesAndDividers: Story = {
   render: () => (
     <div className={layoutStyles.stack}>
-      <SectionHeader
-        title="MATCHES [3]"
-        variant="mono"
-        tone="mint"
-        divider
-      />
-      <SectionHeader
-        title="GAPS [2]"
-        variant="mono"
-        tone="warning"
-        divider
-      />
-      <SectionHeader
-        title="CRITICAL BLOCKERS [1]"
-        variant="mono"
-        tone="danger"
-        divider
-      />
-      <SectionHeader
-        title="ACCENT SECTION"
-        variant="mono"
-        tone="accent"
-        divider
-      />
-      <SectionHeader
-        title="MUTED SECTION"
-        variant="mono"
-        tone="muted"
-        divider
-      />
+      <SectionHeader title="MATCHES [3]" variant="mono" tone="mint" divider />
+      <SectionHeader title="GAPS [2]" variant="mono" tone="warning" divider />
+      <SectionHeader title="CRITICAL BLOCKERS [1]" variant="mono" tone="danger" divider />
+      <SectionHeader title="ACCENT SECTION" variant="mono" tone="accent" divider />
+      <SectionHeader title="MUTED SECTION" variant="mono" tone="muted" divider />
     </div>
   ),
 };

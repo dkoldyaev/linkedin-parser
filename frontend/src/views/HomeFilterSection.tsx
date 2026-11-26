@@ -1,11 +1,11 @@
-import React from 'react';
-import { FilterBar } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
-import { trackEvent, EVENTS } from '../utils/analytics';
 import { buildFilterSelects, hasAnyActiveFilter } from './homeFilterHelpers';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { FilterBar } from '@blueprint/ui-kit';
 import HomeMoveClosedButton from './HomeMoveClosedButton';
+import React from 'react';
+import { resolveRejectedStatusId } from '../components/kanbanCardHelpers';
 import type { useHomeVacanciesData } from './useHomeVacanciesData';
+import { useTranslation } from '../i18n/I18nContext';
 import type { useVacancyBoardActions } from './useVacancyBoardActions';
 
 export interface HomeFilterSectionProps {
@@ -33,15 +33,13 @@ export default function HomeFilterSection({
       onSourceChange: data.handleSourceChange,
       onClosedChange: data.handleClosedChange,
     },
-    t
+    t,
   );
 
   const rejectedStatusId = resolveRejectedStatusId(data.columns);
   const nonRejectedCount = data.vacancies.filter(
     (v) =>
-      Boolean(v.is_closed) &&
-      v.status !== rejectedStatusId &&
-      !data.hiddenVacancyIds.has(v.id)
+      Boolean(v.is_closed) && v.status !== rejectedStatusId && !data.hiddenVacancyIds.has(v.id),
   ).length;
 
   return (

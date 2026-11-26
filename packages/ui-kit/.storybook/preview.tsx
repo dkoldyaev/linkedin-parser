@@ -48,11 +48,7 @@ const preview: Preview = {
 
       return (
         <OverlayProvider>
-          <div
-            data-theme={activeTheme}
-            dir={activeDir}
-            className="sb-blueprint-canvas"
-          >
+          <div data-theme={activeTheme} dir={activeDir} className="sb-blueprint-canvas">
             <Story />
           </div>
         </OverlayProvider>
@@ -94,13 +90,7 @@ const preview: Preview = {
         order: [
           'Introduction',
           'Foundations (Tokens)',
-          [
-            'Colors',
-            'Typography',
-            'Spacing & 32px Grid',
-            'Shadows & Borders',
-            'Icons',
-          ],
+          ['Colors', 'Typography', 'Spacing & 32px Grid', 'Shadows & Borders', 'Icons'],
           'Atoms',
           [
             'Button',
@@ -133,25 +123,13 @@ const preview: Preview = {
             'EmptyState',
           ],
           'Organisms',
-          [
-            'Modal',
-            'Card',
-            'Table',
-            'DataTable',
-            'Header',
-            'Form',
-            'ReportAccordion',
-          ],
+          ['Modal', 'Card', 'Table', 'DataTable', 'Header', 'Form', 'ReportAccordion'],
           'Layouts',
           ['PageLayout', 'DashboardLayout'],
           'Hooks',
           ['Hooks Showcase'],
           'Showcases (Job Tracker)',
-          [
-            'Vacancy Card Showcase',
-            'Kanban Board Showcase',
-            'Vacancy Details Showcase',
-          ],
+          ['Vacancy Card Showcase', 'Kanban Board Showcase', 'Vacancy Details Showcase'],
         ],
       },
     },

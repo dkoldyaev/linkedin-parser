@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { Card, CardCollapsed, CardFull } from '../Card';
 import { describe, expect, it } from 'vitest';
-import { Card, CardFull, CardCollapsed } from '../Card';
+import { render, screen } from '@testing-library/react';
 
 describe('Card organism', () => {
   it('renders standard card with title, overline and status indicators', () => {
@@ -9,7 +9,7 @@ describe('Card organism', () => {
         title="Test Job Title"
         overline="Acme Corp"
         statusIndicators={<span data-testid="indicator">Status</span>}
-      />
+      />,
     );
 
     expect(screen.getByText('Test Job Title')).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe('Card organism', () => {
         title="Staff Frontend Architect"
         overline="Stripe"
         statusIndicators={<span data-testid="compact-indicator">Active</span>}
-      />
+      />,
     );
 
     expect(screen.getByText('Stripe')).toBeInTheDocument();
@@ -43,14 +43,10 @@ describe('Card organism', () => {
           overline="Corp"
           statusIndicators={<span>CollapsedBadge</span>}
         />
-        <CardFull
-          title="Direct Full"
-          overline="Corp"
-          footer={<span>FooterContent</span>}
-        />
+        <CardFull title="Direct Full" overline="Corp" footer={<span>FooterContent</span>} />
         <Card.FullLoading data-testid="full-loading" />
         <Card.CollapsedLoading data-testid="collapsed-loading" />
-      </>
+      </>,
     );
 
     expect(screen.getByText('Direct Collapsed')).toBeInTheDocument();
@@ -71,4 +67,3 @@ describe('Card organism', () => {
     expect(root.className).toMatch(/compact/);
   });
 });
-

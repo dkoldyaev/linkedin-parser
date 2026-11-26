@@ -1,6 +1,6 @@
-import React from 'react';
 import { useBlueprintGrid, useGridScroll } from '../../hooks';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './PageLayout.module.css';
 
 export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -46,13 +46,7 @@ export function PageLayout({
     >
       {header}
       {banner !== undefined && <div className={styles.bannerSlot}>{banner}</div>}
-      <main
-        className={cn(
-          styles.main,
-          fullBleed && styles.fullBleed,
-          mainClassName
-        )}
-      >
+      <main className={cn(styles.main, fullBleed && styles.fullBleed, mainClassName)}>
         {children}
       </main>
       {footer !== undefined && (

@@ -1,22 +1,14 @@
-
+import type { BoardColumn, User, Vacancy } from '../types/models';
+import { Columns3, Globe, Settings } from 'lucide-react';
+import { Icon, Modal, ModalBody, ModalFooter, ModalHeader, Tabs } from '@blueprint/ui-kit';
 import React, { useState } from 'react';
-import { Settings, Globe, Columns3 } from 'lucide-react';
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Tabs,
-  Icon,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { STATUS_REJECTED } from '../constants/columns.consts';
-import SettingsGeneralTab from './SettingsGeneralTab';
-import SettingsColumnsTab from './SettingsColumnsTab';
 import SettingsColumnModals from './SettingsColumnModals';
+import SettingsColumnsTab from './SettingsColumnsTab';
+import SettingsGeneralTab from './SettingsGeneralTab';
 import SettingsModalFooterActions from './SettingsModalFooterActions';
+import { STATUS_REJECTED } from '../constants/columns.consts';
 import { useSettingsController } from './useSettingsController';
-import type { BoardColumn, Vacancy, User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface SettingsModalProps {
   isOpen: boolean;

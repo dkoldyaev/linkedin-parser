@@ -1,13 +1,6 @@
-import React from 'react';
+import { Badge, Button, Icon, ModalBody, ModalFooter, Text } from '@blueprint/ui-kit';
 import { CheckCircle } from 'lucide-react';
-import {
-  ModalBody,
-  ModalFooter,
-  Button,
-  Icon,
-  Text,
-  Badge,
-} from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface BatchResultItem {
@@ -58,7 +51,12 @@ export default function BatchImportResultView({
             tone="success"
             style={{ margin: '0 auto var(--ui-space-4)' }}
           />
-          <Text as="h3" variant="display" weight="bold" style={{ marginBottom: 'var(--ui-space-2)' }}>
+          <Text
+            as="h3"
+            variant="display"
+            weight="bold"
+            style={{ marginBottom: 'var(--ui-space-2)' }}
+          >
             {t('batchModal.success_title')}
           </Text>
           <Text
@@ -70,7 +68,14 @@ export default function BatchImportResultView({
           </Text>
 
           {items.length > 0 && (
-            <div style={{ textAlign: 'left', marginTop: 'var(--ui-space-4)', maxHeight: '200px', overflowY: 'auto' }}>
+            <div
+              style={{
+                textAlign: 'left',
+                marginTop: 'var(--ui-space-4)',
+                maxHeight: '200px',
+                overflowY: 'auto',
+              }}
+            >
               <Text
                 variant="caption"
                 weight="bold"

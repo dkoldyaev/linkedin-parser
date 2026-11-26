@@ -1,7 +1,4 @@
-export {
-  MediaQuery,
-  type MediaQueryProps,
-} from './MediaQuery';
+export { MediaQuery, type MediaQueryProps } from './MediaQuery';
 export {
   ContainerQuery,
   ContainerQuerySlot,
@@ -9,4 +6,3 @@ export {
   type ContainerQuerySlotProps,
   type ContainerType,
 } from './ContainerQuery';
-

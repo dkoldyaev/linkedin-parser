@@ -1,5 +1,5 @@
-import React from 'react';
 import { AlertBanner } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../../i18n/I18nContext';
 
 export interface VacancyReparseBannerProps {
@@ -20,11 +20,7 @@ export default function VacancyReparseBanner({
   }
   if (success) {
     return (
-      <AlertBanner
-        tone="success"
-        title={t('vacancyModal.reparse_success')}
-        style={BANNER_STYLE}
-      />
+      <AlertBanner tone="success" title={t('vacancyModal.reparse_success')} style={BANNER_STYLE} />
     );
   }
   return null;

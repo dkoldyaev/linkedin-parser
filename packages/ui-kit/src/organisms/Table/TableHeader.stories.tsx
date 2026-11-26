@@ -1,8 +1,8 @@
+import { Badge, Button, Icon, StatusDot, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MoreVertical, Plus } from 'lucide-react';
-import { TableHeader } from './TableHeader';
-import { Badge, Button, Icon, StatusDot, Text } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { TableHeader } from './TableHeader';
 
 const meta: Meta<typeof TableHeader> = {
   title: 'Organisms/Table/TableHeader',

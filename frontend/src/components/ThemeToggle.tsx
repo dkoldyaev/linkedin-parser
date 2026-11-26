@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
 import { Button, Icon } from '@blueprint/ui-kit';
+import { Moon, Sun } from 'lucide-react';
+import React, { useState } from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 function readInitialTheme(): 'dark' | 'light' {

@@ -1,6 +1,6 @@
+import { Button, Icon } from '../../atoms';
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { Button, Icon } from '../../atoms';
 
 export interface FilterBarResetProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   readonly onReset: () => void;

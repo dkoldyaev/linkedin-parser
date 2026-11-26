@@ -1,6 +1,6 @@
-import React from 'react';
-import { HelpCircle, Download } from 'lucide-react';
 import { Button, Icon, Text } from '@blueprint/ui-kit';
+import { Download, HelpCircle } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface ExtensionInstructionsSectionProps {
@@ -41,8 +41,16 @@ export default function ExtensionInstructionsSection({
   const iconTone = isUpdate ? 'warning' : 'accent';
   const zipLabel = isUpdate ? `ZIP (v${latestVersion || ''})` : 'ZIP';
   const steps = isUpdate
-    ? [t('extensionModal.update_step1'), t('extensionModal.update_step2'), t('extensionModal.update_step3')]
-    : [t('extensionModal.install_step1'), t('extensionModal.install_step2'), t('extensionModal.install_step3')];
+    ? [
+        t('extensionModal.update_step1'),
+        t('extensionModal.update_step2'),
+        t('extensionModal.update_step3'),
+      ]
+    : [
+        t('extensionModal.install_step1'),
+        t('extensionModal.install_step2'),
+        t('extensionModal.install_step3'),
+      ];
 
   return (
     <div style={BOX_STYLE}>

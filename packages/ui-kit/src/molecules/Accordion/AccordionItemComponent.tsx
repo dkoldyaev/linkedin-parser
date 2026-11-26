@@ -1,11 +1,14 @@
-import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Icon, Text } from '../../atoms';
 import { cn } from '../../utils';
-import { useAccordionContext } from './AccordionContext';
+import React from 'react';
 import styles from './Accordion.module.css';
+import { useAccordionContext } from './AccordionContext';
 
-export interface AccordionItemProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'content'> {
+export interface AccordionItemProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'title' | 'content'
+> {
   readonly id: string;
   readonly title: React.ReactNode;
   readonly content?: React.ReactNode;
@@ -25,7 +28,12 @@ export function AccordionItemComponent({
   children,
   ...rest
 }: AccordionItemProps): React.ReactElement {
-  const { activeExpandedIds, toggleItem, defaultActionLabel, bullet: defaultBullet } = useAccordionContext();
+  const {
+    activeExpandedIds,
+    toggleItem,
+    defaultActionLabel,
+    bullet: defaultBullet,
+  } = useAccordionContext();
 
   const isExpanded = activeExpandedIds.includes(id);
   const hasContent = (content !== undefined && content !== null) || children !== undefined;
@@ -55,7 +63,7 @@ export function AccordionItemComponent({
         styles.item,
         disabled && styles.itemDisabled,
         isExpanded && styles.itemExpanded,
-        className
+        className,
       )}
       {...rest}
     >
@@ -64,7 +72,7 @@ export function AccordionItemComponent({
         className={cn(
           styles.header,
           disabled && styles.headerDisabled,
-          !hasContent && styles.headerStatic
+          !hasContent && styles.headerStatic,
         )}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
@@ -75,7 +83,14 @@ export function AccordionItemComponent({
       >
         <div className={styles.titleGroup}>
           {showBullet && (
-            <Text as="span" variant="body-sm" weight="bold" tone="secondary" className={styles.bullet} aria-hidden>
+            <Text
+              as="span"
+              variant="body-sm"
+              weight="bold"
+              tone="secondary"
+              className={styles.bullet}
+              aria-hidden
+            >
               {typeof showBullet === 'boolean' ? '•' : showBullet}
             </Text>
           )}

@@ -1,8 +1,8 @@
+import { Badge, Button, Icon, Text } from '@blueprint/ui-kit';
+import type { ApiKeyItem } from '../types/models';
 import React from 'react';
 import { Trash2 } from 'lucide-react';
-import { Button, Icon, Badge, Text } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import type { ApiKeyItem } from '../types/models';
 
 export interface ApiKeyListItemProps {
   apiKey: ApiKeyItem;
@@ -19,12 +19,12 @@ export default function ApiKeyListItem({
 
   const createdStr = t('settingsModal.key_created_at').replace(
     '{date}',
-    new Date(apiKey.created_at).toLocaleDateString()
+    new Date(apiKey.created_at).toLocaleDateString(),
   );
   const lastUsedStr = apiKey.last_used_at
     ? t('settingsModal.key_last_used').replace(
         '{date}',
-        new Date(apiKey.last_used_at).toLocaleDateString()
+        new Date(apiKey.last_used_at).toLocaleDateString(),
       )
     : t('settingsModal.key_never_used');
 

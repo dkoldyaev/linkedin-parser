@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { BoardColumn } from '../types/models';
 import type { ColumnCreatePayload } from './ColumnCreateModal';
-import type { ColumnUpdatePayload } from './ColumnEditModal';
 import { columnService } from '../services/columnService';
+import type { ColumnUpdatePayload } from './ColumnEditModal';
 
 export function useColumnCrudModals(onColumnsChange?: (cols: BoardColumn[]) => void) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);

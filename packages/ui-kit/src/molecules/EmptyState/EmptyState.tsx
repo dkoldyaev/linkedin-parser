@@ -1,11 +1,10 @@
+import { cn } from '../../utils';
 import React from 'react';
+import styles from './EmptyState.module.css';
 import { Text } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
-import { cn } from '../../utils';
-import styles from './EmptyState.module.css';
 
-export interface EmptyStateProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly icon?: React.ReactNode;
   readonly title: React.ReactNode;
   readonly description?: React.ReactNode;
@@ -39,12 +38,7 @@ export function EmptyState({
         {title}
       </Text>
       {description !== undefined && (
-        <Text
-          as="p"
-          variant="caption"
-          tone="secondary"
-          className={styles.description}
-        >
+        <Text as="p" variant="caption" tone="secondary" className={styles.description}>
           {description}
         </Text>
       )}

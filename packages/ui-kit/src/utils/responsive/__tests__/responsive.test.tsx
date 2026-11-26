@@ -1,17 +1,12 @@
-import { useRef } from 'react';
-import { render, screen } from '@testing-library/react';
+import { ContainerQuery, MediaQuery } from '../index';
 import { describe, expect, it } from 'vitest';
-import { MediaQuery, ContainerQuery } from '../index';
+import { render, screen } from '@testing-library/react';
+import { useRef } from 'react';
 
 describe('Responsive utils (MediaQuery & ContainerQuery)', () => {
   describe('MediaQuery component', () => {
     it('renders slots for mobile and desktop concurrently for CSS media query switching', () => {
-      render(
-        <MediaQuery
-          mobile={<span>Mobile View</span>}
-          desktop={<span>Desktop View</span>}
-        />
-      );
+      render(<MediaQuery mobile={<span>Mobile View</span>} desktop={<span>Desktop View</span>} />);
 
       expect(screen.getByText('Mobile View')).toBeInTheDocument();
       expect(screen.getByText('Desktop View')).toBeInTheDocument();

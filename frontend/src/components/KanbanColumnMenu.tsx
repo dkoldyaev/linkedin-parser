@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
-import { MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { Button, Icon, Overlay } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { Edit2, MoreVertical, Trash2 } from 'lucide-react';
+import React, { useRef } from 'react';
 import type { BoardColumn } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface KanbanColumnMenuProps {
   col: BoardColumn;

@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AlertTriangle, CheckCircle2, Info, Sparkles, Trash2 } from 'lucide-react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Icon } from './Icon';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 

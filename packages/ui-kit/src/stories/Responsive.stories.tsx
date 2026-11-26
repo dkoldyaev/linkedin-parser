@@ -1,13 +1,8 @@
-import { useRef } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  MediaQuery,
-  ContainerQuery,
-  useMediaQuery,
-  useContainerQuery,
-} from '../utils';
 import { Badge, Button, Text } from '../atoms';
+import { ContainerQuery, MediaQuery, useContainerQuery, useMediaQuery } from '../utils';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from './StoryLayout.module.css';
+import { useRef } from 'react';
 
 const meta: Meta = {
   title: 'Utils/Responsive (MediaQuery & ContainerQuery)',
@@ -20,7 +15,8 @@ export const CSSMediaQuery: StoryObj = {
   render: () => (
     <div className={layoutStyles.container}>
       <Text variant="caption" tone="muted">
-        Измените ширину окна браузера: переключение происходит через CSS (@media) без перерендера React.
+        Измените ширину окна браузера: переключение происходит через CSS (@media) без перерендера
+        React.
       </Text>
       <MediaQuery
         mobile={

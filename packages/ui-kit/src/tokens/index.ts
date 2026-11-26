@@ -3,23 +3,10 @@ import './tokens.css';
 export type ThemeMode = 'dark' | 'light';
 
 export type SemanticTone =
-  | 'neutral'
-  | 'primary'
-  | 'accent'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info';
+  'neutral' | 'primary' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
 
 export type PaletteTone =
-  | 'slate'
-  | 'blue'
-  | 'cyan'
-  | 'indigo'
-  | 'purple'
-  | 'emerald'
-  | 'amber'
-  | 'rose';
+  'slate' | 'blue' | 'cyan' | 'indigo' | 'purple' | 'emerald' | 'amber' | 'rose';
 
 export type SpacingToken =
   | '0'
@@ -38,15 +25,7 @@ export type SpacingToken =
   | '12'
   | '16';
 
-export type FontSizeToken =
-  | '2xs'
-  | 'xs'
-  | 'sm'
-  | 'md'
-  | 'base'
-  | 'lg'
-  | 'xl'
-  | '2xl';
+export type FontSizeToken = '2xs' | 'xs' | 'sm' | 'md' | 'base' | 'lg' | 'xl' | '2xl';
 
 export type FontFamilyToken = 'sans' | 'mono' | 'display';
 

@@ -1,9 +1,9 @@
+import { Badge, Button, Icon, StatusDot, Text } from '../../atoms';
+import { Inbox, MoreVertical } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { MoreVertical, Inbox } from 'lucide-react';
-import { Table, TableCol, TableHeader, TableBody, TableCell, TableRow, TableFooter } from './Table';
-import { Button, Badge, Icon, Text } from '../../atoms';
-import { EmptyState } from '../../molecules';
+import { Table, TableBody, TableCell, TableCol, TableFooter, TableHeader, TableRow } from './Table';
 import { Card } from '../Card';
+import { EmptyState } from '../../molecules';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Table> = {
@@ -147,7 +147,9 @@ export const FlexRowsLayout: Story = {
               <Text variant="body-sm">Principal Design Systems Engineer</Text>
             </TableCell>
             <TableCell padding="md">
-              <Badge tone="info" size="sm">Screening</Badge>
+              <Badge tone="info" size="sm">
+                Screening
+              </Badge>
             </TableCell>
           </TableRow>
           <TableRow interactive bordered>
@@ -158,7 +160,9 @@ export const FlexRowsLayout: Story = {
               <Text variant="body-sm">Senior React Platform Engineer</Text>
             </TableCell>
             <TableCell padding="md">
-              <Badge tone="success" size="sm">Offer</Badge>
+              <Badge tone="success" size="sm">
+                Offer
+              </Badge>
             </TableCell>
           </TableRow>
         </TableBody>

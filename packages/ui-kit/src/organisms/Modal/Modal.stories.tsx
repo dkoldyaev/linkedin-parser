@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Layers, ExternalLink, RefreshCw, Trash2, FileText, Shield } from 'lucide-react';
-import { Modal } from './Modal';
 import { Button, Icon, Input, Text } from '../../atoms';
 import { ColorPicker, FormField, Tabs } from '../../molecules';
+import { ExternalLink, FileText, Layers, RefreshCw, Shield, Trash2 } from 'lucide-react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
+import { Modal } from './Modal';
 import { useDisclosure } from '../../hooks';
 
 const meta: Meta<typeof Modal> = {
@@ -41,9 +41,7 @@ function ShorthandModalDemo(): React.ReactElement {
         }
       >
         <FormField label="Column Name" required>
-          {(a11yProps) => (
-            <Input {...a11yProps} defaultValue="System Design Round" />
-          )}
+          {(a11yProps) => <Input {...a11yProps} defaultValue="System Design Round" />}
         </FormField>
         <FormField label="Accent Palette">
           <ColorPicker value="blue" onChange={() => undefined} />
@@ -104,7 +102,8 @@ function ComposableModalDemo(): React.ReactElement {
           </Text>
           <Text as="p" variant="body">
             This demonstrates composition where `Modal.Header` holds custom accessories and tabs,
-            `Modal.Body` provides grid-aligned scrollable content, and `Modal.Footer` formats split action triggers.
+            `Modal.Body` provides grid-aligned scrollable content, and `Modal.Footer` formats split
+            action triggers.
           </Text>
         </Modal.Body>
 

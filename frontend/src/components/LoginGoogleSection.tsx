@@ -1,5 +1,5 @@
+import { AlertBanner, Button } from '@blueprint/ui-kit';
 import React from 'react';
-import { Button, AlertBanner } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface LoginGoogleSectionProps {

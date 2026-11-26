@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Plus, Sparkles, Trash2 } from 'lucide-react';
-import { Icon } from '../Icon';
-import { Button } from './Button';
+import React, { useState } from 'react';
 import { SortButton, type SortDirection } from './SortButton';
+import { Button } from './Button';
+import { Icon } from '../Icon';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Button> = {
@@ -113,11 +113,7 @@ export const SortButtonComposition: Story = {
 function InteractiveCounterDemo(): React.ReactElement {
   const [clicks, setClicks] = useState(0);
   return (
-    <Button
-      variant="primary"
-      onClick={() => setClicks((c) => c + 1)}
-      data-testid="interactive-btn"
-    >
+    <Button variant="primary" onClick={() => setClicks((c) => c + 1)} data-testid="interactive-btn">
       Clicked {clicks} times
     </Button>
   );
@@ -127,7 +123,7 @@ export const InteractivePlay: Story = {
   render: () => <InteractiveCounterDemo />,
   play: async ({ canvasElement }) => {
     const button = canvasElement.querySelector(
-      '[data-testid="interactive-btn"]'
+      '[data-testid="interactive-btn"]',
     ) as HTMLButtonElement | null;
     if (button) {
       button.focus();

@@ -1,12 +1,12 @@
 import React from 'react';
 import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
+import type { Vacancy } from '../../types/models';
 import { VacancyAiSummarySection } from './VacancyAiSummarySection';
 import { VacancyCompanySection } from './VacancyCompanySection';
-import { VacancySkillsSection } from './VacancySkillsSection';
 import { VacancyHistorySection } from './VacancyHistorySection';
 import { VacancyNotesSection } from './VacancyNotesSection';
+import { VacancySkillsSection } from './VacancySkillsSection';
 import { VacancyTabContent } from './VacancyTabContent';
-import type { Vacancy } from '../../types/models';
 
 export interface VacancyDetailsTabPanelProps {
   vacancy: Vacancy;

@@ -1,10 +1,10 @@
-import React from 'react';
+import { ColorPicker, FormField } from '../../molecules';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Form } from './Form';
 import { Input } from '../../atoms';
-import { ColorPicker, FormField } from '../../molecules';
-import { useForm } from '../../hooks';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import React from 'react';
+import { useForm } from '../../hooks';
 
 const meta: Meta<typeof Form> = {
   title: 'Organisms/Form',
@@ -49,10 +49,7 @@ function ColumnFormDemo(): React.ReactElement {
           )}
         </FormField>
         <FormField label="Column Palette">
-          <ColorPicker
-            value={form.values.color}
-            onChange={(c) => form.setFieldValue('color', c)}
-          />
+          <ColorPicker value={form.values.color} onChange={(c) => form.setFieldValue('color', c)} />
         </FormField>
       </Form>
     </div>

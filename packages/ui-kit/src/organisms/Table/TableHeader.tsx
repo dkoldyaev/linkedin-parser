@@ -1,9 +1,8 @@
-import React from 'react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Table.module.css';
 
-export interface TableHeaderProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+export interface TableHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   readonly actions?: React.ReactNode;
   readonly size?: 'sm' | 'md';
   readonly children?: React.ReactNode;
@@ -27,14 +26,12 @@ export function TableHeader({
       className={cn(
         styles.header,
         size === 'md' ? styles.headerSizeMd : styles.headerSizeSm,
-        className
+        className,
       )}
       {...restProps}
     >
       <div className={styles.headerTitleGroup}>{children}</div>
-      {actions !== undefined && (
-        <div className={styles.headerActions}>{actions}</div>
-      )}
+      {actions !== undefined && <div className={styles.headerActions}>{actions}</div>}
     </div>
   );
 }

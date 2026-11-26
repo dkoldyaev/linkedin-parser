@@ -1,12 +1,11 @@
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { OverlayProvider } from '@blueprint/ui-kit';
 import '@blueprint/ui-kit/styles.css';
 import './index.css';
 import './design-system.css';
-import './App.css';
-import { I18nProvider } from './i18n/I18nContext';
 import AppRouter from './AppRouter';
+import { BrowserRouter } from 'react-router-dom';
+import { createRoot } from 'react-dom/client';
+import { I18nProvider } from './i18n/I18nContext';
+import { OverlayProvider } from '@blueprint/ui-kit';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -20,5 +19,5 @@ createRoot(rootElement).render(
         <AppRouter />
       </I18nProvider>
     </BrowserRouter>
-  </OverlayProvider>
+  </OverlayProvider>,
 );

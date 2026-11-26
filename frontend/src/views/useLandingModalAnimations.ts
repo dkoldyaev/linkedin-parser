@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 function buildSalaryTypingSequence(vMin: string, vMax: string) {
   const minPart1 = vMin.slice(0, Math.max(1, Math.floor(vMin.length / 3)));
@@ -40,7 +39,7 @@ function useSalaryTypingEffect(subScreenId: string, vMin: string, vMax: string) 
         setSalaryMin(item.min);
         setSalaryMax(item.max);
         setSalaryTypingStep(item.step);
-      }, item.delay)
+      }, item.delay),
     );
 
     return () => timers.forEach(clearTimeout);
@@ -52,7 +51,7 @@ function useSalaryTypingEffect(subScreenId: string, vMin: string, vMax: string) 
 function startSummaryTypingInterval(
   fullLen: number,
   setSummaryTypedChars: React.Dispatch<React.SetStateAction<number>>,
-  intervalRef: { current: ReturnType<typeof setInterval> | null }
+  intervalRef: { current: ReturnType<typeof setInterval> | null },
 ) {
   intervalRef.current = setInterval(() => {
     setSummaryTypedChars((prev) => {

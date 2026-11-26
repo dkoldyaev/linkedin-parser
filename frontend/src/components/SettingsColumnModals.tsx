@@ -1,8 +1,8 @@
-import React from 'react';
 import ColumnCreateModal, { type ColumnCreatePayload } from './ColumnCreateModal';
 import ColumnEditModal, { type ColumnUpdatePayload } from './ColumnEditModal';
-import ColumnDeleteModal from './ColumnDeleteModal';
 import type { BoardColumn } from '../types/models';
+import ColumnDeleteModal from './ColumnDeleteModal';
+import React from 'react';
 
 export interface SettingsColumnModalsProps {
   isCreateOpen: boolean;
@@ -33,11 +33,7 @@ export default function SettingsColumnModals({
 }: SettingsColumnModalsProps): React.ReactElement {
   return (
     <>
-      <ColumnCreateModal
-        isOpen={isCreateOpen}
-        onClose={onCloseCreate}
-        onCreate={onCreateColumn}
-      />
+      <ColumnCreateModal isOpen={isCreateOpen} onClose={onCloseCreate} onCreate={onCreateColumn} />
 
       <ColumnEditModal
         isOpen={Boolean(editingCol)}

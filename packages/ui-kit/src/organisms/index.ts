@@ -1,7 +1,4 @@
-export {
-  TagsList,
-  type TagsListProps,
-} from './TagsList';
+export { TagsList, type TagsListProps } from './TagsList';
 export {
   Modal,
   ModalHeader,
@@ -75,10 +72,4 @@ export {
   type VacancySalaryData,
   type VacancyStageOption,
 } from './VacancyDetailsModal';
-export {
-  Drawer,
-  type DrawerProps,
-  type DrawerNavLinkItem,
-} from './Drawer';
-
-
+export { Drawer, type DrawerProps, type DrawerNavLinkItem } from './Drawer';

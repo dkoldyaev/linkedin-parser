@@ -1,7 +1,7 @@
-import React from 'react';
-import { LogIn, LogOut } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
+import { LogIn, LogOut } from 'lucide-react';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './Header.module.css';
 
 export interface HeaderUser {
@@ -54,11 +54,7 @@ export function HeaderUserMenu({
   return (
     <div className={cn(styles.userProfileBadge, className)} {...rest}>
       {user.picture ? (
-        <img
-          src={user.picture}
-          alt={user.name ?? 'User avatar'}
-          className={styles.userAvatar}
-        />
+        <img src={user.picture} alt={user.name ?? 'User avatar'} className={styles.userAvatar} />
       ) : (
         <div className={styles.userAvatarPlaceholder}>{userInitial}</div>
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type SaveStatus = 'saving' | 'error' | 'success' | null;
 
@@ -8,7 +8,7 @@ export interface UseSaveOptions {
 
 export function useSave<TData>(
   promiseFn?: (data: TData) => Promise<void>,
-  options?: UseSaveOptions
+  options?: UseSaveOptions,
 ): [(data: TData) => Promise<void>, SaveStatus] {
   const { resetDelay = 1500 } = options || {};
   const [status, setStatus] = useState<SaveStatus>(null);
@@ -45,7 +45,7 @@ export function useSave<TData>(
         throw err;
       }
     },
-    [promiseFn]
+    [promiseFn],
   );
 
   return [execute, status];

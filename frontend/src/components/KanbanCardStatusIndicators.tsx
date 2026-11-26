@@ -1,6 +1,6 @@
-import React from 'react';
 import { Badge, Icon } from '@blueprint/ui-kit';
 import { Ban } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface KanbanCardStatusIndicatorsProps {

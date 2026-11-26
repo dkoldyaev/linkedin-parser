@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import {
   STATUS_ASSESSMENT,
@@ -10,9 +7,15 @@ import {
   STATUS_OFFER,
   STATUS_REJECTED,
 } from '../constants/columns';
-import { translations, type TranslationNode } from './translations';
+import { type TranslationNode, translations } from './translations';
+import fs from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 
-function flattenTranslations(node: Record<string, TranslationNode>, prefix: string): Map<string, string> {
+function flattenTranslations(
+  node: Record<string, TranslationNode>,
+  prefix: string,
+): Map<string, string> {
   const out = new Map<string, string>();
   for (const [key, value] of Object.entries(node)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -148,7 +151,7 @@ function extractTCallKeys(arg0: ts.Expression): string[] {
 function collectMissingParamsForKey(
   key: string,
   ruVal: string,
-  usages: Array<{ loc: string; params: string[] }>
+  usages: Array<{ loc: string; params: string[] }>,
 ): string[] {
   const missing: string[] = [];
   for (const usage of usages) {
@@ -177,7 +180,7 @@ describe('i18n translations integrity', () => {
       expect(enVal.trim().length, `Empty EN translation for "${key}"`).toBeGreaterThan(0);
       expect(
         extractPlaceholders(ruVal),
-        `Placeholder mismatch between RU and EN for "${key}"`
+        `Placeholder mismatch between RU and EN for "${key}"`,
       ).toEqual(extractPlaceholders(enVal));
     }
   });
@@ -206,7 +209,7 @@ describe('i18n translations integrity', () => {
         code,
         ts.ScriptTarget.Latest,
         true,
-        file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+        file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
       );
 
       const visit = (node: ts.Node) => {
@@ -246,9 +249,7 @@ describe('i18n translations integrity', () => {
       missingParams.push(...collectMissingParamsForKey(key, ruVal, usages));
     }
 
-    const orphanedKeys = [...ruMap.keys()]
-      .filter((key) => !usedKeys.has(key))
-      .sort();
+    const orphanedKeys = [...ruMap.keys()].filter((key) => !usedKeys.has(key)).sort();
 
     expect(missingKeys).toEqual([]);
     expect(missingParams).toEqual([]);

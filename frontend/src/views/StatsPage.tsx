@@ -1,18 +1,14 @@
-import { useMemo } from 'react';
-import {
-  PageLayout,
-  Spinner,
-  AlertBanner,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { useGridScroll } from '../utils/useGridScroll';
+import { AlertBanner, PageLayout, Spinner } from '@blueprint/ui-kit';
 import { buildStatsViewModel } from './statsHelpers';
-import { useStatsData } from './useStatsData';
-import StatsHeader from './StatsHeader';
-import StatsKpiGrid from './StatsKpiGrid';
-import StatsHeatmapSection from './StatsHeatmapSection';
 import StatsBarChartSection from './StatsBarChartSection';
 import StatsByStatusSection from './StatsByStatusSection';
+import StatsHeader from './StatsHeader';
+import StatsHeatmapSection from './StatsHeatmapSection';
+import StatsKpiGrid from './StatsKpiGrid';
+import { useGridScroll } from '../utils/useGridScroll';
+import { useMemo } from 'react';
+import { useStatsData } from './useStatsData';
+import { useTranslation } from '../i18n/I18nContext';
 
 export default function StatsPage() {
   const { t, locale } = useTranslation();
@@ -34,7 +30,14 @@ export default function StatsPage() {
   if (!view || !data) {
     return (
       <PageLayout gridDeps={[locale]} className="stats-page">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(8 * var(--ui-grid-cell))' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 'calc(8 * var(--ui-grid-cell))',
+          }}
+        >
           <Spinner size="lg" />
         </div>
       </PageLayout>
@@ -49,7 +52,14 @@ export default function StatsPage() {
       className="stats-page"
       header={<StatsHeader doneToday={doneToday} />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-6)', padding: 'var(--ui-space-4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--ui-space-6)',
+          padding: 'var(--ui-space-4)',
+        }}
+      >
         <StatsKpiGrid view={view} doneToday={doneToday} />
 
         <div

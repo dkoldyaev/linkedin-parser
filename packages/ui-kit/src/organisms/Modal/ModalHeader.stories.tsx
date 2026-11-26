@@ -1,20 +1,20 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Badge, Button, Icon } from '../../atoms';
 import {
-  Layers,
-  Settings,
-  RefreshCw,
-  ExternalLink,
-  MapPin,
-  Laptop,
   Banknote,
-  FileText,
-  Shield,
   Briefcase,
+  ExternalLink,
+  FileText,
+  Laptop,
+  Layers,
+  MapPin,
+  RefreshCw,
+  Settings,
+  Shield,
 } from 'lucide-react';
-import { ModalHeader } from './ModalHeader';
-import { Button, Icon, Badge } from '../../atoms';
-import { Tabs } from '../../molecules/Tabs';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { ModalHeader } from './ModalHeader';
+import { Tabs } from '../../molecules/Tabs';
 
 const meta: Meta<typeof ModalHeader> = {
   title: 'Organisms/Modal/ModalHeader',
@@ -135,10 +135,7 @@ export const WithoutCloseButton: Story = {
 export const TitleOnly: Story = {
   render: () => (
     <div className={layoutStyles.panel}>
-      <ModalHeader
-        title="Confirm Permanent Deletion"
-        onClose={() => alert('Close clicked')}
-      />
+      <ModalHeader title="Confirm Permanent Deletion" onClose={() => alert('Close clicked')} />
     </div>
   ),
 };

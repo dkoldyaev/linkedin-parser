@@ -11,12 +11,13 @@ export interface TokenListProps extends React.HTMLAttributes<HTMLDivElement> {
  * TokenList molecule.
  * Pure container for rendering a list of Badges, tags, or chips with consistent Blueprint gap spacing.
  */
-export const TokenList = forwardRef<HTMLDivElement, TokenListProps>(
-  function TokenList({ children, className, ...rest }, ref) {
-    return (
-      <div ref={ref} className={cn(styles.tokenList, className)} {...rest}>
-        {children}
-      </div>
-    );
-  }
-);
+export const TokenList = forwardRef<HTMLDivElement, TokenListProps>(function TokenList(
+  { children, className, ...rest },
+  ref,
+) {
+  return (
+    <div ref={ref} className={cn(styles.tokenList, className)} {...rest}>
+      {children}
+    </div>
+  );
+});

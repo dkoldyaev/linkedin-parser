@@ -1,9 +1,6 @@
-import type React from 'react';
-import {
-  STATUS_REJECTED,
-  DEFAULT_COLUMNS as DEFAULT_BOARD_COLUMNS,
-} from '../constants/columns';
 import type { BoardColumn, Vacancy } from '../types/models';
+import { DEFAULT_COLUMNS as DEFAULT_BOARD_COLUMNS, STATUS_REJECTED } from '../constants/columns';
+import type React from 'react';
 
 export const REJECTED_STATUS = STATUS_REJECTED;
 
@@ -43,7 +40,7 @@ export function resolveBoardColumnsConfig(columns?: BoardColumn[]) {
 
 export function computeDropIndex(e: React.DragEvent<HTMLElement>): number {
   const cards = Array.from(
-    e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging), article:not(.is-dragging)')
+    e.currentTarget.querySelectorAll('.kanban-card:not(.is-dragging), article:not(.is-dragging)'),
   );
   let index = 0;
   for (const card of cards) {
@@ -70,7 +67,7 @@ export function buildReorderedIds(
   vacancies: Vacancy[],
   columnId: string,
   vid: number,
-  targetIndex: number | null
+  targetIndex: number | null,
 ): number[] {
   const ids = sortByManualOrder(vacancies.filter((v) => v.status === columnId))
     .map((v) => v.id)

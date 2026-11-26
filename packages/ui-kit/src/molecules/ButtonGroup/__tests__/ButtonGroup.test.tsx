@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { Button } from '../../../atoms/Button';
 import { ButtonGroup } from '../ButtonGroup';
 
@@ -9,7 +9,7 @@ describe('ButtonGroup molecule', () => {
       <ButtonGroup>
         <Button>First</Button>
         <Button>Second</Button>
-      </ButtonGroup>
+      </ButtonGroup>,
     );
 
     const group = screen.getByRole('group');
@@ -22,7 +22,7 @@ describe('ButtonGroup molecule', () => {
     render(
       <ButtonGroup role="toolbar" className="custom-toolbar">
         <Button>Action</Button>
-      </ButtonGroup>
+      </ButtonGroup>,
     );
 
     const toolbar = screen.getByRole('toolbar');

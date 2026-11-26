@@ -1,14 +1,8 @@
-
+import { Badge, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import React from 'react';
-import {
-  TableHeader,
-  Badge,
-  Text,
-  StatusDot,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
 import StatsStatusRow from './StatsStatusRow';
 import type { StatsViewModel } from './statsHelpers';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface StatsByStatusSectionProps {
   view: StatsViewModel;
@@ -48,7 +42,11 @@ export default function StatsByStatusSection({
       <div
         className="by-status-box bp-snap"
         data-min-grids="4"
-        style={{ padding: 'var(--ui-space-4)', overflowY: 'auto', maxHeight: 'calc(8 * var(--ui-grid-cell))' }}
+        style={{
+          padding: 'var(--ui-space-4)',
+          overflowY: 'auto',
+          maxHeight: 'calc(8 * var(--ui-grid-cell))',
+        }}
         onScroll={(event) => snapScroll(event, 'y')}
       >
         {view.statuses.map(([status, count]) => (

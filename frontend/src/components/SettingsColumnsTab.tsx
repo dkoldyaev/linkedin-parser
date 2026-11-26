@@ -1,9 +1,9 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
 import { Button, Icon, Text } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import SettingsColumnRow from './SettingsColumnRow';
 import type { BoardColumn } from '../types/models';
+import { Plus } from 'lucide-react';
+import React from 'react';
+import SettingsColumnRow from './SettingsColumnRow';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface SettingsColumnsTabProps {
   funnelColumns: BoardColumn[];

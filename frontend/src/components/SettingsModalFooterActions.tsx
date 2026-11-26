@@ -1,5 +1,5 @@
-import React from 'react';
 import { Button } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface SettingsModalFooterActionsProps {
@@ -21,12 +21,7 @@ export default function SettingsModalFooterActions({
         <Button variant="secondary" onClick={onClose}>
           {t('batchModal.cancel_btn')}
         </Button>
-        <Button
-          type="submit"
-          form="settings-general-form"
-          variant="primary"
-          loading={loading}
-        >
+        <Button type="submit" form="settings-general-form" variant="primary" loading={loading}>
           {t('settingsModal.save_btn')}
         </Button>
       </>

@@ -1,7 +1,7 @@
+import { Badge, Icon } from '../../atoms';
+import { Card, CardBody, CardHeader } from './index';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Ban } from 'lucide-react';
-import { Card, CardBody, CardHeader } from './Card';
-import { Badge, Icon } from '../../atoms';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof CardHeader> = {

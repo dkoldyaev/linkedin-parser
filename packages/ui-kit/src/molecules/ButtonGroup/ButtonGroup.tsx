@@ -28,33 +28,18 @@ export interface ButtonGroupProps extends React.HTMLAttributes<HTMLDivElement> {
  * Molecule grouping multiple Buttons or action triggers together on the Blueprint grid.
  * Supports attached (seamless joined controls with overlapping borders) and detached layouts.
  */
-export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
-  function ButtonGroup(
-    {
-      variant = 'attached',
-      fullWidth = false,
-      role = 'group',
-      className,
-      children,
-      ...rest
-    },
-    ref
-  ) {
-    return (
-      <div
-        ref={ref}
-        role={role}
-        className={cn(
-          styles.buttonGroup,
-          styles[variant],
-          fullWidth && styles.fullWidth,
-          className
-        )}
-        {...rest}
-      >
-        {children}
-      </div>
-    );
-  }
-);
-
+export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
+  { variant = 'attached', fullWidth = false, role = 'group', className, children, ...rest },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      role={role}
+      className={cn(styles.buttonGroup, styles[variant], fullWidth && styles.fullWidth, className)}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+});

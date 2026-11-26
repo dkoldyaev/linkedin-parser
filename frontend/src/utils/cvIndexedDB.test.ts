@@ -1,6 +1,6 @@
-import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { cvStorageKey } from './cvIndexedDB';
+import { test } from 'vitest';
 
 test('local CV drafts have separate keys for separate accounts', () => {
   assert.notEqual(cvStorageKey(1), cvStorageKey(2));

@@ -1,5 +1,5 @@
+import { SearchBar, Text } from '@blueprint/ui-kit';
 import React from 'react';
-import { Text, SearchBar } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface UserManagementHeaderProps {

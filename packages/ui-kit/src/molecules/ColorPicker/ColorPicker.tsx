@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
 import { Button, StatusDot, type StatusDotPalette } from '../../atoms';
-import { useKeyboardNavigation } from '../../hooks';
+import React, { useRef, useState } from 'react';
 import { cn } from '../../utils';
 import styles from './ColorPicker.module.css';
+import { useKeyboardNavigation } from '../../hooks';
 
 export interface ColorOption {
   readonly id: string;
@@ -22,9 +22,21 @@ export const DEFAULT_PALETTE_OPTIONS: readonly ColorOption[] = [
   { id: 'indigo', label: 'Indigo', palette: 'indigo', hex: '#1d4ed8' },
 ] as const;
 
-const PALETTE_SET = new Set(['slate', 'blue', 'purple', 'emerald', 'amber', 'rose', 'cyan', 'indigo']);
+const PALETTE_SET = new Set([
+  'slate',
+  'blue',
+  'purple',
+  'emerald',
+  'amber',
+  'rose',
+  'cyan',
+  'indigo',
+]);
 
-export interface ColorPickerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'defaultValue'> {
+export interface ColorPickerProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'onChange' | 'defaultValue'
+> {
   readonly value: string;
   readonly onChange: (color: string) => void;
   readonly options?: readonly ColorOption[];
@@ -71,8 +83,8 @@ export function ColorPicker({
     resolvedOptions.findIndex(
       (opt) =>
         opt.id.toLowerCase() === value.toLowerCase() ||
-        (opt.hex !== undefined && opt.hex.toLowerCase() === value.toLowerCase())
-    )
+        (opt.hex !== undefined && opt.hex.toLowerCase() === value.toLowerCase()),
+    ),
   );
 
   const { handleKeyDown } = useKeyboardNavigation<ColorOption>({
@@ -93,7 +105,6 @@ export function ColorPicker({
   //   : '#2563eb';
   const [nativeColorValue, setNativeColorValue] = useState<string | undefined>(undefined);
 
-
   const previewRef = React.useRef<HTMLSpanElement | null>(null);
   React.useEffect(() => {
     if (previewRef.current) {
@@ -110,69 +121,57 @@ export function ColorPicker({
 
   return (
     <>
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      onKeyDown={handleKeyDown}
-      className={cn(styles.container, className)}
-      {...rest}
-    >
-      <div className={styles.grid}>
+      <div
+        role="radiogroup"
+        aria-label={ariaLabel}
+        onKeyDown={handleKeyDown}
+        className={cn(styles.container, className)}
+        {...rest}
+      >
+        <div className={styles.grid}>
           <Button
             variant={value === nativeColorValue ? 'primary' : 'secondary'}
             aria-checked={value === nativeColorValue}
             disabled={disabled}
             onClick={handleClickCustomColorInput}
-            startIcon={
-              <StatusDot
-                color={nativeColorValue}
-                size="sm"
-              />
-            }
+            startIcon={<StatusDot color={nativeColorValue} size="sm" />}
             // className={cn(styles.swatch, value === nativeColorValue && styles.selected)}
           >
             {nativeColorValue || 'Custom'}
           </Button>
-        {resolvedOptions.map((option) => {
-          const isSelected =
-            option.id.toLowerCase() === value.toLowerCase() ||
-            (option.hex !== undefined && option.hex.toLowerCase() === value.toLowerCase());
-          return (
-            <Button
-              key={option.id}
-              variant={isSelected ? 'primary' : 'secondary'}
-              role="radio"
-              aria-checked={isSelected}
-              disabled={disabled}
-              onClick={() => onChange(option.hex ?? option.id)}
-              startIcon={
-                <StatusDot
-                  palette={option.palette}
-                  color={option.hex}
-                  size="sm"
-                />
-              }
-              // className={cn(styles.swatch, isSelected && styles.selected)}
-            >
-              {/* <Text variant="mono" tone={isSelected ? 'accent' : 'secondary'} truncate> */}
+          {resolvedOptions.map((option) => {
+            const isSelected =
+              option.id.toLowerCase() === value.toLowerCase() ||
+              (option.hex !== undefined && option.hex.toLowerCase() === value.toLowerCase());
+            return (
+              <Button
+                key={option.id}
+                variant={isSelected ? 'primary' : 'secondary'}
+                role="radio"
+                aria-checked={isSelected}
+                disabled={disabled}
+                onClick={() => onChange(option.hex ?? option.id)}
+                startIcon={<StatusDot palette={option.palette} color={option.hex} size="sm" />}
+                // className={cn(styles.swatch, isSelected && styles.selected)}
+              >
+                {/* <Text variant="mono" tone={isSelected ? 'accent' : 'secondary'} truncate> */}
                 {option.label}
-              {/* </Text> */}
-            </Button>
-          );
-        })}
+                {/* </Text> */}
+              </Button>
+            );
+          })}
+        </div>
       </div>
-
-    </div>
-          <input
-            ref={customColorInputRef}
-            type="color"
-            value={nativeColorValue}
-            aria-checked={value === nativeColorValue}
-            disabled={disabled}
-            onChange={(e) => setNativeColorValue(e.target.value)}
-            className={styles.nativeColorInput}
-            aria-label="Custom color picker"
-          />
+      <input
+        ref={customColorInputRef}
+        type="color"
+        value={nativeColorValue}
+        aria-checked={value === nativeColorValue}
+        disabled={disabled}
+        onChange={(e) => setNativeColorValue(e.target.value)}
+        className={styles.nativeColorInput}
+        aria-label="Custom color picker"
+      />
     </>
   );
 }

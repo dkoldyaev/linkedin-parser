@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { trackEvent, EVENTS } from '../utils/analytics';
+import type { BoardModalEventListener, BoardToastState } from '../store/BoardStoreContext';
 import {
-  useVacancyDetailLoader,
   buildResolvedModalVacancy,
   stripCachedDetailFields,
+  useVacancyDetailLoader,
 } from '../components/VacancyModal/useVacancyDetailLoader';
-import { upsertVacancyInList } from './homeFilterHelpers';
-import type { BoardModalEventListener, BoardToastState } from '../store/BoardStoreContext';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { User, Vacancy } from '../types/models';
+import { upsertVacancyInList } from './homeFilterHelpers';
 
 export type ToastState = BoardToastState;
 
@@ -46,7 +46,7 @@ function parseUrlVacancyParam(rawId: string | undefined): {
 function shouldTriggerGuestAuthPrompt(
   isAnonymous: boolean | undefined,
   currentCount: number,
-  prevCount: number | null
+  prevCount: number | null,
 ): boolean {
   if (!isAnonymous || currentCount < 2) return false;
   if (readSessionFlag('guest_auth_prompt_shown')) return false;
@@ -56,7 +56,7 @@ function shouldTriggerGuestAuthPrompt(
 function useUrlDrivenVacancyModal(
   vacancies: Vacancy[],
   setVacancies: React.Dispatch<React.SetStateAction<Vacancy[]>>,
-  subscribeModalEvents: ((listener: BoardModalEventListener) => () => void) | undefined
+  subscribeModalEvents: ((listener: BoardModalEventListener) => () => void) | undefined,
 ) {
   const params = useParams<{ id: string }>();
   const location = useLocation();
@@ -64,7 +64,7 @@ function useUrlDrivenVacancyModal(
 
   const { activeVacancyId, isInvalidUrlId } = useMemo(
     () => parseUrlVacancyParam(params.id),
-    [params.id]
+    [params.id],
   );
 
   const isRouteModalOpen = activeVacancyId !== null;
@@ -91,7 +91,7 @@ function useUrlDrivenVacancyModal(
 
   const selectedVacancy = useMemo(
     () => buildResolvedModalVacancy(activeVacancyId, baseCard, detailLoader.detail),
-    [activeVacancyId, baseCard, detailLoader.detail]
+    [activeVacancyId, baseCard, detailLoader.detail],
   );
 
   const handleCardClick = useCallback(
@@ -99,17 +99,14 @@ function useUrlDrivenVacancyModal(
       if (!vacancy || !vacancy.id) return;
       navigate(
         { pathname: `/vacancies/${vacancy.id}`, search: location.search },
-        { replace: false }
+        { replace: false },
       );
     },
-    [navigate, location.search]
+    [navigate, location.search],
   );
 
   const handleCloseVacancyModal = useCallback(() => {
-    navigate(
-      { pathname: '/', search: location.search },
-      { replace: false }
-    );
+    navigate({ pathname: '/', search: location.search }, { replace: false });
   }, [navigate, location.search]);
 
   const isVacancyNotFound = isInvalidUrlId || detailLoader.notFound;
@@ -138,14 +135,10 @@ export function useHomeModalController({
   const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
 
-  const detailModal = useUrlDrivenVacancyModal(
-    vacancies,
-    setVacancies,
-    subscribeModalEvents
-  );
+  const detailModal = useUrlDrivenVacancyModal(vacancies, setVacancies, subscribeModalEvents);
 
   const [shouldHighlightAdd, setShouldHighlightAdd] = useState(() =>
-    readSessionFlag('highlight_add_vacancy')
+    readSessionFlag('highlight_add_vacancy'),
   );
 
   const handleAddVacanciesClick = useCallback(() => {
@@ -163,7 +156,7 @@ export function useHomeModalController({
 
   const [isGuestAuthModalOpen, setIsGuestAuthModalOpen] = useState(false);
   const [guestBannerDismissed, setGuestBannerDismissed] = useState(() =>
-    readSessionFlag('guest_banner_dismissed')
+    readSessionFlag('guest_banner_dismissed'),
   );
   const prevVacancyCountRef = useRef<number | null>(null);
 
@@ -172,7 +165,7 @@ export function useHomeModalController({
       shouldTriggerGuestAuthPrompt(
         user?.is_anonymous,
         vacancies.length,
-        prevVacancyCountRef.current
+        prevVacancyCountRef.current,
       )
     ) {
       setIsGuestAuthModalOpen(true);

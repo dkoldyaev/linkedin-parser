@@ -1,6 +1,6 @@
-import React from 'react';
-import { Button, Input, Text, Icon } from '@blueprint/ui-kit';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { Button, Icon, Input, Text } from '@blueprint/ui-kit';
+import React from 'react';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface LoginDevSectionProps {

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Button } from '../../atoms';
+import React, { useState } from 'react';
 import {
   VacancyDetailsModal,
   type VacancyHistoryItem,
   type VacancySalaryData,
 } from '../../organisms';
+import { Button } from '../../atoms';
 import styles from './Showcase.module.css';
 
 const meta: Meta<typeof VacancyDetailsModal> = {
@@ -41,28 +41,35 @@ const COMPATIBILITY_SECTIONS = [
     items: [
       {
         id: 'c1',
-        title: 'Proven ability to build and deliver web applications with React and TypeScript to a high standard',
-        content: '8+ лет опыта глубокой разработки на React, Redux, Zustand, TypeScript, Storybook.',
+        title:
+          'Proven ability to build and deliver web applications with React and TypeScript to a high standard',
+        content:
+          '8+ лет опыта глубокой разработки на React, Redux, Zustand, TypeScript, Storybook.',
       },
       {
         id: 'c2',
         title: 'Fluency working with Git and CI workflows',
-        content: 'Настройка GitHub Actions, GitLab CI/CD, релизных пайплайнов и мультирепозиториев.',
+        content:
+          'Настройка GitHub Actions, GitLab CI/CD, релизных пайплайнов и мультирепозиториев.',
       },
       {
         id: 'c3',
-        title: 'Strong product sense and attention to detail, with the ability to translate user needs into polished interfaces',
-        content: 'Проектирование и внедрение дизайн-системы Blueprint, архитектура UX/UI компонентов.',
+        title:
+          'Strong product sense and attention to detail, with the ability to translate user needs into polished interfaces',
+        content:
+          'Проектирование и внедрение дизайн-системы Blueprint, архитектура UX/UI компонентов.',
       },
       {
         id: 'c4',
         title: 'Ability to communicate clearly and effectively with Back-End and Design colleagues',
-        content: 'Опыт кросс-функциональной работы в продуктовых командах, синхронизация OpenAPI и Design Tokens.',
+        content:
+          'Опыт кросс-функциональной работы в продуктовых командах, синхронизация OpenAPI и Design Tokens.',
       },
       {
         id: 'c5',
         title: 'Ability to profile and fix front-end performance issues effectively',
-        content: 'Оптимизация Core Web Vitals (LCP < 1.1s), виртуализация таблиц и профилирование Chrome DevTools.',
+        content:
+          'Оптимизация Core Web Vitals (LCP < 1.1s), виртуализация таблиц и профилирование Chrome DevTools.',
       },
     ],
   },
@@ -75,13 +82,15 @@ const COMPATIBILITY_SECTIONS = [
         id: 'u1',
         title: 'Confidence working with modern build tooling such as Bun and Vite',
         actionLabel: 'Подробности',
-        content: 'В резюме упоминается Webpack и Vite, но нет подтвержденного продакшн опыта с Bun runtime.',
+        content:
+          'В резюме упоминается Webpack и Vite, но нет подтвержденного продакшн опыта с Bun runtime.',
       },
       {
         id: 'u2',
         title: 'Demonstrated experience with TanStack Router and TanStack Query',
         actionLabel: 'Подробности',
-        content: 'Использовался React Router и RTK Query / SWR, прямой опыт с TanStack Router не зафиксирован.',
+        content:
+          'Использовался React Router и RTK Query / SWR, прямой опыт с TanStack Router не зафиксирован.',
       },
       {
         id: 'u3',
@@ -93,11 +102,13 @@ const COMPATIBILITY_SECTIONS = [
         id: 'u4',
         title: 'Hands-on experience using AI coding agents such as Codex, Claude Code or similar',
         actionLabel: 'Подробности',
-        content: 'Опыт работы с LLM API присутствует, но использование CLI агентов не описано в проектах.',
+        content:
+          'Опыт работы с LLM API присутствует, но использование CLI агентов не описано в проектах.',
       },
       {
         id: 'u5',
-        title: 'Experience with data-dense, real-time or mission-critical UIs (control rooms, trading, monitoring)',
+        title:
+          'Experience with data-dense, real-time or mission-critical UIs (control rooms, trading, monitoring)',
         actionLabel: 'Подробности',
         content: 'Требуется опыт проектирования экранов операторских центров реального времени.',
       },
@@ -109,7 +120,8 @@ const COMPATIBILITY_SECTIONS = [
       },
       {
         id: 'u7',
-        title: 'Genuine curiosity about airline operations and motivation to understand the workflows of 24/7 control room users',
+        title:
+          'Genuine curiosity about airline operations and motivation to understand the workflows of 24/7 control room users',
         actionLabel: 'Подробности',
         content: 'Отсутствует опыт в домене гражданской авиации и диспетчерских служб.',
       },
@@ -123,9 +135,11 @@ const COMPATIBILITY_SECTIONS = [
     items: [
       {
         id: 'crit1',
-        title: 'Genuine curiosity about airline operations and motivation to understand the workflows of 24/7 control room users',
+        title:
+          'Genuine curiosity about airline operations and motivation to understand the workflows of 24/7 control room users',
         actionLabel: 'Подробности',
-        content: 'Отсутствует любой опыт или интерес к специфике авиации или 24/7 операционных систем, что является критически важным для данной вакансии.',
+        content:
+          'Отсутствует любой опыт или интерес к специфике авиации или 24/7 операционных систем, что является критически важным для данной вакансии.',
       },
     ],
   },
@@ -234,7 +248,7 @@ function VacancyDetailsModalDemo(): React.ReactElement {
 
   // Description
   const [description, setDescription] = useState(
-    'Overview\n\nWELCOME TO SITA\n\nAt SITA, we keep airports moving, airlines flying smoothly, and borders open. Our technology and communication innovations power the success of the global air travel industry.'
+    'Overview\n\nWELCOME TO SITA\n\nAt SITA, we keep airports moving, airlines flying smoothly, and borders open. Our technology and communication innovations power the success of the global air travel industry.',
   );
 
   const handleSaveSalary = (data: VacancySalaryData) => {
@@ -252,14 +266,12 @@ function VacancyDetailsModalDemo(): React.ReactElement {
   };
 
   const handleSaveComment = (id: string, comment: string) => {
-    setHistoryItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, comment } : item))
-    );
+    setHistoryItems((prev) => prev.map((item) => (item.id === id ? { ...item, comment } : item)));
   };
 
   const handleDeleteComment = (id: string) => {
     setHistoryItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, comment: '' } : item))
+      prev.map((item) => (item.id === id ? { ...item, comment: '' } : item)),
     );
   };
 

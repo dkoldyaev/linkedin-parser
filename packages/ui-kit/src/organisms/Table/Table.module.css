@@ -25,18 +25,18 @@
     width: auto;
   }
 
-  .tableQuantizedColumns > .col:not([data-fixed-rail]),
-  .tableQuantizedColumns > [role="region"]:not([data-fixed-rail]) {
-    flex: 0 0 var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
-    width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
-    min-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
-    max-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell))) !important;
+  .tableQuantizedColumns.tableQuantizedColumns > .col:not([data-fixed-rail]),
+  .tableQuantizedColumns.tableQuantizedColumns > [role='region']:not([data-fixed-rail]) {
+    flex: 0 0 var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell)));
+    width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell)));
+    min-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell)));
+    max-width: var(--bp-col-grid-width, calc(10 * var(--ui-grid-cell)));
   }
 
-  .tableQuantizedColumns > [data-fixed-rail] {
-    flex: 1 0 var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell))) !important;
-    width: var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell))) !important;
-    min-width: calc(2 * var(--ui-grid-cell)) !important;
+  .tableQuantizedColumns.tableQuantizedColumns > [data-fixed-rail] {
+    flex: 1 0 var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell)));
+    width: var(--bp-rail-extra-width, calc(2 * var(--ui-grid-cell)));
+    min-width: calc(2 * var(--ui-grid-cell));
     max-width: none;
   }
 
@@ -58,7 +58,7 @@
       /* inset 1px 1px 0px 0px var(--ui-pixel-line),
       1px 1px 0px 0px var(--ui-pixel-line); */
       1px 1px 0px 0px var(--ui-pixel-line),
-      inset -1px -1px 0px 0px var(--ui-pixel-line)
+      inset -1px -1px 0px 0px var(--ui-pixel-line);
   }
 
   /* Table Column (Vertical Flex Lane) */
@@ -204,9 +204,10 @@
     overflow-x: hidden;
   }
   .tableBordered .body {
-    box-shadow: inset 1px 1px 0px 0px var(--ui-pixel-line),
+    box-shadow:
+      inset 1px 1px 0px 0px var(--ui-pixel-line),
       1px 1px 0px 2px var(--ui-pixel-line);
-    }
+  }
 
   .bodyScrollable {
     overflow-y: auto;
@@ -312,8 +313,16 @@
     flex-shrink: 0;
   }
 
-  .footerJustifyStart { justify-content: flex-start; }
-  .footerJustifyCenter { justify-content: center; }
-  .footerJustifyEnd { justify-content: flex-end; }
-  .footerJustifyBetween { justify-content: space-between; }
+  .footerJustifyStart {
+    justify-content: flex-start;
+  }
+  .footerJustifyCenter {
+    justify-content: center;
+  }
+  .footerJustifyEnd {
+    justify-content: flex-end;
+  }
+  .footerJustifyBetween {
+    justify-content: space-between;
+  }
 }

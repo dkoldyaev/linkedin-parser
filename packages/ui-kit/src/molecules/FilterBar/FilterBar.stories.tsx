@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 import { FilterBar } from './FilterBar';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
@@ -60,7 +60,7 @@ function InteractiveFilterBar(): React.ReactElement {
         selectedTags={selectedTags}
         onToggleTag={(tag) =>
           setSelectedTags((prev) =>
-            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
           )
         }
         onReset={handleReset}

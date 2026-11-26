@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import type React from 'react';
-import { trackEvent, EVENTS } from '../utils/analytics';
 import { buildReorderedIds, computeDropIndex } from './kanbanBoardHelpers';
 import type { DropDispatchArgs, KanbanBoardProps } from './kanban.types';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import type React from 'react';
+import { useState } from 'react';
 
 function handleMultiCardDrop(args: DropDispatchArgs): boolean {
   if (!args.onStatusChangeMulti) return false;
@@ -50,7 +50,7 @@ function resolveTargetLane(
   forcedLane: number | null | undefined,
   columnId: string,
   laneColumnIds: Set<string>,
-  dragOverLane: number
+  dragOverLane: number,
 ): number {
   if (forcedLane !== null && forcedLane !== undefined) return forcedLane;
   return laneColumnIds.has(columnId) ? dragOverLane : 0;
@@ -60,7 +60,7 @@ function resolveTargetDropIndex(
   e: React.DragEvent<HTMLElement>,
   columnId: string,
   rejectedStatusId: string,
-  laneColumnIds: Set<string>
+  laneColumnIds: Set<string>,
 ): number | null {
   if (columnId === rejectedStatusId || laneColumnIds.has(columnId)) return null;
   return computeDropIndex(e);
@@ -76,7 +76,7 @@ export function parseDraggedVacancyId(e: React.DragEvent<HTMLElement>): number |
 export function useKanbanDragAndDrop(
   props: KanbanBoardProps,
   rejectedStatusId: string,
-  laneColumnIds: Set<string>
+  laneColumnIds: Set<string>,
 ) {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -118,7 +118,7 @@ export function useKanbanDragAndDrop(
   const handleDrop = (
     e: React.DragEvent<HTMLElement>,
     columnId: string,
-    forcedLane?: number | null
+    forcedLane?: number | null,
   ) => {
     e.preventDefault();
     const lane = resolveTargetLane(forcedLane, columnId, laneColumnIds, dragOverLane);

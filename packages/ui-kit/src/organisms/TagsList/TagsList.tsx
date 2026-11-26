@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 import { Badge, type BadgeSize, type BadgeTone, type BadgeVariant } from '../../atoms';
-import { TokenList } from '../../molecules/TokenList';
-import { cn } from '../../utils';
+import React, { useState } from 'react';
 import { TagsListInput, type TagsListInputProps } from './TagsListInput';
+import { cn } from '../../utils';
 import styles from './TagsList.module.css';
+import { TokenList } from '../../molecules/TokenList';
 
 export { TagsListInput, type TagsListInputProps };
 
@@ -78,9 +78,7 @@ function TagsListBase({
   };
 
   const visibleTags =
-    maxVisible !== undefined && maxVisible > 0 && !isExpanded
-      ? value.slice(0, maxVisible)
-      : value;
+    maxVisible !== undefined && maxVisible > 0 && !isExpanded ? value.slice(0, maxVisible) : value;
 
   const hiddenCount =
     maxVisible !== undefined && maxVisible > 0 && !isExpanded

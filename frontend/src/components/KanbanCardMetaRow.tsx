@@ -1,12 +1,12 @@
-import React from 'react';
-import { Award } from 'lucide-react';
 import { Badge, Icon } from '@blueprint/ui-kit';
-import { resolveScoreTone } from './kanbanCardHelpers';
-import styles from './KanbanCard.module.css';
-import { SalaryBadge } from './SalaryBadge';
+import { Award } from 'lucide-react';
 import { LocationBadge } from './LocationBadge';
-import { WorkplaceBadge } from './WorkplaceBadge';
+import React from 'react';
+import { resolveScoreTone } from './kanbanCardHelpers';
+import { SalaryBadge } from './SalaryBadge';
+import styles from './KanbanCard.module.css';
 import { Vacancy } from '../types/models';
+import { WorkplaceBadge } from './WorkplaceBadge';
 
 export type KanbanCardMetaRowProps = {
   matchScore?: number;
@@ -40,7 +40,12 @@ export default function KanbanCardMetaRow({
       )}
       <WorkplaceBadge workplaceType={workplaceType} />
       <LocationBadge location={location} />
-      <SalaryBadge min={salaryMin} max={salaryMax} period={salaryPeriod} currency={salaryCurrency} />
+      <SalaryBadge
+        min={salaryMin}
+        max={salaryMax}
+        period={salaryPeriod}
+        currency={salaryCurrency}
+      />
     </div>
   );
 }

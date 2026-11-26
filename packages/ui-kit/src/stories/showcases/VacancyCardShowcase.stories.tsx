@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { VacancyCard } from '../../organisms/VacancyCard/VacancyCard';
 import layoutStyles from '../StoryLayout.module.css';
+import { VacancyCard } from '../../organisms/VacancyCard/VacancyCard';
 
 const meta: Meta<typeof VacancyCard> = {
   title: 'Showcases (Job Tracker)/Vacancy Card Showcase',
@@ -30,7 +30,7 @@ export const AllVacancyCardStates: Story = {
         historyCount={3}
         hasHistoryComment
         canMoveLeft={false}
-        canMoveRight={true}
+        canMoveRight
       />
 
       <VacancyCard
@@ -49,8 +49,8 @@ export const AllVacancyCardStates: Story = {
         stageLabel="Applied"
         date="1 нояб."
         historyCount={4}
-        canMoveLeft={true}
-        canMoveRight={true}
+        canMoveLeft
+        canMoveRight
       />
 
       <VacancyCard
@@ -64,7 +64,7 @@ export const AllVacancyCardStates: Story = {
         pendingAiLabel="Ожидание AI-анализа..."
         techStack={['TypeScript', 'React', 'WebAssembly']}
         date="Только что"
-        canMoveLeft={true}
+        canMoveLeft
         canMoveRight={false}
       />
     </div>

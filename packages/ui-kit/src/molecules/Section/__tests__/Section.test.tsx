@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { Section, SectionBody } from '../Section';
 import { SectionHeader } from '../../SectionHeader';
 
@@ -11,7 +11,7 @@ describe('Section molecule', () => {
         <SectionBody data-testid="test-body">
           <p>Содержимое секции</p>
         </SectionBody>
-      </Section>
+      </Section>,
     );
 
     const section = screen.getByTestId('test-section');
@@ -27,7 +27,7 @@ describe('Section molecule', () => {
         <Section.Body padding="sm" paddingX="lg" paddingY="xs" data-testid="compound-body">
           <span>Текст</span>
         </Section.Body>
-      </Section>
+      </Section>,
     );
 
     const article = screen.getByTestId('compound-section');
@@ -37,4 +37,3 @@ describe('Section molecule', () => {
     expect(body).toBeInTheDocument();
   });
 });
-

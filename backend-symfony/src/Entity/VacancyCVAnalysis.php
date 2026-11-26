@@ -288,7 +288,7 @@ class VacancyCVAnalysis implements UserOwnedInterface
     #[Groups(['analysis:read'])]
     public function getRecommendations(): array
     {
-        return $this->result['recommendations'] ?? [];
+        return $this->result['recommendations'] ?? ($this->result['actionableRecommendations'] ?? []);
     }
 
     /**

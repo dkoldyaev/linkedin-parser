@@ -306,7 +306,6 @@ async function main() {
 
     // C. Test Backend Auth & State Sync (Mercure publish)
     try {
-      const crypto = await import('node:crypto');
       const testUsername = `dev_verify_${Date.now()}`;
       // Register test user
       const regRes = await fetch(`https://${DEV_DOMAIN}/api/v1/auth/register`, {

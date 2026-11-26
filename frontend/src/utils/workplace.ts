@@ -1,4 +1,4 @@
-import { Building, Home, Layers, LucideIcon } from "lucide-react";
+import { Building, Home, Layers, LucideIcon } from 'lucide-react';
 
 export interface WorkplaceTypeConfig {
   label: string;
@@ -68,7 +68,8 @@ export function getWorkplaceInfo(type?: string | null, t?: TranslateFn): Workpla
     icon: Building,
   };
   const label = t ? t(`workplace.${baseKey}`) : defaultConf.label;
-  const fullLabelKey = baseKey === 'on-site' ? 'workplace.full_onsite' : `workplace.full_${baseKey}`;
+  const fullLabelKey =
+    baseKey === 'on-site' ? 'workplace.full_onsite' : `workplace.full_${baseKey}`;
   const fullLabel = t ? t(fullLabelKey) : defaultConf.fullLabel;
 
   return {

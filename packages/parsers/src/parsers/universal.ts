@@ -1,18 +1,18 @@
+import { cleanText, cleanUrlParams, extractCanonicalUrl } from '../helpers';
 import { BaseParser } from '../BaseParser';
-import { VacancyData } from '../types';
 import { createDocument } from '../dom';
-import { Readability } from '@mozilla/readability';
 import DOMPurify from 'isomorphic-dompurify';
-import { cleanText, extractCanonicalUrl, cleanUrlParams } from '../helpers';
+import { Readability } from '@mozilla/readability';
+import { VacancyData } from '../types';
 
 export class UniversalParser extends BaseParser {
-  name = "universal";
-  source = "Universal";
+  name = 'universal';
+  source = 'Universal';
   priority = 0; // Lowest priority, acts as a fallback
   needs_extension = false;
   domains: string[] = [];
 
-  matches(url: string): boolean {
+  matches(_url: string): boolean {
     return true; // Matches any URL
   }
 
@@ -33,7 +33,7 @@ export class UniversalParser extends BaseParser {
     // Run Readability
     let title: string | undefined;
     let description: string | undefined;
-    
+
     // Readability mutates the DOM, so clone it if we need original later
     const docClone = createDocument(html);
     const reader = new Readability(docClone);
@@ -51,7 +51,7 @@ export class UniversalParser extends BaseParser {
     }
 
     if (!title) {
-      const h1 = doc.querySelector("h1");
+      const h1 = doc.querySelector('h1');
       if (h1) title = h1.textContent?.trim();
     }
 

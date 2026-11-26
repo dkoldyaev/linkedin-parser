@@ -1,21 +1,18 @@
+import type { BoardColumn, QueueTask, User, Vacancy } from '../types/models';
+import { type BoardModalRealtimeEvent, useMercureRealtime } from '../views/useMercureRealtime';
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
-  useRef,
+  useContext,
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from 'react';
-import { useTranslation } from '../i18n/I18nContext';
-import { vacancyService } from '../services/vacancyService';
 import { columnService } from '../services/columnService';
 import { queueService } from '../services/queueService';
-import {
-  useMercureRealtime,
-  type BoardModalRealtimeEvent,
-} from '../views/useMercureRealtime';
-import type { User, Vacancy, BoardColumn, QueueTask } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
+import { vacancyService } from '../services/vacancyService';
 
 export interface BoardToastState {
   message: string;
@@ -56,9 +53,8 @@ export function useOptionalBoardStore(): BoardStoreValue | null {
 
 function extractQueueRemainingCount(data: unknown): number | null {
   if (Array.isArray(data)) {
-    return (data as QueueTask[]).filter(
-      (i) => i.status === 'pending' || i.status === 'processing'
-    ).length;
+    return (data as QueueTask[]).filter((i) => i.status === 'pending' || i.status === 'processing')
+      .length;
   }
   if (data && typeof data === 'object' && 'total_remaining' in data) {
     const val = (data as { total_remaining?: number }).total_remaining;
@@ -95,18 +91,14 @@ function useBoardToastAndEvents() {
 function useBoardDataFetchers(
   user: User | null | undefined,
   initialVacancies: Vacancy[] | undefined,
-  initialColumns: BoardColumn[] | undefined
+  initialColumns: BoardColumn[] | undefined,
 ) {
   const hasSeedVacancies = Array.isArray(initialVacancies);
   const hasSeedColumns = Array.isArray(initialColumns) && initialColumns.length > 0;
 
-  const [vacancies, setVacancies] = useState<Vacancy[]>(
-    hasSeedVacancies ? initialVacancies : []
-  );
+  const [vacancies, setVacancies] = useState<Vacancy[]>(hasSeedVacancies ? initialVacancies : []);
   const [vacanciesLoaded, setVacanciesLoaded] = useState<boolean>(hasSeedVacancies);
-  const [columns, setColumns] = useState<BoardColumn[]>(
-    hasSeedColumns ? initialColumns : []
-  );
+  const [columns, setColumns] = useState<BoardColumn[]>(hasSeedColumns ? initialColumns : []);
   const [queueRemaining, setQueueRemaining] = useState(0);
 
   const fetchVacancies = useCallback(async () => {
@@ -142,9 +134,7 @@ function useBoardDataFetchers(
     }
   }, [user]);
 
-  const loadedUserIdRef = useRef<number | null>(
-    hasSeedVacancies && user ? user.id : null
-  );
+  const loadedUserIdRef = useRef<number | null>(hasSeedVacancies && user ? user.id : null);
 
   useEffect(() => {
     if (!user) {
@@ -179,7 +169,7 @@ function useBoardDataFetchers(
 export function useBoardStoreState(
   user: User | null | undefined,
   initialVacancies: Vacancy[] | undefined,
-  initialColumns: BoardColumn[] | undefined
+  initialColumns: BoardColumn[] | undefined,
 ): BoardStoreValue {
   const { t } = useTranslation();
   const data = useBoardDataFetchers(user, initialVacancies, initialColumns);
@@ -202,7 +192,7 @@ export function useBoardStoreState(
       showToast: bus.showToast,
       subscribeModalEvents: bus.subscribeModalEvents,
     }),
-    [data, bus.toast, bus.setToast, bus.showToast, bus.subscribeModalEvents]
+    [data, bus.toast, bus.setToast, bus.showToast, bus.subscribeModalEvents],
   );
 }
 

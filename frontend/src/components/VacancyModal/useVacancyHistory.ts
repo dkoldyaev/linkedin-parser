@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { vacancyService } from '../../services/vacancyService';
+import { useCallback, useEffect, useState } from 'react';
 import type { Vacancy, VacancyHistoryItem } from '../../types/models';
+import { vacancyService } from '../../services/vacancyService';
 
 export function useVacancyHistory(
   vacancy: Vacancy | null,
   isOpen: boolean,
-  loadingDetails: boolean
+  loadingDetails: boolean,
 ) {
   const [historyList, setHistoryList] = useState<VacancyHistoryItem[]>([]);
   const vacancyId = vacancy?.id;
@@ -37,11 +37,11 @@ export function useVacancyHistory(
       const updated = await vacancyService.updateHistoryComment(vacancyId, historyId, comment);
       if (updated) {
         setHistoryList((prev) =>
-          prev.map((item) => (String(item.id) === historyId ? { ...item, comment } : item))
+          prev.map((item) => (String(item.id) === historyId ? { ...item, comment } : item)),
         );
       }
     },
-    [vacancyId]
+    [vacancyId],
   );
 
   const handleDeleteComment = useCallback(
@@ -49,10 +49,10 @@ export function useVacancyHistory(
       if (!vacancyId) return;
       await vacancyService.updateHistoryComment(vacancyId, historyId, null);
       setHistoryList((prev) =>
-        prev.map((item) => (String(item.id) === historyId ? { ...item, comment: '' } : item))
+        prev.map((item) => (String(item.id) === historyId ? { ...item, comment: '' } : item)),
       );
     },
-    [vacancyId]
+    [vacancyId],
   );
 
   const effectiveHistory = isOpen && vacancyId && !loadingDetails ? historyList : [];

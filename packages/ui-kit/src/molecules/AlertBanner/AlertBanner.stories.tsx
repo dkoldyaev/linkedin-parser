@@ -9,8 +9,7 @@ const meta: Meta<typeof AlertBanner> = {
   args: {
     tone: 'info',
     title: 'Mercure SSE Connected',
-    children:
-      'Listening for real-time CV adaptation updates from background worker.',
+    children: 'Listening for real-time CV adaptation updates from background worker.',
     dismissLabel: 'Dismiss alert',
   },
   argTypes: {
@@ -47,11 +46,7 @@ export const AllTones: Story = {
       <AlertBanner tone="warning" title="Column Deletion Warning">
         Moving 8 vacancies from Technical Interview to Archive before removal.
       </AlertBanner>
-      <AlertBanner
-        tone="danger"
-        title="Parser Extraction Failed"
-        onDismiss={() => undefined}
-      >
+      <AlertBanner tone="danger" title="Parser Extraction Failed" onDismiss={() => undefined}>
         LinkedIn rate limit encountered. Task scheduled for automatic retry.
       </AlertBanner>
     </div>

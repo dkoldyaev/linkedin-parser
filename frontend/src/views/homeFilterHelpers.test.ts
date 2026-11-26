@@ -1,9 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import {
-  matchesFilters,
-  computeHiddenVacancyIds,
-  defaultFilterState,
-} from './homeFilterHelpers';
+import { computeHiddenVacancyIds, defaultFilterState, matchesFilters } from './homeFilterHelpers';
+import { describe, expect, it } from 'vitest';
 import type { Vacancy } from '../types/models';
 
 const mockVacancies: Vacancy[] = [

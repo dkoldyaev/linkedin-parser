@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { Modal, Skeleton } from '@blueprint/ui-kit';
-import { useTranslation } from '../../i18n/I18nContext';
-import { DEFAULT_COLUMNS } from '../../constants/columns';
-import { vacancyService } from '../../services/vacancyService';
+import type { BoardColumn, Vacancy } from '../../types/models';
 import {
   buildHistoryItems,
   computeVacancyMatchScore,
   normalizeModalColumns,
   resolveModalRejectedStatusId,
 } from './vacancyModalHelpers';
-import type { BoardColumn, Vacancy } from '../../types/models';
+import React, { useState } from 'react';
+import { DEFAULT_COLUMNS } from '../../constants/columns';
+import { Modal } from '@blueprint/ui-kit';
+import { useTranslation } from '../../i18n/I18nContext';
+import { vacancyService } from '../../services/vacancyService';
 
-import VacancyReparseBanner from './VacancyReparseBanner';
-import { VacancyModalHeader } from './VacancyModalHeader';
-import { VacancyDetailsTabPanel } from './VacancyDetailsTabPanel';
-import { VacancyRawDataTab } from './VacancyRawDataTab';
-import { VacancyCompatibilityTab } from './VacancyCompatibilityTab';
-import { VacancyModalFooter } from './VacancyModalFooter';
-import { VacancyTabContent } from './VacancyTabContent';
-import { useVacancyHistory } from './useVacancyHistory';
-import { useVacancyCompatibility } from './useVacancyCompatibility';
 import type { SalaryData } from './VacancySalarySection';
+import { useVacancyCompatibility } from './useVacancyCompatibility';
+import { useVacancyHistory } from './useVacancyHistory';
+import { VacancyCompatibilityTab } from './VacancyCompatibilityTab';
+import { VacancyDetailsTabPanel } from './VacancyDetailsTabPanel';
+import { VacancyModalFooter } from './VacancyModalFooter';
+import { VacancyModalHeader } from './VacancyModalHeader';
+import { VacancyRawDataTab } from './VacancyRawDataTab';
+import VacancyReparseBanner from './VacancyReparseBanner';
+import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyModalProps {
   vacancy: Vacancy | null;
@@ -36,7 +36,7 @@ function useModalAsyncActions(
   vacancy: Vacancy | null,
   locale: string,
   t: (path: string) => string,
-  onUpdate: (updated: Vacancy) => void
+  onUpdate: (updated: Vacancy) => void,
 ) {
   const [resummarizing, setResummarizing] = useState(false);
   const [reparsing, setReparsing] = useState(false);
@@ -118,103 +118,6 @@ function useResettableActiveTab(vacancyId: number | undefined, isOpen: boolean) 
   return { activeTab, setActiveTab };
 }
 
-function renderHeaderOrSkeleton(opts: {
-  vacancy: Vacancy;
-  loadingDetails: boolean;
-  activeTab: string;
-  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
-  actions: ReturnType<typeof useModalAsyncActions>;
-}): React.ReactElement {
-  const { vacancy, loadingDetails, activeTab, setActiveTab, actions } = opts;
-  if (loadingDetails && !vacancy.title) {
-    return (
-      <div style={{ padding: 'var(--ui-space-4)' }} data-testid="vacancy-header-skeleton">
-        <Skeleton variant="text" width="60" height="md" />
-        <div style={{ marginTop: 'var(--ui-space-2)' }}>
-          <Skeleton variant="text" width="25" height="xs" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <VacancyModalHeader
-      title={vacancy.title ? vacancy.title : ''}
-      companyName={vacancy.company}
-      link={vacancy.url}
-      onRefresh={actions.handleReparse}
-      refreshing={actions.reparsing}
-      source={vacancy.source}
-      location={vacancy.location}
-      workplaceType={vacancy.workplace_type}
-      salaryMin={vacancy.salary_min}
-      salaryMax={vacancy.salary_max}
-      salaryCurrency={vacancy.salary_currency}
-      salaryPeriod={vacancy.salary_period}
-      isClosed={Boolean(vacancy.is_closed)}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      matchScore={vacancy.calculated_score}
-    />
-  );
-}
-
-function renderModalBodyContent(opts: {
-  activeTab: string;
-  vacancy: Vacancy;
-  loadingDetails: boolean;
-  matchScore: number | undefined;
-  actions: ReturnType<typeof useModalAsyncActions>;
-  history: ReturnType<typeof useVacancyHistory>;
-  historyItems: ReturnType<typeof buildHistoryItems>;
-  compat: ReturnType<typeof useVacancyCompatibility>;
-}): React.ReactNode {
-  const { activeTab, vacancy, loadingDetails, matchScore, actions, history, historyItems, compat } =
-    opts;
-  if (activeTab === 'raw_data') {
-    return (
-      <VacancyRawDataTab
-        salaryMin={vacancy.salary_min}
-        salaryMax={vacancy.salary_max}
-        salaryCurrency={vacancy.salary_currency}
-        salaryPeriod={vacancy.salary_period}
-        onSaveSalary={actions.handleSaveSalary}
-        description={vacancy.description ? vacancy.description : ''}
-        loadingDescription={loadingDetails}
-        onSaveDescription={(description) => actions.patchField({ description })}
-      />
-    );
-  }
-  if (activeTab === 'compatibility') {
-    return (
-      <VacancyTabContent>
-        <VacancyCompatibilityTab
-          vacancy={vacancy}
-          compatibility={compat.compatibility}
-          matchScore={matchScore}
-          analyzingCompatibility={compat.analyzingCompatibility}
-          loadingCompatibility={compat.loadingCompatibility}
-          loadingDetails={loadingDetails}
-          compatError={compat.compatError}
-          onRunCompatibility={compat.handleRunCompatibility}
-        />
-      </VacancyTabContent>
-    );
-  }
-  return (
-    <VacancyDetailsTabPanel
-      vacancy={vacancy}
-      loadingDetails={loadingDetails}
-      resummarizing={actions.resummarizing}
-      onResummarize={actions.handleResummarize}
-      onPatchField={actions.patchField}
-      historyItems={historyItems}
-      onSaveComment={history.handleSaveComment}
-      onDeleteComment={history.handleDeleteComment}
-    />
-  );
-}
-
 export default function VacancyModal({
   vacancy,
   isOpen,
@@ -242,18 +145,63 @@ export default function VacancyModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <VacancyReparseBanner error={actions.reparseError} success={actions.reparseSuccess} />
-      {renderHeaderOrSkeleton({ vacancy, loadingDetails, activeTab, setActiveTab, actions })}
+      <VacancyModalHeader
+        title={vacancy.title}
+        companyName={vacancy.company}
+        link={vacancy.url}
+        onRefresh={actions.handleReparse}
+        refreshing={actions.reparsing}
+        source={vacancy.source}
+        location={vacancy.location}
+        workplaceType={vacancy.workplace_type}
+        salaryMin={vacancy.salary_min}
+        salaryMax={vacancy.salary_max}
+        salaryCurrency={vacancy.salary_currency}
+        salaryPeriod={vacancy.salary_period}
+        isClosed={Boolean(vacancy.is_closed)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        matchScore={vacancy.calculated_score}
+      />
       <Modal.Body>
-        {renderModalBodyContent({
-          activeTab,
-          vacancy,
-          loadingDetails,
-          matchScore,
-          actions,
-          history,
-          historyItems,
-          compat,
-        })}
+        <VacancyTabContent>
+          {activeTab === 'raw_data' && (
+            <VacancyRawDataTab
+              salaryMin={vacancy.salary_min}
+              salaryMax={vacancy.salary_max}
+              salaryCurrency={vacancy.salary_currency}
+              salaryPeriod={vacancy.salary_period}
+              onSaveSalary={actions.handleSaveSalary}
+              description={vacancy.description || ''}
+              loadingDescription={loadingDetails}
+              onSaveDescription={(description) => actions.patchField({ description })}
+            />
+          )}
+          {activeTab === 'compatibility' && (
+            <VacancyCompatibilityTab
+              vacancy={vacancy}
+              compatibility={compat.compatibility}
+              matchScore={matchScore}
+              analyzingCompatibility={compat.analyzingCompatibility}
+              loadingCompatibility={compat.loadingCompatibility}
+              loadingDetails={loadingDetails}
+              compatError={compat.compatError}
+              onRunCompatibility={compat.handleRunCompatibility}
+            />
+          )}
+          {activeTab === 'details' && (
+            <VacancyDetailsTabPanel
+              vacancy={vacancy}
+              loadingDetails={loadingDetails}
+              resummarizing={actions.resummarizing}
+              onResummarize={actions.handleResummarize}
+              onPatchField={actions.patchField}
+              historyItems={historyItems}
+              onSaveComment={history.handleSaveComment}
+              onDeleteComment={history.handleDeleteComment}
+            />
+          )}
+        </VacancyTabContent>
       </Modal.Body>
       <VacancyModalFooter
         onClose={onClose}

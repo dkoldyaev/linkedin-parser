@@ -1,16 +1,10 @@
-
-import React from 'react';
-import {
-  TableHeader,
-  Badge,
-  Text,
-  StatusDot,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { Badge, StatusDot, TableHeader, Text } from '@blueprint/ui-kit';
 import { HEATMAP_WEEKS, level } from './statsHelpers';
+import React from 'react';
 import StatsHeatmapLegend from './StatsHeatmapLegend';
 import StatsSummaryList from './StatsSummaryList';
 import type { StatsViewModel } from './statsHelpers';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface StatsHeatmapSectionProps {
   view: StatsViewModel;
@@ -47,7 +41,11 @@ export default function StatsHeatmapSection({
         </Badge>
       </TableHeader>
 
-      <div className="bp-heatmap-box bp-snap" data-min-grids="4" style={{ padding: 'var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}>
+      <div
+        className="bp-heatmap-box bp-snap"
+        data-min-grids="4"
+        style={{ padding: 'var(--ui-space-4)', borderBottom: '1px solid var(--ui-border-subtle)' }}
+      >
         <div className="heatmap" id="stat-heatmap" onScroll={(event) => snapScroll(event, 'x')}>
           {view.weeks.map((col, i) => (
             <div className="heatmap-col" key={i}>

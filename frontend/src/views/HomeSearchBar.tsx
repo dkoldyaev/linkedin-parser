@@ -1,6 +1,6 @@
+import { EVENTS, trackEvent } from '../utils/analytics';
 import React from 'react';
 import { SearchBar } from '@blueprint/ui-kit';
-import { trackEvent, EVENTS } from '../utils/analytics';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface HomeSearchBarProps {

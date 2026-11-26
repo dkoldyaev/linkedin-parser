@@ -1,7 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { OverlayProvider } from '../../../utils';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { FilterBar } from '../FilterBar';
+import { OverlayProvider } from '../../../utils';
 
 describe('FilterBar molecule', () => {
   it('renders filter selects, selectable tags, and triggers reset', () => {
@@ -30,7 +30,7 @@ describe('FilterBar molecule', () => {
         onToggleTag={onToggleTag}
         onReset={onReset}
       />,
-      { wrapper: OverlayProvider }
+      { wrapper: OverlayProvider },
     );
 
     expect(screen.getByRole('toolbar', { name: 'Filters' })).toBeInTheDocument();

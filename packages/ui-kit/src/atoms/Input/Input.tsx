@@ -4,8 +4,7 @@ import styles from './Input.module.css';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 
-export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   readonly size?: InputSize;
   readonly invalid?: boolean;
   readonly mono?: boolean;
@@ -30,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     type = 'text',
     ...rest
   },
-  ref
+  ref,
 ) {
   const inputElement = (
     <input
@@ -44,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         invalid && styles.invalid,
         startAdornment !== undefined && styles.hasStartAdornment,
         endAdornment !== undefined && styles.hasEndAdornment,
-        className
+        className,
       )}
       {...rest}
     />

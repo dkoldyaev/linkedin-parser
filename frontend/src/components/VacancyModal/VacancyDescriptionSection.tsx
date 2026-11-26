@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Skeleton, Textarea } from '@blueprint/ui-kit';
 import { FileText } from 'lucide-react';
+import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
 import { VacancySection } from './VacancySection';
-import { useSave } from './useSave';
 
 export interface VacancyDescriptionSectionProps {
   description?: string;

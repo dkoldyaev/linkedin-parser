@@ -1,5 +1,5 @@
+import { Badge, TokenList } from '@blueprint/ui-kit';
 import React from 'react';
-import { TokenList, Badge } from '@blueprint/ui-kit';
 import styles from './KanbanCard.module.css';
 
 export interface KanbanCardTechTokensProps {

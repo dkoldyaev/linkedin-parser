@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.next
+.venv
+vendor
+coverage
+*.tsbuildinfo
+package-lock.json
+pnpm-lock.yaml
+composer.lock
+symfony.lock
+results
+data

@@ -1,5 +1,1 @@
-export {
-  OverlayProvider,
-  useOverlayContainer,
-  type OverlayProviderProps,
-} from './OverlayProvider';
+export { OverlayProvider, useOverlayContainer, type OverlayProviderProps } from './OverlayProvider';

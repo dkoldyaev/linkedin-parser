@@ -1,15 +1,15 @@
-import React, { useCallback, useLayoutEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import {
   autoUpdate,
   flip,
   offset,
+  type Placement,
   shift,
   useFloating,
-  type Placement,
 } from '@floating-ui/react-dom';
-import { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import { cn, useOverlayContainer } from '../../utils';
+import React, { useCallback, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import styles from './Overlay.module.css';
 
 export type OverlayViewportPlacement =
@@ -92,7 +92,7 @@ const ANCHOR_PLACEMENT_MAP: Record<OverlayPlacement, Placement> = {
 
 function isTargetInsideAnchor(
   eventTarget: EventTarget | null,
-  anchorRef: React.RefObject<HTMLElement | null> | undefined
+  anchorRef: React.RefObject<HTMLElement | null> | undefined,
 ): boolean {
   if (!anchorRef?.current || !(eventTarget instanceof Node)) {
     return false;
@@ -176,7 +176,7 @@ function AnchoredOverlayContent({
         Object.assign(node.style, floatingStyles);
       }
     },
-    [refs, floatingStyles]
+    [refs, floatingStyles],
   );
 
   useLayoutEffect(() => {
@@ -232,7 +232,7 @@ export function Overlay({
       >
         {children}
       </AnchoredOverlayContent>,
-      container
+      container,
     );
   }
 
@@ -240,10 +240,7 @@ export function Overlay({
   const placementClass = VIEWPORT_CLASS_MAP[resolvedViewportPlacement];
 
   return createPortal(
-    <div
-      data-ui-overlay="viewport"
-      className={cn(styles.viewportFrame, placementClass)}
-    >
+    <div data-ui-overlay="viewport" className={cn(styles.viewportFrame, placementClass)}>
       {backdrop && (
         <div
           data-ui-overlay-backdrop=""
@@ -256,6 +253,6 @@ export function Overlay({
         <div className={cn(styles.surface, className)}>{children}</div>
       </DismissableWrapper>
     </div>,
-    container
+    container,
   );
 }

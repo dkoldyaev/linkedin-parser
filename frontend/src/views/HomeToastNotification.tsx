@@ -1,5 +1,5 @@
-import React from 'react';
 import { AlertBanner, Overlay } from '@blueprint/ui-kit';
+import React from 'react';
 import type { ToastState } from './home.types';
 
 export interface HomeToastNotificationProps {

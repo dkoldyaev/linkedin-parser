@@ -43,15 +43,20 @@ function openDB(): Promise<IDBDatabase> {
 
 async function transact<T>(
   mode: IDBTransactionMode,
-  operation: (store: IDBObjectStore) => IDBRequest<T>
+  operation: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, mode);
     let value: T;
     const request = operation(tx.objectStore(STORE_NAME));
-    request.onsuccess = () => { value = request.result; };
-    tx.oncomplete = () => { db.close(); resolve(value); };
+    request.onsuccess = () => {
+      value = request.result;
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve(value);
+    };
     const handleAbortOrError = () => {
       db.close();
       reject(tx.error || new Error('CV storage transaction failed'));
@@ -69,7 +74,7 @@ export async function getLocalCV(userId?: number | string | null): Promise<Local
 
 export async function saveLocalCV(
   cvRecord: LocalCVRecord,
-  userId?: number | string | null
+  userId?: number | string | null,
 ): Promise<LocalCVRecord> {
   const record: LocalCVRecord = {
     ...cvRecord,

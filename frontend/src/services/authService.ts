@@ -1,5 +1,5 @@
 import { ApiClient, apiClient as defaultApiClient } from './apiClient';
-import type { User, AuthConfig, DevLoginPayload, DevLoginResponse } from './auth.types';
+import type { AuthConfig, DevLoginPayload, DevLoginResponse, User } from './auth.types';
 
 export class AuthService {
   private readonly client: ApiClient;

@@ -1,4 +1,4 @@
-import type { User, Vacancy, BoardColumn } from '../types/models';
+import type { BoardColumn, User, Vacancy } from '../types/models';
 
 export interface HomePageProps {
   initialUser?: User | null;

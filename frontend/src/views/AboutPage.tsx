@@ -1,14 +1,9 @@
-import { Link } from 'react-router-dom';
-import { Sparkles, Columns3, Flame, Puzzle, ArrowRight } from 'lucide-react';
-import {
-  PageLayout,
-  Button,
-  Icon,
-  Text,
-} from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import AboutOverviewSection from './AboutOverviewSection';
+import { ArrowRight, Columns3, Flame, Puzzle, Sparkles } from 'lucide-react';
+import { Button, Icon, PageLayout, Text } from '@blueprint/ui-kit';
 import AboutFeatureCard from './AboutFeatureCard';
+import AboutOverviewSection from './AboutOverviewSection';
+import { Link } from 'react-router-dom';
+import { useTranslation } from '../i18n/I18nContext';
 
 const FEATURES = [
   { key: 'ai', icon: Sparkles, color: '#2563eb' },
@@ -61,7 +56,14 @@ export default function AboutPage() {
 
   return (
     <PageLayout gridDeps={[locale]} className="about-page" header={headerContent}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-6)', padding: 'var(--ui-space-4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--ui-space-6)',
+          padding: 'var(--ui-space-4)',
+        }}
+      >
         <AboutOverviewSection />
         <section
           style={{
@@ -76,7 +78,10 @@ export default function AboutPage() {
         </section>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--ui-space-4)' }}>
           <Button asChild variant="secondary" size="md">
-            <Link to="/howtouse" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Link
+              to="/howtouse"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
               <span>{t('pages.about.cta')}</span>
               {ARROW_RIGHT_ICON}
             </Link>

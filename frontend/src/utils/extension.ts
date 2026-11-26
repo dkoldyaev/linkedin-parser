@@ -36,7 +36,7 @@ interface ChromeRuntime {
   sendMessage?: (
     extensionId: string,
     message: { type: string },
-    callback: (response?: { installed?: boolean; version?: string }) => void
+    callback: (response?: { installed?: boolean; version?: string }) => void,
   ) => void;
   lastError?: unknown;
 }
@@ -66,7 +66,7 @@ function getChromeRuntime(): ChromeRuntime | undefined {
 
 function pingExtension(
   extensionId?: string | null,
-  timeoutMs?: number
+  timeoutMs?: number,
 ): Promise<{ installed: boolean; version: string | null }> {
   const waitMs = timeoutMs ?? 500;
   return new Promise((resolve) => {
@@ -117,7 +117,7 @@ function isNewerThanCurrent(ver: string, currentVersion?: string | null): boolea
 export function getUpdatesBetween(
   changelogData?: ExtensionChangelog | null,
   currentVersion?: string | null,
-  lang?: string
+  lang?: string,
 ): ExtensionUpdateItem[] {
   const releases = changelogData?.releases;
   if (!releases) return [];
@@ -158,7 +158,7 @@ async function fetchBackendExtensionStatus(): Promise<{
 function isVersionOutdated(
   installed: boolean,
   currentVersion: string | null,
-  latestVersion: string | null
+  latestVersion: string | null,
 ): boolean {
   if (!installed || !currentVersion || !latestVersion) return false;
   return compareVersions(latestVersion, currentVersion) > 0;
@@ -181,11 +181,6 @@ export async function checkExtensionStatus(): Promise<ExtensionStatusInfo> {
     isOutdated,
     changelog,
   };
-}
-
-export async function isExtensionInstalled(): Promise<boolean> {
-  const status = await checkExtensionStatus();
-  return status.installed;
 }
 
 function isDismissedInStorage(key: string, expectedValue: string): boolean {
@@ -213,11 +208,6 @@ export async function checkExtensionPromptRequirement(): Promise<ExtensionPrompt
   return { show: false, reason: null, ...status };
 }
 
-export async function shouldShowExtensionPrompt(): Promise<boolean> {
-  const res = await checkExtensionPromptRequirement();
-  return res.show;
-}
-
 export function urlRequiresExtension(url?: string | null): boolean {
   if (!url || typeof url !== 'string') return false;
   const lower = url.trim().toLowerCase();
@@ -232,7 +222,7 @@ export function anyUrlRequiresExtension(urls?: string[] | null): boolean {
 export function dismissExtensionPrompt(
   permanent?: boolean,
   reason?: string | null,
-  targetVersion?: string | null
+  targetVersion?: string | null,
 ): void {
   if (typeof localStorage === 'undefined') return;
   const mode = reason || 'not_installed';

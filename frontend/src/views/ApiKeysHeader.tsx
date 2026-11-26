@@ -1,7 +1,7 @@
+import ApiKeysDocLinks from './ApiKeysDocLinks';
 import React from 'react';
 import { Text } from '@blueprint/ui-kit';
 import { useTranslation } from '../i18n/I18nContext';
-import ApiKeysDocLinks from './ApiKeysDocLinks';
 
 export interface ApiKeysHeaderProps {
   hasApiAccess: boolean;

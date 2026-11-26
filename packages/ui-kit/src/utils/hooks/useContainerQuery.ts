@@ -23,7 +23,7 @@ export type ContainerQueryRange<T> =
  */
 export function useContainerQuery<T, E extends HTMLElement = HTMLDivElement>(
   defaultValue: T,
-  ranges: readonly ContainerQueryRange<T>[] | ContainerQueryRange<T>
+  ranges: readonly ContainerQueryRange<T>[] | ContainerQueryRange<T>,
 ): [React.RefCallback<E>, T] {
   const [currentValue, setCurrentValue] = useState<T>(defaultValue);
   const elementRef = useRef<E | null>(null);
@@ -33,9 +33,7 @@ export function useContainerQuery<T, E extends HTMLElement = HTMLDivElement>(
   defaultValueRef.current = defaultValue;
 
   const matchRanges = useCallback((width: number): T => {
-    const list = Array.isArray(rangesRef.current)
-      ? rangesRef.current
-      : [rangesRef.current];
+    const list = Array.isArray(rangesRef.current) ? rangesRef.current : [rangesRef.current];
 
     for (const range of list) {
       const minOk = range.min === undefined || width >= range.min;
@@ -47,15 +45,18 @@ export function useContainerQuery<T, E extends HTMLElement = HTMLDivElement>(
     return defaultValueRef.current;
   }, []);
 
-  const refCallback = useCallback<React.RefCallback<E>>((node) => {
-    elementRef.current = node;
-    if (node) {
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 0) {
-        setCurrentValue(matchRanges(rect.width));
+  const refCallback = useCallback<React.RefCallback<E>>(
+    (node) => {
+      elementRef.current = node;
+      if (node) {
+        const rect = node.getBoundingClientRect();
+        if (rect.width > 0) {
+          setCurrentValue(matchRanges(rect.width));
+        }
       }
-    }
-  }, [matchRanges]);
+    },
+    [matchRanges],
+  );
 
   useEffect(() => {
     const el = elementRef.current;
@@ -83,4 +84,3 @@ export function useContainerQuery<T, E extends HTMLElement = HTMLDivElement>(
 
   return [refCallback, currentValue];
 }
-

@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Sparkles } from 'lucide-react';
-import { Icon } from '../../Icon';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Badge } from '../Badge';
+import { Icon } from '../../Icon';
+import { Sparkles } from 'lucide-react';
 
 describe('Badge atom', () => {
   it('renders children with default variant and tone', () => {
@@ -16,12 +16,9 @@ describe('Badge atom', () => {
 
   it('renders custom icon prop via Icon atom', () => {
     const { container } = render(
-      <Badge
-        icon={<Icon icon={Sparkles} size="2xs" data-testid="sparkle-icon" />}
-        tone="primary"
-      >
+      <Badge icon={<Icon icon={Sparkles} size="2xs" data-testid="sparkle-icon" />} tone="primary">
         Featured
-      </Badge>
+      </Badge>,
     );
     expect(screen.getByTestId('sparkle-icon')).toBeTruthy();
     expect(screen.getByText('Featured')).toBeTruthy();
@@ -32,7 +29,7 @@ describe('Badge atom', () => {
     const { container, rerender } = render(
       <Badge variant="chip" palette="emerald">
         Emerald Chip
-      </Badge>
+      </Badge>,
     );
     expect(container.firstElementChild?.className).toContain('variant-chip');
     expect(container.firstElementChild?.className).toContain('palette-emerald');
@@ -40,7 +37,7 @@ describe('Badge atom', () => {
     rerender(
       <Badge variant="counter" tone="info" size="xs">
         42
-      </Badge>
+      </Badge>,
     );
     expect(container.firstElementChild?.className).toContain('variant-counter');
     expect(container.firstElementChild?.className).toContain('tone-info');
@@ -52,7 +49,7 @@ describe('Badge atom', () => {
     render(
       <Badge onRemove={onRemove} removeLabel="Delete tag">
         Deletable Tag
-      </Badge>
+      </Badge>,
     );
     const removeBtn = screen.getByRole('button', { name: 'Delete tag' });
     fireEvent.click(removeBtn);

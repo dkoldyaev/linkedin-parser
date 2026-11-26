@@ -1,11 +1,23 @@
-import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn, useOverlayContainer } from '../../utils';
-import { ModalContext, type ModalContextValue } from './ModalContext';
-import { ModalHeader, ModalHeaderMeta, type ModalHeaderProps, type ModalHeaderMetaProps } from './ModalHeader';
 import { ModalBody, type ModalBodyProps } from './ModalBody';
-import { ModalFooter, ModalFooterActions, type ModalFooterProps, type ModalFooterActionsProps, type ModalFooterJustify } from './ModalFooter';
+import { ModalContext, type ModalContextValue } from './ModalContext';
+import {
+  ModalFooter,
+  ModalFooterActions,
+  type ModalFooterActionsProps,
+  type ModalFooterJustify,
+  type ModalFooterProps,
+} from './ModalFooter';
+import {
+  ModalHeader,
+  ModalHeaderMeta,
+  type ModalHeaderMetaProps,
+  type ModalHeaderProps,
+} from './ModalHeader';
+import React from 'react';
 import styles from './Modal.module.css';
+import { useBlueprintGrid } from '../../hooks';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'custom';
 
@@ -58,14 +70,16 @@ export function Modal({
       onClose,
       closeLabel,
     }),
-    [isOpen, onClose, closeLabel]
+    [isOpen, onClose, closeLabel],
   );
 
+  const gridRef = useBlueprintGrid<HTMLDivElement>([isOpen, size, width, children]);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
 
   const setContentRef = React.useCallback(
     (node: HTMLDivElement | null) => {
       contentRef.current = node;
+      gridRef.current = node;
       if (!node) return;
       if (width !== undefined) {
         const formattedWidth = typeof width === 'number' ? `${width}px` : width;
@@ -76,7 +90,7 @@ export function Modal({
         Object.assign(node.style, style);
       }
     },
-    [width, style]
+    [width, style, gridRef],
   );
 
   const handleOpenChange = React.useCallback(
@@ -85,7 +99,7 @@ export function Modal({
         onClose();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   const isShorthandMode = title !== undefined;
@@ -97,10 +111,14 @@ export function Modal({
           <DialogPrimitive.Overlay className={styles.overlay}>
             <DialogPrimitive.Content
               ref={setContentRef}
+              data-bp-snap=""
+              data-bp-snap-width=""
               className={cn(
                 styles.content,
+                'bp-snap',
+                'bp-snap-width',
                 size !== 'custom' && styles[`size-${size}`],
-                className
+                className,
               )}
               {...rest}
             >

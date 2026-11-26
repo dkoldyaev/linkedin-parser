@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { SortButton } from '../../atoms';
-import { EmptyState } from '../../molecules';
-import { useBlueprintGrid } from '../../hooks';
-import { cn } from '../../utils';
 import type { DataTableColumn, TableSortDirection } from './types';
-import { useDataTableColumns } from './useDataTableColumns';
+import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils';
 import { DataTableLoading } from './DataTableLoading';
+import { EmptyState } from '../../molecules';
+import { SortButton } from '../../atoms';
 import styles from './DataTable.module.css';
+import { useBlueprintGrid } from '../../hooks';
+import { useDataTableColumns } from './useDataTableColumns';
 
 export { useDataTableColumns } from './useDataTableColumns';
 export { DataTableLoading, type DataTableLoadingProps } from './DataTableLoading';
@@ -119,9 +119,7 @@ function DataTableBase<T>({
             ))}
           </colgroup>
         )}
-        {caption !== undefined && (
-          <caption className={styles.caption}>{caption}</caption>
-        )}
+        {caption !== undefined && <caption className={styles.caption}>{caption}</caption>}
         <thead>
           <tr>
             {columns.map((column) => {
@@ -130,11 +128,7 @@ function DataTableBase<T>({
               const currentDirection = isSorted ? sortDirection : 'none';
 
               return (
-                <th
-                  key={column.id}
-                  scope="col"
-                  className={cn(styles.th, styles[`align-${align}`])}
-                >
+                <th key={column.id} scope="col" className={cn(styles.th, styles[`align-${align}`])}>
                   {column.sortable ? (
                     <SortButton
                       direction={currentDirection}
@@ -163,8 +157,7 @@ function DataTableBase<T>({
                 className={cn(styles.tr, isClickable && styles.clickableRow)}
               >
                 {columns.map((column) => {
-                  const align =
-                    column.align !== undefined ? column.align : 'left';
+                  const align = column.align !== undefined ? column.align : 'left';
                   const cellContent = column.cell
                     ? column.cell(row, rowIndex)
                     : column.accessor !== undefined
@@ -172,10 +165,7 @@ function DataTableBase<T>({
                       : null;
 
                   return (
-                    <td
-                      key={column.id}
-                      className={cn(styles.td, styles[`align-${align}`])}
-                    >
+                    <td key={column.id} className={cn(styles.td, styles[`align-${align}`])}>
                       {cellContent}
                     </td>
                   );

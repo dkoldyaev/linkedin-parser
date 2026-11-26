@@ -30,8 +30,7 @@
     text-align: left;
     padding: 0;
     color: var(--ui-text-primary);
-    transition:
-      box-shadow var(--ui-transition-fast);
+    transition: box-shadow var(--ui-transition-fast);
   }
 
   .swatchCard:hover {

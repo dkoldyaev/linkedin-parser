@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import { Plus, Layers, Palette } from 'lucide-react';
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  AlertBanner,
   Button,
+  Checkbox,
+  ColorPicker,
   Icon,
   Input,
-  Checkbox,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Text,
-  AlertBanner,
-  ColorPicker,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import { Layers, Palette, Plus } from 'lucide-react';
+import React, { useState } from 'react';
 import { resolveHexFromPalette, resolvePaletteFromHex } from './columnPalette';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ColumnCreatePayload {
   name: string;
@@ -49,7 +49,7 @@ const LAYERS_ICON = <Icon icon={Layers} size="xs" tone="accent" />;
 
 function useColumnCreateForm(
   onCreate: (payload: ColumnCreatePayload) => Promise<void> | void,
-  onClose: () => void
+  onClose: () => void,
 ) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#2563eb');

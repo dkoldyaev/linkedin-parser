@@ -25,6 +25,7 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "lint": "eslint \"src/**/*.{ts,tsx}\" && node scripts/check-tokens.mjs",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
     "lint:boundaries": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:tokens": "node scripts/check-tokens.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

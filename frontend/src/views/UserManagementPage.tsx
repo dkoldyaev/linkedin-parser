@@ -1,16 +1,12 @@
-import {
-  PageLayout,
-  AlertBanner,
-  Spinner,
-} from '@blueprint/ui-kit';
-import { useAuth } from '../components/AppShell';
-import { useTranslation } from '../i18n/I18nContext';
-import type { User } from '../types/models';
-import { useUserManagement, filterUsersByQuery } from './useUserManagement';
-import UserManagementTable from './UserManagementTable';
-import UserManagementHeader from './UserManagementHeader';
-import UserManagementAccessDenied from './UserManagementAccessDenied';
+import { AlertBanner, PageLayout, Spinner } from '@blueprint/ui-kit';
+import { filterUsersByQuery, useUserManagement } from './useUserManagement';
 import type { AvailableFeatureFlag } from './userManagement.types';
+import { useAuth } from '../components/AppShell';
+import type { User } from '../types/models';
+import UserManagementAccessDenied from './UserManagementAccessDenied';
+import UserManagementHeader from './UserManagementHeader';
+import UserManagementTable from './UserManagementTable';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface UserManagementPageProps {
   user?: User | null;
@@ -23,10 +19,7 @@ function buildAvailableFlags(t: (key: string) => string): AvailableFeatureFlag[]
   ];
 }
 
-function hasAdminFeatureFlag(
-  propUser: User | null | undefined,
-  authUser: User | null
-): boolean {
+function hasAdminFeatureFlag(propUser: User | null | undefined, authUser: User | null): boolean {
   const resolved = propUser !== undefined ? propUser : authUser;
   return Boolean(resolved?.feature_flags?.includes('admin'));
 }
@@ -62,7 +55,14 @@ export default function UserManagementPage({ user }: UserManagementPageProps) {
       className="user-management-page"
       header={<UserManagementHeader search={search} onSearchChange={setSearch} />}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)', padding: 'var(--ui-space-4)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--ui-space-4)',
+          padding: 'var(--ui-space-4)',
+        }}
+      >
         {statusMsg && <AlertBanner tone="success" title={statusMsg} />}
         {errorMsg && <AlertBanner tone="danger" title={errorMsg} />}
 

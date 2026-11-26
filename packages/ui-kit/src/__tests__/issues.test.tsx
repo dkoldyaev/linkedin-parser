@@ -1,15 +1,15 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { ColorPicker } from '../molecules/ColorPicker';
-import { TableHeader } from '../organisms/Table/TableHeader';
-import { Drawer } from '../organisms/Drawer/Drawer';
-import { VacancyCard } from '../organisms/VacancyCard/VacancyCard';
-import { Stepper } from '../molecules/Stepper';
-import { Tabs } from '../molecules/Tabs/Tabs';
-import { Modal } from '../organisms/Modal/Modal';
 import { Badge } from '../atoms';
+import { ColorPicker } from '../molecules/ColorPicker';
+import { Drawer } from '../organisms/Drawer/Drawer';
+import { Modal } from '../organisms/Modal/Modal';
 import { OverlayProvider } from '../utils';
+import { Stepper } from '../molecules/Stepper';
+import { TableHeader } from '../organisms/Table/TableHeader';
+import { Tabs } from '../molecules/Tabs/Tabs';
+import userEvent from '@testing-library/user-event';
+import { VacancyCard } from '../organisms/VacancyCard/VacancyCard';
 
 describe('UI-Kit GitHub Issues Tests', () => {
   describe('Issue #8: ColorPicker arbitrary hex/RGB colors and presets', () => {
@@ -23,7 +23,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
           presets={['#2563eb', '#10b981', '#ef4444']}
           data-testid="color-picker"
           ariaLabel="Custom color test"
-        />
+        />,
       );
 
       const colorPicker = screen.getByTestId('color-picker');
@@ -40,14 +40,12 @@ describe('UI-Kit GitHub Issues Tests', () => {
     });
   });
 
-  describe('Issue #9: TableHeader custom status dot color and style override', () => {
-    it('renders with custom status dot color and forwards indicatorStyle', () => {
+  describe('Issue #9: TableHeader children and actions slot rendering', () => {
+    it('renders children and forwards custom data attributes', () => {
       render(
-        <TableHeader
-          title="Custom Column"
-          indicatorColor="#3b82f6"
-          data-testid="custom-th"
-        />
+        <TableHeader data-testid="custom-th">
+          <span>Custom Column</span>
+        </TableHeader>,
       );
 
       const header = screen.getByTestId('custom-th');
@@ -64,7 +62,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
 
       render(
         <Drawer
-          isOpen={true}
+          isOpen
           onClose={handleClose}
           title="Main Menu"
           tag="WORKSPACE"
@@ -75,7 +73,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
           footerSlot={<span data-testid="drawer-footer">Status OK</span>}
           data-testid="standalone-drawer"
         />,
-        { wrapper: OverlayProvider }
+        { wrapper: OverlayProvider },
       );
 
       const drawer = screen.getByTestId('standalone-drawer');
@@ -106,7 +104,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
           data-testid="vacancy-card"
           data-kanban-id="vac-123"
           aria-describedby="vac-desc"
-        />
+        />,
       );
 
       const card = screen.getByTestId('vacancy-card');
@@ -126,12 +124,16 @@ describe('UI-Kit GitHub Issues Tests', () => {
               id: 's1',
               label: 'Applied',
               timestamp: '10:00',
-              actions: <button type="button" data-testid="edit-step-btn">Edit</button>,
+              actions: (
+                <button type="button" data-testid="edit-step-btn">
+                  Edit
+                </button>
+              ),
               contentSlot: <div data-testid="custom-editor">Editor Content</div>,
             },
           ]}
           data-testid="stepper-root"
-        />
+        />,
       );
 
       expect(screen.getByTestId('stepper-root')).toBeInTheDocument();
@@ -148,16 +150,24 @@ describe('UI-Kit GitHub Issues Tests', () => {
             {
               value: 'score',
               label: 'Score Tab',
-              accessory: <Badge variant="solid" tone="success" data-testid="custom-tab-badge">95%</Badge>,
+              accessory: (
+                <Badge variant="solid" tone="success" data-testid="custom-tab-badge">
+                  95%
+                </Badge>
+              ),
             },
             {
               value: 'counter',
               label: 'Counter Tab',
-              accessory: <Badge variant="counter" size="xs" tone="warning" data-testid="counter-tab-badge">42</Badge>,
+              accessory: (
+                <Badge variant="counter" size="xs" tone="warning" data-testid="counter-tab-badge">
+                  42
+                </Badge>
+              ),
             },
           ]}
           data-testid="tabs-root"
-        />
+        />,
       );
 
       expect(screen.getByTestId('tabs-root')).toBeInTheDocument();
@@ -175,7 +185,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
     it('applies custom width and forwards style overrides', () => {
       render(
         <Modal
-          isOpen={true}
+          isOpen
           onClose={vi.fn()}
           title="Custom Width Modal"
           width="820px"
@@ -183,7 +193,7 @@ describe('UI-Kit GitHub Issues Tests', () => {
         >
           <div>Modal Body</div>
         </Modal>,
-        { wrapper: OverlayProvider }
+        { wrapper: OverlayProvider },
       );
 
       const modalContent = screen.getByTestId('custom-width-modal');

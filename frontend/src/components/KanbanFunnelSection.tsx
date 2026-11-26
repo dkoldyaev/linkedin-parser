@@ -1,11 +1,11 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
-import { Table, Icon, Text } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import KanbanFunnelColumn from './KanbanFunnelColumn';
 import type { BoardColumn, Vacancy } from '../types/models';
-import type { useKanbanDragAndDrop } from './useKanbanDragAndDrop';
+import { Icon, Table, Text } from '@blueprint/ui-kit';
+import KanbanFunnelColumn from './KanbanFunnelColumn';
+import { Plus } from 'lucide-react';
+import React from 'react';
 import styles from './KanbanBoard.module.css';
+import type { useKanbanDragAndDrop } from './useKanbanDragAndDrop';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface KanbanFunnelSectionProps {
   boardRef: React.RefObject<HTMLDivElement | null>;
@@ -104,9 +104,7 @@ export default function KanbanFunnelSection({
         >
           <span className={styles.addColumnText}>
             {PLUS_ICON}
-            <Text variant="mono">
-              {addColLabel.toUpperCase()}
-            </Text>
+            <Text variant="mono">{addColLabel.toUpperCase()}</Text>
           </span>
         </button>
       </div>

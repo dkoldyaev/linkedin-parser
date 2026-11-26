@@ -5,21 +5,33 @@
 
 declare global {
   interface Window {
-    plausible?: (eventName: string, options?: { props: Record<string, string | number | boolean> }) => void;
+    plausible?: (
+      eventName: string,
+      options?: { props: Record<string, string | number | boolean> },
+    ) => void;
   }
 }
 
 // Identity must never be attached to third-party telemetry.
 export function setAnalyticsUser(_user?: unknown): void {}
 
-const ALLOWED_ANALYTICS_KEYS = new Set(['count', 'query_length', 'collapsed', 'locale', 'method', 'theme']);
+const ALLOWED_ANALYTICS_KEYS = new Set([
+  'count',
+  'query_length',
+  'collapsed',
+  'locale',
+  'method',
+  'theme',
+]);
 
 function isAllowedAnalyticsValue(value: unknown): value is string | number | boolean {
   if (typeof value === 'number' || typeof value === 'boolean') return true;
   return typeof value === 'string' && /^[a-z_-]{1,32}$/i.test(value);
 }
 
-function filterAllowedProps(props?: Record<string, unknown>): Record<string, string | number | boolean> {
+function filterAllowedProps(
+  props?: Record<string, unknown>,
+): Record<string, string | number | boolean> {
   const mergedProps: Record<string, string | number | boolean> = {};
   if (!props) return mergedProps;
   for (const [key, value] of Object.entries(props)) {

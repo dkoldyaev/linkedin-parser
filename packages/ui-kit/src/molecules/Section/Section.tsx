@@ -1,6 +1,6 @@
 import React, { forwardRef, useMemo } from 'react';
-import { SectionHeader, type SectionHeaderProps } from '../SectionHeader';
 import { SectionContext, type SectionContextValue } from './SectionContext';
+import { SectionHeader, type SectionHeaderProps } from '../SectionHeader';
 import { cn } from '../../utils';
 import styles from './Section.module.css';
 
@@ -33,37 +33,27 @@ export interface SectionBodyProps extends React.HTMLAttributes<HTMLDivElement> {
  * SectionBody provides standardized semantic content padding and layout spacing
  * beneath a SectionHeader on the Blueprint grid.
  */
-export const SectionBody = forwardRef<HTMLDivElement, SectionBodyProps>(
-  function SectionBody(
-    {
-      padding = 'md',
-      paddingX,
-      paddingY,
-      gap = 'none',
-      className,
-      children,
-      ...rest
-    },
-    ref
-  ) {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          styles.body,
-          styles[`padding-${padding}`],
-          paddingX !== undefined && styles[`paddingX-${paddingX}`],
-          paddingY !== undefined && styles[`paddingY-${paddingY}`],
-          gap !== 'none' && styles[`gap-${gap}`],
-          className
-        )}
-        {...rest}
-      >
-        {children}
-      </div>
-    );
-  }
-);
+export const SectionBody = forwardRef<HTMLDivElement, SectionBodyProps>(function SectionBody(
+  { padding = 'md', paddingX, paddingY, gap = 'none', className, children, ...rest },
+  ref,
+) {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        styles.body,
+        styles[`padding-${padding}`],
+        paddingX !== undefined && styles[`paddingX-${paddingX}`],
+        paddingY !== undefined && styles[`paddingY-${paddingY}`],
+        gap !== 'none' && styles[`gap-${gap}`],
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+});
 
 export interface SectionProps extends React.HTMLAttributes<HTMLElement> {
   /**
@@ -90,43 +80,30 @@ export interface SectionProps extends React.HTMLAttributes<HTMLElement> {
   readonly className?: string;
 }
 
-const SectionBase = forwardRef<HTMLElement, SectionProps>(
-  function Section(
-    {
-      as: Comp = 'section',
-      padding,
-      divider = true,
-      bordered = false,
-      className,
-      children,
-      ...rest
-    },
-    ref
-  ) {
-    const contextValue: SectionContextValue = useMemo(
-      () => ({ isInsideSection: true }),
-      []
-    );
+const SectionBase = forwardRef<HTMLElement, SectionProps>(function Section(
+  { as: Comp = 'section', padding, divider = true, bordered = false, className, children, ...rest },
+  ref,
+) {
+  const contextValue: SectionContextValue = useMemo(() => ({ isInsideSection: true }), []);
 
-    return (
-      <SectionContext.Provider value={contextValue}>
-        <Comp
-          ref={ref as React.Ref<any>}
-          className={cn(
-            styles.section,
-            padding !== undefined && styles[`sectionPadding-${padding}`],
-            divider && styles.divider,
-            bordered && styles.bordered,
-            className
-          )}
-          {...rest}
-        >
-          {children}
-        </Comp>
-      </SectionContext.Provider>
-    );
-  }
-);
+  return (
+    <SectionContext.Provider value={contextValue}>
+      <Comp
+        ref={ref as React.Ref<any>}
+        className={cn(
+          styles.section,
+          padding !== undefined && styles[`sectionPadding-${padding}`],
+          divider && styles.divider,
+          bordered && styles.bordered,
+          className,
+        )}
+        {...rest}
+      >
+        {children}
+      </Comp>
+    </SectionContext.Provider>
+  );
+});
 
 /**
  * Section molecule for semantic content segmentation on the Blueprint grid.
@@ -138,4 +115,3 @@ export const Section = Object.assign(SectionBase, {
 });
 
 export type { SectionHeaderProps };
-

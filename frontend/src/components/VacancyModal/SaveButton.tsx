@@ -1,8 +1,8 @@
-import React from 'react';
 import { Button, Icon } from '@blueprint/ui-kit';
 import { Check, Cross } from 'lucide-react';
-import { useTranslation } from '../../i18n/I18nContext';
+import React from 'react';
 import type { SaveStatus } from './useSave';
+import { useTranslation } from '../../i18n/I18nContext';
 
 export interface SaveButtonProps {
   status?: SaveStatus;
@@ -10,11 +10,22 @@ export interface SaveButtonProps {
   disabled?: boolean;
 }
 
+const TONE_BY_STATUS: Partial<Record<NonNullable<SaveStatus>, 'danger' | 'success'>> = {
+  error: 'danger',
+  success: 'success',
+};
+
+const LABEL_KEY_BY_STATUS: Partial<Record<NonNullable<SaveStatus>, string>> = {
+  error: 'common.retry',
+  success: 'common.saved',
+};
+
 export function SaveButton({ status, onClick, disabled }: SaveButtonProps): React.ReactElement {
   const { t } = useTranslation();
   const isSaving = status === 'saving';
-  const isSuccess = status === 'success';
-  const isError = status === 'error';
+  const tone = status ? TONE_BY_STATUS[status] : undefined;
+  const labelKey = (status && LABEL_KEY_BY_STATUS[status]) || 'common.save';
+  const showStatusIcon = Boolean(status && !isSaving);
 
   return (
     <Button
@@ -22,15 +33,11 @@ export function SaveButton({ status, onClick, disabled }: SaveButtonProps): Reac
       size="sm"
       loading={isSaving}
       disabled={disabled}
-      tone={isError ? 'danger' : isSuccess ? 'success' : undefined}
-      startIcon={
-        status && !isSaving && (
-          <Icon icon={isError ? Cross : Check} size="xs" />
-        )
-      }
+      tone={tone}
+      startIcon={showStatusIcon && <Icon icon={status === 'error' ? Cross : Check} size="xs" />}
       onClick={onClick}
     >
-      {isError ? t('common.retry') : isSuccess ? t('common.saved') : t('common.save')}
+      {t(labelKey)}
     </Button>
   );
 }

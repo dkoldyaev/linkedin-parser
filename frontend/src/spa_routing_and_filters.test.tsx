@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BoardColumn, User, Vacancy } from './types/models';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { OverlayProvider } from '@blueprint/ui-kit';
-import { I18nProvider } from './i18n/I18nContext';
 import AppRouter from './AppRouter';
-import type { Vacancy, BoardColumn, User } from './types/models';
+import { I18nProvider } from './i18n/I18nContext';
+import { OverlayProvider } from '@blueprint/ui-kit';
 
 const TEST_USER: User = {
   id: 1,
@@ -82,7 +82,7 @@ function createSpaRouter(initialEntries: string[]) {
         ),
       },
     ],
-    { initialEntries }
+    { initialEntries },
   );
 }
 
@@ -122,7 +122,7 @@ describe('Pure Client SPA: Single Startup Load, URL Modal Routing, Skeletons, 40
       if (url === '/api/v2/mercure-config') {
         return new Response(
           JSON.stringify({ mercure_hub_url: '/.well-known/mercure', mercure_topic: 'vacancies:1' }),
-          { status: 200 }
+          { status: 200 },
         );
       }
       return new Response(JSON.stringify([]), { status: 200 });
@@ -183,7 +183,7 @@ describe('Pure Client SPA: Single Startup Load, URL Modal Routing, Skeletons, 40
       if (url === '/api/v2/mercure-config') {
         return new Response(
           JSON.stringify({ mercure_hub_url: '/.well-known/mercure', mercure_topic: 'vacancies:1' }),
-          { status: 200 }
+          { status: 200 },
         );
       }
       return new Response(JSON.stringify([]), { status: 200 });
@@ -225,8 +225,8 @@ describe('Pure Client SPA: Single Startup Load, URL Modal Routing, Skeletons, 40
               },
             ],
           }),
-          { status: 200 }
-        )
+          { status: 200 },
+        ),
       );
     });
 
@@ -267,8 +267,8 @@ describe('Pure Client SPA: Single Startup Load, URL Modal Routing, Skeletons, 40
             notes: 'Updated note',
             history: [],
           }),
-          { status: 200 }
-        )
+          { status: 200 },
+        ),
       );
     });
 
@@ -301,7 +301,7 @@ describe('Pure Client SPA: Single Startup Load, URL Modal Routing, Skeletons, 40
             notes: 'Direct permalink note',
             history: [],
           }),
-          { status: 200 }
+          { status: 200 },
         );
       }
       if (url === '/api/v2/vacancies/9999') {

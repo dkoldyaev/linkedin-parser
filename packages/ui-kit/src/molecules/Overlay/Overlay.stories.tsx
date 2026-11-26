@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button, Text } from '../../atoms';
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useRef, useState } from 'react';
 import { AlertBanner } from '../AlertBanner';
-import { Overlay } from './Overlay';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Overlay } from './Overlay';
 
 const meta: Meta<typeof Overlay> = {
   title: 'Molecules/Overlay',
@@ -24,11 +24,7 @@ function ViewportToastExample() {
       </Button>
       <Overlay isOpen={isOpen} placement="bottom-end">
         <div className={layoutStyles.narrowBox}>
-          <AlertBanner
-            tone="success"
-            title="Vacancy Queued"
-            onDismiss={() => setIsOpen(false)}
-          >
+          <AlertBanner tone="success" title="Vacancy Queued" onDismiss={() => setIsOpen(false)}>
             Rendered inside OverlayProvider without z-index.
           </AlertBanner>
         </div>
@@ -47,11 +43,7 @@ function AnchoredPopoverExample() {
 
   return (
     <div className={layoutStyles.row}>
-      <Button
-        ref={triggerRef}
-        variant="secondary"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
+      <Button ref={triggerRef} variant="secondary" onClick={() => setIsOpen((prev) => !prev)}>
         Toggle Anchored Menu
       </Button>
       <Overlay
@@ -90,12 +82,7 @@ function CenteredBackdropExample() {
       <Button variant="primary" onClick={() => setIsOpen(true)}>
         Open Centered Overlay
       </Button>
-      <Overlay
-        isOpen={isOpen}
-        placement="center"
-        backdrop
-        onClose={() => setIsOpen(false)}
-      >
+      <Overlay isOpen={isOpen} placement="center" backdrop onClose={() => setIsOpen(false)}>
         <div className={layoutStyles.resizableBox}>
           <div className={layoutStyles.stackSm}>
             <Text variant="mono" weight="bold">

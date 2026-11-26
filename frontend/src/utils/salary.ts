@@ -19,14 +19,6 @@ export type SalaryDisplay = SalaryDisplayInfo;
 
 export type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
-export const PERIOD_LABELS: Record<string, string> = {
-  year: 'в год',
-  month: 'в месяц',
-  hour: 'в час',
-  week: 'в неделю',
-  day: 'в день',
-};
-
 export const PERIOD_SUFFIXES: Record<string, string> = {
   year: '/ год',
   month: '/ мес',
@@ -97,7 +89,7 @@ function getPeriodConversionFactor(sourcePeriod: string, targetFormat: string): 
 function findExchangeRate(
   normOrigCurr: string | null,
   normTargetCurr: string | null,
-  exchangeRates?: Record<string, number> | null
+  exchangeRates?: Record<string, number> | null,
 ): number | null {
   if (!normOrigCurr || !normTargetCurr || normTargetCurr === normOrigCurr) return null;
   const rateVal = exchangeRates?.[`${normOrigCurr}_${normTargetCurr}`];
@@ -107,14 +99,14 @@ function findExchangeRate(
 function resolveCurrencyConversion(
   origCurr: string,
   targetCurrency?: string | null,
-  exchangeRates?: Record<string, number> | null
+  exchangeRates?: Record<string, number> | null,
 ): { displayCurr: string; currRate: number } {
   const normOrigCurr = normalizeCurrencyCode(origCurr);
   const normTargetCurr = normalizeCurrencyCode(targetCurrency);
   const rate = findExchangeRate(normOrigCurr, normTargetCurr, exchangeRates);
 
   if (rate === null || !normTargetCurr) {
-    return { displayCurr: CURRENCY_SYMBOLS[origCurr] ||origCurr, currRate: 1 };
+    return { displayCurr: CURRENCY_SYMBOLS[origCurr] || origCurr, currRate: 1 };
   }
   return {
     displayCurr: CURRENCY_SYMBOLS[normTargetCurr] || normTargetCurr,
@@ -126,13 +118,14 @@ function formatRangeString(
   minVal: number | null,
   maxVal: number | null,
   curr: string,
-  labels: { fromLabel: string; toLabel: string; perLabel?: string }
+  labels: { fromLabel: string; toLabel: string; perLabel?: string },
 ): string {
   const suffix = labels.perLabel ? ` ${labels.perLabel}` : '';
   if (minVal !== null && maxVal !== null) {
-    const base = minVal === maxVal
-      ? `${curr}${formatNumber(minVal)}`
-      : `${curr}${formatNumber(minVal)} – ${curr}${formatNumber(maxVal)}`;
+    const base =
+      minVal === maxVal
+        ? `${curr}${formatNumber(minVal)}`
+        : `${curr}${formatNumber(minVal)} – ${curr}${formatNumber(maxVal)}`;
     return `${base}${suffix}`;
   }
   if (minVal !== null) return `${labels.fromLabel} ${curr}${formatNumber(minVal)}${suffix}`;
@@ -145,7 +138,10 @@ function resolvePerLabel(formatKey: string, t?: TranslateFn): string {
   return PERIOD_SUFFIXES[formatKey] || `/${formatKey}`;
 }
 
-function resolveSalaryLabels(targetFormat: string, t?: TranslateFn): {
+function resolveSalaryLabels(
+  targetFormat: string,
+  t?: TranslateFn,
+): {
   perLabel: string;
   fromLabel: string;
   toLabel: string;
@@ -167,7 +163,7 @@ function formatOriginalComparison(
     fromLabel: string;
     toLabel: string;
     t?: TranslateFn;
-  }
+  },
 ): string {
   if (meta.period === meta.targetFormat) return '';
   const origSuffix = resolvePerLabel(meta.period, meta.t);
@@ -191,7 +187,7 @@ const EMPTY_SALARY_DISPLAY: SalaryDisplayInfo = {
 
 function normalizeInputParams(
   vacancy: SalaryInput,
-  displayFormat?: string | null
+  displayFormat?: string | null,
 ): {
   origCurr: string;
   period: string;
@@ -219,13 +215,13 @@ function computeFormattedSalary(
     displayFormat?: string | null;
     targetCurrency?: string | null;
     exchangeRates?: Record<string, number> | null;
-  }
+  },
 ): SalaryDisplayInfo {
   const { origCurr, period, targetFormat } = normalizeInputParams(vacancy, options.displayFormat);
   const { displayCurr, currRate } = resolveCurrencyConversion(
     origCurr,
     options.targetCurrency,
-    options.exchangeRates
+    options.exchangeRates,
   );
 
   const min = scaleBound(rawMin, currRate, false);

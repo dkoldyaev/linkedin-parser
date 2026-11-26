@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TagsList } from './TagsList';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { TagsList } from './TagsList';
+import { useState } from 'react';
 
 const meta: Meta<typeof TagsList> = {
   title: 'Organisms/TagsList',

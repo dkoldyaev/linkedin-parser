@@ -1,9 +1,9 @@
-import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
+import { cn } from '../../utils';
+import React from 'react';
+import styles from './Tabs.module.css';
 import { Text } from '../../atoms';
 import { useBlueprintGrid } from '../../hooks';
-import { cn } from '../../utils';
-import styles from './Tabs.module.css';
 
 export interface TabItem {
   readonly value: string;
@@ -15,8 +15,10 @@ export interface TabItem {
   readonly align?: 'left' | 'right';
 }
 
-export interface TabsProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'dir'> {
+export interface TabsProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'defaultValue' | 'dir'
+> {
   readonly value?: string;
   readonly defaultValue?: string;
   readonly onValueChange?: (value: string) => void;
@@ -45,11 +47,7 @@ export function Tabs({
   const rootRef = useBlueprintGrid<HTMLDivElement>([items.length]);
 
   const resolvedDefault =
-    defaultValue !== undefined
-      ? defaultValue
-      : items.length > 0
-        ? items[0].value
-        : undefined;
+    defaultValue !== undefined ? defaultValue : items.length > 0 ? items[0].value : undefined;
 
   return (
     <TabsPrimitive.Root
@@ -60,20 +58,14 @@ export function Tabs({
       className={cn(styles.root, className)}
       {...rest}
     >
-      <TabsPrimitive.List
-        aria-label={ariaLabel}
-        className={cn(styles.list, listClassName)}
-      >
+      <TabsPrimitive.List aria-label={ariaLabel} className={cn(styles.list, listClassName)}>
         {items.map((item) => (
           <TabsPrimitive.Trigger
             key={item.value}
             value={item.value}
             disabled={item.disabled}
             data-bp-snap-width=""
-            className={cn(
-              styles.trigger,
-              item.align === 'right' && styles.alignRight
-            )}
+            className={cn(styles.trigger, item.align === 'right' && styles.alignRight)}
             onClick={() => {
               if (!item.disabled && onValueChange !== undefined) {
                 onValueChange(item.value);
@@ -105,7 +97,7 @@ export function Tabs({
             >
               {item.content}
             </TabsPrimitive.Content>
-          )
+          ),
       )}
     </TabsPrimitive.Root>
   );

@@ -1,9 +1,9 @@
-import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
 import { cn, useOverlayContainer } from '../../utils';
+import React from 'react';
 import styles from './Drawer.module.css';
+import { X } from 'lucide-react';
 
 export interface DrawerNavLinkItem {
   readonly id: string;
@@ -65,15 +65,13 @@ export function Drawer({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal container={overlayContainer}>
-        <DialogPrimitive.Overlay
-          className={cn(styles.overlay, overlayClassName)}
-        />
+        <DialogPrimitive.Overlay className={cn(styles.overlay, overlayClassName)} />
         <DialogPrimitive.Content
           aria-modal="true"
           className={cn(
             styles.drawer,
             placement === 'right' ? styles['placement-right'] : styles['placement-left'],
-            className
+            className,
           )}
           {...rest}
         >
@@ -105,12 +103,7 @@ export function Drawer({
 
             {!hideCloseButton && (
               <DialogPrimitive.Close asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={closeLabel}
-                  onClick={onClose}
-                >
+                <Button variant="ghost" size="icon" aria-label={closeLabel} onClick={onClose}>
                   <Icon icon={X} size="md" />
                 </Button>
               </DialogPrimitive.Close>
@@ -123,19 +116,14 @@ export function Drawer({
                 {links.map((link, idx) => {
                   const Comp = link.as ?? (link.href ? 'a' : 'button');
                   const itemIndex =
-                    link.index !== undefined
-                      ? link.index
-                      : String(idx + 1).padStart(2, '0');
+                    link.index !== undefined ? link.index : String(idx + 1).padStart(2, '0');
 
                   return (
                     <Comp
                       key={link.id}
                       href={link.href}
                       onClick={link.onClick}
-                      className={cn(
-                        styles.navItem,
-                        link.active && styles.navItemActive
-                      )}
+                      className={cn(styles.navItem, link.active && styles.navItemActive)}
                     >
                       <span className={styles.navIndex}>{itemIndex}</span>
                       {link.icon !== undefined && (
@@ -156,9 +144,7 @@ export function Drawer({
             {children}
           </div>
 
-          {footerSlot !== undefined && (
-            <footer className={styles.footer}>{footerSlot}</footer>
-          )}
+          {footerSlot !== undefined && <footer className={styles.footer}>{footerSlot}</footer>}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

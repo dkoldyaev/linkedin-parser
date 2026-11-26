@@ -1,9 +1,9 @@
-import { useState, useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import type React from 'react';
 
 export function useBoardHeight(
   wrapperRef: React.RefObject<HTMLDivElement | null>,
-  rejectedRef: React.RefObject<HTMLDivElement | null>
+  rejectedRef: React.RefObject<HTMLDivElement | null>,
 ): number | null {
   const [boardHeight, setBoardHeight] = useState<number | null>(null);
 

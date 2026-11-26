@@ -1,21 +1,21 @@
-import React from 'react';
-import { ChevronDown, ChevronUp, Ban } from 'lucide-react';
 import {
-  Table,
-  TableHeader,
-  Button,
-  StatusDot,
-  Text,
   Badge,
+  Button,
   EmptyState,
   Icon,
+  StatusDot,
+  Table,
+  TableHeader,
+  Text,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import { STATUS_REJECTED } from '../constants/columns';
-import KanbanCard from './KanbanCard';
+import { Ban, ChevronDown, ChevronUp } from 'lucide-react';
+import { EVENTS, trackEvent } from '../utils/analytics';
 import type { BoardColumn } from '../types/models';
+import KanbanCard from './KanbanCard';
 import type { KanbanRejectedSectionProps } from './kanban.types';
+import React from 'react';
+import { STATUS_REJECTED } from '../constants/columns';
+import { useTranslation } from '../i18n/I18nContext';
 
 export type { KanbanRejectedSectionProps };
 
@@ -46,7 +46,7 @@ const BAN_ICON = <Icon icon={Ban} size="md" />;
 
 function resolveRejectedHeaderTitle(
   rejectedColumn: BoardColumn | undefined,
-  defaultTitle: string
+  defaultTitle: string,
 ): string {
   if (rejectedColumn && rejectedColumn.id !== STATUS_REJECTED) {
     return rejectedColumn.id;
@@ -57,7 +57,12 @@ function resolveRejectedHeaderTitle(
 const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSectionProps>(
   function KanbanRejectedSection(props, ref): React.ReactElement {
     const { t } = useTranslation();
-    const { isRejectedCollapsed, rejectedStatusId, rejectedVacancies, hiddenVacancyIds = new Set<number>() } = props;
+    const {
+      isRejectedCollapsed,
+      rejectedStatusId,
+      rejectedVacancies,
+      hiddenVacancyIds = new Set<number>(),
+    } = props;
 
     const toggleLabel = isRejectedCollapsed
       ? t('kanban.rejected_expand')
@@ -71,16 +76,20 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
     };
 
     const actionsButton = (
-      <Button variant="ghost" size="sm" onClick={handleToggle} title={toggleLabel} endIcon={toggleIcon}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleToggle}
+        title={toggleLabel}
+        endIcon={toggleIcon}
+      >
         {toggleLabel}
       </Button>
     );
 
-    const visibleRejectedCount = rejectedVacancies.reduce(
-      (acc, v) => acc + (hiddenVacancyIds.has(v.id) ? 0 : 1),
-      0
-    );
-
+    const visibleRejectedCount = rejectedVacancies.filter(
+      (v) => !hiddenVacancyIds.has(v.id),
+    ).length;
     const title = resolveRejectedHeaderTitle(props.rejectedColumn, t('kanban.rejected_title'));
 
     return (
@@ -144,7 +153,7 @@ const KanbanRejectedSection = React.forwardRef<HTMLDivElement, KanbanRejectedSec
         )}
       </Table>
     );
-  }
+  },
 );
 
 KanbanRejectedSection.displayName = 'KanbanRejectedSection';

@@ -1,5 +1,5 @@
-import React, { forwardRef } from 'react';
 import { Button, type ButtonVariant } from '../../atoms';
+import React, { forwardRef } from 'react';
 import { AlertBanner } from '../../molecules';
 import { cn } from '../../utils';
 import styles from './Form.module.css';
@@ -34,19 +34,13 @@ export const Form = forwardRef<HTMLFormElement, FormProps>(function Form(
     children,
     ...rest
   },
-  ref
+  ref,
 ) {
   const showDefaultFooter =
-    footer === undefined &&
-    (submitLabel !== undefined || onCancel !== undefined);
+    footer === undefined && (submitLabel !== undefined || onCancel !== undefined);
 
   return (
-    <form
-      ref={ref}
-      noValidate
-      className={cn(styles.form, className)}
-      {...rest}
-    >
+    <form ref={ref} noValidate className={cn(styles.form, className)} {...rest}>
       {errorMessage !== undefined && Boolean(errorMessage) && (
         <AlertBanner tone="danger">{errorMessage}</AlertBanner>
       )}
@@ -61,12 +55,7 @@ export const Form = forwardRef<HTMLFormElement, FormProps>(function Form(
       {showDefaultFooter && (
         <div className={styles.footer}>
           {onCancel !== undefined && (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
               {cancelLabel}
             </Button>
           )}

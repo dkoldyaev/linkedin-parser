@@ -1,9 +1,9 @@
-import { useAuth } from '../components/AppShell';
-import { useHomeVacanciesData } from './useHomeVacanciesData';
-import { useHomeModalController } from './useHomeModalController';
-import { useVacancyBoardActions } from './useVacancyBoardActions';
+import type { BoardColumn, User, Vacancy } from '../types/models';
 import type { TranslateFn } from '../i18n/I18nContext';
-import type { User, Vacancy, BoardColumn } from '../types/models';
+import { useAuth } from '../components/AppShell';
+import { useHomeModalController } from './useHomeModalController';
+import { useHomeVacanciesData } from './useHomeVacanciesData';
+import { useVacancyBoardActions } from './useVacancyBoardActions';
 
 export interface HomePageControllerProps {
   user?: User | null;

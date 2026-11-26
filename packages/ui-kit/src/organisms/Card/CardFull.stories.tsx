@@ -1,9 +1,17 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CardFull } from './CardFull';
-import { CardFooter } from './CardFooter';
+import {
+  Award,
+  Banknote,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+  History,
+  MapPin,
+  X,
+} from 'lucide-react';
 import { Badge, Button, Icon, Paragraph, Text } from '../../atoms';
 import { ButtonGroup, TokenList } from '../../molecules';
-import { Award, Banknote, ChevronLeft, ChevronRight, Globe, History, MapPin, X } from 'lucide-react';
+import { CardFooter, CardFull } from './index';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof CardFull> = {
@@ -50,11 +58,7 @@ export const Default: Story = {
                 <Text variant="caption" tone="muted">
                   14 Nov
                 </Text>
-                <Text
-                  variant="caption"
-                  tone="muted"
-                  startIcon={<Icon icon={History} size="2xs" />}
-                >
+                <Text variant="caption" tone="muted" startIcon={<Icon icon={History} size="2xs" />}>
                   3
                 </Text>
               </div>
@@ -92,48 +96,33 @@ export const Default: Story = {
         }
       >
         <div className={layoutStyles.row}>
-          <Badge
-            variant="solid"
-            tone="success"
-            size="xs"
-            icon={<Icon icon={Award} size="2xs" />}
-          >
+          <Badge variant="solid" tone="success" size="xs" icon={<Icon icon={Award} size="2xs" />}>
             92%
           </Badge>
-          <Text
-            variant="caption"
-            tone="accent"
-            startIcon={<Icon icon={Globe} size="xs" />}
-          >
+          <Text variant="caption" tone="accent" startIcon={<Icon icon={Globe} size="xs" />}>
             Remote
           </Text>
-          <Text
-            variant="caption"
-            tone="secondary"
-            startIcon={<Icon icon={MapPin} size="xs" />}
-          >
+          <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
             EU / Dublin
           </Text>
-          <Text
-            variant="mono"
-            tone="success"
-            startIcon={<Icon icon={Banknote} size="xs" />}
-          >
+          <Text variant="mono" tone="success" startIcon={<Icon icon={Banknote} size="xs" />}>
             €140k – €165k
           </Text>
         </div>
         <Paragraph size="sm" tone="secondary">
-          Architecture and evolution of the Blueprint component system with strict token governance and automated verification.
+          Architecture and evolution of the Blueprint component system with strict token governance
+          and automated verification.
         </Paragraph>
         <TokenList>
-          {['TypeScript', 'React 19', 'Storybook 10', 'Radix UI', 'CSS Modules'].slice(0, 4).map((tech) => (
-            <Badge key={tech} size="xs" variant="chip">
-              {tech}
-            </Badge>
-          ))}
+          {['TypeScript', 'React 19', 'Storybook 10', 'Radix UI', 'CSS Modules']
+            .slice(0, 4)
+            .map((tech) => (
+              <Badge key={tech} size="xs" variant="chip">
+                {tech}
+              </Badge>
+            ))}
         </TokenList>
       </CardFull>
     </div>
   ),
 };
-

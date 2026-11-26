@@ -1,26 +1,10 @@
+import { Blockquote, Code, Heading, Kbd, Link, List, Paragraph, Text } from './Text';
+import { Building2, CheckCircle2, DollarSign, Globe, History, MapPin } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import {
-  Building2,
-  CheckCircle2,
-  DollarSign,
-  Globe,
-  History,
-  MapPin,
-} from 'lucide-react';
 import { Icon } from '../Icon';
+import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Spinner } from '../Spinner';
 import { StatusDot } from '../StatusDot';
-import {
-  Blockquote,
-  Code,
-  Heading,
-  Kbd,
-  Link,
-  List,
-  Paragraph,
-  Text,
-} from './Text';
-import layoutStyles from '../../stories/StoryLayout.module.css';
 
 const meta: Meta<typeof Text> = {
   title: 'Atoms/Text',
@@ -36,39 +20,20 @@ const meta: Meta<typeof Text> = {
   argTypes: {
     snapToGrid: {
       control: 'boolean',
-      description:
-        'Snaps height to multiples of the 32px Blueprint drafting grid cell.',
+      description: 'Snaps height to multiples of the 32px Blueprint drafting grid cell.',
     },
     lineHeight: {
       control: 'select',
       options: ['auto', 'grid', 0.5],
-      description:
-        'Line height mode: "auto", "grid" (32px), or 0.5 (16px).',
+      description: 'Line height mode: "auto", "grid" (32px), or 0.5 (16px).',
     },
     variant: {
       control: 'select',
-      options: [
-        'display',
-        'heading',
-        'title',
-        'mono-label',
-        'body',
-        'caption',
-        'mono',
-      ],
+      options: ['display', 'heading', 'title', 'mono-label', 'body', 'caption', 'mono'],
     },
     tone: {
       control: 'select',
-      options: [
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ['primary', 'secondary', 'muted', 'accent', 'success', 'warning', 'danger', 'info'],
     },
   },
 };
@@ -85,28 +50,13 @@ export const AllVariants: Story = {
   },
   render: (args) => (
     <div className={layoutStyles.stack}>
-      <Text
-        as="h1"
-        variant="display"
-        snapToGrid={args.snapToGrid}
-        lineHeight={args.lineHeight}
-      >
+      <Text as="h1" variant="display" snapToGrid={args.snapToGrid} lineHeight={args.lineHeight}>
         Display — Blueprint Design System v2.0
       </Text>
-      <Text
-        as="h2"
-        variant="heading"
-        snapToGrid={args.snapToGrid}
-        lineHeight={args.lineHeight}
-      >
+      <Text as="h2" variant="heading" snapToGrid={args.snapToGrid} lineHeight={args.lineHeight}>
         Heading — System Architecture & Primitives
       </Text>
-      <Text
-        as="h3"
-        variant="title"
-        snapToGrid={args.snapToGrid}
-        lineHeight={args.lineHeight}
-      >
+      <Text as="h3" variant="title" snapToGrid={args.snapToGrid} lineHeight={args.lineHeight}>
         Title — Distributed Systems Lead
       </Text>
       <Text
@@ -118,12 +68,7 @@ export const AllVariants: Story = {
       >
         Mono-Label — STATUS: ACTIVE_WORKER
       </Text>
-      <Text
-        as="p"
-        variant="body"
-        snapToGrid={args.snapToGrid}
-        lineHeight={args.lineHeight}
-      >
+      <Text as="p" variant="body" snapToGrid={args.snapToGrid} lineHeight={args.lineHeight}>
         Body — Clean presentation typography using Inter and strict CSS custom properties.
       </Text>
       <Text
@@ -159,11 +104,7 @@ export const WithStartAndEndIcons: Story = {
       >
         Remote
       </Text>
-      <Text
-        variant="caption"
-        tone="secondary"
-        startIcon={<Icon icon={MapPin} size="xs" />}
-      >
+      <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
         Berlin, Germany
       </Text>
       <Text
@@ -183,11 +124,7 @@ export const WithStartAndEndIcons: Story = {
       >
         4
       </Text>
-      <Text
-        variant="caption"
-        tone="muted"
-        startIcon={<Spinner size="xs" />}
-      >
+      <Text variant="caption" tone="muted" startIcon={<Spinner size="xs" />}>
         Processing background job...
       </Text>
     </div>
@@ -203,7 +140,8 @@ export const HeadingsAndParagraphs: Story = {
       </Heading>
       <Heading level={3}>H3 Subsection Title</Heading>
       <Paragraph spacing="sm">
-        Primary paragraph text aligned with Blueprint typography tokens and predictable vertical rhythm.
+        Primary paragraph text aligned with Blueprint typography tokens and predictable vertical
+        rhythm.
       </Paragraph>
       <Paragraph spacing="none" tone="secondary">
         Secondary paragraph providing supporting context without bottom margin.
@@ -229,11 +167,7 @@ export const ListsBlockquotesAndCode: Story = {
       <div className={layoutStyles.row}>
         <Code>--ui-grid-cell: 32px</Code>
         <Kbd>Ctrl + K</Kbd>
-        <Link
-          href="https://example.com"
-          external
-          startIcon={<Icon icon={Building2} size="xs" />}
-        >
+        <Link href="https://example.com" external startIcon={<Icon icon={Building2} size="xs" />}>
           External Documentation
         </Link>
       </div>

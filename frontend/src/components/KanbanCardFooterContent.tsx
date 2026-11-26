@@ -1,22 +1,9 @@
+import { Button, ButtonGroup, CardFooter, Icon, StatusDot, Text } from '@blueprint/ui-kit';
+import { ChevronLeft, ChevronRight, History, RotateCcw, X } from 'lucide-react';
 import React from 'react';
-import {
-  ChevronLeft,
-  ChevronRight,
-  History,
-  RotateCcw,
-  X,
-} from 'lucide-react';
-import {
-  Button,
-  ButtonGroup,
-  CardFooter,
-  Icon,
-  StatusDot,
-  Text,
-} from '@blueprint/ui-kit';
+import styles from './KanbanCard.module.css';
 import { useTranslation } from '../i18n/I18nContext';
 import type { Vacancy } from '../types/models';
-import styles from './KanbanCard.module.css';
 
 export interface KanbanCardFooterContentProps {
   vacancy: Vacancy;

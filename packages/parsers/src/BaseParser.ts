@@ -11,4 +11,3 @@ export abstract class BaseParser {
   extractJobId?(url: string): string | null;
   normalizeUrl?(url: string, html?: string): string;
 }
-

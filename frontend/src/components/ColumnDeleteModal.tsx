@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Trash2, ArrowRight } from 'lucide-react';
+import { ArrowRight, Trash2 } from 'lucide-react';
 import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
   Icon,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Paragraph,
-  Text,
   Select,
+  Text,
 } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
-import { STATUS_NOT_CONTACTED } from '../constants/columns';
+import React, { useState } from 'react';
 import type { BoardColumn } from '../types/models';
+import { STATUS_NOT_CONTACTED } from '../constants/columns';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface ColumnDeleteModalProps {
   isOpen: boolean;
@@ -28,7 +28,7 @@ export interface ColumnDeleteModalProps {
 function buildValidTargets(
   availableColumns: BoardColumn[],
   currentColId: string,
-  t: (key: string) => string
+  t: (key: string) => string,
 ): Array<{ value: string; label: string }> {
   return availableColumns
     .filter((c) => c.id !== currentColId)
@@ -92,9 +92,7 @@ export default function ColumnDeleteModal({
             />
           </div>
         ) : (
-          <Paragraph tone="secondary">
-            {t('kanban.delete_column_confirm_empty')}
-          </Paragraph>
+          <Paragraph tone="secondary">{t('kanban.delete_column_confirm_empty')}</Paragraph>
         )}
       </ModalBody>
 

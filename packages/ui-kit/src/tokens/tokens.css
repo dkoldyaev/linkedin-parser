@@ -79,7 +79,7 @@
     --ui-bg-overlay: rgba(10, 23, 41, 0.72);
     --ui-bg-header-fill: rgba(16, 31, 53, 0.72);
     --ui-bg-card-fill: rgba(16, 31, 53, 0.66);
-    --ui-bg-card-fill-strong: rgba(16, 31, 53, 0.90);
+    --ui-bg-card-fill-strong: rgba(16, 31, 53, 0.9);
     --ui-bg-glass-subtle: rgba(121, 174, 255, 0.06);
 
     --ui-text-primary: #e7f1ff;
@@ -116,13 +116,13 @@
 
     --ui-warning: #f59e0b;
     --ui-warning-subtle: rgba(245, 158, 11, 0.14);
-    --ui-warning-border: rgba(245, 158, 11, 0.40);
+    --ui-warning-border: rgba(245, 158, 11, 0.4);
 
     --ui-danger: #f87171;
     --ui-danger-hover: #fca5a5;
     --ui-danger-solid: #dc2626;
     --ui-danger-subtle: rgba(239, 68, 68, 0.14);
-    --ui-danger-border: rgba(239, 68, 68, 0.40);
+    --ui-danger-border: rgba(239, 68, 68, 0.4);
 
     --ui-info: #99d9ff;
     --ui-info-subtle: rgba(56, 189, 248, 0.14);
@@ -174,10 +174,14 @@
     --ui-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
     --ui-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.28);
     --ui-shadow-lg: 0 18px 60px rgba(0, 0, 0, 0.45);
-    --ui-shadow-glow-primary: inset 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
-    --ui-shadow-glow-success: inset 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
-    --ui-shadow-glow-danger: inset 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
-    --ui-shadow-glow-warning: inset 0 0 0 1px rgba(245, 158, 11, 0.45), 0 0 14px rgba(245, 158, 11, 0.25);
+    --ui-shadow-glow-primary:
+      inset 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 14px rgba(59, 130, 246, 0.25);
+    --ui-shadow-glow-success:
+      inset 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+    --ui-shadow-glow-danger:
+      inset 0 0 0 1px rgba(248, 113, 113, 0.45), 0 0 14px rgba(248, 113, 113, 0.25);
+    --ui-shadow-glow-warning:
+      inset 0 0 0 1px rgba(245, 158, 11, 0.45), 0 0 14px rgba(245, 158, 11, 0.25);
     --ui-shadow-dot-glow: 0 0 6px currentColor;
     --ui-shadow-card-hover: 0 5px 14px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--ui-border-subtle);
     --ui-shadow-grid-row: inset 0 -1px var(--ui-border-subtle);
@@ -209,8 +213,8 @@
     --ui-bg-card-active: #ecefeb;
     --ui-bg-overlay: rgba(25, 26, 24, 0.48);
     --ui-bg-header-fill: rgba(255, 255, 255, 0.76);
-    --ui-bg-card-fill: rgba(255, 255, 255, 0.70);
-    --ui-bg-card-fill-strong: rgba(255, 255, 255, 0.90);
+    --ui-bg-card-fill: rgba(255, 255, 255, 0.7);
+    --ui-bg-card-fill-strong: rgba(255, 255, 255, 0.9);
     --ui-bg-glass-subtle: rgba(48, 75, 222, 0.05);
 
     --ui-text-primary: #222321;
@@ -230,7 +234,7 @@
 
     --ui-neutral: #555a54;
     --ui-neutral-hover: #222321;
-    --ui-neutral-subtle: rgba(85, 90, 84, 0.10);
+    --ui-neutral-subtle: rgba(85, 90, 84, 0.1);
     --ui-neutral-border: rgba(85, 90, 84, 0.28);
 
     --ui-primary: #304bde;
@@ -251,7 +255,7 @@
     --ui-danger: #b63840;
     --ui-danger-hover: #991b1b;
     --ui-danger-solid: #b91c1c;
-    --ui-danger-subtle: rgba(185, 28, 28, 0.10);
+    --ui-danger-subtle: rgba(185, 28, 28, 0.1);
     --ui-danger-border: rgba(185, 28, 28, 0.35);
 
     --ui-info: #176389;

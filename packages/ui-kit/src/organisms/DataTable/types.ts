@@ -18,4 +18,3 @@ export interface DataTableColumn<T> {
    */
   readonly width?: number;
 }
-

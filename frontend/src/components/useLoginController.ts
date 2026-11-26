@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import type React from 'react';
-import { trackEvent, EVENTS } from '../utils/analytics';
-import type { User } from '../types/models';
-import { authService } from '../services/authService';
+import { EVENTS, trackEvent } from '../utils/analytics';
+import { useEffect, useState } from 'react';
 import type { AuthConfig } from '../services/auth.types';
+import { authService } from '../services/authService';
+import type React from 'react';
+import type { User } from '../types/models';
 
 export type { AuthConfig };
 

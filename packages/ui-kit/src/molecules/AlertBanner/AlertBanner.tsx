@@ -1,20 +1,13 @@
-import React from 'react';
-import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-  X,
-} from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 import { Button, Icon, Text } from '../../atoms';
-import { useBlueprintGrid } from '../../hooks';
 import { cn } from '../../utils';
+import React from 'react';
 import styles from './AlertBanner.module.css';
+import { useBlueprintGrid } from '../../hooks';
 
 export type AlertBannerTone = 'info' | 'success' | 'warning' | 'danger';
 
-export interface AlertBannerProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
+export interface AlertBannerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   readonly tone?: AlertBannerTone;
   readonly title?: React.ReactNode;
   readonly onDismiss?: () => void;
@@ -54,7 +47,7 @@ export function AlertBanner({
         styles.banner,
         styles[`tone-${tone}`],
         onDismiss !== undefined && styles.hasDismiss,
-        className
+        className,
       )}
       {...rest}
     >

@@ -1,13 +1,12 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { extractTextFromFile } from '../utils/textExtractor';
-import { getLocalCV, saveLocalCV, clearLocalCV } from '../utils/cvIndexedDB';
-import type { LocalCVRecord } from '../utils/cvIndexedDB';
-import { useTranslation } from '../i18n/I18nContext';
-import type { User } from '../types/models';
-import { cvService } from '../services/cvService';
+import { clearLocalCV, getLocalCV, saveLocalCV } from '../utils/cvIndexedDB';
+import React, { useCallback, useEffect, useState } from 'react';
 import { authService } from '../services/authService';
+import { cvService } from '../services/cvService';
+import { extractTextFromFile } from '../utils/textExtractor';
+import type { LocalCVRecord } from '../utils/cvIndexedDB';
 import type { ServerCVData } from '../services/cvService.types';
+import type { User } from '../types/models';
+import { useTranslation } from '../i18n/I18nContext';
 
 export type CVSyncStatus = 'none' | 'draft' | 'approved' | 'outdated';
 
@@ -21,10 +20,7 @@ interface InitialCVState {
   syncStatus: CVSyncStatus;
 }
 
-function computeSyncStatusForContent(
-  content: string,
-  serverCV: ServerCVData | null
-): CVSyncStatus {
+function computeSyncStatusForContent(content: string, serverCV: ServerCVData | null): CVSyncStatus {
   const trimmed = content.trim();
   if (serverCV) {
     const serverTrimmed = (serverCV.content || '').trim();
@@ -33,10 +29,7 @@ function computeSyncStatusForContent(
   return trimmed ? 'draft' : 'none';
 }
 
-function deriveLocalCVState(
-  local: LocalCVRecord,
-  sCv: ServerCVData | null
-): InitialCVState {
+function deriveLocalCVState(local: LocalCVRecord, sCv: ServerCVData | null): InitialCVState {
   const content = local.content || '';
   return {
     sourceText: content,
@@ -68,7 +61,7 @@ function deriveServerCVState(sCv: ServerCVData | null): InitialCVState {
 
 function deriveInitialCVState(
   local: LocalCVRecord | null,
-  sCv: ServerCVData | null
+  sCv: ServerCVData | null,
 ): InitialCVState {
   if (local && local.content) {
     return deriveLocalCVState(local, sCv);
@@ -87,7 +80,7 @@ async function extractValidatedFileText(file: File, emptyErrorMsg: string): Prom
 async function postCVToServer(
   content: string,
   revision: number,
-  fallbackError: string
+  fallbackError: string,
 ): Promise<ServerCVData & { revision: number }> {
   try {
     return await cvService.saveCV({ content, revision });
@@ -184,7 +177,15 @@ export function useCVManagement(user: User | null | undefined) {
     state.setSourceText(newText);
     state.setSourceRevision(newRev);
     state.setSyncStatus(computeSyncStatusForContent(newText, state.serverCV));
-    await saveLocalCV({ content: newText, revision: newRev, filename: state.filename, updated_at: new Date().toISOString() }, user?.id);
+    await saveLocalCV(
+      {
+        content: newText,
+        revision: newRev,
+        filename: state.filename,
+        updated_at: new Date().toISOString(),
+      },
+      user?.id,
+    );
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +200,15 @@ export function useCVManagement(user: User | null | undefined) {
       state.setSourceRevision(newRev);
       state.setFilename(file.name);
       state.setSyncStatus(computeSyncStatusForContent(text, state.serverCV));
-      await saveLocalCV({ content: text, revision: newRev, filename: file.name, updated_at: new Date().toISOString() }, user?.id);
+      await saveLocalCV(
+        {
+          content: text,
+          revision: newRev,
+          filename: file.name,
+          updated_at: new Date().toISOString(),
+        },
+        user?.id,
+      );
       setMessage(t('pages.cv.uploaded_success', { filename: file.name }));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('pages.cv.upload_failed'));
@@ -214,12 +223,24 @@ export function useCVManagement(user: User | null | undefined) {
     setError(null);
     setMessage(null);
     try {
-      const saved = await postCVToServer(state.sourceText, state.sourceRevision, t('pages.cv.save_failed'));
+      const saved = await postCVToServer(
+        state.sourceText,
+        state.sourceRevision,
+        t('pages.cv.save_failed'),
+      );
       state.setServerCV(saved);
       state.setApprovedRevision(saved.revision);
       state.setSyncStatus('approved');
       setMessage(t('pages.cv.approved_saved_success'));
-      await saveLocalCV({ content: state.sourceText, revision: saved.revision, filename: state.filename, updated_at: new Date().toISOString() }, user?.id);
+      await saveLocalCV(
+        {
+          content: state.sourceText,
+          revision: saved.revision,
+          filename: state.filename,
+          updated_at: new Date().toISOString(),
+        },
+        user?.id,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : t('pages.cv.save_failed'));
     } finally {
@@ -250,5 +271,15 @@ export function useCVManagement(user: User | null | undefined) {
     setMessage(t('pages.cv.draft_cleared'));
   };
 
-  return { ...state, message, error, isSubmitting, handleTextChange, handleFileUpload, handleSaveToServer, handleDeleteServerCV, handleClearLocal };
+  return {
+    ...state,
+    message,
+    error,
+    isSubmitting,
+    handleTextChange,
+    handleFileUpload,
+    handleSaveToServer,
+    handleDeleteServerCV,
+    handleClearLocal,
+  };
 }

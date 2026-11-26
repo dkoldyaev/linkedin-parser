@@ -1,12 +1,12 @@
+import type { BoardColumn, Vacancy } from '../types/models';
 import {
-  STATUS_NOT_CONTACTED,
+  STATUS_ASSESSMENT,
   STATUS_CONTACTED,
   STATUS_INTERVIEW,
-  STATUS_ASSESSMENT,
+  STATUS_NOT_CONTACTED,
   STATUS_OFFER,
   STATUS_REJECTED,
 } from '../constants/columns';
-import type { BoardColumn, Vacancy } from '../types/models';
 
 export type ColumnLike = BoardColumn | string;
 
@@ -66,32 +66,27 @@ function findColumnObject(colId: string, columns: ColumnLike[]): BoardColumn | n
 function matchesColumnByRoleOrId(
   colId: string,
   statusLower: string,
-  columns: ColumnLike[]
+  columns: ColumnLike[],
 ): boolean {
   if (String(colId).toLowerCase() === statusLower) return true;
   if (LEGACY_STATUS_ALIAS[statusLower] === colId) return true;
 
   const col = findColumnObject(colId, columns);
   if (!col) return false;
-  return (
-    col.system_role?.toLowerCase() === statusLower ||
-    col.role?.toLowerCase() === statusLower
-  );
+  return col.system_role?.toLowerCase() === statusLower || col.role?.toLowerCase() === statusLower;
 }
 
 export function resolveCurrentIndex(
   vacancyStatus: string | undefined,
   linearColumns: string[],
-  columns: ColumnLike[]
+  columns: ColumnLike[],
 ): number {
   const statusStr = vacancyStatus || '';
   const directIdx = linearColumns.indexOf(statusStr);
   if (directIdx !== -1) return directIdx;
 
   const statusLower = String(statusStr).toLowerCase();
-  return linearColumns.findIndex((colId) =>
-    matchesColumnByRoleOrId(colId, statusLower, columns)
-  );
+  return linearColumns.findIndex((colId) => matchesColumnByRoleOrId(colId, statusLower, columns));
 }
 
 function isInterviewStatus(status: string | undefined): boolean {
@@ -103,7 +98,7 @@ function isInterviewStatus(status: string | undefined): boolean {
 function resolveAssessmentOrOfferLabel(
   status: string,
   columns: ColumnLike[],
-  t: (path: string) => string
+  t: (path: string) => string,
 ): string | undefined {
   const colObj = findColumnObject(status, columns);
   const colId = colObj ? colObj.id : status;
@@ -116,7 +111,7 @@ export function resolveStageLabel(
   vacancy: Vacancy,
   columns: ColumnLike[],
   laneColumns: Set<string>,
-  t: (path: string, params?: Record<string, string | number>) => string
+  t: (path: string, params?: Record<string, string | number>) => string,
 ): string | undefined {
   if (laneColumns.has(vacancy.status) && vacancy.lane != null) {
     return t('kanban.stage_badge', { n: (vacancy.lane || 0) + 1 });
@@ -128,7 +123,7 @@ export function resolveStageLabel(
 }
 
 export function resolveScoreTone(
-  matchScore: number | undefined
+  matchScore: number | undefined,
 ): 'neutral' | 'success' | 'warning' | 'danger' {
   if (matchScore === undefined) return 'neutral';
   if (matchScore >= 75) return 'success';

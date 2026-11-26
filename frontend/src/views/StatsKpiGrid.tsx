@@ -1,10 +1,9 @@
-
-import React from 'react';
-import { Flame, Trophy, CalendarCheck, PlusCircle } from 'lucide-react';
+import { CalendarCheck, Flame, PlusCircle, Trophy } from 'lucide-react';
 import { Icon } from '@blueprint/ui-kit';
-import { useTranslation } from '../i18n/I18nContext';
+import React from 'react';
 import StatsKpiCard from './StatsKpiCard';
 import type { StatsViewModel } from './statsHelpers';
+import { useTranslation } from '../i18n/I18nContext';
 
 export interface StatsKpiGridProps {
   view: StatsViewModel;

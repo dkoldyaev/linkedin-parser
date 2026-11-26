@@ -1,4 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import {
+  AlertBanner,
+  CollapsibleSection,
+  EmptyState,
+  Section,
+  SectionHeader,
+  Select,
+  type SelectOption,
+  Stepper,
+  Tabs,
+} from '../../molecules';
+import {
+  Badge,
+  type BadgeTone,
+  Button,
+  Icon,
+  Input,
+  Label,
+  Paragraph,
+  Text,
+  Textarea,
+  type TextTone,
+} from '../../atoms';
 import {
   Ban,
   Banknote,
@@ -22,36 +44,11 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import {
-  Badge,
-  Button,
-  Icon,
-  Input,
-  Label,
-  Paragraph,
-  Text,
-  Textarea,
-  type BadgeTone,
-  type TextTone,
-} from '../../atoms';
-import {
-  AlertBanner,
-  CollapsibleSection,
-  EmptyState,
-  Section,
-  SectionHeader,
-  Select,
-  Stepper,
-  Tabs,
-  type SelectOption,
-} from '../../molecules';
-import {
-  Modal,
-  type ModalSize,
-} from '../Modal';
+import { Modal, type ModalSize } from '../Modal';
+import React, { useEffect, useState } from 'react';
 import { ReportAccordion, type ReportSectionGroup } from '../ReportAccordion';
-import { TagsList } from '../TagsList';
 import styles from './VacancyDetailsModal.module.css';
+import { TagsList } from '../TagsList';
 
 export interface VacancyStageOption {
   readonly value: string;
@@ -242,10 +239,10 @@ const DEFAULT_PERIOD_OPTIONS: readonly SelectOption[] = [
 ];
 
 /**
- * 
+ *
  * @deprecated Should be deleted. Do not use it!!
  * @param param0
- * @returns 
+ * @returns
  */
 export function VacancyDetailsModal({
   isOpen,
@@ -448,7 +445,7 @@ export function VacancyDetailsModal({
 
   const formattedCountStages = historyStagesCountLabel.replace(
     '{count}',
-    String(historyItems.length)
+    String(historyItems.length),
   );
 
   return (
@@ -522,11 +519,7 @@ export function VacancyDetailsModal({
         meta={
           <Modal.Header.Meta>
             {location && (
-              <Text
-                variant="caption"
-                tone="secondary"
-                startIcon={<Icon icon={MapPin} size="xs" />}
-              >
+              <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
                 {location}
               </Text>
             )}
@@ -551,12 +544,7 @@ export function VacancyDetailsModal({
               </Text>
             )}
             {isClosed && (
-              <Badge
-                variant="outline"
-                size="xs"
-                tone="danger"
-                icon={<Icon icon={Ban} size="xs" />}
-              >
+              <Badge variant="outline" size="xs" tone="danger" icon={<Icon icon={Ban} size="xs" />}>
                 {closedBadgeLabel}
               </Badge>
             )}
@@ -660,7 +648,13 @@ export function VacancyDetailsModal({
                     <Button
                       variant="secondary"
                       size="sm"
-                      startIcon={<Icon icon={savedSalarySuccess ? Check : Edit3} size="xs" tone={savedSalarySuccess ? 'success' : undefined} />}
+                      startIcon={
+                        <Icon
+                          icon={savedSalarySuccess ? Check : Edit3}
+                          size="xs"
+                          tone={savedSalarySuccess ? 'success' : undefined}
+                        />
+                      }
                       onClick={() => setIsEditingSalary(true)}
                     >
                       {savedSalarySuccess ? salarySavedLabel : editSalaryLabel}
@@ -839,10 +833,7 @@ export function VacancyDetailsModal({
               />
               <Section.Body padding="sm">
                 {historyItems.length === 0 ? (
-                  <EmptyState
-                    title={noHistoryTitle}
-                    description={noHistoryDescription}
-                  />
+                  <EmptyState title={noHistoryTitle} description={noHistoryDescription} />
                 ) : (
                   <ol className={styles.historyList}>
                     {historyItems.map((item, idx) => {
@@ -988,7 +979,9 @@ export function VacancyDetailsModal({
                         variant="secondary"
                         size="sm"
                         loading={savingDescription}
-                        startIcon={<Icon icon={descriptionSaved ? Check : CheckCircle2} size="xs" />}
+                        startIcon={
+                          <Icon icon={descriptionSaved ? Check : CheckCircle2} size="xs" />
+                        }
                         onClick={() => onSaveDescription(descriptionDraft)}
                       >
                         {descriptionSaved ? savedNotesLabel : saveDescriptionLabel}
@@ -1019,17 +1012,9 @@ export function VacancyDetailsModal({
         ) : (
           /* Compatibility with CV Tab */
           <div className={styles.compatibilityContainer}>
-            {isCvOutdated && (
-              <AlertBanner tone="warning">
-                {cvOutdatedMessage}
-              </AlertBanner>
-            )}
+            {isCvOutdated && <AlertBanner tone="warning">{cvOutdatedMessage}</AlertBanner>}
 
-            {compatibilityError && (
-              <AlertBanner tone="danger">
-                {compatibilityError}
-              </AlertBanner>
-            )}
+            {compatibilityError && <AlertBanner tone="danger">{compatibilityError}</AlertBanner>}
 
             {cvAssessment && (
               <div className={styles.assessmentBox}>
@@ -1051,9 +1036,15 @@ export function VacancyDetailsModal({
             {compatibilitySections.length > 0 ? (
               <ReportAccordion
                 title={compatibilityTabLabel}
-                scoreLabel={compatibilityScore != null ? `${Math.round(compatibilityScore)}%` : undefined}
+                scoreLabel={
+                  compatibilityScore != null ? `${Math.round(compatibilityScore)}%` : undefined
+                }
                 scoreTone={compatibilityScoreTone}
-                onAction={onRunCompatibility ? () => onRunCompatibility(Boolean(compatibilitySections.length)) : undefined}
+                onAction={
+                  onRunCompatibility
+                    ? () => onRunCompatibility(Boolean(compatibilitySections.length))
+                    : undefined
+                }
                 actionLabel={recheckCompatibilityLabel}
                 actionLoading={analyzingCompatibility || loadingCompatibility}
                 defaultActionLabel="Подтверждение"
