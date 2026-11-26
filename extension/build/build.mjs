@@ -42,9 +42,9 @@ fs.mkdirSync(DIST_DIR, { recursive: true })
 
 // 2. Popup (Vite reads the same config via EXT_MODE, see popup-src/vite.config.js)
 if (!fs.existsSync(path.join(POPUP_SRC, 'node_modules'))) {
-  run('npm', ['ci'], { cwd: POPUP_SRC })
+  run('pnpm', ['install'], { cwd: POPUP_SRC })
 }
-run('npm', ['run', 'build'], { cwd: POPUP_SRC, env: { ...process.env, EXT_MODE: config.mode } })
+run('pnpm', ['run', 'build'], { cwd: POPUP_SRC, env: { ...process.env, EXT_MODE: config.mode } })
 
 // 3. Service worker + generated runtime config
 fs.copyFileSync(path.join(EXTENSION_DIR, 'background.js'), path.join(DIST_DIR, 'background.js'))
@@ -56,7 +56,8 @@ fs.writeFileSync(
 
 // 3.5 Offscreen Document
 fs.copyFileSync(path.join(EXTENSION_DIR, 'offscreen.html'), path.join(DIST_DIR, 'offscreen.html'))
-run('npx', [
+run('pnpm', [
+  'dlx',
   'esbuild', 'offscreen.js', 
   '--bundle', 
   '--outfile=dist/offscreen-bundle.js',

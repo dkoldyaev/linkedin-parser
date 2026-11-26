@@ -3,17 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "description": "LinkedIn Job Vacancy Parser & Kanban Board Tracker with AI Summarization",
-  "workspaces": [
-    "packages/parsers",
-    "services/*"
-  ],
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "pip:list": "./.venv/bin/pip list",
     "check:python": "./.venv/bin/python -m py_compile backend/models.py backend/database.py backend/schemas.py backend/auth.py backend/scraper.py backend/llm.py backend/queue_manager.py backend/main.py backend/location_parser.py",
     "test:curl:access": "PYTHONPATH=. ./.venv/bin/python scripts/test_curl_access.py",
     "test:curl:missing": "PYTHONPATH=. ./.venv/bin/python scripts/test_curl_missing.py",
-    "extension:popup:build": "cd extension/popup-src && npm run build",
-    "extension:popup:dev": "cd extension/popup-src && npm run dev",
+    "extension:popup:build": "pnpm --dir extension/popup-src run build",
+    "extension:popup:dev": "pnpm --dir extension/popup-src run dev",
     "inspect:examples": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_examples.py",
     "inspect:section": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_section.py",
     "inspect:avito": "PYTHONPATH=. ./.venv/bin/python scripts/inspect_avito.py",
@@ -50,12 +47,12 @@
     "test:llm": "./.venv/bin/python -m pytest tests/test_vacancy_llm.py",
     "test:mercure": "./.venv/bin/python -m pytest tests/test_mercure_card_creation.py",
     "backend:dev": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --reload --port 8000",
-    "frontend:dev": "npm --prefix frontend run dev",
-    "frontend:build": "npm --prefix frontend run build",
-    "lint:frontend": "npm --prefix frontend run lint",
-    "build": "npm run frontend:build",
-    "extension:build": "npm --prefix packages/parsers run build && npm --no-git-tag-version --prefix extension/popup-src version patch && npx tsx extension/build/build.mjs --mode development",
-    "extension:build:prod": "npm --prefix packages/parsers run build && npm --no-git-tag-version --prefix extension/popup-src version patch && npx tsx extension/build/build.mjs --mode production",
+    "frontend:dev": "pnpm --dir frontend run dev",
+    "frontend:build": "pnpm --dir frontend run build",
+    "lint:frontend": "pnpm --dir frontend run lint",
+    "build": "pnpm run frontend:build",
+    "extension:build": "pnpm --filter @parser-as-service/parsers run build && cd extension/popup-src && pnpm version patch --no-git-tag-version && cd ../.. && pnpm dlx tsx extension/build/build.mjs --mode development",
+    "extension:build:prod": "pnpm --filter @parser-as-service/parsers run build && cd extension/popup-src && pnpm version patch --no-git-tag-version && cd ../.. && pnpm dlx tsx extension/build/build.mjs --mode production",
     "start": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
@@ -79,7 +76,7 @@
     "test:localization": "./.venv/bin/python -m pytest tests/test_localization.py",
     "mock:generate": "PYTHONPATH=. ./.venv/bin/python -m backend.mock_data",
     "mock:generate:docker": "docker compose exec app python -m backend.mock_data",
-    "test:all": "npm run test:python && npm run test:parsers && npm run test:frontend && npm run lint:frontend && npm run frontend:build",
+    "test:all": "pnpm run test:python && pnpm run test:parsers && pnpm run test:frontend && pnpm run lint:frontend && pnpm run frontend:build",
     "git:status": "git status",
     "git:log": "git log -n 5 --oneline",
     "git:diff:cached": "git diff --cached",
@@ -94,16 +91,19 @@
     "commit:closed": "git add backend/database.py backend/main.py backend/models.py backend/queue_manager.py backend/schemas.py backend/scraper.py frontend/src/components/KanbanCard.jsx frontend/src/components/VacancyModal.jsx frontend/src/index.css tests/test_closed.py package.json && git commit -m 'feat: add closed vacancy status parsing and card design'",
     "commit:parsers": "git add -A && git commit -m 'feat: modular multi-site vacancy parsers, types, and extension e2e integration'",
     "git:push": "git push origin main",
-    "git:commit:push": "npm run commit:parsers && npm run git:push",
-    "dokploy:configure-dev": "npx tsx scripts/configure-dokploy-dev.ts",
+    "git:commit:push": "pnpm run commit:parsers && pnpm run git:push",
+    "dokploy:configure-dev": "pnpm dlx tsx scripts/configure-dokploy-dev.ts",
     "dokploy:deploy": "node scripts/create-dokploy-env.mjs",
+    "dokploy:deploy:storybook": "node scripts/deploy-dokploy-storybook.mjs",
     "dokploy:destroy": "node scripts/destroy-dokploy-env.mjs",
     "read:dokploy:logs": "node scripts/read-dokploy-logs.mjs",
     "test:python": "./.venv/bin/python -m pytest",
-    "test:parsers": "npm --workspace @parser-as-service/parsers test",
-    "test:frontend": "node --test frontend/src/utils/*.test.js"
+    "test:parsers": "pnpm --filter @parser-as-service/parsers test",
+    "test:frontend": "pnpm --dir frontend test"
   },
-  "overrides": {
-    "esbuild": "^0.28.2"
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.28.2"
+    }
   }
 }

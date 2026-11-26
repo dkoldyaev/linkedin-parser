@@ -1,0 +1,8 @@
+packages:
+  - 'frontend'
+  - 'packages/*'
+  - 'services/*'
+  - 'extension/popup-src'
+onlyBuiltDependencies:
+  - esbuild
+

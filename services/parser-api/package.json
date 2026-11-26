@@ -9,7 +9,7 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "@parser-as-service/parsers": "*",
+    "@parser-as-service/parsers": "workspace:*",
     "express": "^4.18.2"
   },
   "devDependencies": {

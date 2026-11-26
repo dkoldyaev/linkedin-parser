@@ -2,14 +2,18 @@
 # Frontend Production Builder (Vite SPA)
 # ==========================================
 FROM node:24-alpine AS builder
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 WORKDIR /app
 
-COPY packages/ui-kit /app/packages/ui-kit
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/ui-kit/package.json ./packages/ui-kit/
+COPY frontend/package.json ./frontend/
+RUN pnpm install --frozen-lockfile --filter frontend...
+
+COPY packages/ui-kit ./packages/ui-kit
+COPY frontend ./frontend
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci && rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
-COPY frontend/ ./
-RUN npm run build
+RUN pnpm run build
 
 # ==========================================
 # Target: runner (Production Static Nginx)
@@ -27,17 +31,20 @@ CMD ["nginx", "-g", "daemon off;"]
 # Target: dev (Development with Vite HMR)
 # ==========================================
 FROM node:24-alpine AS dev
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 WORKDIR /app
 
 ENV NODE_ENV=development
 
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/ui-kit/package.json ./packages/ui-kit/
+COPY frontend/package.json ./frontend/
+RUN pnpm install --frozen-lockfile --filter frontend...
+
 COPY packages/ui-kit ./packages/ui-kit
+COPY frontend ./frontend
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci && rm -rf /app/packages/ui-kit/node_modules && ln -s /app/frontend/node_modules /app/packages/ui-kit/node_modules
-COPY frontend/ ./
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0", "--port", "3000"]

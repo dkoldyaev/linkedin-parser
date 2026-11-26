@@ -2,16 +2,17 @@
 # Parser-API Base
 # ==========================================
 FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/parsers ./packages/parsers
 COPY services/parser-api ./services/parser-api
 
-RUN npm ci
+RUN pnpm install --frozen-lockfile --filter @parser-as-service/parser-api...
 
-RUN npm run build --workspace=@parser-as-service/parsers
+RUN pnpm --filter @parser-as-service/parsers run build
 
 WORKDIR /app/services/parser-api
 
@@ -19,13 +20,13 @@ WORKDIR /app/services/parser-api
 # Target: runner (Production)
 # ==========================================
 FROM base AS runner
-RUN npm run build
+RUN pnpm run build
 EXPOSE 4000
-CMD ["npm", "run", "start"]
+CMD ["pnpm", "run", "start"]
 
 # ==========================================
 # Target: dev (Development)
 # ==========================================
 FROM base AS dev
 EXPOSE 4000
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "run", "dev"]

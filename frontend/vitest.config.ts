@@ -17,7 +17,7 @@ export default defineConfig({
   },
   server: {
     deps: {
-      inline: [/@blueprint\/ui-kit/, /lucide-react/, /@radix-ui/],
+      inline: [/@blueprint\/ui-kit/, /lucide-react/, /@radix-ui/, /@formkit\/auto-animate/],
     },
   },
   test: {
