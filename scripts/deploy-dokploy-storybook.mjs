@@ -300,6 +300,8 @@ async function main() {
     dockerfile: customDockerfile,
     dockerContextPath: '.',
     dockerBuildStage: '',
+    herokuVersion: null,
+    railpackVersion: null,
   });
 
   await dokployRequest('/application.update', 'POST', {
