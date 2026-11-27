@@ -1,0 +1,4 @@
+[submodule "packages/ui-kit"]
+	path = packages/ui-kit
+	url = https://github.com/dkoldyaev/blueprint-ui-kit.git
+	branch = main

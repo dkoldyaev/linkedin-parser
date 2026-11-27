@@ -290,7 +290,7 @@ async function main() {
     branch: gitBranch,
     githubId,
     buildPath: '/',
-    enableSubmodules: false,
+    enableSubmodules: true,
     triggerType: 'push',
   });
 
@@ -313,6 +313,7 @@ async function main() {
     branch: gitBranch,
     githubId,
     buildPath: '/',
+    enableSubmodules: true,
     buildType: 'dockerfile',
     dockerfile: customDockerfile,
     dockerContextPath: '.',
