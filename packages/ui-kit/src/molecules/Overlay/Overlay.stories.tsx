@@ -104,7 +104,7 @@ function InteractiveViewportOverlay(args: OverlayProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -124,14 +124,24 @@ export const PropPlacementAndBackdrop: Story = {
     backdrop: true,
   },
   parameters: {
+    controls: { include: ['placement', 'backdrop'] },
     docs: {
       description: {
         story:
-          'Пропс `placement` задает точку привязки во вьюпорте (`center`, `bottom-end`, `top-end` и др.), а `backdrop` включает полупрозрачный фон с закрытием по клику.',
+          'Пропс `placement` задает точку привязки во вьюпорте (`center`, `bottom-end`, `top-end` и др.), а `backdrop` включает полупрозрачный фон с закрытием по клику. Доступны только контролы `placement` и `backdrop`.',
       },
     },
   },
-  render: (args) => <InteractiveViewportOverlay {...args} />,
+  render: (args) => (
+    <InteractiveViewportOverlay
+      isOpen={false}
+      placement={args.placement}
+      backdrop={args.backdrop}
+      onClose={() => undefined}
+    >
+      {null}
+    </InteractiveViewportOverlay>
+  ),
 };
 
 function AnchoredOverlayDemo(args: OverlayProps): React.ReactElement {
@@ -142,7 +152,7 @@ function AnchoredOverlayDemo(args: OverlayProps): React.ReactElement {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: anchorRef &amp; offsetPx (Привязка к элементу через Floating UI)
+          props: anchorRef &amp; offsetPx — Контролы: [placement, offsetPx]
         </Text>
         <Text variant="caption" tone="secondary">
           При передаче anchorRef оверлей позиционируется относительно кнопки-триггера с отступом
@@ -156,10 +166,10 @@ function AnchoredOverlayDemo(args: OverlayProps): React.ReactElement {
           </Button>
         </div>
         <Overlay
-          {...args}
           isOpen={open}
           anchorRef={triggerRef}
           placement={args.placement ?? 'bottom-start'}
+          offsetPx={args.offsetPx}
           onClose={() => setOpen(false)}
         >
           <div className={layoutStyles.box}>
@@ -188,12 +198,22 @@ export const PropAnchorRefAndOffsetPx: Story = {
     offsetPx: 6,
   },
   parameters: {
+    controls: { include: ['placement', 'offsetPx'] },
     docs: {
       description: {
         story:
-          'Пропс `anchorRef` включает режим выпадающего поповера, привязанного к координатам триггера с автоматическим `flip()` и `shift()` при выходе за края экрана.',
+          'Пропс `anchorRef` включает режим выпадающего поповера, привязанного к координатам триггера с автоматическим `flip()` и `shift()` при выходе за края экрана. Доступны только контролы `placement` и `offsetPx`.',
       },
     },
   },
-  render: (args) => <AnchoredOverlayDemo {...args} />,
+  render: (args) => (
+    <AnchoredOverlayDemo
+      isOpen={false}
+      placement={args.placement}
+      offsetPx={args.offsetPx}
+      onClose={() => undefined}
+    >
+      {null}
+    </AnchoredOverlayDemo>
+  ),
 };

@@ -38,7 +38,7 @@ export default meta;
 type Story = StoryObj<typeof FilterBarReset>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -72,9 +72,10 @@ export const PropLabel: Story = {
     label: 'Очистить (3)',
   },
   parameters: {
+    controls: { include: ['label'] },
     docs: {
       description: {
-        story: 'Пропс `label` задает локализованную подпись кнопки сброса.',
+        story: 'Пропс `label` задает локализованную подпись кнопки сброса. Доступен только контрол `label`.',
       },
     },
   },
@@ -82,7 +83,7 @@ export const PropLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: label (string)
+          prop: label (string) — Контролы: [label]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените label в панели Controls:
@@ -90,7 +91,39 @@ export const PropLabel: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div>
-          <FilterBarReset {...args} onReset={() => undefined} />
+          <FilterBarReset label={args.label} onReset={() => undefined} />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropDisabled: Story = {
+  name: 'Пропс: disabled (Заблокированная кнопка)',
+  args: {
+    disabled: true,
+  },
+  parameters: {
+    controls: { include: ['disabled'] },
+    docs: {
+      description: {
+        story: 'Пропс `disabled` блокирует нажатие кнопки сброса фильтров. Доступен только контрол `disabled`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: disabled (boolean) — Контролы: [disabled]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключите флаг disabled в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div>
+          <FilterBarReset label="Сбросить фильтры" disabled={args.disabled} onReset={() => undefined} />
         </div>
       </div>
     </div>

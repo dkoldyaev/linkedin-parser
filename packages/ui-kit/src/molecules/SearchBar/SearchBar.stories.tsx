@@ -79,7 +79,7 @@ function ControlledSearchBar(args: SearchBarProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -99,14 +99,22 @@ export const PropExpandOnFocus: Story = {
     expandOnFocus: true,
   },
   parameters: {
+    controls: { include: ['expandOnFocus'] },
     docs: {
       description: {
         story:
-          'Пропс `expandOnFocus` включает компактный режим в шапке приложения (`Header`), плавно увеличивающий ширину поля при получении фокуса.',
+          'Пропс `expandOnFocus` включает компактный режим в шапке приложения (`Header`), плавно увеличивающий ширину поля при получении фокуса. Доступен только контрол `expandOnFocus`.',
       },
     },
   },
-  render: (args) => <ControlledSearchBar {...args} />,
+  render: (args) => (
+    <ControlledSearchBar
+      value="TypeScript"
+      placeholder="Кликните для раскрытия по фокусу..."
+      expandOnFocus={args.expandOnFocus}
+      onValueChange={() => undefined}
+    />
+  ),
 };
 
 export const PropValueAndClearLabel: Story = {
@@ -117,14 +125,22 @@ export const PropValueAndClearLabel: Story = {
     clearLabel: 'Стереть поисковый запрос',
   },
   parameters: {
+    controls: { include: ['value', 'placeholder', 'clearLabel'] },
     docs: {
       description: {
         story:
-          'Когда `value` не пусто, справа автоматически появляется кнопка очистки с `aria-label={clearLabel}`.',
+          'Когда `value` не пусто, справа автоматически появляется кнопка очистки с `aria-label={clearLabel}`. Доступны только контролы `value`, `placeholder` и `clearLabel`.',
       },
     },
   },
-  render: (args) => <ControlledSearchBar {...args} />,
+  render: (args) => (
+    <ControlledSearchBar
+      value={args.value}
+      placeholder={args.placeholder}
+      clearLabel={args.clearLabel}
+      onValueChange={() => undefined}
+    />
+  ),
 };
 
 export const PropDisabled: Story = {
@@ -134,11 +150,18 @@ export const PropDisabled: Story = {
     disabled: true,
   },
   parameters: {
+    controls: { include: ['disabled'] },
     docs: {
       description: {
-        story: 'Пропс `disabled` отключает поле поиска и скрывает кнопку очистки.',
+        story: 'Пропс `disabled` отключает поле поиска и скрывает кнопку очистки. Доступен только контрол `disabled`.',
       },
     },
   },
-  render: (args) => <ControlledSearchBar {...args} />,
+  render: (args) => (
+    <ControlledSearchBar
+      value="Locked search query"
+      disabled={args.disabled}
+      onValueChange={() => undefined}
+    />
+  ),
 };

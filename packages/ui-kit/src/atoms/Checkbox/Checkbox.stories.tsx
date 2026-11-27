@@ -51,12 +51,12 @@ export default meta;
 type Story = StoryObj<typeof Checkbox>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Checkbox`. Настраивайте `label`, `checked` и `disabled` через панель Controls.',
+          'Базовая интерактивная демонстрация `Checkbox` со всеми контролами (`label`, `checked`, `defaultChecked`, `disabled`).',
       },
     },
   },
@@ -64,7 +64,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Checkbox — Атомарный флаг выбора
+          Checkbox — Атомарный флаг выбора (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Кликните по чекбоксу или используйте Controls для управления состоянием.
@@ -80,16 +80,18 @@ export const Base: Story = {
 };
 
 export const PropLabel: Story = {
-  name: 'Пропс: label (Подпись чекбокса)',
+  name: 'Пропс: label (Контрол: только label)',
   args: {
     label: 'Включить оценку зарплатной вилки через LLM',
-    defaultChecked: true,
   },
   parameters: {
+    controls: {
+      include: ['label'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `label` добавляет кликабельную текстовую подпись справа от квадрата чекбокса. Если `label` не передан, рендерится компактный одиночный `<input type="checkbox">` (например для заголовка карточки `CardHeader`).',
+          'Демонстрация пропса `label`. В панели Controls доступен **только один контрол** — `label`.',
       },
     },
   },
@@ -97,35 +99,32 @@ export const PropLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: label
+          prop: label (Controls: только label)
         </Text>
         <Text variant="caption" tone="secondary">
-          Сравнение чекбокса с подписью (label) и компактного чекбокса без подписи:
+          Измените или очистите поле label в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Checkbox {...args} />
-        <div className={layoutStyles.row}>
-          <Checkbox aria-label="Standalone checkbox without label" defaultChecked />
-          <Text variant="caption" tone="muted">
-            (Чекбокс без пропса label — только квадрат управления)
-          </Text>
-        </div>
+        <Checkbox label={args.label} defaultChecked />
       </div>
     </div>
   ),
 };
 
 export const PropChecked: Story = {
-  name: 'Пропс: checked (Состояние отметки)',
+  name: 'Пропс: checked (Контрол: только checked)',
   args: {
     checked: true,
-    label: 'Контролируемый чекбокс (checked)',
   },
   parameters: {
+    controls: {
+      include: ['checked'],
+    },
     docs: {
       description: {
-        story: 'Пропс `checked` управляет отмеченным/снятым состоянием чекбокса.',
+        story:
+          'Демонстрация пропса `checked`. В панели Controls доступен **только один контрол** — `checked`.',
       },
     },
   },
@@ -133,35 +132,36 @@ export const PropChecked: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: checked (boolean)
+          prop: checked (Controls: только checked)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте флаг checked в панели Controls:
+          Переключайте флаг checked ({String(args.checked)}) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Checkbox {...args} onChange={() => undefined} />
-        <div className={layoutStyles.stackSm}>
-          <Checkbox checked label="checked={true} — Отмечен" onChange={() => undefined} />
-          <Checkbox checked={false} label="checked={false} — Снят" onChange={() => undefined} />
-        </div>
+        <Checkbox
+          checked={args.checked}
+          label={`Контролируемый чекбокс (checked=${String(args.checked)})`}
+          onChange={() => undefined}
+        />
       </div>
     </div>
   ),
 };
 
 export const PropDisabled: Story = {
-  name: 'Пропс: disabled (Неактивное состояние)',
+  name: 'Пропс: disabled (Контрол: только disabled)',
   args: {
     disabled: true,
-    defaultChecked: true,
-    label: 'Заблокированная системная настройка (disabled)',
   },
   parameters: {
+    controls: {
+      include: ['disabled'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `disabled` переводит чекбокс и его подпись в заблокированное состояние.',
+          'Демонстрация пропса `disabled`. В панели Controls доступен **только один контрол** — `disabled`.',
       },
     },
   },
@@ -169,15 +169,15 @@ export const PropDisabled: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: disabled (boolean)
+          prop: disabled (Controls: только disabled)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг disabled в Controls:
+          Переключите флаг disabled ({String(args.disabled)}) для отмеченного и снятого чекбокса:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Checkbox {...args} />
-        <Checkbox disabled defaultChecked={false} label="Неактивный снятый чекбокс" />
+        <Checkbox disabled={args.disabled} defaultChecked label="Отмеченный чекбокс" />
+        <Checkbox disabled={args.disabled} defaultChecked={false} label="Снятый чекбокс" />
       </div>
     </div>
   ),

@@ -47,7 +47,7 @@ export default meta;
 type Story = StoryObj<typeof HeaderUserMenu>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -81,13 +81,13 @@ export const PropUserAuthenticatedVsAnonymous: Story = {
     user: {
       isAnonymous: true,
     },
-    loginLabel: 'Войти через Google',
   },
   parameters: {
+    controls: { include: ['user'] },
     docs: {
       description: {
         story:
-          'Пропс `user` определяет режим отображения: при `user.isAnonymous = true` рендерится кнопка входа; при `isAnonymous = false` — плашка профиля с кнопкой выхода.',
+          'Пропс `user` определяет режим отображения: при `user.isAnonymous = true` рендерится кнопка входа; при `isAnonymous = false` — плашка профиля с кнопкой выхода. Доступен только контрол `user`.',
       },
     },
   },
@@ -95,7 +95,7 @@ export const PropUserAuthenticatedVsAnonymous: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: user (HeaderUser)
+          prop: user (HeaderUser) — Контролы: [user]
         </Text>
         <Text variant="caption" tone="secondary">
           Сравнение гостевого режима (isAnonymous=true) и авторизованного профиля:
@@ -103,7 +103,12 @@ export const PropUserAuthenticatedVsAnonymous: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <HeaderUserMenu {...args} onLogin={() => undefined} onLogout={() => undefined} />
+          <HeaderUserMenu
+            user={args.user}
+            loginLabel="Войти через Google"
+            onLogin={() => undefined}
+            onLogout={() => undefined}
+          />
           <HeaderUserMenu
             user={{ name: 'Alex Morgan', email: 'alex@blueprint.dev' }}
             onLogout={() => undefined}
@@ -117,17 +122,15 @@ export const PropUserAuthenticatedVsAnonymous: Story = {
 export const PropLoginAndLogoutLabels: Story = {
   name: 'Пропсы: loginLabel и logoutLabel (Локализация кнопок)',
   args: {
-    user: {
-      name: 'Elena Architect',
-      email: 'elena@blueprint.dev',
-    },
     loginLabel: 'Sign In',
     logoutLabel: 'Завершить сеанс',
   },
   parameters: {
+    controls: { include: ['loginLabel', 'logoutLabel'] },
     docs: {
       description: {
-        story: 'Пропсы `loginLabel` и `logoutLabel` задают подписи и `aria-label` кнопок авторизации.',
+        story:
+          'Пропсы `loginLabel` и `logoutLabel` задают подписи и `aria-label` кнопок авторизации. Доступны только контролы `loginLabel` и `logoutLabel`.',
       },
     },
   },
@@ -135,7 +138,7 @@ export const PropLoginAndLogoutLabels: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: loginLabel &amp; logoutLabel
+          props: loginLabel &amp; logoutLabel — Контролы: [loginLabel, logoutLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте тексты кнопок в панели Controls:
@@ -143,7 +146,16 @@ export const PropLoginAndLogoutLabels: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <HeaderUserMenu {...args} onLogout={() => undefined} />
+          <HeaderUserMenu
+            user={{ isAnonymous: true }}
+            loginLabel={args.loginLabel}
+            onLogin={() => undefined}
+          />
+          <HeaderUserMenu
+            user={{ name: 'Elena Architect', email: 'elena@blueprint.dev' }}
+            logoutLabel={args.logoutLabel}
+            onLogout={() => undefined}
+          />
         </div>
       </div>
     </div>

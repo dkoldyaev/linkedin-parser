@@ -79,7 +79,7 @@ function ControlledColorPicker(args: ColorPickerProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -103,14 +103,15 @@ export const PropValueAndOptions: Story = {
     ],
   },
   parameters: {
+    controls: { include: ['value', 'options'] },
     docs: {
       description: {
         story:
-          'Пропс `options` позволяет задать собственный список цветовых вариантов с метками и семантическими тонами, а `value` определяет активный элемент.',
+          'Пропс `options` позволяет задать собственный список цветовых вариантов с метками и семантическими тонами, а `value` определяет активный элемент. Доступны только контролы `value` и `options`.',
       },
     },
   },
-  render: (args) => <ControlledColorPicker {...args} />,
+  render: (args) => <ControlledColorPicker value={args.value} options={args.options} onChange={() => undefined} />,
 };
 
 export const PropPresets: Story = {
@@ -121,14 +122,15 @@ export const PropPresets: Story = {
     presets: ['blue', 'cyan', 'emerald', 'amber', 'rose'],
   },
   parameters: {
+    controls: { include: ['presets', 'value'] },
     docs: {
       description: {
         story:
-          'Пропс `presets` позволяет передать компактный массив строк-идентификаторов (`["blue", "cyan", "emerald"]`) вместо полных объектов `ColorOption`.',
+          'Пропс `presets` позволяет передать компактный массив строк-идентификаторов (`["blue", "cyan", "emerald"]`) вместо полных объектов `ColorOption`. Доступны только контролы `presets` и `value`.',
       },
     },
   },
-  render: (args) => <ControlledColorPicker {...args} />,
+  render: (args) => <ControlledColorPicker value={args.value} presets={args.presets} onChange={() => undefined} />,
 };
 
 export const PropDisabled: Story = {
@@ -138,11 +140,12 @@ export const PropDisabled: Story = {
     disabled: true,
   },
   parameters: {
+    controls: { include: ['disabled'] },
     docs: {
       description: {
-        story: 'Пропс `disabled` отключает возможность переключения цвета.',
+        story: 'Пропс `disabled` отключает возможность переключения цвета. Доступен только контрол `disabled`.',
       },
     },
   },
-  render: (args) => <ControlledColorPicker {...args} />,
+  render: (args) => <ControlledColorPicker value="purple" disabled={args.disabled} onChange={() => undefined} />,
 };

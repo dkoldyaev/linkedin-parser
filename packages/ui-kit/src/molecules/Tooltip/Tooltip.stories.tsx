@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof Tooltip>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -80,19 +80,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropSideAndAlign: Story = {
-  name: 'Пропсы: side и align (Позиционирование подсказки)',
+export const PropSideAll: Story = {
+  name: 'Пропс: side — Все 4 стороны (Контрол: content)',
   args: {
-    content: 'Позиционированная подсказка',
-    side: 'right',
-    align: 'center',
-    delayDuration: 0,
+    content: 'Пример текста подсказки',
   },
   parameters: {
+    controls: { include: ['content'] },
     docs: {
       description: {
         story:
-          'Пропс `side` (`top`, `right`, `bottom`, `left`) определяет сторону всплытия, а `align` (`start`, `center`, `end`) — смещение относительно края триггера.',
+          'Витрина всех 4 значений `side`: `top`, `bottom`, `left`, `right`. Доступен только один контрол — `content`.',
       },
     },
   },
@@ -100,30 +98,75 @@ export const PropSideAndAlign: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: side &amp; align
+          prop: side (Все 4 стороны) — Контролы: [content]
         </Text>
         <Text variant="caption" tone="secondary">
-          Наведите на кнопки ниже для сравнения сторон top, right, bottom, left:
+          Наведите на кнопки ниже для сравнения сторон top, bottom, left, right:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Tooltip {...args}>
-            <Button variant="primary">Интерактивный ({args.side})</Button>
-          </Tooltip>
-          <Tooltip content="side='top'" side="top" delayDuration={0}>
+          <Tooltip content={args.content} side="top" delayDuration={0}>
             <Button variant="secondary" size="sm">
-              Top
+              side=&quot;top&quot;
             </Button>
           </Tooltip>
-          <Tooltip content="side='bottom'" side="bottom" delayDuration={0}>
+          <Tooltip content={args.content} side="bottom" delayDuration={0}>
             <Button variant="secondary" size="sm">
-              Bottom
+              side=&quot;bottom&quot;
             </Button>
           </Tooltip>
-          <Tooltip content="side='right'" side="right" delayDuration={0}>
+          <Tooltip content={args.content} side="left" delayDuration={0}>
             <Button variant="secondary" size="sm">
-              Right
+              side=&quot;left&quot;
+            </Button>
+          </Tooltip>
+          <Tooltip content={args.content} side="right" delayDuration={0}>
+            <Button variant="secondary" size="sm">
+              side=&quot;right&quot;
+            </Button>
+          </Tooltip>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropSideAndAlignSingle: Story = {
+  name: 'Пропсы: side и align — Интерактивный выбор (Контролы: side, align)',
+  args: {
+    side: 'right',
+    align: 'center',
+  },
+  parameters: {
+    controls: { include: ['side', 'align'] },
+    docs: {
+      description: {
+        story:
+          'Пропс `side` (`top`, `right`, `bottom`, `left`) определяет сторону всплытия, а `align` (`start`, `center`, `end`) — смещение относительно края триггера. Доступны только два контрола: `side` и `align`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: side &amp; align — Контролы: [side, align]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте side и align в панели Controls и наведите курсор на кнопку:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          <Tooltip
+            content={`side="${args.side}", align="${args.align}"`}
+            side={args.side}
+            align={args.align}
+            delayDuration={0}
+          >
+            <Button variant="primary">
+              Интерактивный ({args.side} / {args.align})
             </Button>
           </Tooltip>
         </div>
@@ -139,10 +182,11 @@ export const PropContentAndDelayDuration: Story = {
     delayDuration: 0,
   },
   parameters: {
+    controls: { include: ['content', 'delayDuration'] },
     docs: {
       description: {
         story:
-          'Пропс `content` задает текст подсказки, а `delayDuration` регулирует паузу перед открытием в миллисекундах.',
+          'Пропс `content` задает текст подсказки, а `delayDuration` регулирует паузу перед открытием в миллисекундах. Доступны только контролы `content` и `delayDuration`.',
       },
     },
   },
@@ -150,7 +194,7 @@ export const PropContentAndDelayDuration: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: content &amp; delayDuration
+          props: content &amp; delayDuration — Контролы: [content, delayDuration]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените content и delayDuration в панели Controls:
@@ -158,7 +202,7 @@ export const PropContentAndDelayDuration: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Tooltip {...args}>
+          <Tooltip content={args.content} delayDuration={args.delayDuration}>
             <Button variant="secondary">Проверить задержку ({args.delayDuration}ms)</Button>
           </Tooltip>
         </div>

@@ -101,7 +101,7 @@ function ControlledSelectDemo(args: SelectProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -117,24 +117,29 @@ export const PropVariant: Story = {
   name: 'Пропс: variant (Поле формы default / Компактный фильтр filter)',
   args: {
     variant: 'filter',
-    value: 'interview',
-    options: STAGE_OPTIONS,
   },
   parameters: {
+    controls: { include: ['variant'] },
     docs: {
       description: {
         story:
-          'Пропс `variant` переключает внешний вид триггера между полноразмерным контролом формы (`default`) и компактным фильтром тулбара (`filter`), который подсвечивается при наличии выбранного непустого значения.',
+          'Пропс `variant` переключает внешний вид триггера между полноразмерным контролом формы (`default`) и компактным фильтром тулбара (`filter`), который подсвечивается при наличии выбранного непустого значения. Доступен только контрол `variant`.',
       },
     },
   },
-  render: (args) => <ControlledSelectDemo {...args} />,
+  render: (args) => (
+    <ControlledSelectDemo
+      variant={args.variant}
+      value="interview"
+      options={STAGE_OPTIONS}
+      onValueChange={() => undefined}
+    />
+  ),
 };
 
 export const PropOptionsAndPlaceholder: Story = {
   name: 'Пропсы: options и placeholder (Список опций и заглушка)',
   args: {
-    value: '',
     placeholder: 'Выберите валюту зарплаты...',
     options: [
       { value: 'EUR', label: '€ (EUR) — Евро' },
@@ -143,14 +148,22 @@ export const PropOptionsAndPlaceholder: Story = {
     ],
   },
   parameters: {
+    controls: { include: ['options', 'placeholder'] },
     docs: {
       description: {
         story:
-          'Когда `value` не задано или пусто, триггер отображает текст из пропса `placeholder`, а при открытии рендерит список из `options`.',
+          'Когда `value` не задано или пусто, триггер отображает текст из пропса `placeholder`, а при открытии рендерит список из `options`. Доступны только контролы `options` и `placeholder`.',
       },
     },
   },
-  render: (args) => <ControlledSelectDemo {...args} />,
+  render: (args) => (
+    <ControlledSelectDemo
+      value=""
+      placeholder={args.placeholder}
+      options={args.options}
+      onValueChange={() => undefined}
+    />
+  ),
 };
 
 export const PropInvalidAndDisabled: Story = {
@@ -158,15 +171,23 @@ export const PropInvalidAndDisabled: Story = {
   args: {
     invalid: true,
     disabled: false,
-    value: 'not_contacted',
   },
   parameters: {
+    controls: { include: ['invalid', 'disabled'] },
     docs: {
       description: {
         story:
-          'Пропс `invalid` подсвечивает триггер цветом ошибки `--ui-danger`, а `disabled` блокирует открытие списка.',
+          'Пропс `invalid` подсвечивает триггер цветом ошибки `--ui-danger`, а `disabled` блокирует открытие списка. Доступны только контролы `invalid` и `disabled`.',
       },
     },
   },
-  render: (args) => <ControlledSelectDemo {...args} />,
+  render: (args) => (
+    <ControlledSelectDemo
+      value="not_contacted"
+      options={STAGE_OPTIONS}
+      invalid={args.invalid}
+      disabled={args.disabled}
+      onValueChange={() => undefined}
+    />
+  ),
 };

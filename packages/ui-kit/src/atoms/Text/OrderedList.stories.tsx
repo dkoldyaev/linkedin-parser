@@ -37,12 +37,11 @@ export default meta;
 type Story = StoryObj<typeof OrderedList>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
-        story:
-          'Базовая интерактивная демонстрация `OrderedList`. Позволяет управлять плотностью элементов (`spacing`) через Controls.',
+        story: 'Базовая интерактивная демонстрация `OrderedList` со всеми контролами.',
       },
     },
   },
@@ -68,15 +67,18 @@ export const Base: Story = {
 };
 
 export const PropSpacing: Story = {
-  name: 'Пропс: spacing (Интервал между шагами)',
+  name: 'Пропс: spacing (Контрол: только spacing)',
   args: {
     spacing: 'relaxed',
   },
   parameters: {
+    controls: {
+      include: ['spacing'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `spacing` регулирует вертикальный отступ между пронумерованными пунктами (`compact`, `normal`, `relaxed`).',
+          'Демонстрация пропса `spacing`. В панели Controls доступен **только один контрол** — `spacing` (`compact`, `normal`, `relaxed`).',
       },
     },
   },
@@ -84,14 +86,14 @@ export const PropSpacing: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: spacing (&quot;compact&quot; | &quot;normal&quot; | &quot;relaxed&quot;)
+          prop: spacing (Controls: только spacing)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте spacing в Controls для изменения вертикального ритма нумерованного списка:
+          Переключайте spacing (&quot;{args.spacing}&quot;) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <OrderedList {...args}>
+        <OrderedList spacing={args.spacing}>
           <ListItem>Шаг 1 (spacing=&quot;{args.spacing}&quot;)</ListItem>
           <ListItem>Шаг 2 — Проверка контрастности и сетки</ListItem>
           <ListItem>Шаг 3 — Публикация документации</ListItem>

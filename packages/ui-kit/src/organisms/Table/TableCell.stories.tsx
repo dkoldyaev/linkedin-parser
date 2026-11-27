@@ -48,7 +48,7 @@ export default meta;
 type Story = StoryObj<typeof TableCell>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -95,13 +95,13 @@ export const PropPadding: Story = {
   name: 'Пропс: padding (Варианты отступов none / sm / md)',
   args: {
     padding: 'md',
-    bordered: true,
   },
   parameters: {
+    controls: { include: ['padding'] },
     docs: {
       description: {
         story:
-          'Пропс `padding` регулирует внутренние отступы ячейки (`none` используется для карточек `Card`, `sm` и `md` — для текстовых строк).',
+          'Пропс `padding` регулирует внутренние отступы ячейки (`none` используется для карточек `Card`, `sm` и `md` — для текстовых строк). Доступен только контрол `padding`.',
       },
     },
   },
@@ -109,7 +109,7 @@ export const PropPadding: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: padding (&quot;none&quot; | &quot;sm&quot; | &quot;md&quot;)
+          prop: padding (&quot;none&quot; | &quot;sm&quot; | &quot;md&quot;) — Контролы: [padding]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените padding в Controls для верхней ячейки и сравните все 3 варианта ниже:
@@ -119,7 +119,7 @@ export const PropPadding: Story = {
         <div className={layoutStyles.narrowBox}>
           <TableCol gridUnits={10}>
             <TableBody padding="none">
-              <TableCell {...args}>
+              <TableCell padding={args.padding} bordered>
                 <Text variant="caption">Активная ячейка: padding=&quot;{args.padding}&quot;</Text>
               </TableCell>
               <TableCell padding="none" bordered>
@@ -144,13 +144,13 @@ export const PropInteractiveAndBordered: Story = {
   args: {
     interactive: true,
     bordered: true,
-    padding: 'md',
   },
   parameters: {
+    controls: { include: ['interactive', 'bordered'] },
     docs: {
       description: {
         story:
-          'Пропс `interactive` добавляет визуальный отклик при наведении мыши, а `bordered` отделяет ячейку структурной линией.',
+          'Пропс `interactive` добавляет визуальный отклик при наведении мыши, а `bordered` отделяет ячейку структурной линией. Доступны только контролы `interactive` и `bordered`.',
       },
     },
   },

@@ -138,7 +138,7 @@ function InteractiveFilterBarDemo(args: FilterBarProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -159,36 +159,50 @@ export const PropTagsAndTagPrefix: Story = {
     maxVisibleTags: 3,
   },
   parameters: {
+    controls: { include: ['tags', 'selectedTags', 'tagPrefix', 'maxVisibleTags'] },
     docs: {
       description: {
         story:
-          'Пропсы `tags`, `selectedTags`, `tagPrefix` и `maxVisibleTags` управляют отображением списка интерактивных чипов-тегов со счетчиками.',
+          'Пропсы `tags`, `selectedTags`, `tagPrefix` и `maxVisibleTags` управляют отображением списка интерактивных чипов-тегов со счетчиками. Доступны только контролы `tags`, `selectedTags`, `tagPrefix` и `maxVisibleTags`.',
       },
     },
   },
-  render: (args) => <InteractiveFilterBarDemo {...args} />,
+  render: (args) => (
+    <InteractiveFilterBarDemo
+      tags={args.tags}
+      selectedTags={args.selectedTags}
+      tagPrefix={args.tagPrefix}
+      maxVisibleTags={args.maxVisibleTags}
+    />
+  ),
 };
 
 export const PropResetAndActionsSlot: Story = {
-  name: 'Пропсы: resetLabel, hasActiveFilters и actionsSlot',
+  name: 'Пропсы: resetLabel и hasActiveFilters',
   args: {
-    tags: SAMPLE_TAGS,
-    selectedTags: ['TypeScript'],
     hasActiveFilters: true,
     resetLabel: 'Очистить всё',
-    actionsSlot: (
-      <Button variant="secondary" size="sm" startIcon={<Icon icon={SlidersHorizontal} size="xs" />}>
-        Доп. фильтры
-      </Button>
-    ),
   },
   parameters: {
+    controls: { include: ['resetLabel', 'hasActiveFilters'] },
     docs: {
       description: {
         story:
-          'Пропс `resetLabel` задает текст кнопки сброса, `hasActiveFilters` принудительно показывает кнопку сброса, а `actionsSlot` позволяет добавить кастомные кнопки справа.',
+          'Пропс `resetLabel` задает текст кнопки сброса, `hasActiveFilters` принудительно показывает кнопку сброса, а `actionsSlot` позволяет добавить кастомные кнопки справа. Доступны только контролы `resetLabel` и `hasActiveFilters`.',
       },
     },
   },
-  render: (args) => <InteractiveFilterBarDemo {...args} />,
+  render: (args) => (
+    <InteractiveFilterBarDemo
+      tags={SAMPLE_TAGS}
+      selectedTags={['TypeScript']}
+      hasActiveFilters={args.hasActiveFilters}
+      resetLabel={args.resetLabel}
+      actionsSlot={
+        <Button variant="secondary" size="sm" startIcon={<Icon icon={SlidersHorizontal} size="xs" />}>
+          Доп. фильтры
+        </Button>
+      }
+    />
+  ),
 };

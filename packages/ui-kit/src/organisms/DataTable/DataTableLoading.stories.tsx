@@ -37,7 +37,7 @@ export default meta;
 type Story = StoryObj<typeof DataTableLoading>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -69,9 +69,10 @@ export const PropLabel: Story = {
     label: 'Синхронизация данных с сервером...',
   },
   parameters: {
+    controls: { include: ['label'] },
     docs: {
       description: {
-        story: 'Пропс `label` задает видимую подпись и текст для скринридера.',
+        story: 'Пропс `label` задает видимую подпись и текст для скринридера. Доступен только контрол `label`.',
       },
     },
   },
@@ -79,14 +80,14 @@ export const PropLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: label (string)
+          prop: label (string) — Контролы: [label]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените label в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <DataTableLoading {...args} />
+        <DataTableLoading label={args.label} />
       </div>
     </div>
   ),

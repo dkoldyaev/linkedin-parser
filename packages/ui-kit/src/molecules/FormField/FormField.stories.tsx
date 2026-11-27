@@ -73,7 +73,7 @@ export default meta;
 type Story = StoryObj<typeof FormField>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -117,13 +117,13 @@ export const PropLabelAndRequired: Story = {
         Проверить ключ
       </Button>
     ),
-    hint: 'Хранится только в защищенном серверном окружении.',
   },
   parameters: {
+    controls: { include: ['label', 'required', 'labelAction'] },
     docs: {
       description: {
         story:
-          'Пропс `label` задает заголовок поля, `required` добавляет индикатор `*`, а `labelAction` размещает вспомогательную кнопку справа от подписи.',
+          'Пропс `label` задает заголовок поля, `required` добавляет индикатор `*`, а `labelAction` размещает вспомогательную кнопку справа от подписи. Доступны только контролы `label`, `required` и `labelAction`.',
       },
     },
   },
@@ -131,14 +131,19 @@ export const PropLabelAndRequired: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: label, required &amp; labelAction
+          props: label, required &amp; labelAction — Контролы: [label, required, labelAction]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте заголовок и флаг обязательности в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <FormField {...args}>
+        <FormField
+          label={args.label}
+          required={args.required}
+          labelAction={args.labelAction}
+          hint="Хранится только в защищенном серверном окружении."
+        >
           {(a11yProps) => <Input {...a11yProps} mono defaultValue="sk-blueprint-..." />}
         </FormField>
       </div>
@@ -149,16 +154,15 @@ export const PropLabelAndRequired: Story = {
 export const PropHintAndError: Story = {
   name: 'Пропсы: hint и error (Подсказка и ошибка валидации)',
   args: {
-    label: 'ДИАПАЗОН ЗАРПЛАТЫ',
-    required: true,
     hint: 'Укажите сумму до вычета налогов (Gross).',
     error: 'Минимальная зарплата не может превышать максимальную.',
   },
   parameters: {
+    controls: { include: ['hint', 'error'] },
     docs: {
       description: {
         story:
-          'Когда пропс `error` пуст, под полем отображается `hint`. Как только в `error` передается текст ошибки, `hint` заменяется на сообщение `role="alert"` с тоном `danger`.',
+          'Когда пропс `error` пуст, под полем отображается `hint`. Как только в `error` передается текст ошибки, `hint` заменяется на сообщение `role="alert"` с тоном `danger`. Доступны только контролы `hint` и `error`.',
       },
     },
   },
@@ -166,14 +170,14 @@ export const PropHintAndError: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: hint &amp; error
+          props: hint &amp; error — Контролы: [hint, error]
         </Text>
         <Text variant="caption" tone="secondary">
           Очистите поле error в Controls, чтобы увидеть переключение обратно на hint:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <FormField {...args}>
+        <FormField label="ДИАПАЗОН ЗАРПЛАТЫ" required hint={args.hint} error={args.error}>
           {(a11yProps) => (
             <Input {...a11yProps} mono invalid={Boolean(args.error)} defaultValue="180000 - 120000" />
           )}

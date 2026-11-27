@@ -44,7 +44,7 @@ export default meta;
 type Story = StoryObj<typeof CardCollapsedLoading>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -78,10 +78,11 @@ export const PropTone: Story = {
     tone: 'warning',
   },
   parameters: {
+    controls: { include: ['tone'] },
     docs: {
       description: {
         story:
-          'Пропс `tone` задает цвет акцентной полосы скелетона (`success`, `warning`, `danger`, `accent`, `info`).',
+          'Пропс `tone` задает цвет акцентной полосы скелетона (`success`, `warning`, `danger`, `accent`, `info`). Доступен только контрол `tone`.',
       },
     },
   },
@@ -89,7 +90,7 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Контролы: [tone]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените tone в Controls или сравните стек скелетонов ниже:
@@ -98,7 +99,7 @@ export const PropTone: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.stackSm}>
           <div className={layoutStyles.narrowBox}>
-            <CardCollapsedLoading {...args} />
+            <CardCollapsedLoading tone={args.tone} />
           </div>
           <div className={layoutStyles.narrowBox}>
             <CardCollapsedLoading tone="success" />

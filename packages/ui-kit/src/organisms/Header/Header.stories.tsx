@@ -1,4 +1,3 @@
-import { Badge, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState } from 'react';
 import { Header } from './Header';
@@ -116,7 +115,7 @@ function InteractiveHeaderDemo(args: React.ComponentProps<typeof Header>): React
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -128,22 +127,24 @@ export const Base: Story = {
   render: (args) => <InteractiveHeaderDemo {...args} />,
 };
 
-export const PropTitleSubtitleAndBrand: Story = {
-  name: 'Пропсы: title, subtitle, brandIcon и brand',
+export const PropTitleSubtitle: Story = {
+  name: 'Пропсы: title и subtitle (Название и подзаголовок бренда)',
   args: {
     title: 'LINKEDIN.PARSER',
     subtitle: 'AI JOB TRACKER',
-    queueCount: 0,
   },
   parameters: {
+    controls: { include: ['title', 'subtitle'] },
     docs: {
       description: {
         story:
-          'Пропсы `title`, `subtitle` и `brandIcon` передаются в `<Header.Brand>`, либо весь левый блок может быть заменен кастомным узлом `brand`.',
+          'Пропсы `title` и `subtitle` передаются в `<Header.Brand>`. Доступны только контролы `title` и `subtitle`.',
       },
     },
   },
-  render: (args) => <InteractiveHeaderDemo {...args} />,
+  render: (args) => (
+    <InteractiveHeaderDemo title={args.title} subtitle={args.subtitle} queueCount={0} />
+  ),
 };
 
 export const PropQueueCountAndPrimaryAction: Story = {
@@ -154,14 +155,23 @@ export const PropQueueCountAndPrimaryAction: Story = {
     primaryActionLabel: 'ДОБАВИТЬ ВАКАНСИЮ',
   },
   parameters: {
+    controls: { include: ['queueCount', 'queueLabel', 'primaryActionLabel'] },
     docs: {
       description: {
         story:
-          'При `queueCount > 0` отображается индикатор очереди со спиннером (`queueLabel`), а при наличии `onPrimaryAction` — кнопка добавления с иконкой `Plus` (`primaryActionLabel`).',
+          'При `queueCount > 0` отображается индикатор очереди со спиннером (`queueLabel`), а при наличии `onPrimaryAction` — кнопка добавления с иконкой `Plus` (`primaryActionLabel`). Доступны только контролы `queueCount`, `queueLabel` и `primaryActionLabel`.',
       },
     },
   },
-  render: (args) => <InteractiveHeaderDemo {...args} />,
+  render: (args) => (
+    <InteractiveHeaderDemo
+      title="BLUEPRINT.UI"
+      subtitle="DESIGN SYSTEM"
+      queueCount={args.queueCount}
+      queueLabel={args.queueLabel}
+      primaryActionLabel={args.primaryActionLabel}
+    />
+  ),
 };
 
 export const PropUserAndGuestMode: Story = {
@@ -171,45 +181,24 @@ export const PropUserAndGuestMode: Story = {
       isAnonymous: true,
     },
     loginLabel: 'Войти через Google',
-    queueCount: 0,
+    logoutLabel: 'Sign out',
   },
   parameters: {
+    controls: { include: ['user', 'loginLabel', 'logoutLabel'] },
     docs: {
       description: {
         story:
-          'Если `user.isAnonymous === true`, в правой части шапки рендерится кнопка входа `loginLabel`; если пользователь авторизован — аватар, имя и кнопка выхода `logoutLabel`.',
+          'Если `user.isAnonymous === true`, в правой части шапки рендерится кнопка входа `loginLabel`; если пользователь авторизован — аватар, имя и кнопка выхода `logoutLabel`. Доступны только контролы `user`, `loginLabel` и `logoutLabel`.',
       },
     },
   },
-  render: (args) => <InteractiveHeaderDemo {...args} />,
-};
-
-export const PropStatusSlotAndNavigation: Story = {
-  name: 'Пропсы: navigation, statusSlot и actions (Слоты расширения)',
-  args: {
-    navigation: (
-      <div className={layoutStyles.row}>
-        <Badge tone="accent" size="sm">
-          Board
-        </Badge>
-        <Badge tone="neutral" size="sm">
-          CV
-        </Badge>
-      </div>
-    ),
-    statusSlot: (
-      <Text variant="mono" size="xs" tone="success">
-        SSE: ONLINE
-      </Text>
-    ),
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Пропсы `navigation`, `statusSlot` и `actions` позволяют встраивать дополнительные элементы навигации и телеметрии в шапку.',
-      },
-    },
-  },
-  render: (args) => <InteractiveHeaderDemo {...args} />,
+  render: (args) => (
+    <InteractiveHeaderDemo
+      title="BLUEPRINT.UI"
+      user={args.user}
+      loginLabel={args.loginLabel}
+      logoutLabel={args.logoutLabel}
+      queueCount={0}
+    />
+  ),
 };

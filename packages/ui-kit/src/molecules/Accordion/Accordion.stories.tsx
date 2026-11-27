@@ -81,7 +81,7 @@ export default meta;
 type Story = StoryObj<typeof Accordion>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -114,10 +114,11 @@ export const PropItems: Story = {
     defaultExpandedIds: ['item-1'],
   },
   parameters: {
+    controls: { include: ['items'] },
     docs: {
       description: {
         story:
-          'Пропс `items` принимает массив конфигураций `AccordionItem` для автоматического рендеринга пунктов без ручного написания `<Accordion.Item>`.',
+          'Пропс `items` принимает массив конфигураций `AccordionItem` для автоматического рендеринга пунктов без ручного написания `<Accordion.Item>`. Доступен только контрол `items`.',
       },
     },
   },
@@ -125,14 +126,14 @@ export const PropItems: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: items (readonly AccordionItem[])
+          prop: items (readonly AccordionItem[]) — Контролы: [items]
         </Text>
         <Text variant="caption" tone="secondary">
           Отредактируйте JSON-массив items в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Accordion {...args} />
+        <Accordion items={args.items} defaultExpandedIds={['item-1']} />
       </div>
     </div>
   ),
@@ -146,10 +147,11 @@ export const PropMultiple: Story = {
     items: SAMPLE_ITEMS,
   },
   parameters: {
+    controls: { include: ['multiple'] },
     docs: {
       description: {
         story:
-          'Пропс `multiple` определяет режим работы: при `multiple={false}` одновременно может быть открыт только один пункт аккордеона; при `multiple={true}` — любое количество.',
+          'Пропс `multiple` определяет режим работы: при `multiple={false}` одновременно может быть открыт только один пункт аккордеона; при `multiple={true}` — любое количество. Доступен только контрол `multiple`.',
       },
     },
   },
@@ -157,14 +159,14 @@ export const PropMultiple: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: multiple (boolean)
+          prop: multiple (boolean) — Контролы: [multiple]
         </Text>
         <Text variant="caption" tone="secondary">
           Попробуйте открыть второй пункт при multiple=false (первый автоматически свернется):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Accordion {...args} />
+        <Accordion items={SAMPLE_ITEMS} defaultExpandedIds={['item-1']} multiple={args.multiple} />
       </div>
     </div>
   ),
@@ -175,24 +177,13 @@ export const PropBulletAndDefaultActionLabel: Story = {
   args: {
     bullet: false,
     defaultActionLabel: 'Развернуть',
-    items: [
-      {
-        id: 'b1',
-        title: 'Пункт без индивидуального actionLabel (использует defaultActionLabel)',
-        content: 'Содержимое первого пункта аккордеона.',
-      },
-      {
-        id: 'b2',
-        title: 'Второй пункт для демонстрации настройки маркера bullet',
-        content: 'Содержимое второго пункта аккордеона.',
-      },
-    ],
   },
   parameters: {
+    controls: { include: ['bullet', 'defaultActionLabel'] },
     docs: {
       description: {
         story:
-          'Пропс `bullet` управляет отображением точки-буллита `•` слева от заголовка, а `defaultActionLabel` задает текст подсказки рядом со стрелкой.',
+          'Пропс `bullet` управляет отображением точки-буллита `•` слева от заголовка, а `defaultActionLabel` задает текст подсказки рядом со стрелкой. Доступны только контролы `bullet` и `defaultActionLabel`.',
       },
     },
   },
@@ -200,14 +191,29 @@ export const PropBulletAndDefaultActionLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: bullet &amp; defaultActionLabel
+          props: bullet &amp; defaultActionLabel — Контролы: [bullet, defaultActionLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте bullet и изменяйте defaultActionLabel в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Accordion {...args} />
+        <Accordion
+          bullet={args.bullet}
+          defaultActionLabel={args.defaultActionLabel}
+          items={[
+            {
+              id: 'b1',
+              title: 'Пункт без индивидуального actionLabel (использует defaultActionLabel)',
+              content: 'Содержимое первого пункта аккордеона.',
+            },
+            {
+              id: 'b2',
+              title: 'Второй пункт для демонстрации настройки маркера bullet',
+              content: 'Содержимое второго пункта аккордеона.',
+            },
+          ]}
+        />
       </div>
     </div>
   ),
@@ -217,13 +223,13 @@ export const PropDefaultExpandedIds: Story = {
   name: 'Пропсы: defaultExpandedIds и expandedIds (Управление открытыми пунктами)',
   args: {
     defaultExpandedIds: ['item-1', 'item-2'],
-    items: SAMPLE_ITEMS,
   },
   parameters: {
+    controls: { include: ['defaultExpandedIds', 'expandedIds'] },
     docs: {
       description: {
         story:
-          'Пропс `defaultExpandedIds` задает изначально открытые секции по их `id`, а `expandedIds` позволяет полностью контролировать список открытых секций извне.',
+          'Пропс `defaultExpandedIds` задает изначально открытые секции по их `id`, а `expandedIds` позволяет полностью контролировать список открытых секций извне. Доступны только контролы `defaultExpandedIds` и `expandedIds`.',
       },
     },
   },
@@ -231,14 +237,18 @@ export const PropDefaultExpandedIds: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: defaultExpandedIds &amp; expandedIds
+          props: defaultExpandedIds &amp; expandedIds — Контролы: [defaultExpandedIds, expandedIds]
         </Text>
         <Text variant="caption" tone="secondary">
           По умолчанию открыты секции item-1 и item-2:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Accordion {...args} />
+        <Accordion
+          items={SAMPLE_ITEMS}
+          defaultExpandedIds={args.defaultExpandedIds}
+          expandedIds={args.expandedIds}
+        />
       </div>
     </div>
   ),

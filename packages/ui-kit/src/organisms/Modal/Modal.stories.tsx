@@ -130,7 +130,7 @@ function InteractiveModalDemo(args: ModalProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -147,17 +147,28 @@ export const PropSizeAndWidth: Story = {
   args: {
     size: 'lg',
     width: undefined,
-    title: 'Инспектор параметров (size="lg")',
   },
   parameters: {
+    controls: { include: ['size', 'width'] },
     docs: {
       description: {
         story:
-          'Пропс `size` выбирает стандартный пресет ширины (`sm`, `md`, `lg`, `xl`, `2xl`), а `width` позволяет задать точную кастомную ширину (например `"768px"`).',
+          'Пропс `size` выбирает стандартный пресет ширины (`sm`, `md`, `lg`, `xl`, `2xl`), а `width` позволяет задать точную кастомную ширину (например `"768px"`). Доступны только контролы `size` и `width`.',
       },
     },
   },
-  render: (args) => <InteractiveModalDemo {...args} />,
+  render: (args) => (
+    <InteractiveModalDemo
+      isOpen={false}
+      onClose={() => undefined}
+      size={args.size}
+      width={args.width}
+      title={`Инспектор параметров (size="${args.size}")`}
+      description="Настройте параметры в модальном окне."
+    >
+      {null}
+    </InteractiveModalDemo>
+  ),
 };
 
 export const PropTitleDescriptionAndIcon: Story = {
@@ -169,12 +180,25 @@ export const PropTitleDescriptionAndIcon: Story = {
     hideCloseButton: false,
   },
   parameters: {
+    controls: { include: ['title', 'description', 'icon', 'hideCloseButton'] },
     docs: {
       description: {
         story:
-          'Пропсы `title`, `description`, `icon` и `hideCloseButton` автоматически передаются во внутренний `<ModalHeader>` в shorthand-режиме.',
+          'Пропсы `title`, `description`, `icon` и `hideCloseButton` автоматически передаются во внутренний `<ModalHeader>` в shorthand-режиме. Доступны только контролы `title`, `description`, `icon` и `hideCloseButton`.',
       },
     },
   },
-  render: (args) => <InteractiveModalDemo {...args} />,
+  render: (args) => (
+    <InteractiveModalDemo
+      isOpen={false}
+      onClose={() => undefined}
+      size="md"
+      title={args.title}
+      description={args.description}
+      icon={args.icon}
+      hideCloseButton={args.hideCloseButton}
+    >
+      {null}
+    </InteractiveModalDemo>
+  ),
 };

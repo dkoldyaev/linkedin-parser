@@ -91,7 +91,7 @@ export default meta;
 type Story = StoryObj<typeof Stepper>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -120,15 +120,15 @@ export const Base: Story = {
 export const PropMaxCollapsedItemsAndCollapseLabel: Story = {
   name: 'Пропсы: maxCollapsedItems и collapseLabel (Сворачивание истории)',
   args: {
-    items: SAMPLE_STEPS,
     maxCollapsedItems: 2,
     collapseLabel: 'Скрыть ранние переходы',
   },
   parameters: {
+    controls: { include: ['maxCollapsedItems', 'collapseLabel'] },
     docs: {
       description: {
         story:
-          'Пропс `maxCollapsedItems` ограничивает число сразу видимых последних шагов и добавляет сверху кнопку раскрытия остальных записей.',
+          'Пропс `maxCollapsedItems` ограничивает число сразу видимых последних шагов и добавляет сверху кнопку раскрытия остальных записей. Доступны только контролы `maxCollapsedItems` и `collapseLabel`.',
       },
     },
   },
@@ -136,14 +136,18 @@ export const PropMaxCollapsedItemsAndCollapseLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: maxCollapsedItems &amp; collapseLabel
+          props: maxCollapsedItems &amp; collapseLabel — Контролы: [maxCollapsedItems, collapseLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Нажмите на кнопку над списком для раскрытия 2 скрытых ранних шагов:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Stepper {...args} />
+        <Stepper
+          items={SAMPLE_STEPS}
+          maxCollapsedItems={args.maxCollapsedItems}
+          collapseLabel={args.collapseLabel}
+        />
       </div>
     </div>
   ),
@@ -152,15 +156,15 @@ export const PropMaxCollapsedItemsAndCollapseLabel: Story = {
 export const PropEmptyTitleAndEmptyDescription: Story = {
   name: 'Пропсы: emptyTitle и emptyDescription (Пустое состояние)',
   args: {
-    items: [],
     emptyTitle: 'НЕТ ЗАПИСЕЙ О ПЕРЕМЕЩЕНИЯХ',
     emptyDescription: 'История появится автоматически после первого изменения статуса вакансии.',
   },
   parameters: {
+    controls: { include: ['emptyTitle', 'emptyDescription'] },
     docs: {
       description: {
         story:
-          'Если массив `items` пуст, `Stepper` автоматически рендерит молекулу `<EmptyState>` с заголовком `emptyTitle` и пояснением `emptyDescription`.',
+          'Если массив `items` пуст, `Stepper` автоматически рендерит молекулу `<EmptyState>` с заголовком `emptyTitle` и пояснением `emptyDescription`. Доступны только контролы `emptyTitle` и `emptyDescription`.',
       },
     },
   },
@@ -168,14 +172,14 @@ export const PropEmptyTitleAndEmptyDescription: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: emptyTitle &amp; emptyDescription (при items=[])
+          props: emptyTitle &amp; emptyDescription (при items=[]) — Контролы: [emptyTitle, emptyDescription]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте тексты пустого состояния в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Stepper {...args} />
+        <Stepper items={[]} emptyTitle={args.emptyTitle} emptyDescription={args.emptyDescription} />
       </div>
     </div>
   ),

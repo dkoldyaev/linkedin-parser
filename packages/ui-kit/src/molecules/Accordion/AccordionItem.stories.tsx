@@ -69,7 +69,7 @@ function WrappedAccordionItem(args: AccordionItemProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -103,10 +103,11 @@ export const PropTitleAndContent: Story = {
     content: 'В портфолио присутствуют 3 проекта с настроенной сборкой на Vite и документацией в Storybook.',
   },
   parameters: {
+    controls: { include: ['title', 'content'] },
     docs: {
       description: {
         story:
-          'Пропс `title` отображается в постоянно видимой шапке пункта, а `content` — в раскрываемой области `role="region"`. Если `content` (и `children`) не переданы, пункт становится статической строкой без кнопки раскрытия.',
+          'Пропс `title` отображается в постоянно видимой шапке пункта, а `content` — в раскрываемой области `role="region"`. Если `content` (и `children`) не переданы, пункт становится статической строкой без кнопки раскрытия. Доступны только контролы `title` и `content`.',
       },
     },
   },
@@ -114,15 +115,15 @@ export const PropTitleAndContent: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title &amp; content
+          props: title &amp; content — Контролы: [title, content]
         </Text>
         <Text variant="caption" tone="secondary">
           Сравнение раскрываемого пункта (с content) и статического пункта (без content):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Accordion defaultExpandedIds={[args.id]}>
-          <Accordion.Item {...args} />
+        <Accordion defaultExpandedIds={['title-content-demo']}>
+          <Accordion.Item id="title-content-demo" title={args.title} content={args.content} />
           <Accordion.Item
             id="static-item"
             title="Статический пункт без content (не кликабелен и не имеет шеврона)"
@@ -143,10 +144,11 @@ export const PropActionLabelAndBullet: Story = {
     content: 'Детальное пояснение по пункту.',
   },
   parameters: {
+    controls: { include: ['actionLabel', 'bullet'] },
     docs: {
       description: {
         story:
-          'Пропс `actionLabel` переопределяет текст справа рядом с шевроном, а `bullet` включает или выключает маркер перед заголовком конкретного пункта.',
+          'Пропс `actionLabel` переопределяет текст справа рядом с шевроном, а `bullet` включает или выключает маркер перед заголовком конкретного пункта. Доступны только контролы `actionLabel` и `bullet`.',
       },
     },
   },
@@ -154,14 +156,20 @@ export const PropActionLabelAndBullet: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: actionLabel &amp; bullet
+          props: actionLabel &amp; bullet — Контролы: [actionLabel, bullet]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените actionLabel и переключите bullet в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <WrappedAccordionItem {...args} />
+        <WrappedAccordionItem
+          id="action-bullet-demo"
+          title="Индивидуальный маркер и текст кнопки раскрытия"
+          content="Детальное пояснение по пункту."
+          actionLabel={args.actionLabel}
+          bullet={args.bullet}
+        />
       </div>
     </div>
   ),
@@ -176,10 +184,11 @@ export const PropDisabled: Story = {
     disabled: true,
   },
   parameters: {
+    controls: { include: ['disabled'] },
     docs: {
       description: {
         story:
-          'Пропс `disabled` отключает возможность клика и нажатия `Enter`/`Space` по заголовку элемента.',
+          'Пропс `disabled` отключает возможность клика и нажатия `Enter`/`Space` по заголовку элемента. Доступен только контрол `disabled`.',
       },
     },
   },
@@ -187,7 +196,7 @@ export const PropDisabled: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: disabled (boolean)
+          prop: disabled (boolean) — Контролы: [disabled]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг disabled в панели Controls, чтобы разблокировать пункт:
@@ -195,7 +204,12 @@ export const PropDisabled: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <Accordion>
-          <Accordion.Item {...args} />
+          <Accordion.Item
+            id="disabled-demo"
+            title="Заблокированный пункт аккордеона (disabled)"
+            content="Этот контент нельзя раскрыть или свернуть, пока disabled=true."
+            disabled={args.disabled}
+          />
         </Accordion>
       </div>
     </div>

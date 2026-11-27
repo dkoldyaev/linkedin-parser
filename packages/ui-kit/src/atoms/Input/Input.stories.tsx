@@ -5,6 +5,8 @@ import { Input } from './Input';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Text } from '../Text';
 
+const ALL_SIZES = ['sm', 'md', 'lg'] as const;
+
 const ADORNMENT_MAP = {
   none: undefined,
   Search: <Icon icon={Search} size="sm" tone="muted" />,
@@ -41,7 +43,7 @@ const meta: Meta<typeof Input> = {
   argTypes: {
     size: {
       control: 'inline-radio',
-      options: ['sm', 'md', 'lg'],
+      options: ALL_SIZES,
       description: 'Размер поля ввода по вертикальной сетке (`sm` = 24px, `md` = 32px, `lg` = 40px).',
     },
     invalid: {
@@ -59,6 +61,10 @@ const meta: Meta<typeof Input> = {
     placeholder: {
       control: 'text',
       description: 'Текст-подсказка внутри пустого поля ввода.',
+    },
+    defaultValue: {
+      control: 'text',
+      description: 'Начальное текстовое значение поля ввода.',
     },
     startAdornment: {
       control: 'select',
@@ -79,12 +85,12 @@ export default meta;
 type Story = StoryObj<typeof Input>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Input`. Настраивайте `size`, `mono`, `invalid`, `disabled`, `startAdornment` и `endAdornment` через панель Controls.',
+          'Базовая интерактивная демонстрация `Input` со всеми контролами (`size`, `mono`, `invalid`, `disabled`, `placeholder`, `defaultValue`, `startAdornment`, `endAdornment`).',
       },
     },
   },
@@ -92,7 +98,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Input — Однострочное текстовое поле ввода
+          Input — Однострочное текстовое поле ввода (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Базовый контрол форм на 32px сетке с поддержкой иконок и состояния ошибки.
@@ -105,17 +111,19 @@ export const Base: Story = {
   ),
 };
 
-export const PropSize: Story = {
-  name: 'Пропс: size (Размер поля sm / md / lg)',
+export const PropSizeAll: Story = {
+  name: 'Пропс: size — Все размеры (Контрол: только placeholder)',
   args: {
-    size: 'md',
-    defaultValue: 'Размер поля ввода на сетке Blueprint',
+    placeholder: 'Введите текст для сравнения размеров sm / md / lg...',
   },
   parameters: {
+    controls: {
+      include: ['placeholder'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `size` определяет высоту поля ввода: `sm` (24px), `md` (32px — базовая ячейка сетки), `lg` (40px).',
+          'Показывает все размеры `size` (`sm`, `md`, `lg`) одновременно. В панели Controls доступен **только один контрол** — `placeholder`.',
       },
     },
   },
@@ -123,35 +131,41 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: size — Все размеры (Controls: только placeholder)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте size в Controls и сравните все три размера ниже:
+          Сравнение высоты полей sm (24px), md (32px) и lg (40px):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Input {...args} />
         <div className={layoutStyles.stackSm}>
-          <Input size="sm" defaultValue='size="sm" (24px)' aria-label="Small input" />
-          <Input size="md" defaultValue='size="md" (32px — 1 Grid Cell)' aria-label="Medium input" />
-          <Input size="lg" defaultValue='size="lg" (40px)' aria-label="Large input" />
+          {ALL_SIZES.map((sz) => (
+            <Input
+              key={sz}
+              size={sz}
+              placeholder={`${sz.toUpperCase()}: ${args.placeholder}`}
+              aria-label={`Input ${sz}`}
+            />
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropMono: Story = {
-  name: 'Пропс: mono (Моноширинный технический шрифт)',
+export const PropSizeSingle: Story = {
+  name: 'Пропс: size — Выбор размера (Контролы: size, placeholder)',
   args: {
-    mono: true,
-    defaultValue: 'https://www.linkedin.com/jobs/view/4091827361',
+    size: 'md',
+    placeholder: 'Поле ввода с настраиваемым размером...',
   },
   parameters: {
+    controls: {
+      include: ['size', 'placeholder'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `mono` включает моноширинный шрифт `JetBrains Mono`, идеально подходящий для ввода URL, идентификаторов, зарплатных чисел и поисковых запросов.',
+        story: 'Одиночное поле ввода с двумя контролами: `size` и `placeholder`.',
       },
     },
   },
@@ -159,30 +173,69 @@ export const PropMono: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: mono (boolean)
+          prop: size — Одиночное поле (Controls: только size и placeholder)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг mono в Controls для сравнения шрифтов JetBrains Mono и Inter:
+          Переключайте size (&quot;{args.size}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Input {...args} />
+        <Input size={args.size} placeholder={args.placeholder} aria-label="Sized input" />
+      </div>
+    </div>
+  ),
+};
+
+export const PropMono: Story = {
+  name: 'Пропс: mono (Контрол: только mono)',
+  args: {
+    mono: true,
+  },
+  parameters: {
+    controls: {
+      include: ['mono'],
+    },
+    docs: {
+      description: {
+        story:
+          'Демонстрация пропса `mono`. В панели Controls доступен **только один контрол** — `mono`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: mono (Controls: только mono)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключите флаг mono ({String(args.mono)}) для смены шрифта между JetBrains Mono и Inter:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <Input
+          mono={args.mono}
+          defaultValue="https://www.linkedin.com/jobs/view/4091827361"
+          aria-label="Mono input"
+        />
       </div>
     </div>
   ),
 };
 
 export const PropInvalid: Story = {
-  name: 'Пропс: invalid (Состояние ошибки валидации)',
+  name: 'Пропс: invalid (Контрол: только invalid)',
   args: {
     invalid: true,
-    defaultValue: 'Некорректный формат URL вакансии',
   },
   parameters: {
+    controls: {
+      include: ['invalid'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `invalid` окрашивает рамку поля в семантический цвет `--ui-danger` и устанавливает `aria-invalid="true"`.',
+          'Демонстрация пропса `invalid`. В панели Controls доступен **только один контрол** — `invalid`.',
       },
     },
   },
@@ -190,32 +243,37 @@ export const PropInvalid: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: invalid (boolean)
+          prop: invalid (Controls: только invalid)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите invalid в Controls для проверки визуальной индикации ошибки:
+          Переключите флаг invalid ({String(args.invalid)}) для проверки контура ошибки:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Input {...args} />
+        <Input
+          invalid={args.invalid}
+          defaultValue="Некорректный формат URL вакансии"
+          aria-label="Invalid input"
+        />
       </div>
     </div>
   ),
 };
 
 export const PropStartAndEndAdornments: Story = {
-  name: 'Пропсы: startAdornment и endAdornment (Встроенные иконки)',
+  name: 'Пропсы: startAdornment и endAdornment (Контролы: startAdornment, endAdornment)',
   args: {
-    mono: true,
     startAdornment: <Icon icon={Search} size="sm" tone="muted" />,
     endAdornment: <Icon icon={Sparkles} size="sm" tone="accent" />,
-    defaultValue: 'React 19 Design Systems',
   },
   parameters: {
+    controls: {
+      include: ['startAdornment', 'endAdornment'],
+    },
     docs: {
       description: {
         story:
-          'Пропсы `startAdornment` и `endAdornment` оборачивают `<input>` в позиционированный контейнер и размещают иконки или кнопки внутри поля ввода слева и справа.',
+          'Демонстрация слотов `startAdornment` и `endAdornment`. В панели Controls доступны только эти два контрола.',
       },
     },
   },
@@ -223,29 +281,38 @@ export const PropStartAndEndAdornments: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: startAdornment &amp; endAdornment
+          props: startAdornment &amp; endAdornment (Controls: только startAdornment и endAdornment)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите иконки для startAdornment и endAdornment в панели Controls:
+          Выберите иконки для левого и правого слота поля ввода:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Input {...args} />
+        <Input
+          mono
+          startAdornment={args.startAdornment}
+          endAdornment={args.endAdornment}
+          defaultValue="React 19 Design Systems"
+          aria-label="Adornment input"
+        />
       </div>
     </div>
   ),
 };
 
 export const PropDisabled: Story = {
-  name: 'Пропс: disabled (Блокировка поля ввода)',
+  name: 'Пропс: disabled (Контрол: только disabled)',
   args: {
     disabled: true,
-    defaultValue: 'Системный идентификатор (только для чтения)',
   },
   parameters: {
+    controls: {
+      include: ['disabled'],
+    },
     docs: {
       description: {
-        story: 'Пропс `disabled` блокирует фокусировку и изменение текста в поле ввода.',
+        story:
+          'Демонстрация пропса `disabled`. В панели Controls доступен **только один контрол** — `disabled`.',
       },
     },
   },
@@ -253,14 +320,18 @@ export const PropDisabled: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: disabled (boolean)
+          prop: disabled (Controls: только disabled)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите disabled в панели Controls:
+          Переключите флаг disabled ({String(args.disabled)}) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Input {...args} />
+        <Input
+          disabled={args.disabled}
+          defaultValue="Системный идентификатор (только для чтения)"
+          aria-label="Disabled input"
+        />
       </div>
     </div>
   ),

@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof SectionBody>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -95,10 +95,11 @@ export const PropPaddingAndOverrides: Story = {
     paddingY: 'xs',
   },
   parameters: {
+    controls: { include: ['padding', 'paddingX', 'paddingY'] },
     docs: {
       description: {
         story:
-          'Пропс `padding` задает равномерные поля, а `paddingX` и `paddingY` позволяют независимо переопределить горизонтальные и вертикальные отступы.',
+          'Пропс `padding` задает равномерные поля, а `paddingX` и `paddingY` позволяют независимо переопределить горизонтальные и вертикальные отступы. Доступны только контролы `padding`, `paddingX` и `paddingY`.',
       },
     },
   },
@@ -106,7 +107,7 @@ export const PropPaddingAndOverrides: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: padding, paddingX &amp; paddingY
+          props: padding, paddingX &amp; paddingY — Контролы: [padding, paddingX, paddingY]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените padding, paddingX и paddingY в панели Controls:
@@ -115,7 +116,7 @@ export const PropPaddingAndOverrides: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <Section bordered>
           <Section.Header title="НАСТРОЙКА ПОЛЕЙ SECTIONBODY" divider />
-          <SectionBody {...args}>
+          <SectionBody padding={args.padding} paddingX={args.paddingX} paddingY={args.paddingY}>
             <Text variant="body-sm">
               padding=&quot;{args.padding}&quot; | paddingX=&quot;{args.paddingX ?? 'auto'}&quot; |
               paddingY=&quot;{args.paddingY ?? 'auto'}&quot;
@@ -130,13 +131,14 @@ export const PropPaddingAndOverrides: Story = {
 export const PropGap: Story = {
   name: 'Пропс: gap (Расстояние между дочерними элементами)',
   args: {
-    padding: 'md',
     gap: 'md',
   },
   parameters: {
+    controls: { include: ['gap'] },
     docs: {
       description: {
-        story: 'Пропс `gap` задает расстояние между дочерними элементами (`none`, `xs`, `sm`, `md`, `lg`).',
+        story:
+          'Пропс `gap` задает расстояние между дочерними элементами (`none`, `xs`, `sm`, `md`, `lg`). Доступен только контрол `gap`.',
       },
     },
   },
@@ -144,7 +146,7 @@ export const PropGap: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: gap (&quot;none&quot; | &quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: gap (&quot;none&quot; | &quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;) — Контролы: [gap]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте gap в панели Controls:
@@ -152,7 +154,7 @@ export const PropGap: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <Section bordered>
-          <SectionBody {...args}>
+          <SectionBody padding="md" gap={args.gap}>
             <div>
               <Badge tone="primary">Элемент 1</Badge>
             </div>

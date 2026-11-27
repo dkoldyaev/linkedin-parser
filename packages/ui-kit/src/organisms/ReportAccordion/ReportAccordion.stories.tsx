@@ -127,7 +127,7 @@ export default meta;
 type Story = StoryObj<typeof ReportAccordion>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -163,10 +163,11 @@ export const PropTitleScoreAndSummary: Story = {
       'Кандидат соответствует по базовому стеку React/TypeScript, но имеет пробелы в специфичных требованиях домена.',
   },
   parameters: {
+    controls: { include: ['title', 'scoreLabel', 'scoreTone', 'summary'] },
     docs: {
       description: {
         story:
-          'Пропсы `title`, `scoreLabel` и `scoreTone` формируют верхнюю строку отчета, а `summary` выводит вводный абзац оценки.',
+          'Пропсы `title`, `scoreLabel` и `scoreTone` формируют верхнюю строку отчета, а `summary` выводит вводный абзац оценки. Доступны только контролы `title`, `scoreLabel`, `scoreTone` и `summary`.',
       },
     },
   },
@@ -174,31 +175,38 @@ export const PropTitleScoreAndSummary: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title, scoreLabel, scoreTone &amp; summary
+          props: title, scoreLabel, scoreTone &amp; summary — Контролы: [title, scoreLabel, scoreTone, summary]
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените scoreLabel, scoreTone и summary в панели Controls:
+          Измените title, scoreLabel, scoreTone и summary в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ReportAccordion {...args} />
+        <ReportAccordion
+          title={args.title}
+          scoreLabel={args.scoreLabel}
+          scoreTone={args.scoreTone}
+          summary={args.summary}
+          sections={SAMPLE_SECTIONS}
+        />
       </div>
     </div>
   ),
 };
 
 export const PropActionAndLoading: Story = {
-  name: 'Пропсы: onAction, actionLabel, actionLoading и defaultActionLabel',
+  name: 'Пропсы: actionLabel, actionLoading и defaultActionLabel',
   args: {
     actionLabel: 'Пересчет совместимости...',
     actionLoading: true,
     defaultActionLabel: 'Цитата из CV',
   },
   parameters: {
+    controls: { include: ['actionLabel', 'actionLoading', 'defaultActionLabel'] },
     docs: {
       description: {
         story:
-          'При передаче `onAction` в шапке появляется кнопка с иконкой `RefreshCw`, текстом `actionLabel` и состоянием загрузки `actionLoading`.',
+          'При передаче `onAction` в шапке появляется кнопка с иконкой `RefreshCw`, текстом `actionLabel` и состоянием загрузки `actionLoading`. Доступны только контролы `actionLabel`, `actionLoading` и `defaultActionLabel`.',
       },
     },
   },
@@ -206,14 +214,23 @@ export const PropActionAndLoading: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: actionLabel, actionLoading &amp; defaultActionLabel
+          props: actionLabel, actionLoading &amp; defaultActionLabel — Контролы: [actionLabel, actionLoading, defaultActionLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг actionLoading в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ReportAccordion {...args} onAction={() => undefined} />
+        <ReportAccordion
+          title="ОТЧЁТ СОВМЕСТИМОСТИ С CV"
+          scoreLabel="88% Match"
+          scoreTone="success"
+          sections={SAMPLE_SECTIONS}
+          actionLabel={args.actionLabel}
+          actionLoading={args.actionLoading}
+          defaultActionLabel={args.defaultActionLabel}
+          onAction={() => undefined}
+        />
       </div>
     </div>
   ),

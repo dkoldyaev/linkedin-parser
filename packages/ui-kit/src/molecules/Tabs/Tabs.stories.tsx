@@ -96,7 +96,7 @@ export default meta;
 type Story = StoryObj<typeof Tabs>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -158,10 +158,11 @@ export const PropItemsWithIconsAndAccessories: Story = {
     ],
   },
   parameters: {
+    controls: { include: ['items'] },
     docs: {
       description: {
         story:
-          'Каждый элемент массива `items` поддерживает `icon` (иконка слева), `accessory` (бейдж или счетчик справа), `disabled` (блокировка вкладки) и `align: "right"` (прижатие к правому краю полосы вкладок).',
+          'Каждый элемент массива `items` поддерживает `icon` (иконка слева), `accessory` (бейдж или счетчик справа), `disabled` (блокировка вкладки) и `align: "right"` (прижатие к правому краю полосы вкладок). Доступен только контрол `items`.',
       },
     },
   },
@@ -169,14 +170,14 @@ export const PropItemsWithIconsAndAccessories: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: items (TabItem: icon, accessory, disabled, align)
+          prop: items (TabItem: icon, accessory, disabled, align) — Контролы: [items]
         </Text>
         <Text variant="caption" tone="secondary">
           Демонстрация возможностей конфигурации элементов TabItem:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Tabs {...args} />
+        <Tabs items={args.items} defaultValue="tab-1" />
       </div>
     </div>
   ),
@@ -185,18 +186,24 @@ export const PropItemsWithIconsAndAccessories: Story = {
 function ControlledTabsStory(args: TabsProps): React.ReactElement {
   const [active, setActive] = useState(args.value ?? 'compatibility');
 
+  React.useEffect(() => {
+    if (args.value !== undefined) {
+      setActive(args.value);
+    }
+  }, [args.value]);
+
   return (
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: value &amp; onValueChange (Контролируемый режим: {active})
+          props: value &amp; onValueChange (Контролируемый режим: {active}) — Контролы: [value]
         </Text>
         <Text variant="caption" tone="secondary">
-          Текущая вкладка контролируется внешним React-состоянием.
+          Текущая вкладка контролируется внешним React-состоянием или контролом value.
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Tabs {...args} value={active} onValueChange={setActive} />
+        <Tabs items={SAMPLE_TAB_ITEMS} value={active} onValueChange={setActive} />
       </div>
     </div>
   );
@@ -206,15 +213,15 @@ export const PropValueAndOnValueChange: Story = {
   name: 'Пропсы: value и onValueChange (Контролируемое переключение)',
   args: {
     value: 'compatibility',
-    items: SAMPLE_TAB_ITEMS,
   },
   parameters: {
+    controls: { include: ['value'] },
     docs: {
       description: {
         story:
-          'Пропсы `value` и `onValueChange` позволяют синхронизировать активную вкладку с URL-роутером или родительским состоянием (например в `Modal.Header`).',
+          'Пропсы `value` и `onValueChange` позволяют синхронизировать активную вкладку с URL-роутером или родительским состоянием (например в `Modal.Header`). Доступен только контрол `value`.',
       },
     },
   },
-  render: (args) => <ControlledTabsStory {...args} />,
+  render: (args) => <ControlledTabsStory items={SAMPLE_TAB_ITEMS} value={args.value} />,
 };

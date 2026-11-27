@@ -60,7 +60,7 @@ export default meta;
 type Story = StoryObj<typeof CardCollapsed>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -95,17 +95,16 @@ export const Base: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантическая цветовая полоса)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все тона (Контрол: title)',
   args: {
-    tone: 'warning',
-    overline: 'Revolut',
-    title: 'Senior Fullstack Developer (Node.js + React)',
+    title: 'Staff Frontend Architect',
   },
   parameters: {
+    controls: { include: ['title'] },
     docs: {
       description: {
-        story: 'Пропс `tone` задает цвет акцента компактной карточки (`success`, `warning`, `danger`, `accent`, `info`).',
+        story: 'Витрина компактных карточек с различными семантическими тонами `tone`. Доступен только контрол `title`.',
       },
     },
   },
@@ -113,30 +112,20 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone (Сравнение тонов) — Контролы: [title]
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените tone в Controls или сравните стек компактных карточек ниже:
+          Измените title в панели Controls для всех карточек:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.stackSm}>
           <div className={layoutStyles.narrowBox}>
             <CardCollapsed
-              {...args}
-              statusIndicators={
-                <Badge variant="solid" tone="warning" size="xs">
-                  68%
-                </Badge>
-              }
-            />
-          </div>
-          <div className={layoutStyles.narrowBox}>
-            <CardCollapsed
               interactive
               tone="success"
               overline="Stripe"
-              title="Staff Frontend Architect"
+              title={args.title}
               statusIndicators={
                 <Badge variant="solid" tone="success" size="xs">
                   92%
@@ -147,9 +136,22 @@ export const PropTone: Story = {
           <div className={layoutStyles.narrowBox}>
             <CardCollapsed
               interactive
+              tone="warning"
+              overline="Revolut"
+              title={args.title}
+              statusIndicators={
+                <Badge variant="solid" tone="warning" size="xs">
+                  68%
+                </Badge>
+              }
+            />
+          </div>
+          <div className={layoutStyles.narrowBox}>
+            <CardCollapsed
+              interactive
               tone="danger"
               overline="Figma"
-              title="Lead UI Engineer"
+              title={args.title}
               statusIndicators={
                 <Badge variant="outline" tone="danger" size="xs">
                   Closed
@@ -163,16 +165,18 @@ export const PropTone: Story = {
   ),
 };
 
-export const PropIsLoading: Story = {
-  name: 'Пропс: isLoading (Однострочный скелетон)',
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Интерактивный выбор (Контролы: tone, title)',
   args: {
-    isLoading: true,
-    tone: 'accent',
+    tone: 'warning',
+    title: 'Senior Fullstack Developer (Node.js + React)',
   },
   parameters: {
+    controls: { include: ['tone', 'title'] },
     docs: {
       description: {
-        story: 'При `isLoading={true}` карточка рендерит однострочный скелетон `<CardCollapsedLoading>`.',
+        story:
+          'Пропс `tone` задает цвет акцента компактной карточки (`success`, `warning`, `danger`, `accent`, `info`). Доступны только контролы `tone` и `title`.',
       },
     },
   },
@@ -180,7 +184,49 @@ export const PropIsLoading: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: isLoading (boolean)
+          prop: tone (Одиночная карточка) — Контролы: [tone, title]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените tone и title в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.narrowBox}>
+          <CardCollapsed
+            tone={args.tone}
+            overline="Revolut"
+            title={args.title}
+            statusIndicators={
+              <Badge variant="solid" tone="warning" size="xs">
+                68%
+              </Badge>
+            }
+          />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropIsLoading: Story = {
+  name: 'Пропс: isLoading (Однострочный скелетон)',
+  args: {
+    isLoading: true,
+  },
+  parameters: {
+    controls: { include: ['isLoading'] },
+    docs: {
+      description: {
+        story:
+          'При `isLoading={true}` карточка рендерит однострочный скелетон `<CardCollapsedLoading>`. Доступен только контрол `isLoading`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: isLoading (boolean) — Контролы: [isLoading]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг isLoading в панели Controls:
@@ -188,7 +234,12 @@ export const PropIsLoading: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <CardCollapsed {...args} />
+          <CardCollapsed
+            isLoading={args.isLoading}
+            tone="accent"
+            overline="Stripe"
+            title="Staff Frontend Architect"
+          />
         </div>
       </div>
     </div>

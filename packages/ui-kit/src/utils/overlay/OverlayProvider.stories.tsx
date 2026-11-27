@@ -21,6 +21,12 @@ const meta: Meta<typeof OverlayProvider> = {
       },
     },
   },
+  argTypes: {
+    children: {
+      control: false,
+      description: 'Дерево приложения, оборачиваемое в `[data-ui-app-root]`.',
+    },
+  },
 };
 
 export default meta;
@@ -82,7 +88,7 @@ function StackedOverlaysDemo(): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -97,6 +103,7 @@ export const Base: Story = {
 export const PropChildren: Story = {
   name: 'Пропс: children (Дерево приложения внутри провайдера)',
   parameters: {
+    controls: { include: ['children'] },
     docs: {
       description: {
         story:

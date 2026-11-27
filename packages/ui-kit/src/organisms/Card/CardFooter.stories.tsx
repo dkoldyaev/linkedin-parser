@@ -88,7 +88,7 @@ export default meta;
 type Story = StoryObj<typeof CardFooter>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -122,13 +122,13 @@ export const PropMetaSlot: Story = {
   name: 'Пропс: metaSlot (Левый слот даты и истории)',
   args: {
     metaSlot: META_SLOT_MAP.DateAndHistory,
-    actionsSlot: undefined,
   },
   parameters: {
+    controls: { include: ['metaSlot'] },
     docs: {
       description: {
         story:
-          'Пропс `metaSlot` размещает в левой части футера дату добавления карточки, иконку истории и индикатор наличия комментария.',
+          'Пропс `metaSlot` размещает в левой части футера дату добавления карточки, иконку истории и индикатор наличия комментария. Доступен только контрол `metaSlot`.',
       },
     },
   },
@@ -136,7 +136,7 @@ export const PropMetaSlot: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: metaSlot
+          prop: metaSlot — Контролы: [metaSlot]
         </Text>
         <Text variant="caption" tone="secondary">
           Выберите вариант metaSlot в панели Controls:
@@ -145,7 +145,7 @@ export const PropMetaSlot: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <Card tone="info">
-            <CardFooter {...args} />
+            <CardFooter metaSlot={args.metaSlot} />
           </Card>
         </div>
       </div>
@@ -156,14 +156,14 @@ export const PropMetaSlot: Story = {
 export const PropActionsSlot: Story = {
   name: 'Пропс: actionsSlot (Правый слот быстрых действий)',
   args: {
-    metaSlot: META_SLOT_MAP.ArchivedDate,
     actionsSlot: ACTIONS_SLOT_MAP.RestoreButton,
   },
   parameters: {
+    controls: { include: ['actionsSlot'] },
     docs: {
       description: {
         story:
-          'Пропс `actionsSlot` рендерит кнопки управления карточкой в правой части футера (например стрелки перемещения по колонкам или кнопку восстановления из архива).',
+          'Пропс `actionsSlot` рендерит кнопки управления карточкой в правой части футера (например стрелки перемещения по колонкам или кнопку восстановления из архива). Доступен только контрол `actionsSlot`.',
       },
     },
   },
@@ -171,7 +171,7 @@ export const PropActionsSlot: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: actionsSlot
+          prop: actionsSlot — Контролы: [actionsSlot]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте actionsSlot между группой стрелок и кнопкой восстановления в Controls:
@@ -180,7 +180,7 @@ export const PropActionsSlot: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <Card tone="danger">
-            <CardFooter {...args} />
+            <CardFooter metaSlot={META_SLOT_MAP.ArchivedDate} actionsSlot={args.actionsSlot} />
           </Card>
         </div>
       </div>

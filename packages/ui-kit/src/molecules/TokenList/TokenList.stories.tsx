@@ -31,7 +31,7 @@ export default meta;
 type Story = StoryObj<typeof TokenList>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -73,13 +73,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropChildren: Story = {
-  name: 'Пропс: children (Набор дочерних токенов и удаляемых тегов)',
+export const PropClassNameAndChildren: Story = {
+  name: 'Пропсы: className и children (Набор дочерних токенов)',
+  args: {
+    className: '',
+  },
   parameters: {
+    controls: { include: ['className'] },
     docs: {
       description: {
         story:
-          'Пропс `children` принимает произвольный список элементов `<Badge>` (включая интерактивные и удаляемые теги).',
+          'Пропс `children` принимает произвольный список элементов `<Badge>` (включая интерактивные и удаляемые теги). Доступен только контрол `className`.',
       },
     },
   },
@@ -87,14 +91,14 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children (React.ReactNode)
+          props: children &amp; className — Контролы: [className]
         </Text>
         <Text variant="caption" tone="secondary">
           Пример композиции удаляемых тегов с иконками из lucide-react внутри TokenList:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <TokenList {...args}>
+        <TokenList className={args.className}>
           <Badge
             variant="outline"
             size="xs"

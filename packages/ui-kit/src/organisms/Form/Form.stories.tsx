@@ -109,7 +109,7 @@ function InteractiveFormDemo(args: React.ComponentProps<typeof Form>): React.Rea
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -126,33 +126,52 @@ export const PropErrorAndSuccessMessages: Story = {
   args: {
     errorMessage: 'Колонка с таким системным идентификатором уже существует.',
     successMessage: '',
-    submitLabel: 'Повторить сохранение',
   },
   parameters: {
+    controls: { include: ['errorMessage', 'successMessage'] },
     docs: {
       description: {
         story:
-          'При наличии `errorMessage` или `successMessage` в верхней части формы автоматически рендерится `<AlertBanner>` соответствующего тона.',
+          'При наличии `errorMessage` или `successMessage` в верхней части формы автоматически рендерится `<AlertBanner>` соответствующего тона. Доступны только контролы `errorMessage` и `successMessage`.',
       },
     },
   },
-  render: (args) => <InteractiveFormDemo {...args} />,
+  render: (args) => (
+    <InteractiveFormDemo
+      errorMessage={args.errorMessage}
+      successMessage={args.successMessage}
+      submitLabel="Повторить сохранение"
+    >
+      {null}
+    </InteractiveFormDemo>
+  ),
 };
 
 export const PropIsSubmittingAndSubmitDisabled: Story = {
   name: 'Пропсы: isSubmitting, submitDisabled, submitLabel и cancelLabel',
   args: {
     isSubmitting: true,
+    submitDisabled: false,
     submitLabel: 'Сохранение изменений...',
     cancelLabel: 'Отменить',
   },
   parameters: {
+    controls: { include: ['isSubmitting', 'submitDisabled', 'submitLabel', 'cancelLabel'] },
     docs: {
       description: {
         story:
-          'Пропс `isSubmitting` включает спиннер загрузки на кнопке `type="submit"` и блокирует кнопку `Cancel` во время сетевого запроса.',
+          'Пропс `isSubmitting` включает спиннер загрузки на кнопке `type="submit"` и блокирует кнопку `Cancel` во время сетевого запроса. Доступны только контролы `isSubmitting`, `submitDisabled`, `submitLabel` и `cancelLabel`.',
       },
     },
   },
-  render: (args) => <InteractiveFormDemo {...args} />,
+  render: (args) => (
+    <InteractiveFormDemo
+      isSubmitting={args.isSubmitting}
+      submitDisabled={args.submitDisabled}
+      submitLabel={args.submitLabel}
+      cancelLabel={args.cancelLabel}
+    >
+      {null}
+    </InteractiveFormDemo>
+  ),
 };

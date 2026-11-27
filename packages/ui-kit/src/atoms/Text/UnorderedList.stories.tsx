@@ -37,12 +37,11 @@ export default meta;
 type Story = StoryObj<typeof UnorderedList>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
-        story:
-          'Базовая интерактивная демонстрация `UnorderedList`. Настройте вертикальный интервал (`spacing`) через панель Controls.',
+        story: 'Базовая интерактивная демонстрация `UnorderedList` со всеми контролами.',
       },
     },
   },
@@ -69,15 +68,18 @@ export const Base: Story = {
 };
 
 export const PropSpacing: Story = {
-  name: 'Пропс: spacing (Плотность строк)',
+  name: 'Пропс: spacing (Контрол: только spacing)',
   args: {
     spacing: 'compact',
   },
   parameters: {
+    controls: {
+      include: ['spacing'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `spacing` задает расстояние между пунктами маркированного списка (`compact`, `normal`, `relaxed`).',
+          'Демонстрация пропса `spacing`. В панели Controls оставлен **только один контрол** — `spacing`.',
       },
     },
   },
@@ -85,14 +87,14 @@ export const PropSpacing: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: spacing (&quot;compact&quot; | &quot;normal&quot; | &quot;relaxed&quot;)
+          prop: spacing (Controls: только spacing)
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените значение spacing в Controls для проверки плотности пунктов:
+          Измените значение spacing (&quot;{args.spacing}&quot;) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <UnorderedList {...args}>
+        <UnorderedList spacing={args.spacing}>
           <ListItem>Первый элемент маркированного списка (spacing=&quot;{args.spacing}&quot;)</ListItem>
           <ListItem>Второй элемент маркированного списка</ListItem>
           <ListItem>Третий элемент маркированного списка</ListItem>

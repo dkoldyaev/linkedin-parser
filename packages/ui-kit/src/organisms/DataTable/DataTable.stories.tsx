@@ -138,7 +138,7 @@ export default meta;
 type Story = StoryObj<typeof DataTable<QueueRow>>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -171,10 +171,11 @@ export const PropColumnsAndData: Story = {
     data: SAMPLE_ROWS,
   },
   parameters: {
+    controls: { include: ['data', 'caption'] },
     docs: {
       description: {
         story:
-          'Пропс `columns` задает заголовки, ширину в ячейках 32px (`gridUnits`), рендереры ячеек (`cell`) и флаги сортировки (`sortable`), а `data` передает строки таблицы.',
+          'Пропс `columns` задает заголовки, ширину в ячейках 32px (`gridUnits`), рендереры ячеек (`cell`) и флаги сортировки (`sortable`), а `data` передает строки таблицы. Доступны только контролы `data` и `caption`.',
       },
     },
   },
@@ -182,14 +183,19 @@ export const PropColumnsAndData: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: columns &amp; data
+          props: columns &amp; data — Контролы: [data, caption]
         </Text>
         <Text variant="caption" tone="secondary">
           Таблица с 4 колонками, квантованными по сетке через useDataTableColumns:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <DataTable {...args} />
+        <DataTable
+          columns={COLUMNS}
+          data={args.data}
+          caption={args.caption}
+          getRowId={(row: QueueRow) => row.id}
+        />
       </div>
     </div>
   ),
@@ -202,10 +208,11 @@ export const PropLoadingAndLoadingLabel: Story = {
     loadingLabel: 'Загрузка очереди парсинга из Mercure...',
   },
   parameters: {
+    controls: { include: ['loading', 'loadingLabel'] },
     docs: {
       description: {
         story:
-          'При `loading={true}` компонент делегирует рендеринг подкомпоненту `<DataTableLoading label={loadingLabel} />`.',
+          'При `loading={true}` компонент делегирует рендеринг подкомпоненту `<DataTableLoading label={loadingLabel} />`. Доступны только контролы `loading` и `loadingLabel`.',
       },
     },
   },
@@ -213,36 +220,37 @@ export const PropLoadingAndLoadingLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: loading &amp; loadingLabel
+          props: loading &amp; loadingLabel — Контролы: [loading, loadingLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг loading и измените loadingLabel в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <DataTable {...args} />
+        <DataTable
+          columns={COLUMNS}
+          data={SAMPLE_ROWS}
+          getRowId={(row: QueueRow) => row.id}
+          loading={args.loading}
+          loadingLabel={args.loadingLabel}
+        />
       </div>
     </div>
   ),
 };
 
 export const PropEmptyStateFallbacks: Story = {
-  name: 'Пропсы: emptyTitle, emptyDescription, emptyAction (Пустая таблица)',
+  name: 'Пропсы: emptyTitle, emptyDescription (Пустая таблица)',
   args: {
-    data: [],
     emptyTitle: 'ОЧЕРЕДЬ ЗАДАЧ ПУСТА',
     emptyDescription: 'Добавьте новую ссылку на вакансию для запуска фонового парсинга.',
-    emptyAction: (
-      <Button variant="primary" size="sm">
-        Обновить очередь
-      </Button>
-    ),
   },
   parameters: {
+    controls: { include: ['emptyTitle', 'emptyDescription'] },
     docs: {
       description: {
         story:
-          'Когда `data.length === 0` и `loading === false`, вместо `<table>` рендерится молекула `<EmptyState>` с переданными пропсами `emptyTitle`, `emptyDescription` и `emptyAction`.',
+          'Когда `data.length === 0` и `loading === false`, вместо `<table>` рендерится молекула `<EmptyState>` с переданными пропсами `emptyTitle`, `emptyDescription` и `emptyAction`. Доступны только контролы `emptyTitle` и `emptyDescription`.',
       },
     },
   },
@@ -250,14 +258,25 @@ export const PropEmptyStateFallbacks: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: emptyTitle, emptyDescription &amp; emptyAction (при data=[])
+          props: emptyTitle &amp; emptyDescription (при data=[]) — Контролы: [emptyTitle, emptyDescription]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте заголовок и описание пустого состояния в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <DataTable {...args} />
+        <DataTable
+          columns={COLUMNS}
+          data={[]}
+          getRowId={(row: QueueRow) => row.id}
+          emptyTitle={args.emptyTitle}
+          emptyDescription={args.emptyDescription}
+          emptyAction={
+            <Button variant="primary" size="sm">
+              Обновить очередь
+            </Button>
+          }
+        />
       </div>
     </div>
   ),

@@ -4,6 +4,8 @@ import { SortButton, type SortButtonProps, type SortDirection } from './SortButt
 import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Text } from '../Text';
 
+const ALL_DIRECTIONS = ['none', 'asc', 'desc'] as const;
+
 const meta: Meta<typeof SortButton> = {
   title: 'Atoms/Button/SortButton',
   component: SortButton,
@@ -30,13 +32,13 @@ const meta: Meta<typeof SortButton> = {
   argTypes: {
     direction: {
       control: 'inline-radio',
-      options: ['none', 'asc', 'desc'],
+      options: ALL_DIRECTIONS,
       description:
         'Текущее направление сортировки: `none` (не отсортировано), `asc` (по возрастанию), `desc` (по убыванию).',
     },
     active: {
       control: 'boolean',
-      description: 'Явное переопределение активного состояния кнопки (по умолчанию вычисляется из `direction !== "none"`).',
+      description: 'Явное переопределение активного состояния кнопки.',
     },
     size: {
       control: 'inline-radio',
@@ -90,7 +92,7 @@ function InteractiveSortButtonDemo(args: SortButtonProps): React.ReactElement {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          SortButton — Интерактивная кнопка сортировки колонок
+          SortButton — Интерактивная кнопка сортировки колонок (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Кликните по кнопке для переключения направления asc ↔ desc или используйте панель Controls.
@@ -108,29 +110,31 @@ function InteractiveSortButtonDemo(args: SortButtonProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `SortButton`. Кликните на кнопку или измените пропсы в Controls.',
+          'Базовая интерактивная демонстрация `SortButton` со всеми контролами (`direction`, `size`, `tone`, `iconPosition`, `disabled`, `children`).',
       },
     },
   },
   render: (args) => <InteractiveSortButtonDemo {...args} />,
 };
 
-export const PropDirection: Story = {
-  name: 'Пропс: direction (Направление сортировки)',
+export const PropDirectionAll: Story = {
+  name: 'Пропс: direction — Все состояния (Контрол: только children)',
   args: {
-    direction: 'asc',
     children: 'MATCH_SCORE',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `direction` отвечает за отображаемую иконку (`ArrowUpDown` для `none`, `ArrowUp` для `asc`, `ArrowDown` для `desc`) и значение `aria-sort`.',
+          'Показывает все 3 состояния `direction` (`none`, `asc`, `desc`) одновременно с единственным контролом `children`.',
       },
     },
   },
@@ -138,20 +142,54 @@ export const PropDirection: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: direction (&quot;none&quot; | &quot;asc&quot; | &quot;desc&quot;)
+          prop: direction — Все направления (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте direction в Controls или сравните все 3 состояния ниже:
+          Измените название колонки в контроле children:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <SortButton {...args} />
+          {ALL_DIRECTIONS.map((d) => (
+            <SortButton key={d} direction={d}>
+              {args.children} ({d})
+            </SortButton>
+          ))}
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropDirectionSingle: Story = {
+  name: 'Пропс: direction — Выбор направления (Контролы: direction, children)',
+  args: {
+    direction: 'asc',
+    children: 'MATCH_SCORE',
+  },
+  parameters: {
+    controls: {
+      include: ['direction', 'children'],
+    },
+    docs: {
+      description: {
+        story: 'Одиночная кнопка сортировки с двумя контролами: `direction` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: direction — Одиночная кнопка (Controls: только direction и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте direction (&quot;{args.direction}&quot;) в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <SortButton direction="none">direction=&quot;none&quot;</SortButton>
-          <SortButton direction="asc">direction=&quot;asc&quot;</SortButton>
-          <SortButton direction="desc">direction=&quot;desc&quot;</SortButton>
+          <SortButton direction={args.direction}>{args.children}</SortButton>
         </div>
       </div>
     </div>
@@ -159,17 +197,19 @@ export const PropDirection: Story = {
 };
 
 export const PropIconPosition: Story = {
-  name: 'Пропс: iconPosition (Позиция иконки)',
+  name: 'Пропс: iconPosition (Контролы: iconPosition, children)',
   args: {
-    direction: 'desc',
     iconPosition: 'start',
     children: 'SALARY_MAX',
   },
   parameters: {
+    controls: {
+      include: ['iconPosition', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `iconPosition` определяет, с какой стороны от подписи рендерится индикатор сортировки (`start` или `end`).',
+          'Демонстрация пропса `iconPosition` (`start` или `end`). В панели Controls доступны только `iconPosition` и `children`.',
       },
     },
   },
@@ -177,20 +217,16 @@ export const PropIconPosition: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: iconPosition (&quot;start&quot; | &quot;end&quot;)
+          prop: iconPosition (Controls: только iconPosition и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Полезно для колонок с выравниванием по правому краю (`iconPosition=&quot;start&quot;`):
+          Переключайте iconPosition (&quot;{args.iconPosition}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <SortButton {...args} />
-          <SortButton direction="asc" iconPosition="start">
-            iconPosition=&quot;start&quot;
-          </SortButton>
-          <SortButton direction="asc" iconPosition="end">
-            iconPosition=&quot;end&quot;
+          <SortButton direction="desc" iconPosition={args.iconPosition}>
+            {args.children}
           </SortButton>
         </div>
       </div>
@@ -199,18 +235,20 @@ export const PropIconPosition: Story = {
 };
 
 export const PropSizeAndTone: Story = {
-  name: 'Пропсы: size и tone (Размер и цветовой тон)',
+  name: 'Пропсы: size и tone (Контролы: size, tone, children)',
   args: {
     size: 'md',
     tone: 'success',
-    direction: 'asc',
     children: 'PRIORITY_RANK',
   },
   parameters: {
+    controls: {
+      include: ['size', 'tone', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропсы `size` (`"sm" | "md"`) и `tone` позволяют адаптировать кнопку сортировки под заголовки таблиц и панелей инструментов.',
+          'Демонстрация пропсов `size` и `tone`. В панели Controls доступны только `size`, `tone` и `children`.',
       },
     },
   },
@@ -218,15 +256,17 @@ export const PropSizeAndTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: size &amp; tone
+          props: size &amp; tone (Controls: только size, tone, children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Настройте размер и семантический тон в панели Controls:
+          Настройте размер (&quot;{args.size}&quot;) и семантический тон (&quot;{args.tone}&quot;):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <SortButton {...args} />
+          <SortButton direction="asc" size={args.size} tone={args.tone}>
+            {args.children}
+          </SortButton>
         </div>
       </div>
     </div>

@@ -3,6 +3,19 @@ import layoutStyles from '../../stories/StoryLayout.module.css';
 import { StatusDot } from './StatusDot';
 import { Text } from '../Text';
 
+const ALL_SIZES = ['xs', 'sm', 'md', 'lg'] as const;
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
 const meta: Meta<typeof StatusDot> = {
   title: 'Atoms/StatusDot',
   component: StatusDot,
@@ -28,22 +41,12 @@ const meta: Meta<typeof StatusDot> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон индикатора.',
     },
     size: {
       control: 'inline-radio',
-      options: ['xs', 'sm', 'md', 'lg'],
+      options: ALL_SIZES,
       description: 'Размер точки-индикатора (`xs`, `sm`, `md`, `lg`).',
     },
     pulse: {
@@ -66,12 +69,12 @@ export default meta;
 type Story = StoryObj<typeof StatusDot>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `StatusDot`. Настраивайте `tone`, `size`, `pulse`, `glow` и `label` через панель Controls.',
+          'Базовая интерактивная демонстрация `StatusDot` со всеми контролами (`tone`, `size`, `pulse`, `glow`, `label`).',
       },
     },
   },
@@ -79,7 +82,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          StatusDot — Точечный индикатор состояния
+          StatusDot — Точечный индикатор состояния (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Используется в заголовках колонок, кнопках выбора цвета, таймлайнах и мета-строках.
@@ -97,17 +100,20 @@ export const Base: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цвет точки)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все цвета (Контролы: pulse, glow)',
   args: {
-    tone: 'accent',
-    size: 'lg',
+    pulse: false,
+    glow: false,
   },
   parameters: {
+    controls: {
+      include: ['pulse', 'glow'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `tone` задает цвет точки из семантической палитры (`neutral`, `primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`).',
+          'Показывает все 9 семантических тонов `tone` одновременно. В панели Controls доступны только `pulse` и `glow` для проверки эффектов на всей палитре.',
       },
     },
   },
@@ -115,26 +121,56 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Все семантические тона (Controls: только pulse и glow)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите tone в панели Controls и сравните со всей палитрой:
+          Включите pulse или glow в Controls, чтобы сравнить все 9 цветов:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <StatusDot {...args} />
+          {ALL_TONES.map((t) => (
+            <div key={t} className={layoutStyles.box}>
+              <Text variant="mono" size="2xs" tone="muted">
+                {t}
+              </Text>
+              <StatusDot tone={t} size="lg" pulse={args.pulse} glow={args.glow} />
+            </div>
+          ))}
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Выбор тона (Контрол: только tone)',
+  args: {
+    tone: 'accent',
+  },
+  parameters: {
+    controls: {
+      include: ['tone'],
+    },
+    docs: {
+      description: {
+        story: 'Одиночный индикатор с **одним контролом** `tone`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: tone — Одиночная точка (Controls: только tone)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Выберите tone (&quot;{args.tone}&quot;) в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <StatusDot tone="neutral" size="lg" label="neutral" />
-          <StatusDot tone="primary" size="lg" label="primary" />
-          <StatusDot tone="secondary" size="lg" label="secondary" />
-          <StatusDot tone="muted" size="lg" label="muted" />
-          <StatusDot tone="accent" size="lg" label="accent" />
-          <StatusDot tone="success" size="lg" label="success" />
-          <StatusDot tone="warning" size="lg" label="warning" />
-          <StatusDot tone="danger" size="lg" label="danger" />
-          <StatusDot tone="info" size="lg" label="info" />
+          <StatusDot tone={args.tone} size="lg" />
         </div>
       </div>
     </div>
@@ -142,15 +178,18 @@ export const PropTone: Story = {
 };
 
 export const PropSize: Story = {
-  name: 'Пропс: size (Размер точки xs–lg)',
+  name: 'Пропс: size (Контрол: только size)',
   args: {
     size: 'md',
-    tone: 'primary',
   },
   parameters: {
+    controls: {
+      include: ['size'],
+    },
     docs: {
       description: {
-        story: 'Пропс `size` регулирует диаметр индикатора (`xs`, `sm`, `md`, `lg`).',
+        story:
+          'Демонстрация пропса `size` (`xs`, `sm`, `md`, `lg`) с единственным контролом `size`.',
       },
     },
   },
@@ -158,21 +197,20 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: size (Controls: только size)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте size в Controls:
+          Переключайте size (&quot;{args.size}&quot;) для активной точки и сравните со шкалой ниже:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <StatusDot {...args} />
+          <StatusDot size={args.size} tone="accent" />
         </div>
         <div className={layoutStyles.row}>
-          <StatusDot size="xs" tone="primary" />
-          <StatusDot size="sm" tone="primary" />
-          <StatusDot size="md" tone="primary" />
-          <StatusDot size="lg" tone="primary" />
+          {ALL_SIZES.map((sz) => (
+            <StatusDot key={sz} size={sz} tone="primary" />
+          ))}
         </div>
       </div>
     </div>
@@ -180,18 +218,19 @@ export const PropSize: Story = {
 };
 
 export const PropPulseAndGlow: Story = {
-  name: 'Пропсы: pulse и glow (Пульсация и свечение)',
+  name: 'Пропсы: pulse и glow (Контролы: pulse, glow)',
   args: {
-    tone: 'success',
-    size: 'lg',
     pulse: true,
     glow: true,
   },
   parameters: {
+    controls: {
+      include: ['pulse', 'glow'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `pulse` запускает анимацию пульсации для индикации активного процесса реального времени, а `glow` добавляет внешнее свечение.',
+          'Демонстрация визуальных эффектов `pulse` и `glow`. В панели Controls оставлены только эти два переключателя.',
       },
     },
   },
@@ -199,18 +238,17 @@ export const PropPulseAndGlow: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: pulse &amp; glow (boolean)
+          props: pulse &amp; glow (Controls: только pulse и glow)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте флаги pulse и glow в Controls:
+          pulse={String(args.pulse)} | glow={String(args.glow)}:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <StatusDot {...args} />
-          <StatusDot tone="info" size="md" glow />
-          <StatusDot tone="warning" size="md" pulse />
-          <StatusDot tone="danger" size="md" pulse glow />
+          <StatusDot tone="success" size="lg" pulse={args.pulse} glow={args.glow} />
+          <StatusDot tone="info" size="lg" pulse={args.pulse} glow={args.glow} />
+          <StatusDot tone="danger" size="lg" pulse={args.pulse} glow={args.glow} />
         </div>
       </div>
     </div>

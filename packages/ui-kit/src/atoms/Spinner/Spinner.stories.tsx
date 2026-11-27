@@ -3,6 +3,8 @@ import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Spinner } from './Spinner';
 import { Text } from '../Text';
 
+const ALL_SIZES = ['xs', 'sm', 'md', 'lg'] as const;
+
 const meta: Meta<typeof Spinner> = {
   title: 'Atoms/Spinner',
   component: Spinner,
@@ -11,7 +13,7 @@ const meta: Meta<typeof Spinner> = {
     docs: {
       description: {
         component:
-          'Атомарный индикатор загрузки `Spinner` с поддержкой скринридеров (`role="status"`, `aria-live="polite"` и скрытым текстом `label`). Используется внутри `<Button loading>`, `<Header>` (индикатор очереди) и `<DataTableLoading>`.',
+          'Атомарный индикатор загрузки `Spinner` с поддержкой скринридеров (`role="status"`, `aria-live="polite"` и скрытым текстом `label`).',
       },
       source: {
         type: 'dynamic',
@@ -25,7 +27,7 @@ const meta: Meta<typeof Spinner> = {
   argTypes: {
     size: {
       control: 'inline-radio',
-      options: ['xs', 'sm', 'md', 'lg'],
+      options: ALL_SIZES,
       description: 'Размер индикатора вращения (`xs`, `sm`, `md`, `lg`).',
     },
     label: {
@@ -39,12 +41,11 @@ export default meta;
 type Story = StoryObj<typeof Spinner>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
-        story:
-          'Базовая интерактивная демонстрация `Spinner`. Настраивайте `size` и `label` через панель Controls.',
+        story: 'Базовая интерактивная демонстрация `Spinner` со всеми контролами (`size`, `label`).',
       },
     },
   },
@@ -52,7 +53,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Spinner — Индикатор асинхронной загрузки
+          Spinner — Индикатор асинхронной загрузки (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Доступный спиннер с поддержкой aria-live=&quot;polite&quot; и четырех размеров.
@@ -70,15 +71,57 @@ export const Base: Story = {
   ),
 };
 
-export const PropSize: Story = {
-  name: 'Пропс: size (Размер индикатора xs–lg)',
+export const PropSizeAll: Story = {
+  name: 'Пропс: size — Все размеры xs–lg (Без лишних контролов)',
+  parameters: {
+    controls: {
+      include: [],
+    },
+    docs: {
+      description: {
+        story: 'Визуальное сравнение всех 4 размеров `size` (`xs`, `sm`, `md`, `lg`) в одном ряду.',
+      },
+    },
+  },
+  render: () => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: size — Все размеры (xs, sm, md, lg)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Витрина всех размеров индикатора загрузки:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          {ALL_SIZES.map((sz) => (
+            <div key={sz} className={layoutStyles.box}>
+              <Text variant="mono" size="2xs" tone="muted">
+                size=&quot;{sz}&quot;
+              </Text>
+              <Spinner size={sz} label={`Loading ${sz}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropSizeSingle: Story = {
+  name: 'Пропс: size — Выбор размера (Контрол: только size)',
   args: {
     size: 'lg',
   },
   parameters: {
+    controls: {
+      include: ['size'],
+    },
     docs: {
       description: {
-        story: 'Пропс `size` управляет диаметром кольца спиннера (`xs`, `sm`, `md`, `lg`).',
+        story:
+          'Одиночный спиннер с **одним контролом** `size` (`xs`, `sm`, `md`, `lg`).',
       },
     },
   },
@@ -86,21 +129,15 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: size — Одиночный спиннер (Controls: только size)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте size в Controls и сравните все 4 размера рядом:
+          Переключайте size (&quot;{args.size}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Spinner {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Spinner size="xs" label="XS Spinner" />
-          <Spinner size="sm" label="SM Spinner" />
-          <Spinner size="md" label="MD Spinner" />
-          <Spinner size="lg" label="LG Spinner" />
+          <Spinner size={args.size} />
         </div>
       </div>
     </div>
@@ -108,16 +145,18 @@ export const PropSize: Story = {
 };
 
 export const PropLabel: Story = {
-  name: 'Пропс: label (Текст для скринридера)',
+  name: 'Пропс: label (Контрол: только label)',
   args: {
-    size: 'md',
     label: 'Синхронизация очереди задач Mercure SSE...',
   },
   parameters: {
+    controls: {
+      include: ['label'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `label` задает текст внутри `.srOnly` спана, который озвучивается программами экранного доступа при появлении спиннера.',
+          'Демонстрация пропса `label` для скринридера. В панели Controls доступен **только один контрол** — `label`.',
       },
     },
   },
@@ -125,15 +164,15 @@ export const PropLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: label (string)
+          prop: label (Controls: только label)
         </Text>
         <Text variant="caption" tone="secondary">
-          Скрытый текст статуса для скринридеров: &quot;{args.label}&quot;
+          Скрытый текст статуса (.srOnly) для скринридеров: &quot;{args.label}&quot;
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Spinner {...args} />
+          <Spinner size="md" label={args.label} />
         </div>
       </div>
     </div>

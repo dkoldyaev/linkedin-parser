@@ -74,7 +74,7 @@ export default meta;
 type Story = StoryObj<typeof TableBody>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -125,9 +125,11 @@ export const PropPaddingAndGap: Story = {
     gap: 'md',
   },
   parameters: {
+    controls: { include: ['padding', 'gap'] },
     docs: {
       description: {
-        story: 'Пропсы `padding` и `gap` принимают значения `"none" | "sm" | "md"`.',
+        story:
+          'Пропсы `padding` и `gap` принимают значения `"none" | "sm" | "md"`. Доступны только контролы `padding` и `gap`.',
       },
     },
   },
@@ -137,14 +139,14 @@ export const PropPaddingAndGap: Story = {
 export const PropEmptyState: Story = {
   name: 'Пропс: emptyState (Заглушка при пустом списке children)',
   args: {
-    padding: 'sm',
     emptyState: EMPTY_STATE_MAP.EmptyColumnState,
   },
   parameters: {
+    controls: { include: ['emptyState'] },
     docs: {
       description: {
         story:
-          'Если внутрь `<TableBody>` не передано ни одного дочернего элемента (`React.Children.count(children) === 0`), автоматически рендерится содержимое пропса `emptyState`.',
+          'Если внутрь `<TableBody>` не передано ни одного дочернего элемента (`React.Children.count(children) === 0`), автоматически рендерится содержимое пропса `emptyState`. Доступен только контрол `emptyState`.',
       },
     },
   },
@@ -152,7 +154,7 @@ export const PropEmptyState: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: emptyState (при отсутствии children)
+          prop: emptyState (при отсутствии children) — Контролы: [emptyState]
         </Text>
         <Text variant="caption" tone="secondary">
           Выберите вариант emptyState в панели Controls:
@@ -167,7 +169,7 @@ export const PropEmptyState: Story = {
                 Пустая колонка
               </Text>
             </TableHeader>
-            <TableBody {...args} />
+            <TableBody padding="sm" emptyState={args.emptyState} />
           </TableCol>
         </div>
       </div>

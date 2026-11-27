@@ -73,7 +73,7 @@ function InteractiveSlotDemo(args: ContainerQuerySlotProps): React.ReactElement 
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -92,12 +92,13 @@ export const PropMinAndMax: Story = {
     max: 650,
   },
   parameters: {
+    controls: { include: ['min', 'max'] },
     docs: {
       description: {
         story:
-          'Пропсы `min` и `max` формируют CSS-условие `(min-width: Xpx) and (max-width: Ypx)`. Если ширина контейнера выходит за эти пределы, слот скрывается через `display: none`.',
+          'Пропсы `min` и `max` формируют CSS-условие `(min-width: Xpx) and (max-width: Ypx)`. Если ширина контейнера выходит за эти пределы, слот скрывается через `display: none`. Доступны только два контрола: `min` и `max`.',
       },
     },
   },
-  render: (args) => <InteractiveSlotDemo {...args} />,
+  render: (args) => <InteractiveSlotDemo min={args.min} max={args.max}>{null}</InteractiveSlotDemo>,
 };

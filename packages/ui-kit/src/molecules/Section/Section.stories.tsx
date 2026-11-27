@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof Section>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -97,13 +97,13 @@ export const PropDividerAndBordered: Story = {
   args: {
     divider: true,
     bordered: true,
-    padding: 'md',
   },
   parameters: {
+    controls: { include: ['divider', 'bordered'] },
     docs: {
       description: {
         story:
-          'Пропс `divider` добавляет нижнюю линию между секциями в стеке, а `bordered` рисует полный контур вокруг секции.',
+          'Пропс `divider` добавляет нижнюю линию между секциями в стеке, а `bordered` рисует полный контур вокруг секции. Доступны только контролы `divider` и `bordered`.',
       },
     },
   },
@@ -111,14 +111,14 @@ export const PropDividerAndBordered: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: divider &amp; bordered (boolean)
+          props: divider &amp; bordered (boolean) — Контролы: [divider, bordered]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте флаги divider и bordered в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Section {...args}>
+        <Section divider={args.divider} bordered={args.bordered} padding="md">
           <Section.Header title="СЕКЦИЯ С НАСТРАИВАЕМЫМ КОНТУРОМ" />
           <Section.Body padding="sm">
             <Text variant="body-sm">
@@ -136,13 +136,13 @@ export const PropPaddingAndAs: Story = {
   args: {
     as: 'article',
     padding: 'lg',
-    bordered: true,
   },
   parameters: {
+    controls: { include: ['padding', 'as'] },
     docs: {
       description: {
         story:
-          'Пропс `padding` задает общий внутренний отступ контейнера `Section` (`none`, `xs`, `sm`, `md`, `lg`), а `as` выбирает семантический тег (`section`, `div`, `article`).',
+          'Пропс `padding` задает общий внутренний отступ контейнера `Section` (`none`, `xs`, `sm`, `md`, `lg`), а `as` выбирает семантический тег (`section`, `div`, `article`). Доступны только контролы `padding` и `as`.',
       },
     },
   },
@@ -150,14 +150,14 @@ export const PropPaddingAndAs: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: padding &amp; as
+          props: padding &amp; as — Контролы: [padding, as]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените padding и as в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Section {...args}>
+        <Section as={args.as} padding={args.padding} bordered>
           <Text variant="body-sm">
             Контейнер &lt;{args.as}&gt; с внешним отступом padding=&quot;{args.padding}&quot;.
           </Text>

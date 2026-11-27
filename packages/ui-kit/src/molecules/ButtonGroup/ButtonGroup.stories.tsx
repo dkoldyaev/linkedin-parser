@@ -46,7 +46,7 @@ export default meta;
 type Story = StoryObj<typeof ButtonGroup>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -95,10 +95,11 @@ export const PropVariant: Story = {
     variant: 'attached',
   },
   parameters: {
+    controls: { include: ['variant'] },
     docs: {
       description: {
         story:
-          'Пропс `variant` переключает визуальную стыковку кнопок: `attached` склеивает кнопки с коллапсом внутренних границ, а `detached` разделяет их стандартным отступом.',
+          'Пропс `variant` переключает визуальную стыковку кнопок: `attached` склеивает кнопки с коллапсом внутренних границ, а `detached` разделяет их стандартным отступом. Доступен только контрол `variant`.',
       },
     },
   },
@@ -106,7 +107,7 @@ export const PropVariant: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: variant (&quot;attached&quot; | &quot;detached&quot;)
+          prop: variant (&quot;attached&quot; | &quot;detached&quot;) — Контролы: [variant]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте variant в Controls для первого блока и сравните оба варианта ниже:
@@ -114,7 +115,7 @@ export const PropVariant: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div>
-          <ButtonGroup {...args}>
+          <ButtonGroup variant={args.variant}>
             <Button variant="ghost" size="icon" aria-label="Move left">
               <Icon icon={ChevronLeft} size="sm" />
             </Button>
@@ -152,14 +153,14 @@ export const PropVariant: Story = {
 export const PropFullWidth: Story = {
   name: 'Пропс: fullWidth (Растягивание группы на 100%)',
   args: {
-    variant: 'attached',
     fullWidth: true,
   },
   parameters: {
+    controls: { include: ['fullWidth'] },
     docs: {
       description: {
         story:
-          'Пропс `fullWidth` растягивает контейнер группы на всю ширину родителя, а дочерние кнопки делят доступное пространство поровну.',
+          'Пропс `fullWidth` растягивает контейнер группы на всю ширину родителя, а дочерние кнопки делят доступное пространство поровну. Доступен только контрол `fullWidth`.',
       },
     },
   },
@@ -167,14 +168,14 @@ export const PropFullWidth: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: fullWidth (boolean)
+          prop: fullWidth (boolean) — Контролы: [fullWidth]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг fullWidth в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ButtonGroup {...args}>
+        <ButtonGroup variant="attached" fullWidth={args.fullWidth}>
           <Button variant="secondary" size="sm">
             Day
           </Button>

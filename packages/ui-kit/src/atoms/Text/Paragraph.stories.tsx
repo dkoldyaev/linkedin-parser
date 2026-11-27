@@ -2,6 +2,21 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Paragraph, Text } from './Text';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
+const ALL_SPACINGS = ['none', 'sm', 'md', 'lg'] as const;
+const ALL_SIZES = ['sm', 'md'] as const;
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+const ALL_WEIGHTS = ['regular', 'medium', 'semibold', 'bold'] as const;
+
 const meta: Meta<typeof Paragraph> = {
   title: 'Atoms/Text/Paragraph',
   component: Paragraph,
@@ -28,32 +43,22 @@ const meta: Meta<typeof Paragraph> = {
   argTypes: {
     spacing: {
       control: 'inline-radio',
-      options: ['none', 'sm', 'md', 'lg'],
-      description: 'Нижний внешний отступ (`margin-bottom`) после абзаца для формирования вертикального ритма.',
+      options: ALL_SPACINGS,
+      description: 'Нижний внешний отступ (`margin-bottom`) после абзаца.',
     },
     size: {
       control: 'inline-radio',
-      options: ['sm', 'md'],
+      options: ALL_SIZES,
       description: 'Размер текста абзаца (`sm` — компактный, `md` — стандартный).',
     },
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон текста абзаца.',
     },
     weight: {
       control: 'inline-radio',
-      options: ['regular', 'medium', 'semibold', 'bold'],
+      options: ALL_WEIGHTS,
       description: 'Насыщенность шрифта (`font-weight`).',
     },
     children: {
@@ -67,12 +72,12 @@ export default meta;
 type Story = StoryObj<typeof Paragraph>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация компонента `Paragraph`. Используйте Controls для настройки `spacing`, `size`, `tone`, `weight` и `children`.',
+          'Базовая интерактивная демонстрация компонента `Paragraph` со всеми контролами (`spacing`, `size`, `tone`, `weight`, `children`).',
       },
     },
   },
@@ -94,15 +99,19 @@ export const Base: Story = {
 };
 
 export const PropSpacing: Story = {
-  name: 'Пропс: spacing (Нижний отступ)',
+  name: 'Пропс: spacing (Контролы: spacing, children)',
   args: {
     spacing: 'md',
+    children: 'Первый абзац с настраиваемым нижним отступом до следующего элемента.',
   },
   parameters: {
+    controls: {
+      include: ['spacing', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `spacing` управляет нижним отступом между последовательными абзацами (`none`, `sm`, `md`, `lg`).',
+          'Демонстрация пропса `spacing` (`none`, `sm`, `md`, `lg`). В панели Controls доступны только `spacing` и `children`.',
       },
     },
   },
@@ -110,20 +119,18 @@ export const PropSpacing: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: spacing (&quot;none&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: spacing (Controls: только spacing и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Регулирует расстояние до следующего блочного элемента. Измените spacing в Controls, чтобы
-          увидеть разницу между первым и вторым абзацем:
+          Переключайте spacing (&quot;{args.spacing}&quot;) для изменения отступа между первым и вторым
+          абзацем:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Paragraph {...args}>
-            Первый абзац с настраиваемым отступом spacing=&quot;{args.spacing}&quot;.
-          </Paragraph>
+          <Paragraph spacing={args.spacing}>{args.children}</Paragraph>
           <Paragraph spacing="none" tone="secondary">
-            Следующий за ним опорный абзац (показывает границу отступа первого абзаца).
+            Опорный второй абзац (показывает нижнюю границу отступа первого абзаца).
           </Paragraph>
         </div>
       </div>
@@ -131,15 +138,19 @@ export const PropSpacing: Story = {
   ),
 };
 
-export const PropSize: Story = {
-  name: 'Пропс: size (Размер шрифта)',
+export const PropSizeAll: Story = {
+  name: 'Пропс: size — Все размеры (Контрол: только children)',
   args: {
-    size: 'sm',
+    children: 'Пример текста абзаца для сравнения компактного (sm) и стандартного (md) размера.',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `size` выбирает размер шрифта абзаца (`sm` или `md`).',
+        story:
+          'Показывает все варианты `size` (`sm`, `md`) одновременно с единственным контролом `children`.',
       },
     },
   },
@@ -147,32 +158,78 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;sm&quot; | &quot;md&quot;)
+          prop: size — Все размеры (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Позволяет выбрать компактный (sm) или стандартный (md) размер текста для карточек и
-          модальных окон.
+          Измените текст в контроле children для сравнения размеров sm и md:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Paragraph {...args}>
-          Интерактивный абзац (size=&quot;{args.size}&quot;): {args.children}
-        </Paragraph>
+        {ALL_SIZES.map((sz) => (
+          <div key={sz} className={layoutStyles.box}>
+            <Text variant="mono" size="2xs" tone="accent">
+              size=&quot;{sz}&quot;
+            </Text>
+            <Paragraph size={sz} spacing="none">
+              {args.children}
+            </Paragraph>
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+export const PropSizeSingle: Story = {
+  name: 'Пропс: size — Выбор размера (Контролы: size, children)',
+  args: {
+    size: 'sm',
+    children: 'Интерактивный абзац с настраиваемым размером шрифта.',
+  },
+  parameters: {
+    controls: {
+      include: ['size', 'children'],
+    },
+    docs: {
+      description: {
+        story: 'Одиночный абзац с двумя контролами: `size` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: size — Одиночный абзац (Controls: только size и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте size (&quot;{args.size}&quot;) и редактируйте текст children:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.box}>
+          <Paragraph size={args.size} spacing="none">
+            {args.children}
+          </Paragraph>
+        </div>
       </div>
     </div>
   ),
 };
 
 export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цвет)',
+  name: 'Пропс: tone (Контролы: tone, children)',
   args: {
     tone: 'secondary',
+    children: 'Абзац с выбранным семантическим цветовым тоном.',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `tone` задает цвет текста абзаца из семантической палитры (`primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`).',
+        story: 'Демонстрация пропса `tone`. В панели Controls доступны только `tone` и `children`.',
       },
     },
   },
@@ -180,26 +237,16 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Управляет цветовым акцентом текста абзаца. Переключайте tone в Controls:
+          Выберите семантический тон (&quot;{args.tone}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Paragraph {...args} />
-        <div className={layoutStyles.stackSm}>
-          <Paragraph spacing="none" tone="primary">
-            tone=&quot;primary&quot; — Основной текст описания
-          </Paragraph>
-          <Paragraph spacing="none" tone="secondary">
-            tone=&quot;secondary&quot; — Вторичный поясняющий текст
-          </Paragraph>
-          <Paragraph spacing="none" tone="muted">
-            tone=&quot;muted&quot; — Приглушенная заметка или мета-информация
-          </Paragraph>
-          <Paragraph spacing="none" tone="accent">
-            tone=&quot;accent&quot; — Акцентный абзац
+        <div className={layoutStyles.box}>
+          <Paragraph tone={args.tone} spacing="none">
+            {args.children}
           </Paragraph>
         </div>
       </div>
@@ -208,15 +255,18 @@ export const PropTone: Story = {
 };
 
 export const PropWeight: Story = {
-  name: 'Пропс: weight (Насыщенность шрифта)',
+  name: 'Пропс: weight (Контролы: weight, children)',
   args: {
     weight: 'semibold',
+    children: 'Вводный абзац с повышенной насыщенностью шрифта.',
   },
   parameters: {
+    controls: {
+      include: ['weight', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `weight` управляет толщиной начертания текста (`regular`, `medium`, `semibold`, `bold`).',
+        story: 'Демонстрация пропса `weight`. В панели Controls доступны только `weight` и `children`.',
       },
     },
   },
@@ -224,45 +274,18 @@ export const PropWeight: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: weight (&quot;regular&quot; | &quot;medium&quot; | &quot;semibold&quot; | &quot;bold&quot;)
+          prop: weight (Controls: только weight и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Изменяет font-weight абзаца для выделения ключевых вводных абзацев (lead paragraphs).
+          Переключайте weight (&quot;{args.weight}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Paragraph {...args}>
-          Интерактивный образец с weight=&quot;{args.weight}&quot;: {args.children}
-        </Paragraph>
-      </div>
-    </div>
-  ),
-};
-
-export const PropChildren: Story = {
-  name: 'Пропс: children (Содержимое абзаца)',
-  args: {
-    children: 'Произвольный текст абзаца, редактируемый в реальном времени через Controls.',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Пропс `children` передает текст или инлайн-элементы внутрь `<p>`.',
-      },
-    },
-  },
-  render: (args) => (
-    <div className={layoutStyles.propDocBox}>
-      <div className={layoutStyles.propInfoHeader}>
-        <Text variant="mono-label" tone="accent">
-          prop: children
-        </Text>
-        <Text variant="caption" tone="secondary">
-          Основное содержимое абзаца:
-        </Text>
-      </div>
-      <div className={layoutStyles.propPreviewArea}>
-        <Paragraph {...args} />
+        <div className={layoutStyles.box}>
+          <Paragraph weight={args.weight} spacing="none">
+            {args.children}
+          </Paragraph>
+        </div>
       </div>
     </div>
   ),

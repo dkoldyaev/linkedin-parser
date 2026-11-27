@@ -3,6 +3,10 @@ import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Skeleton } from './Skeleton';
 import { Text } from '../Text';
 
+const ALL_VARIANTS = ['text', 'rect', 'circle', 'chip'] as const;
+const ALL_WIDTHS = ['25', '50', '60', '75', '85', '100', 'full'] as const;
+const ALL_HEIGHTS = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+
 const meta: Meta<typeof Skeleton> = {
   title: 'Atoms/Skeleton',
   component: Skeleton,
@@ -11,7 +15,7 @@ const meta: Meta<typeof Skeleton> = {
     docs: {
       description: {
         component:
-          'Атомарный компонент скелетон-заглушки `Skeleton` для индикации загрузки контента на 32px сетке Blueprint. Используется в состояниях загрузки карточек (`CardFullLoading`, `CardCollapsedLoading`) и списков. Поддерживает формы `text`, `rect`, `circle`, `chip`, токенизированные ширины (`width`), высоты (`height`) и пульсирующую анимацию (`animated`).',
+          'Атомарный компонент скелетон-заглушки `Skeleton` для индикации загрузки контента на 32px сетке Blueprint. Поддерживает формы `text`, `rect`, `circle`, `chip`, токенизированные ширины (`width`), высоты (`height`) и пульсирующую анимацию (`animated`).',
       },
       source: {
         type: 'dynamic',
@@ -27,17 +31,17 @@ const meta: Meta<typeof Skeleton> = {
   argTypes: {
     variant: {
       control: 'inline-radio',
-      options: ['text', 'rect', 'circle', 'chip'],
+      options: ALL_VARIANTS,
       description: 'Геометрическая форма скелетона (`text`, `rect`, `circle`, `chip`).',
     },
     width: {
       control: 'select',
-      options: ['25', '50', '60', '75', '85', '100', 'full'],
+      options: ALL_WIDTHS,
       description: 'Процентная ширина скелетона относительно контейнера (`25%`..`100%`).',
     },
     height: {
       control: 'inline-radio',
-      options: ['xs', 'sm', 'md', 'lg', 'xl'],
+      options: ALL_HEIGHTS,
       description: 'Высота скелетона (`xs`, `sm`, `md`, `lg`, `xl`).',
     },
     animated: {
@@ -51,12 +55,12 @@ export default meta;
 type Story = StoryObj<typeof Skeleton>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Skeleton`. Настраивайте `variant`, `width`, `height` и `animated` через панель Controls.',
+          'Базовая интерактивная демонстрация `Skeleton`. Доступны все контролы компонента (`variant`, `width`, `height`, `animated`).',
       },
     },
   },
@@ -78,18 +82,20 @@ export const Base: Story = {
   ),
 };
 
-export const PropVariant: Story = {
-  name: 'Пропс: variant (Форма плейсхолдера)',
+export const PropVariantAll: Story = {
+  name: 'Пропс: variant (Все формы сразу + контрол размеров)',
   args: {
-    variant: 'chip',
-    width: '25',
+    width: '50',
     height: 'md',
   },
   parameters: {
+    controls: {
+      include: ['width', 'height'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `variant` определяет назначение плейсхолдера: `text` (строка текста), `rect` (прямоугольный блок), `circle` (круглая иконка/аватар), `chip` (бейдж/тег).',
+          'Витрина всех возможных значений пропса `variant` (`text`, `rect`, `circle`, `chip`). В панели Controls доступны только `width` и `height`, чтобы сравнить поведение всех форм при одинаковых габаритах.',
       },
     },
   },
@@ -97,40 +103,41 @@ export const PropVariant: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: variant (&quot;text&quot; | &quot;rect&quot; | &quot;circle&quot; | &quot;chip&quot;)
+          prop: variant — Все варианты форм (Controls: только width и height)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте variant в Controls или сравните все 4 формы ниже:
+          Изменяйте width и height в Controls, чтобы увидеть, как все 4 формы реагируют на размеры:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Skeleton {...args} />
         <div className={layoutStyles.stackSm}>
-          <Skeleton variant="text" width="75" height="sm" />
-          <div className={layoutStyles.row}>
-            <Skeleton variant="circle" height="lg" />
-            <Skeleton variant="chip" width="25" />
-            <Skeleton variant="chip" width="25" />
-          </div>
-          <Skeleton variant="rect" width="100" height="xl" />
+          {ALL_VARIANTS.map((v) => (
+            <div key={v} className={layoutStyles.box}>
+              <Text variant="mono" size="xs" tone="secondary">
+                variant=&quot;{v}&quot; (width=&quot;{args.width}&quot;, height=&quot;{args.height}&quot;)
+              </Text>
+              <Skeleton variant={v} width={args.width} height={args.height} animated />
+            </div>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropWidth: Story = {
-  name: 'Пропс: width (Процентная ширина)',
+export const PropVariantSingle: Story = {
+  name: 'Пропс: variant (Выбор одной формы)',
   args: {
-    variant: 'text',
-    width: '60',
-    height: 'sm',
+    variant: 'chip',
   },
   parameters: {
+    controls: {
+      include: ['variant'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `width` задает ширину строки скелетона (`25`, `50`, `60`, `75`, `85`, `100`, `full`) для имитации естественного многострочного абзаца.',
+          'Интерактивный тест одного скелетона с единственным контролом `variant` для переключения формы.',
       },
     },
   },
@@ -138,38 +145,33 @@ export const PropWidth: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: width (&quot;25&quot; | &quot;50&quot; | &quot;60&quot; | &quot;75&quot; | &quot;85&quot; | &quot;100&quot; | &quot;full&quot;)
+          prop: variant — Одиночный блок (Controls: только variant)
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените width в Controls и сравните со шкалой ширин ниже:
+          В панели Controls оставлен только переключатель variant (&quot;text&quot; | &quot;rect&quot; | &quot;circle&quot; | &quot;chip&quot;):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Skeleton {...args} />
-        <div className={layoutStyles.stackSm}>
-          <Skeleton variant="text" width="25" height="xs" />
-          <Skeleton variant="text" width="50" height="xs" />
-          <Skeleton variant="text" width="60" height="xs" />
-          <Skeleton variant="text" width="75" height="xs" />
-          <Skeleton variant="text" width="85" height="xs" />
-          <Skeleton variant="text" width="100" height="xs" />
-        </div>
+        <Skeleton variant={args.variant} width="50" height="lg" animated />
       </div>
     </div>
   ),
 };
 
-export const PropHeight: Story = {
-  name: 'Пропс: height (Высота плейсхолдера)',
+export const PropDimensionsAcrossVariants: Story = {
+  name: 'Пропсы: width и height (Настройка размеров для всех форм)',
   args: {
-    variant: 'rect',
-    width: '100',
+    width: '75',
     height: 'lg',
   },
   parameters: {
+    controls: {
+      include: ['width', 'height'],
+    },
     docs: {
       description: {
-        story: 'Пропс `height` задает высоту скелетона (`xs`, `sm`, `md`, `lg`, `xl`).',
+        story:
+          'Показывает все формы `variant` (`text`, `rect`, `circle`, `chip`), а в панели Controls оставлены только два контрола — `width` и `height`, которые регулируют ширину и высоту скелетонов.',
       },
     },
   },
@@ -177,20 +179,108 @@ export const PropHeight: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: height (&quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot; | &quot;xl&quot;)
+          props: width &amp; height (Controls: только width и height)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Два контрола (width и height) управляют габаритами всех вариантов форм одновременно:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.stackSm}>
+          {ALL_VARIANTS.map((v) => (
+            <div key={v} className={layoutStyles.stackSm}>
+              <Text variant="mono" size="2xs" tone="muted">
+                &lt;Skeleton variant=&quot;{v}&quot; width=&quot;{args.width}&quot; height=&quot;{args.height}&quot; /&gt;
+              </Text>
+              <Skeleton variant={v} width={args.width} height={args.height} animated />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropWidthScale: Story = {
+  name: 'Пропс: width (Шкала процентной ширины)',
+  args: {
+    width: '60',
+  },
+  parameters: {
+    controls: {
+      include: ['width'],
+    },
+    docs: {
+      description: {
+        story:
+          'Интерактивная демонстрация пропса `width` с единственным контролом `width` (`25`, `50`, `60`, `75`, `85`, `100`, `full`).',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: width (Controls: только width)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Меняйте width в Controls для верхнего образца и сравните со всей шкалой ширин ниже:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.box}>
+          <Text variant="mono" size="xs" tone="accent">
+            Активный: width=&quot;{args.width}&quot;
+          </Text>
+          <Skeleton variant="text" width={args.width} height="md" />
+        </div>
+        <div className={layoutStyles.stackSm}>
+          {ALL_WIDTHS.map((w) => (
+            <Skeleton key={w} variant="text" width={w} height="xs" />
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropHeightScale: Story = {
+  name: 'Пропс: height (Шкала высоты xs–xl)',
+  args: {
+    height: 'lg',
+  },
+  parameters: {
+    controls: {
+      include: ['height'],
+    },
+    docs: {
+      description: {
+        story:
+          'Интерактивная демонстрация пропса `height` с единственным контролом `height` (`xs`, `sm`, `md`, `lg`, `xl`).',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: height (Controls: только height)
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте height в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Skeleton {...args} />
+        <div className={layoutStyles.box}>
+          <Text variant="mono" size="xs" tone="accent">
+            Активный: height=&quot;{args.height}&quot;
+          </Text>
+          <Skeleton variant="rect" width="75" height={args.height} />
+        </div>
         <div className={layoutStyles.stackSm}>
-          <Skeleton variant="rect" width="50" height="xs" />
-          <Skeleton variant="rect" width="50" height="sm" />
-          <Skeleton variant="rect" width="50" height="md" />
-          <Skeleton variant="rect" width="50" height="lg" />
-          <Skeleton variant="rect" width="50" height="xl" />
+          {ALL_HEIGHTS.map((h) => (
+            <Skeleton key={h} variant="rect" width="50" height={h} />
+          ))}
         </div>
       </div>
     </div>
@@ -200,16 +290,16 @@ export const PropHeight: Story = {
 export const PropAnimated: Story = {
   name: 'Пропс: animated (Анимация пульсации)',
   args: {
-    variant: 'rect',
-    width: '75',
-    height: 'lg',
     animated: true,
   },
   parameters: {
+    controls: {
+      include: ['animated'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `animated` включает или отключает CSS-анимацию перелива скелетона (`animated={false}` полезен для статических скриншот-тестов).',
+          'Демонстрация пропса `animated`. В панели Controls оставлен только булев переключатель `animated`.',
       },
     },
   },
@@ -217,14 +307,14 @@ export const PropAnimated: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: animated (boolean)
+          prop: animated (Controls: только animated)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг animated в панели Controls:
+          Переключите флаг animated ({String(args.animated)}) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Skeleton {...args} />
+        <Skeleton variant="rect" width="75" height="lg" animated={args.animated} />
       </div>
     </div>
   ),

@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof HeaderBrand>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -85,9 +85,11 @@ export const PropTitleAndSubtitle: Story = {
     subtitle: 'ARCHITECTURE GRID v2.0',
   },
   parameters: {
+    controls: { include: ['title', 'subtitle'] },
     docs: {
       description: {
-        story: 'Пропсы `title` и `subtitle` задают двухстрочную типографику бренда.',
+        story:
+          'Пропсы `title` и `subtitle` задают двухстрочную типографику бренда. Доступны только контролы `title` и `subtitle`.',
       },
     },
   },
@@ -95,14 +97,14 @@ export const PropTitleAndSubtitle: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title &amp; subtitle
+          props: title &amp; subtitle — Контролы: [title, subtitle]
         </Text>
         <Text variant="caption" tone="secondary">
           Отредактируйте title и subtitle в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <HeaderBrand {...args} />
+        <HeaderBrand title={args.title} subtitle={args.subtitle} />
       </div>
     </div>
   ),
@@ -111,15 +113,14 @@ export const PropTitleAndSubtitle: Story = {
 export const PropBrandIcon: Story = {
   name: 'Пропс: brandIcon (Кастомная иконка логотипа)',
   args: {
-    title: 'BLUEPRINT.UI',
-    subtitle: 'CUSTOM ICON',
     brandIcon: BRAND_ICON_MAP.LayersIcon,
   },
   parameters: {
+    controls: { include: ['brandIcon'] },
     docs: {
       description: {
         story:
-          'Пропс `brandIcon` позволяет заменить стандартный квадратный маркер Blueprint на произвольную иконку `<Icon />`.',
+          'Пропс `brandIcon` позволяет заменить стандартный квадратный маркер Blueprint на произвольную иконку `<Icon />`. Доступен только контрол `brandIcon`.',
       },
     },
   },
@@ -127,14 +128,14 @@ export const PropBrandIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: brandIcon
+          prop: brandIcon — Контролы: [brandIcon]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте brandIcon в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <HeaderBrand {...args} />
+        <HeaderBrand title="BLUEPRINT.UI" subtitle="CUSTOM ICON" brandIcon={args.brandIcon} />
       </div>
     </div>
   ),

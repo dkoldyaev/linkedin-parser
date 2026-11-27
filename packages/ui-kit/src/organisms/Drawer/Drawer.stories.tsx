@@ -136,7 +136,7 @@ function InteractiveDrawerDemo(args: DrawerProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -152,18 +152,26 @@ export const PropPlacement: Story = {
   name: 'Пропс: placement (Выдвижение слева left или справа right)',
   args: {
     placement: 'right',
-    title: 'ИНСПЕКТОР НАСТРОЕК',
-    tag: 'SYSTEM PANEL',
   },
   parameters: {
+    controls: { include: ['placement'] },
     docs: {
       description: {
         story:
-          'Пропс `placement` определяет край экрана, к которому привязана панель: `left` (для главного меню) или `right` (для инспектора/настроек).',
+          'Пропс `placement` определяет край экрана, к которому привязана панель: `left` (для главного меню) или `right` (для инспектора/настроек). Доступен только контрол `placement`.',
       },
     },
   },
-  render: (args) => <InteractiveDrawerDemo {...args} />,
+  render: (args) => (
+    <InteractiveDrawerDemo
+      isOpen={false}
+      onClose={() => undefined}
+      placement={args.placement}
+      title="ИНСПЕКТОР НАСТРОЕК"
+      tag="SYSTEM PANEL"
+      links={SAMPLE_LINKS}
+    />
+  ),
 };
 
 export const PropTitleTagAndHideCloseButton: Story = {
@@ -175,35 +183,48 @@ export const PropTitleTagAndHideCloseButton: Story = {
     hideCloseButton: false,
   },
   parameters: {
+    controls: { include: ['title', 'tag', 'closeLabel', 'hideCloseButton'] },
     docs: {
       description: {
         story:
-          'Пропсы `title` и `tag` формируют заголовок шапки, а `hideCloseButton` и `closeLabel` управляют кнопкой закрытия.',
+          'Пропсы `title` и `tag` формируют заголовок шапки, а `hideCloseButton` и `closeLabel` управляют кнопкой закрытия. Доступны только контролы `title`, `tag`, `closeLabel` и `hideCloseButton`.',
       },
     },
   },
-  render: (args) => <InteractiveDrawerDemo {...args} />,
+  render: (args) => (
+    <InteractiveDrawerDemo
+      isOpen={false}
+      onClose={() => undefined}
+      title={args.title}
+      tag={args.tag}
+      closeLabel={args.closeLabel}
+      hideCloseButton={args.hideCloseButton}
+      links={SAMPLE_LINKS}
+    />
+  ),
 };
 
-export const PropLinksAndSlots: Story = {
-  name: 'Пропсы: links, headerSlot, footerSlot и children',
+export const PropLinks: Story = {
+  name: 'Пропс: links (Навигационные пункты)',
   args: {
     links: SAMPLE_LINKS,
-    children: (
-      <div className={layoutStyles.box}>
-        <Text variant="caption" tone="secondary">
-          Дополнительный произвольный контент (children) под списком навигационных ссылок.
-        </Text>
-      </div>
-    ),
   },
   parameters: {
+    controls: { include: ['links'] },
     docs: {
       description: {
         story:
-          'Пропс `links` рендерит нумерованный список навигации (`01`, `02`...) с иконками, бейджами и стрелками `→`, а `children` и `footerSlot` позволяют разместить дополнительный контент.',
+          'Пропс `links` рендерит нумерованный список навигации (`01`, `02`...) с иконками, бейджами и стрелками `→`. Доступен только контрол `links`.',
       },
     },
   },
-  render: (args) => <InteractiveDrawerDemo {...args} />,
+  render: (args) => (
+    <InteractiveDrawerDemo
+      isOpen={false}
+      onClose={() => undefined}
+      title="BLUEPRINT WORKSPACE"
+      tag="NAVIGATION"
+      links={args.links}
+    />
+  ),
 };

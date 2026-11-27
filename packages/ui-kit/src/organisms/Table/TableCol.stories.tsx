@@ -47,7 +47,7 @@ export default meta;
 type Story = StoryObj<typeof TableCol>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -101,10 +101,11 @@ export const PropGridUnitsAndFluid: Story = {
     fluid: false,
   },
   parameters: {
+    controls: { include: ['gridUnits', 'fluid'] },
     docs: {
       description: {
         story:
-          'Пропс `gridUnits` фиксирует ширину колонки в кратных 32px единицах, а `fluid={true}` переключает колонку в резиновый режим `flex: 1 1 0`.',
+          'Пропс `gridUnits` фиксирует ширину колонки в кратных 32px единицах, а `fluid={true}` переключает колонку в резиновый режим `flex: 1 1 0`. Доступны только контролы `gridUnits` и `fluid`.',
       },
     },
   },
@@ -112,7 +113,7 @@ export const PropGridUnitsAndFluid: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: gridUnits &amp; fluid
+          props: gridUnits &amp; fluid — Контролы: [gridUnits, fluid]
         </Text>
         <Text variant="caption" tone="secondary">
           Сравнение колонки из Controls и стандартных ширин 8 (256px) и 10 (320px) ячеек:
@@ -120,7 +121,7 @@ export const PropGridUnitsAndFluid: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <TableCol {...args}>
+          <TableCol gridUnits={args.gridUnits} fluid={args.fluid}>
             <TableHeader>
               <StatusDot tone="info" size="md" />
               <Text as="span" variant="mono-label" weight="semibold">
@@ -156,16 +157,44 @@ export const PropGridUnitsAndFluid: Story = {
 export const PropIsDragOver: Story = {
   name: 'Пропс: isDragOver (Подсветка активной зоны сброса Drag-and-Drop)',
   args: {
-    gridUnits: 10,
     isDragOver: true,
   },
   parameters: {
+    controls: { include: ['isDragOver'] },
     docs: {
       description: {
         story:
-          'Пропс `isDragOver` подсвечивает колонку при наведении перетаскиваемой карточки кандидата.',
+          'Пропс `isDragOver` подсвечивает колонку при наведении перетаскиваемой карточки кандидата. Доступен только контрол `isDragOver`.',
       },
     },
   },
-  render: Base.render,
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: isDragOver (boolean) — Контролы: [isDragOver]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте флаг isDragOver в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          <TableCol gridUnits={10} isDragOver={args.isDragOver}>
+            <TableHeader>
+              <StatusDot tone="primary" size="md" />
+              <Text as="span" variant="mono-label" weight="semibold" tone="primary">
+                Drop Zone (isDragOver={String(args.isDragOver)})
+              </Text>
+            </TableHeader>
+            <TableBody padding="sm">
+              <TableCell padding="sm" bordered>
+                <Text variant="caption">Содержимое колонки</Text>
+              </TableCell>
+            </TableBody>
+          </TableCol>
+        </div>
+      </div>
+    </div>
+  ),
 };

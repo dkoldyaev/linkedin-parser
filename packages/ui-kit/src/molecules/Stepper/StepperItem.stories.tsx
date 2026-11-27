@@ -124,7 +124,7 @@ export default meta;
 type Story = StoryObj<typeof StepperItem>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -153,18 +153,19 @@ export const Base: Story = {
 };
 
 export const PropFromLabelAndLabel: Story = {
-  name: 'Пропсы: fromLabel и label (Бейджи перехода между этапами)',
+  name: 'Пропсы: fromLabel, label, duration, timestamp',
   args: {
     fromLabel: 'CV Adapted',
     label: 'Technical Screening',
-    tone: 'info',
-    active: false,
+    duration: '2д',
+    timestamp: '14 нояб., 15:00',
   },
   parameters: {
+    controls: { include: ['fromLabel', 'label', 'duration', 'timestamp'] },
     docs: {
       description: {
         story:
-          'Если передан `fromLabel`, перед основным бейджем `label` рендерится контурный бейдж предыдущего этапа и иконка стрелки `ArrowRight`.',
+          'Если передан `fromLabel`, перед основным бейджем `label` рендерится контурный бейдж предыдущего этапа и иконка стрелки `ArrowRight`. Доступны только контролы `fromLabel`, `label`, `duration` и `timestamp`.',
       },
     },
   },
@@ -172,7 +173,7 @@ export const PropFromLabelAndLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: fromLabel &amp; label
+          props: fromLabel, label, duration &amp; timestamp — Контролы: [fromLabel, label, duration, timestamp]
         </Text>
         <Text variant="caption" tone="secondary">
           Очистите fromLabel в Controls, чтобы увидеть одиночный бейдж без стрелки перехода:
@@ -180,7 +181,14 @@ export const PropFromLabelAndLabel: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <ol>
-          <StepperItem {...args} />
+          <StepperItem
+            id="from-label-demo"
+            fromLabel={args.fromLabel}
+            label={args.label}
+            duration={args.duration}
+            timestamp={args.timestamp}
+            tone="info"
+          />
         </ol>
       </div>
     </div>
@@ -190,16 +198,16 @@ export const PropFromLabelAndLabel: Story = {
 export const PropActiveToneAndIsLast: Story = {
   name: 'Пропсы: active, tone и isLast (Состояние точки и линии трека)',
   args: {
-    label: 'Финальный оффер',
     tone: 'success',
     active: true,
     isLast: true,
   },
   parameters: {
+    controls: { include: ['active', 'tone', 'isLast'] },
     docs: {
       description: {
         story:
-          'Пропс `active` включает пульсацию `StatusDot`, `tone` задает семантический цвет, а `isLast={true}` убирает вертикальную соединительную линию под точкой.',
+          'Пропс `active` включает пульсацию `StatusDot`, `tone` задает семантический цвет, а `isLast={true}` убирает вертикальную соединительную линию под точкой. Доступны только контролы `active`, `tone` и `isLast`.',
       },
     },
   },
@@ -207,15 +215,22 @@ export const PropActiveToneAndIsLast: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: active, tone &amp; isLast
+          props: active, tone &amp; isLast — Контролы: [active, tone, isLast]
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте флаги active и isLast в панели Controls:
+          Переключайте флаги active, tone и isLast в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <ol>
-          <StepperItem {...args} />
+          <StepperItem
+            id="active-tone-demo"
+            label="Финальный оффер"
+            tone={args.tone}
+            active={args.active}
+            isLast={args.isLast}
+            description="Состояние индикатора и соединительной линии."
+          />
         </ol>
       </div>
     </div>
@@ -225,16 +240,15 @@ export const PropActiveToneAndIsLast: Story = {
 export const PropActionsAndContentSlot: Story = {
   name: 'Пропсы: actions и contentSlot (Кнопки действий и инлайн-редактор)',
   args: {
-    label: 'Собеседование с CTO',
-    timestamp: '15 нояб., 18:00',
     actions: ACTIONS_MAP.EditAndDeleteBtns,
     contentSlot: CONTENT_SLOT_MAP.CommentEditor,
   },
   parameters: {
+    controls: { include: ['actions', 'contentSlot'] },
     docs: {
       description: {
         story:
-          'Пропс `actions` размещает иконочные кнопки справа от времени шага, а `contentSlot` рендерит произвольную интерактивную форму (например редактирование комментария) под шагом.',
+          'Пропс `actions` размещает иконочные кнопки справа от времени шага, а `contentSlot` рендерит произвольную интерактивную форму (например редактирование комментария) под шагом. Доступны только контролы `actions` и `contentSlot`.',
       },
     },
   },
@@ -242,7 +256,7 @@ export const PropActionsAndContentSlot: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: actions &amp; contentSlot
+          props: actions &amp; contentSlot — Контролы: [actions, contentSlot]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте варианты actions и contentSlot в панели Controls:
@@ -250,7 +264,13 @@ export const PropActionsAndContentSlot: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <ol>
-          <StepperItem {...args} />
+          <StepperItem
+            id="actions-slot-demo"
+            label="Собеседование с CTO"
+            timestamp="15 нояб., 18:00"
+            actions={args.actions}
+            contentSlot={args.contentSlot}
+          />
         </ol>
       </div>
     </div>

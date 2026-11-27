@@ -80,12 +80,12 @@ export default meta;
 type Story = StoryObj<typeof Link>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация компонента `Link`. Позволяет настроить `href`, `external`, `startIcon` и `children` через панель Controls.',
+          'Базовая интерактивная демонстрация компонента `Link` со всеми контролами (`href`, `external`, `variant`, `tone`, `startIcon`, `children`).',
       },
     },
   },
@@ -109,15 +109,19 @@ export const Base: Story = {
 };
 
 export const PropHref: Story = {
-  name: 'Пропс: href (Целевой URL)',
+  name: 'Пропс: href (Контролы: href, children)',
   args: {
     href: 'https://github.com/dkoldyaev/linkedin-parser',
     children: 'Репозиторий проекта на GitHub',
   },
   parameters: {
+    controls: {
+      include: ['href', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `href` задает адрес назначения гиперссылки.',
+        story:
+          'Демонстрация пропса `href`. В панели Controls доступны только `href` и `children`.',
       },
     },
   },
@@ -125,15 +129,15 @@ export const PropHref: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: href
+          prop: href (Controls: только href и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Задает атрибут href для элемента &lt;a&gt;. Текущий URL: <code>{args.href}</code>
+          Задает целевой адрес ссылки: <code>{args.href}</code>
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div>
-          <Link {...args} />
+          <Link href={args.href}>{args.children}</Link>
         </div>
       </div>
     </div>
@@ -141,16 +145,19 @@ export const PropHref: Story = {
 };
 
 export const PropExternal: Story = {
-  name: 'Пропс: external (Внешняя ссылка)',
+  name: 'Пропс: external (Контролы: external, children)',
   args: {
     external: true,
-    children: 'Внешняя документация (external=true)',
+    children: 'Внешняя документация (иконка ExternalLink)',
   },
   parameters: {
+    controls: {
+      include: ['external', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `external` включает режим внешней ссылки: добавляет `target="_blank"`, `rel="noopener noreferrer"` и отображает иконку `ExternalLink` из `lucide-react`.',
+          'Демонстрация пропса `external`. В панели Controls доступны только `external` и `children`.',
       },
     },
   },
@@ -158,18 +165,17 @@ export const PropExternal: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: external (boolean)
+          prop: external (Controls: только external и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг external в Controls, чтобы увидеть появление/скрытие иконки внешнего
+          Переключите флаг external ({String(args.external)}) для показа/скрытия иконки внешнего
           перехода:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <div className={layoutStyles.row}>
-          <Link {...args} />
-          <Link href="#internal-section" external={false}>
-            Внутренняя якорная ссылка (external=false)
+        <div>
+          <Link href="https://example.com" external={args.external}>
+            {args.children}
           </Link>
         </div>
       </div>
@@ -178,17 +184,19 @@ export const PropExternal: Story = {
 };
 
 export const PropStartIcon: Story = {
-  name: 'Пропс: startIcon (Иконка слева)',
+  name: 'Пропс: startIcon (Контролы: startIcon, children)',
   args: {
     startIcon: <Icon icon={Building2} size="xs" />,
-    external: true,
-    children: 'Компания на LinkedIn',
+    children: 'Страница компании на LinkedIn',
   },
   parameters: {
+    controls: {
+      include: ['startIcon', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `startIcon` позволяет передать иконку `<Icon />`, которая отображается перед текстом ссылки.',
+          'Демонстрация слота `startIcon`. В панели Controls доступны только `startIcon` и `children`.',
       },
     },
   },
@@ -196,48 +204,17 @@ export const PropStartIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: startIcon
+          prop: startIcon (Controls: только startIcon и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Рендерит иконку перед текстом ссылки. Выберите иконку в выпадающем списке startIcon в
-          Controls:
-        </Text>
-      </div>
-      <div className={layoutStyles.propPreviewArea}>
-        <div className={layoutStyles.row}>
-          <Link {...args} />
-        </div>
-      </div>
-    </div>
-  ),
-};
-
-export const PropChildren: Story = {
-  name: 'Пропс: children (Текст ссылки)',
-  args: {
-    children: 'Перейти к спецификации токенов',
-    external: false,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Пропс `children` определяет видимый текст гиперссылки.',
-      },
-    },
-  },
-  render: (args) => (
-    <div className={layoutStyles.propDocBox}>
-      <div className={layoutStyles.propInfoHeader}>
-        <Text variant="mono-label" tone="accent">
-          prop: children
-        </Text>
-        <Text variant="caption" tone="secondary">
-          Видимый текст ссылки, настраиваемый через Controls:
+          Выберите иконку в контроле startIcon:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div>
-          <Link {...args} />
+          <Link href="https://linkedin.com" startIcon={args.startIcon} external>
+            {args.children}
+          </Link>
         </div>
       </div>
     </div>

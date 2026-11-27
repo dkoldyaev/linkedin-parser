@@ -1,8 +1,8 @@
-import { CheckCircle2, Sparkles } from 'lucide-react';
 import { List, ListItem, Text } from './Text';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Icon } from '../Icon';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+
+const ALL_SPACINGS = ['compact', 'normal', 'relaxed'] as const;
 
 const meta: Meta<typeof List> = {
   title: 'Atoms/Text/List',
@@ -12,7 +12,7 @@ const meta: Meta<typeof List> = {
     docs: {
       description: {
         component:
-          'Универсальный атомарный компонент списка (`<ul>` или `<ol>`). Поддерживает переключение между маркированным и нумерованным списком (`ordered`), настройку плотности вертикальных отступов (`spacing`) и кастомные иконки в элементах `<ListItem>`.',
+          'Универсальный атомарный компонент списка (`<ul>` или `<ol>`). Поддерживает переключение между маркированным и нумерованным списком (`ordered`) и настройку плотности вертикальных отступов (`spacing`).',
       },
       source: {
         type: 'dynamic',
@@ -27,11 +27,11 @@ const meta: Meta<typeof List> = {
     ordered: {
       control: 'boolean',
       description:
-        'Если `true`, рендерит нумерованный список (`<ol>` / `<OrderedList>`). Если `false` — маркированный список (`<ul>` / `<UnorderedList>`).',
+        'Если `true`, рендерит нумерованный список (`<ol>`). Если `false` — маркированный список (`<ul>`).',
     },
     spacing: {
       control: 'inline-radio',
-      options: ['compact', 'normal', 'relaxed'],
+      options: ALL_SPACINGS,
       description: 'Плотность вертикальных отступов между пунктами списка (`compact`, `normal`, `relaxed`).',
     },
     className: {
@@ -45,12 +45,12 @@ export default meta;
 type Story = StoryObj<typeof List>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация компонента `List`. Позволяет переключать тип списка (`ordered`) и плотность строк (`spacing`) в панели Controls.',
+          'Базовая интерактивная демонстрация компонента `List` со всеми контролами (`ordered`, `spacing`, `className`).',
       },
     },
   },
@@ -76,16 +76,18 @@ export const Base: Story = {
 };
 
 export const PropOrdered: Story = {
-  name: 'Пропс: ordered (Маркированный / Нумерованный)',
+  name: 'Пропс: ordered (Контрол: только ordered)',
   args: {
     ordered: true,
-    spacing: 'normal',
   },
   parameters: {
+    controls: {
+      include: ['ordered'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `ordered` переключает рендеринг между `<ul>` (маркированный список) и `<ol>` (нумерованный список).',
+          'Демонстрация пропса `ordered`. В панели Controls доступен **только один контрол** — `ordered` (`true` -> `<ol>`, `false` -> `<ul>`).',
       },
     },
   },
@@ -93,14 +95,14 @@ export const PropOrdered: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: ordered (boolean)
+          prop: ordered (Controls: только ordered)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг ordered в Controls для смены тега &lt;ol&gt; / &lt;ul&gt;:
+          Переключите флаг ordered ({String(args.ordered)}) для смены &lt;ol&gt; / &lt;ul&gt;:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <List {...args}>
+        <List ordered={args.ordered}>
           <ListItem>Первый шаг архитектурной проверки</ListItem>
           <ListItem>Второй шаг верификации токенов</ListItem>
           <ListItem>Третий шаг сборки Storybook</ListItem>
@@ -111,15 +113,18 @@ export const PropOrdered: Story = {
 };
 
 export const PropSpacing: Story = {
-  name: 'Пропс: spacing (Плотность элементов)',
+  name: 'Пропс: spacing (Контрол: только spacing)',
   args: {
     spacing: 'relaxed',
   },
   parameters: {
+    controls: {
+      include: ['spacing'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `spacing` управляет вертикальным расстоянием между элементами списка (`compact`, `normal`, `relaxed`).',
+          'Демонстрация пропса `spacing`. В панели Controls доступен **только один контрол** — `spacing` (`compact`, `normal`, `relaxed`).',
       },
     },
   },
@@ -127,23 +132,17 @@ export const PropSpacing: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: spacing (&quot;compact&quot; | &quot;normal&quot; | &quot;relaxed&quot;)
+          prop: spacing (Controls: только spacing)
         </Text>
         <Text variant="caption" tone="secondary">
-          Настраивает интервал между пунктами списка. Измените spacing в Controls:
+          Выберите плотность строк spacing (&quot;{args.spacing}&quot;) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <List {...args}>
-          <ListItem icon={<Icon icon={CheckCircle2} size="sm" tone="success" />}>
-            Пункт списка с выбранным режимом spacing=&quot;{args.spacing}&quot;
-          </ListItem>
-          <ListItem icon={<Icon icon={CheckCircle2} size="sm" tone="success" />}>
-            Второй пункт для визуальной оценки межстрочного интервала
-          </ListItem>
-          <ListItem icon={<Icon icon={Sparkles} size="sm" tone="accent" />}>
-            Третий пункт списка с кастомной иконкой
-          </ListItem>
+        <List spacing={args.spacing}>
+          <ListItem>Пункт 1 с режимом spacing=&quot;{args.spacing}&quot;</ListItem>
+          <ListItem>Пункт 2 для оценки межстрочного интервала</ListItem>
+          <ListItem>Пункт 3 списка</ListItem>
         </List>
       </div>
     </div>

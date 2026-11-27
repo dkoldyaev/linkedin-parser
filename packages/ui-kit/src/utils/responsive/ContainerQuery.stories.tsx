@@ -99,7 +99,7 @@ function InteractiveContainerQueryDemo(
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -111,19 +111,46 @@ export const Base: Story = {
   render: (args) => <InteractiveContainerQueryDemo {...args} />,
 };
 
-export const PropContainerTypeAndName: Story = {
-  name: 'Пропсы: containerRef, containerType и containerName',
+export const PropContainerType: Story = {
+  name: 'Пропс: containerType (Режим отслеживания inline-size / size / normal)',
   args: {
     containerType: 'inline-size',
-    containerName: 'custom-named-container',
   },
   parameters: {
+    controls: { include: ['containerType'] },
     docs: {
       description: {
         story:
-          'Пропс `containerRef` указывает на измеряемый DOM-элемент, `containerType` задает режим отслеживания размеров (`inline-size`), а `containerName` изолирует запросы для вложенных контейнеров.',
+          'Пропс `containerType` задает режим отслеживания размеров (`inline-size`, `size`, `normal`). Доступен только контрол `containerType`.',
       },
     },
   },
-  render: (args) => <InteractiveContainerQueryDemo {...args} />,
+  render: (args) => (
+    <InteractiveContainerQueryDemo
+      containerType={args.containerType}
+      containerName="demo-card-container"
+    />
+  ),
+};
+
+export const PropContainerName: Story = {
+  name: 'Пропс: containerName (Именованный @container)',
+  args: {
+    containerName: 'custom-named-container',
+  },
+  parameters: {
+    controls: { include: ['containerName'] },
+    docs: {
+      description: {
+        story:
+          'Пропс `containerName` изолирует запросы для вложенных контейнеров. Доступен только контрол `containerName`.',
+      },
+    },
+  },
+  render: (args) => (
+    <InteractiveContainerQueryDemo
+      containerType="inline-size"
+      containerName={args.containerName}
+    />
+  ),
 };

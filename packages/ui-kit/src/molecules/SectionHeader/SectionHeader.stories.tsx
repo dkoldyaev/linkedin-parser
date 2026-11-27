@@ -156,7 +156,7 @@ export default meta;
 type Story = StoryObj<typeof SectionHeader>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -182,21 +182,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropToneAndDivider: Story = {
-  name: 'Пропсы: tone и divider (Семантические тона и линия-разделитель)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все семантические тона (Контрол: title)',
   args: {
-    title: 'ПОДТВЕРЖДЁННЫЕ ТРЕБОВАНИЯ [5]',
-    tone: 'success',
-    divider: true,
-    icon: undefined,
-    badge: undefined,
-    accessory: undefined,
+    title: 'ЗАГОЛОВОК СЕКЦИИ',
   },
   parameters: {
+    controls: { include: ['title'] },
     docs: {
       description: {
         story:
-          'Пропс `tone` окрашивает заголовок в семантический цвет (используется в `ReportAccordion` для групп совпадений, пробелов и блокеров), а `divider` подчеркивает шапку структурной линией.',
+          'Витрина всех семантических тонов `tone` для `SectionHeader`. Доступен только один контрол — `title`.',
       },
     },
   },
@@ -204,21 +200,53 @@ export const PropToneAndDivider: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: tone &amp; divider
+          prop: tone (Все тона одновременно) — Контролы: [title]
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените tone в Controls или сравните все семантические варианты ниже:
+          Измените title в панели Controls для всех тонов:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <SectionHeader {...args} />
         <div className={layoutStyles.stackSm}>
-          <SectionHeader title="MATCHES [5] (tone='success')" tone="success" divider />
-          <SectionHeader title="UNCONFIRMED [3] (tone='warning')" tone="warning" divider />
-          <SectionHeader title="CRITICAL BLOCKERS [1] (tone='danger')" tone="danger" divider />
-          <SectionHeader title="ACCENT HEADER (tone='accent')" tone="accent" divider />
-          <SectionHeader title="MUTED HEADER (tone='muted')" tone="muted" divider />
+          <SectionHeader title={`${String(args.title)} (tone='success')`} tone="success" divider />
+          <SectionHeader title={`${String(args.title)} (tone='warning')`} tone="warning" divider />
+          <SectionHeader title={`${String(args.title)} (tone='danger')`} tone="danger" divider />
+          <SectionHeader title={`${String(args.title)} (tone='accent')`} tone="accent" divider />
+          <SectionHeader title={`${String(args.title)} (tone='muted')`} tone="muted" divider />
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneAndDividerSingle: Story = {
+  name: 'Пропсы: tone и divider — Интерактивный выбор (Контролы: tone, divider, title)',
+  args: {
+    title: 'ПОДТВЕРЖДЁННЫЕ ТРЕБОВАНИЯ [5]',
+    tone: 'success',
+    divider: true,
+  },
+  parameters: {
+    controls: { include: ['tone', 'divider', 'title'] },
+    docs: {
+      description: {
+        story:
+          'Пропс `tone` окрашивает заголовок в семантический цвет (используется в `ReportAccordion` для групп совпадений, пробелов и блокеров), а `divider` подчеркивает шапку структурной линией. Доступны только контролы `tone`, `divider` и `title`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: tone &amp; divider — Контролы: [tone, divider, title]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените tone, divider и title в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <SectionHeader title={args.title} tone={args.tone} divider={args.divider} />
       </div>
     </div>
   ),
@@ -227,7 +255,6 @@ export const PropToneAndDivider: Story = {
 export const PropIconBadgeAndAccessory: Story = {
   name: 'Пропсы: icon, badge и accessory (Слоты композиции)',
   args: {
-    title: 'ИСТОРИЯ ЭТАПОВ И ПЕРЕМЕЩЕНИЙ',
     icon: <Icon icon={History} size="sm" tone="accent" />,
     badge: (
       <Badge size="xs" tone="info">
@@ -239,13 +266,13 @@ export const PropIconBadgeAndAccessory: Story = {
         Редактировать
       </Button>
     ),
-    divider: true,
   },
   parameters: {
+    controls: { include: ['icon', 'badge', 'accessory'] },
     docs: {
       description: {
         story:
-          'Пропсы `icon`, `badge` и `accessory` позволяют гибко комбинировать иконку раздела, счетчик и кнопки управления в одной 32px строке.',
+          'Пропсы `icon`, `badge` и `accessory` позволяют гибко комбинировать иконку раздела, счетчик и кнопки управления в одной 32px строке. Доступны только контролы `icon`, `badge` и `accessory`.',
       },
     },
   },
@@ -253,14 +280,20 @@ export const PropIconBadgeAndAccessory: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: icon, badge &amp; accessory
+          props: icon, badge &amp; accessory — Контролы: [icon, badge, accessory]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте варианты icon, badge и accessory в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <SectionHeader {...args} />
+        <SectionHeader
+          title="ИСТОРИЯ ЭТАПОВ И ПЕРЕМЕЩЕНИЙ"
+          icon={args.icon}
+          badge={args.badge}
+          accessory={args.accessory}
+          divider
+        />
       </div>
     </div>
   ),
@@ -269,18 +302,17 @@ export const PropIconBadgeAndAccessory: Story = {
 export const PropCollapsibleAndOpen: Story = {
   name: 'Пропсы: collapsible, open, expandLabel, collapseLabel',
   args: {
-    title: 'ОРИГИНАЛЬНОЕ ОПИСАНИЕ ВАКАНСИИ',
     collapsible: true,
     open: false,
     expandLabel: 'Показать полностью',
     collapseLabel: 'Свернуть',
-    divider: true,
   },
   parameters: {
+    controls: { include: ['collapsible', 'open', 'expandLabel', 'collapseLabel'] },
     docs: {
       description: {
         story:
-          'При `collapsible={true}` шапка получает `role="button"`, `tabIndex={0}`, `aria-expanded={open}` и отображает справа подсказку `expandLabel` / `collapseLabel` с иконкой шеврона.',
+          'При `collapsible={true}` шапка получает `role="button"`, `tabIndex={0}`, `aria-expanded={open}` и отображает справа подсказку `expandLabel` / `collapseLabel` с иконкой шеврона. Доступны только контролы `collapsible`, `open`, `expandLabel` и `collapseLabel`.',
       },
     },
   },
@@ -288,14 +320,21 @@ export const PropCollapsibleAndOpen: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: collapsible, open, expandLabel &amp; collapseLabel
+          props: collapsible, open, expandLabel &amp; collapseLabel — Контролы: [collapsible, open, expandLabel, collapseLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте флаг open в панели Controls для смены состояния шеврона и подписи:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <SectionHeader {...args} />
+        <SectionHeader
+          title="ОРИГИНАЛЬНОЕ ОПИСАНИЕ ВАКАНСИИ"
+          collapsible={args.collapsible}
+          open={args.open}
+          expandLabel={args.expandLabel}
+          collapseLabel={args.collapseLabel}
+          divider
+        />
       </div>
     </div>
   ),

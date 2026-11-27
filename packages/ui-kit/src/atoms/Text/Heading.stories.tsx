@@ -2,6 +2,19 @@ import { Heading, Text } from './Text';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
+const ALL_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
 const meta: Meta<typeof Heading> = {
   title: 'Atoms/Text/Heading',
   component: Heading,
@@ -10,7 +23,7 @@ const meta: Meta<typeof Heading> = {
     docs: {
       description: {
         component:
-          'Семантический компонент заголовка (`<h1>`–`<h6>`), выровненный по типографической шкале Blueprint Design System. Обеспечивает строгую иерархию заголовков страниц, секций, карточек и модальных окон.',
+          'Семантический компонент заголовка (`<h1>`–`<h6>`), выровненный по типографической шкале Blueprint Design System.',
       },
       source: {
         type: 'dynamic',
@@ -25,28 +38,17 @@ const meta: Meta<typeof Heading> = {
   argTypes: {
     level: {
       control: 'inline-radio',
-      options: [1, 2, 3, 4, 5, 6],
-      description:
-        'Уровень HTML-заголовка (`1` -> `<h1>`, `2` -> `<h2>`, ..., `6` -> `<h6>`), определяющий семантический тег и размер шрифта.',
+      options: ALL_LEVELS,
+      description: 'Уровень HTML-заголовка (`1` -> `<h1>`, ..., `6` -> `<h6>`).',
     },
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон текста заголовка.',
     },
     children: {
       control: 'text',
-      description: 'Текст или содержимое заголовка.',
+      description: 'Текст заголовка.',
     },
     className: {
       control: 'text',
@@ -59,12 +61,11 @@ export default meta;
 type Story = StoryObj<typeof Heading>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
-        story:
-          'Базовая интерактивная демонстрация `Heading`. Позволяет переключать уровень заголовка (`level`), цветовой тон (`tone`) и текст (`children`) через Controls.',
+        story: 'Базовая интерактивная демонстрация `Heading` со всеми контролами (`level`, `tone`, `children`, `className`).',
       },
     },
   },
@@ -75,8 +76,7 @@ export const Base: Story = {
           Heading — Семантический заголовок (&lt;h1&gt;–&lt;h6&gt;)
         </Text>
         <Text variant="caption" tone="secondary">
-          Автоматически подбирает HTML-тег h1..h6 и соответствующий типографический токен размера и
-          насыщенности.
+          Автоматически подбирает HTML-тег h1..h6 и соответствующий типографический токен размера.
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
@@ -86,17 +86,19 @@ export const Base: Story = {
   ),
 };
 
-export const PropLevel: Story = {
-  name: 'Пропс: level (Уровень заголовка h1–h6)',
+export const PropLevelAll: Story = {
+  name: 'Пропс: level — Все уровни h1–h6 (Контрол: только children)',
   args: {
-    level: 1,
-    children: 'Заголовок выбранного уровня',
+    children: 'Blueprint Architecture Heading Specimen',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `level` принимает число от `1` до `6`, рендерит соответствующий тег `<h1>`..`<h6>` и применяет класс типографической шкалы.',
+          'Показывает все уровни заголовков `level={1..6}` одновременно. В панели Controls доступен **только один контрол** `children` для изменения текста во всех заголовках сразу.',
       },
     },
   },
@@ -104,42 +106,79 @@ export const PropLevel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: level (1 | 2 | 3 | 4 | 5 | 6)
+          prop: level — Все уровни H1–H6 (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте level в панели Controls для изменения активного заголовка сверху и сравните со
-          всей шкалой h1–h6 ниже:
+          Измените текст в контроле children для сравнения всей шкалы заголовков:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Heading {...args}>
-          Активный образец (H{args.level}): {args.children}
-        </Heading>
         <div className={layoutStyles.stackSm}>
-          <Heading level={1}>H1 (level=1) — Главный заголовок страницы</Heading>
-          <Heading level={2}>H2 (level=2) — Заголовок крупного раздела или модального окна</Heading>
-          <Heading level={3}>H3 (level=3) — Заголовок карточки или подсекции</Heading>
-          <Heading level={4}>H4 (level=4) — Заголовок группы полей</Heading>
-          <Heading level={5}>H5 (level=5) — Технический подзаголовок</Heading>
-          <Heading level={6}>H6 (level=6) — Микро-заголовок спецификации</Heading>
+          {ALL_LEVELS.map((lvl) => (
+            <div key={lvl} className={layoutStyles.box}>
+              <Text variant="mono" size="2xs" tone="accent">
+                &lt;Heading level={'{'}
+                {lvl}
+                {'}'}&gt; (&lt;h{lvl}&gt;)
+              </Text>
+              <Heading level={lvl}>{args.children}</Heading>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Цветовой тон заголовка)',
+export const PropLevelSingle: Story = {
+  name: 'Пропс: level — Выбор уровня (Контролы: level, children)',
   args: {
-    level: 3,
-    tone: 'accent',
+    level: 2,
+    children: 'Интерактивный заголовок выбранного уровня',
+  },
+  parameters: {
+    controls: {
+      include: ['level', 'children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Одиночный заголовок с **двумя контролами**: `level` (переключение `1`..`6`) и `children` (содержимое).',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: level — Одиночный заголовок (Controls: только level и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте level (сейчас &lt;h{args.level}&gt;) и текст children:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.box}>
+          <Heading level={args.level}>{args.children}</Heading>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все цвета (Контрол: только children)',
+  args: {
     children: 'Заголовок с семантическим цветовым тоном',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `tone` управляет цветом текста заголовка согласно семантической палитре (`primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`).',
+          'Показывает все семантические тона `tone` для заголовка. В панели Controls доступен только `children`.',
       },
     },
   },
@@ -147,49 +186,38 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Все тона (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Задает семантический цвет заголовка. Выберите tone в Controls:
+          Сравнение всех цветовых тонов заголовка при едином тексте children:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Heading {...args} />
         <div className={layoutStyles.stackSm}>
-          <Heading level={4} tone="primary">
-            tone=&quot;primary&quot; — Основной контрастный заголовок
-          </Heading>
-          <Heading level={4} tone="secondary">
-            tone=&quot;secondary&quot; — Вторичный заголовок
-          </Heading>
-          <Heading level={4} tone="accent">
-            tone=&quot;accent&quot; — Акцентный Blueprint Blue
-          </Heading>
-          <Heading level={4} tone="success">
-            tone=&quot;success&quot; — Успешный статус
-          </Heading>
-          <Heading level={4} tone="warning">
-            tone=&quot;warning&quot; — Предупреждение
-          </Heading>
-          <Heading level={4} tone="danger">
-            tone=&quot;danger&quot; — Критическая секция
-          </Heading>
+          {ALL_TONES.map((t) => (
+            <Heading key={t} level={4} tone={t}>
+              tone=&quot;{t}&quot; — {args.children}
+            </Heading>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropChildren: Story = {
-  name: 'Пропс: children (Текст заголовка)',
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Выбор тона (Контролы: tone, children)',
   args: {
-    level: 2,
-    children: 'Настраиваемый текст заголовка через Controls',
+    tone: 'accent',
+    children: 'Акцентный заголовок раздела',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `children` задает текстовое или React-содержимое заголовка.',
+        story: 'Одиночный заголовок с двумя контролами: `tone` и `children`.',
       },
     },
   },
@@ -197,14 +225,18 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children
+          prop: tone — Одиночный заголовок (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Содержимое тега заголовка. Измените текст в панели Controls:
+          Выберите tone (&quot;{args.tone}&quot;) и текст заголовка:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Heading {...args} />
+        <div className={layoutStyles.box}>
+          <Heading level={3} tone={args.tone}>
+            {args.children}
+          </Heading>
+        </div>
       </div>
     </div>
   ),

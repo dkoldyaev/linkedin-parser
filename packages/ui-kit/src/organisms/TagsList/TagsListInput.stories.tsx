@@ -23,6 +23,7 @@ const meta: Meta<typeof TagsListInput> = {
   args: {
     separator: ',',
     placeholder: 'Добавить тег (Enter или запятая)...',
+    disabled: false,
   },
   argTypes: {
     separator: {
@@ -83,12 +84,12 @@ function InteractiveTagsInputDemo(args: TagsListInputProps): React.ReactElement 
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `TagsListInput`. Введите текст в поле и проверьте работу `separator` и `placeholder` через панель Controls.',
+          'Базовая интерактивная демонстрация `TagsListInput`. Введите текст в поле и проверьте работу `separator`, `placeholder` и `disabled` через панель Controls.',
       },
     },
   },
@@ -102,12 +103,42 @@ export const PropSeparatorAndPlaceholder: Story = {
     placeholder: 'Введите навыки через точку с запятой (;)',
   },
   parameters: {
+    controls: { include: ['separator', 'placeholder'] },
     docs: {
       description: {
         story:
-          'Пропс `separator` позволяет задать любой символ-разделитель (например `","`, `";"`, `" "`), при вводе которого тег мгновенно коммитится в список.',
+          'Пропс `separator` позволяет задать любой символ-разделитель (например `","`, `";"`, `" "`), при вводе которого тег мгновенно коммитится в список. Доступны только контролы `separator` и `placeholder`.',
       },
     },
   },
-  render: (args) => <InteractiveTagsInputDemo {...args} />,
+  render: (args) => (
+    <InteractiveTagsInputDemo
+      separator={args.separator}
+      placeholder={args.placeholder}
+      onCommit={() => undefined}
+    />
+  ),
+};
+
+export const PropDisabled: Story = {
+  name: 'Пропс: disabled (Заблокированный инпут)',
+  args: {
+    disabled: true,
+  },
+  parameters: {
+    controls: { include: ['disabled'] },
+    docs: {
+      description: {
+        story: 'Пропс `disabled` блокирует ввод новых тегов. Доступен только контрол `disabled`.',
+      },
+    },
+  },
+  render: (args) => (
+    <InteractiveTagsInputDemo
+      separator=","
+      placeholder="Поле заблокировано"
+      disabled={args.disabled}
+      onCommit={() => undefined}
+    />
+  ),
 };

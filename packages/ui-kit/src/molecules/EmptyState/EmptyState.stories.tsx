@@ -78,7 +78,7 @@ export default meta;
 type Story = StoryObj<typeof EmptyState>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -110,14 +110,13 @@ export const PropTitleAndDescription: Story = {
   args: {
     title: 'ЭТАП ПУСТ',
     description: 'Перетащите карточку кандидата в эту колонку для смены статуса.',
-    icon: undefined,
-    action: undefined,
   },
   parameters: {
+    controls: { include: ['title', 'description'] },
     docs: {
       description: {
         story:
-          'Пропс `title` обязателен и задает заголовок блока, а `description` добавляет вторичный поясняющий текст.',
+          'Пропс `title` обязателен и задает заголовок блока, а `description` добавляет вторичный поясняющий текст. Доступны только контролы `title` и `description`.',
       },
     },
   },
@@ -125,14 +124,14 @@ export const PropTitleAndDescription: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title &amp; description
+          props: title &amp; description — Контролы: [title, description]
         </Text>
         <Text variant="caption" tone="secondary">
           Отредактируйте title и description в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <EmptyState {...args} />
+        <EmptyState title={args.title} description={args.description} />
       </div>
     </div>
   ),
@@ -142,8 +141,6 @@ export const PropIconAndAction: Story = {
   name: 'Пропсы: icon и action (Иконка и кнопка действия)',
   args: {
     icon: <Icon icon={Search} size="lg" tone="info" />,
-    title: 'НИЧЕГО НЕ НАЙДЕНО ПО ФИЛЬТРАМ',
-    description: 'Попробуйте сбросить поисковый запрос или выбранные теги.',
     action: (
       <Button variant="secondary" size="sm" startIcon={<Icon icon={RefreshCw} size="xs" />}>
         Сбросить фильтры
@@ -151,10 +148,11 @@ export const PropIconAndAction: Story = {
     ),
   },
   parameters: {
+    controls: { include: ['icon', 'action'] },
     docs: {
       description: {
         story:
-          'Пропс `icon` добавляет визуальный маркер сверху, а `action` рендерит CTA-кнопку для выхода из пустого состояния.',
+          'Пропс `icon` добавляет визуальный маркер сверху, а `action` рендерит CTA-кнопку для выхода из пустого состояния. Доступны только контролы `icon` и `action`.',
       },
     },
   },
@@ -162,14 +160,19 @@ export const PropIconAndAction: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: icon &amp; action
+          props: icon &amp; action — Контролы: [icon, action]
         </Text>
         <Text variant="caption" tone="secondary">
           Выберите варианты icon и action в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <EmptyState {...args} />
+        <EmptyState
+          title="НИЧЕГО НЕ НАЙДЕНО ПО ФИЛЬТРАМ"
+          description="Попробуйте сбросить поисковый запрос или выбранные теги."
+          icon={args.icon}
+          action={args.action}
+        />
       </div>
     </div>
   ),

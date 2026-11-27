@@ -5,6 +5,33 @@ import layoutStyles from '../../stories/StoryLayout.module.css';
 import { StatusDot } from '../StatusDot';
 import { Text } from './Text';
 
+const ALL_VARIANTS = [
+  'display',
+  'heading',
+  'title',
+  'mono-label',
+  'body',
+  'body-sm',
+  'caption',
+  'mono',
+] as const;
+
+const ALL_SIZES = ['2xs', 'xs', 'sm', 'md', 'base', 'lg', 'xl', '2xl'] as const;
+
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
+const ALL_WEIGHTS = ['regular', 'medium', 'semibold', 'bold'] as const;
+
 const ICON_MAP = {
   none: undefined,
   Globe: <Icon icon={Globe} size="xs" />,
@@ -25,7 +52,7 @@ const meta: Meta<typeof Text> = {
     docs: {
       description: {
         component:
-          'Полиморфный атомарный компонент типографики `Text`. Является фундаментом текстовой системы `@blueprint/ui-kit`: поддерживает переключение HTML-тега (`as`), типографические пресеты (`variant`), точные токены размера (`size`), семантические тона (`tone`), слоты иконок (`startIcon`, `endIcon`), обрезку (`truncate`) и привязку к 32px сетке (`snapToGrid`, `lineHeight`).',
+          'Полиморфный атомарный компонент типографики `Text`. Поддерживает переключение HTML-тега (`as`), типографические пресеты (`variant`), точные токены размера (`size`), семантические тона (`tone`), насыщенность (`weight`), слоты иконок (`startIcon`, `endIcon`), обрезку (`truncate`) и привязку к 32px сетке (`snapToGrid`, `lineHeight`).',
       },
       source: {
         type: 'dynamic',
@@ -54,32 +81,22 @@ const meta: Meta<typeof Text> = {
     },
     variant: {
       control: 'select',
-      options: ['display', 'heading', 'title', 'mono-label', 'body', 'body-sm', 'caption', 'mono'],
+      options: ALL_VARIANTS,
       description: 'Типографический пресет (семейство шрифта, размер, межбуквенный интервал).',
     },
     size: {
       control: 'select',
-      options: [undefined, '2xs', 'xs', 'sm', 'md', 'base', 'lg', 'xl', '2xl'],
+      options: ALL_SIZES,
       description: 'Явное переопределение размера шрифта по шкале `--ui-font-size-*`.',
     },
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон текста.',
     },
     weight: {
       control: 'inline-radio',
-      options: ['regular', 'medium', 'semibold', 'bold'],
+      options: ALL_WEIGHTS,
       description: 'Насыщенность начертания шрифта (`font-weight`).',
     },
     truncate: {
@@ -118,12 +135,12 @@ export default meta;
 type Story = StoryObj<typeof Text>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная история компонента `Text`. Используйте панель Controls для проверки всех пропсов в реальном времени.',
+          'Базовая интерактивная история компонента `Text`, в которой доступны все пропсы для комплексной настройки.',
       },
     },
   },
@@ -131,7 +148,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Text — Базовый полиморфный атом типографики
+          Text — Базовый полиморфный атом типографики (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Универсальный текстовый примитив для меток, заголовков, моноширинных данных и статусных
@@ -147,18 +164,19 @@ export const Base: Story = {
   ),
 };
 
-export const PropVariant: Story = {
-  name: 'Пропс: variant (Типографический пресет)',
+export const PropSizeAll: Story = {
+  name: 'Пропс: size — Все размеры (Контрол: только children)',
   args: {
-    variant: 'mono-label',
-    tone: 'accent',
-    children: 'STATUS: ACTIVE_WORKER_NODE',
+    children: 'CV.ALTER // Blueprint Font Size Scale 0123456789',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `variant` задает комплексный стиль текста: `display`, `heading`, `title`, `mono-label`, `body`, `body-sm`, `caption`, `mono`.',
+          'Показывает все значения пропса `size` (`2xs`, `xs`, `sm`, `md`, `base`, `lg`, `xl`, `2xl`) одновременно. В панели Controls доступен **только один контрол** — `children`, чтобы задать единый текст для сравнения всей шкалы размеров.',
       },
     },
   },
@@ -166,41 +184,61 @@ export const PropVariant: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: variant
+          prop: size — Все размеры шрифта (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выбирает предустановленный стиль шрифта (Inter или JetBrains Mono). Измените variant в
-          Controls для верхнего образца или сравните все варианты ниже:
+          Введите свой текст в контрол children, чтобы сравнить все 8 размеров шкалы --ui-font-size-*:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.stackSm}>
+          {ALL_SIZES.map((sz) => (
+            <div key={sz} className={layoutStyles.box}>
+              <Text as="div" variant="mono" size="2xs" tone="accent">
+                size=&quot;{sz}&quot; (--ui-font-size-{sz})
+              </Text>
+              <Text as="div" size={sz}>
+                {args.children}
+              </Text>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropSizeSingle: Story = {
+  name: 'Пропс: size — Интерактивный выбор (Контролы: size, children)',
+  args: {
+    size: 'lg',
+    children: 'Настраиваемый размер текста для одного блока',
+  },
+  parameters: {
+    controls: {
+      include: ['size', 'children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Интерактивная демонстрация одного текстового блока с **двумя контролами**: `size` (выбор размера текста) и `children` (текстовое содержимое).',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: size — Одиночный блок (Controls: только size и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Выберите размер шрифта size (&quot;{args.size}&quot;) и измените содержимое children:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Text {...args} />
-        </div>
-        <div className={layoutStyles.stackSm}>
-          <Text as="div" variant="display">
-            variant=&quot;display&quot; — Blueprint Design System
-          </Text>
-          <Text as="div" variant="heading">
-            variant=&quot;heading&quot; — System Architecture &amp; Primitives
-          </Text>
-          <Text as="div" variant="title">
-            variant=&quot;title&quot; — Distributed Systems Lead
-          </Text>
-          <Text as="div" variant="mono-label" tone="accent">
-            variant=&quot;mono-label&quot; — SECTION_HEADER_TOKEN
-          </Text>
-          <Text as="div" variant="body">
-            variant=&quot;body&quot; — Основной текст интерфейса (13px Inter)
-          </Text>
-          <Text as="div" variant="body-sm">
-            variant=&quot;body-sm&quot; — Компактный основной текст (12px Inter)
-          </Text>
-          <Text as="div" variant="caption" tone="secondary">
-            variant=&quot;caption&quot; — Вторичные метаданные и подписи
-          </Text>
-          <Text as="div" variant="mono" tone="success">
-            variant=&quot;mono&quot; — --ui-grid-cell: 32px
+          <Text as="div" size={args.size}>
+            {args.children}
           </Text>
         </div>
       </div>
@@ -208,18 +246,143 @@ export const PropVariant: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цвет)',
+export const PropVariantAll: Story = {
+  name: 'Пропс: variant — Все варианты (Контрол: только children)',
   args: {
-    variant: 'mono',
+    children: 'Blueprint Design System Typography Variant',
+  },
+  parameters: {
+    controls: {
+      include: ['children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Показывает все значения пропса `variant` (`display`, `heading`, `title`, `mono-label`, `body`, `body-sm`, `caption`, `mono`). В панели Controls оставлен **только один контрол** `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: variant — Все пресеты (Controls: только children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените children в Controls для сравнения всех 8 типографических пресетов:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.stackSm}>
+          {ALL_VARIANTS.map((v) => (
+            <div key={v} className={layoutStyles.box}>
+              <Text as="div" variant="mono" size="2xs" tone="accent">
+                variant=&quot;{v}&quot;
+              </Text>
+              <Text as="div" variant={v}>
+                {args.children}
+              </Text>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropVariantSingle: Story = {
+  name: 'Пропс: variant — Интерактивный выбор (Контролы: variant, children)',
+  args: {
+    variant: 'mono-label',
+    children: 'STATUS: ACTIVE_WORKER_NODE',
+  },
+  parameters: {
+    controls: {
+      include: ['variant', 'children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Одиночный блок текста с **двумя контролами**: `variant` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: variant — Одиночный блок (Controls: только variant и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте variant (&quot;{args.variant}&quot;) и редактируйте текст children:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.box}>
+          <Text variant={args.variant}>{args.children}</Text>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все цвета (Контрол: только children)',
+  args: {
+    children: 'Семантический цветовой тон текста',
+  },
+  parameters: {
+    controls: {
+      include: ['children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Отображает все семантические тона `tone` (`neutral`, `primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`) с единственным контролом `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: tone — Все семантические тона (Controls: только children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Введите текст в контрол children для сравнения всех 9 цветовых тонов:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.stackSm}>
+          {ALL_TONES.map((t) => (
+            <div key={t} className={layoutStyles.row}>
+              <Text variant="mono" size="xs" tone="muted">
+                tone=&quot;{t}&quot;:
+              </Text>
+              <Text tone={t} weight="semibold">
+                {args.children}
+              </Text>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Интерактивный выбор (Контролы: tone, children)',
+  args: {
     tone: 'success',
     children: '€140,000 – €165,000 / yr',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `tone` окрашивает текст в один из семантических цветов дизайн-системы (`neutral`, `primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`).',
+        story: 'Одиночный текстовый блок с двумя контролами: `tone` и `children`.',
       },
     },
   },
@@ -227,44 +390,36 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Одиночный блок (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Отвечает за семантический цвет текста. Переключайте tone в Controls:
+          Выберите тон (&quot;{args.tone}&quot;) и текст в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Text {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Text tone="primary">primary</Text>
-          <Text tone="secondary">secondary</Text>
-          <Text tone="muted">muted</Text>
-          <Text tone="accent">accent</Text>
-          <Text tone="success">success</Text>
-          <Text tone="warning">warning</Text>
-          <Text tone="danger">danger</Text>
-          <Text tone="info">info</Text>
+          <Text tone={args.tone} weight="semibold">
+            {args.children}
+          </Text>
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropSize: Story = {
-  name: 'Пропс: size (Токен размера шрифта)',
+export const PropWeightAll: Story = {
+  name: 'Пропс: weight — Все начертания (Контрол: только children)',
   args: {
-    variant: 'mono',
-    size: 'lg',
-    tone: 'accent',
-    children: 'Explicit FontSizeToken override',
+    children: 'Насыщенность шрифта Blueprint (400 / 500 / 600 / 700)',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `size` позволяет явно задать размер текста из шкалы `--ui-font-size-*` (`2xs`, `xs`, `sm`, `md`, `base`, `lg`, `xl`, `2xl`) независимо от выбранного `variant`.',
+          'Показывает все варианты `weight` (`regular`, `medium`, `semibold`, `bold`) с единственным контролом `children`.',
       },
     },
   },
@@ -272,20 +427,17 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;2xs&quot; | &quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;base&quot; | &quot;lg&quot; | &quot;xl&quot; | &quot;2xl&quot;)
+          prop: weight — Все варианты насыщенности (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переопределяет размер шрифта. Выберите size в Controls:
+          Сравнение всех 4 вариантов font-weight:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <div className={layoutStyles.box}>
-          <Text {...args} />
-        </div>
         <div className={layoutStyles.stackSm}>
-          {(['2xs', 'xs', 'sm', 'md', 'base', 'lg', 'xl', '2xl'] as const).map((sz) => (
-            <Text key={sz} as="div" variant="mono" size={sz}>
-              size=&quot;{sz}&quot; — Blueprint Font Scale
+          {ALL_WEIGHTS.map((w) => (
+            <Text key={w} as="div" weight={w}>
+              weight=&quot;{w}&quot; — {args.children}
             </Text>
           ))}
         </div>
@@ -294,17 +446,19 @@ export const PropSize: Story = {
   ),
 };
 
-export const PropWeight: Story = {
-  name: 'Пропс: weight (Насыщенность шрифта)',
+export const PropWeightSingle: Story = {
+  name: 'Пропс: weight — Интерактивный выбор (Контролы: weight, children)',
   args: {
     weight: 'bold',
-    children: 'Текст с настраиваемой насыщенностью (font-weight)',
+    children: 'Текст с настраиваемой насыщенностью',
   },
   parameters: {
+    controls: {
+      include: ['weight', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `weight` задает насыщенность шрифта: `regular` (400), `medium` (500), `semibold` (600) или `bold` (700).',
+        story: 'Одиночный блок текста с двумя контролами: `weight` и `children`.',
       },
     },
   },
@@ -312,21 +466,15 @@ export const PropWeight: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: weight (&quot;regular&quot; | &quot;medium&quot; | &quot;semibold&quot; | &quot;bold&quot;)
+          prop: weight — Одиночный блок (Controls: только weight и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Управляет толщиной начертания текста:
+          Переключайте weight (&quot;{args.weight}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Text {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Text weight="regular">regular (400)</Text>
-          <Text weight="medium">medium (500)</Text>
-          <Text weight="semibold">semibold (600)</Text>
-          <Text weight="bold">bold (700)</Text>
+          <Text weight={args.weight}>{args.children}</Text>
         </div>
       </div>
     </div>
@@ -334,18 +482,19 @@ export const PropWeight: Story = {
 };
 
 export const PropAs: Story = {
-  name: 'Пропс: as (Полиморфный HTML-тег)',
+  name: 'Пропс: as (Контролы: as, children)',
   args: {
     as: 'time',
-    variant: 'mono',
-    tone: 'muted',
     children: '2026-11-27 10:00 UTC',
   },
   parameters: {
+    controls: {
+      include: ['as', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `as` определяет семантический HTML-тег (`span`, `p`, `div`, `h1`..`h4`, `label`, `code`, `strong`, `time`).',
+          'Демонстрация полиморфного пропса `as` (`span`, `p`, `div`, `h1`..`h4`, `label`, `code`, `strong`, `time`). В Controls доступны только `as` и `children`.',
       },
     },
   },
@@ -353,33 +502,36 @@ export const PropAs: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: as
+          prop: as (Controls: только as и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Позволяет рендерить семантически корректный HTML-тег (сейчас выбран &lt;{args.as}&gt;):
+          Рендерит выбранный HTML-тег &lt;{args.as}&gt;:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Text {...args} />
+        <div className={layoutStyles.box}>
+          <Text as={args.as}>{args.children}</Text>
+        </div>
       </div>
     </div>
   ),
 };
 
 export const PropStartAndEndIcons: Story = {
-  name: 'Пропсы: startIcon и endIcon (Иконки по краям)',
+  name: 'Пропсы: startIcon и endIcon (Контролы: startIcon, endIcon, children)',
   args: {
-    variant: 'mono',
-    tone: 'info',
     startIcon: <Icon icon={Globe} size="xs" />,
     endIcon: <StatusDot tone="info" size="sm" glow />,
     children: 'Remote • EU Cluster',
   },
   parameters: {
+    controls: {
+      include: ['startIcon', 'endIcon', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропсы `startIcon` и `endIcon` позволяют встраивать иконки `<Icon />`, `<StatusDot />` или `<Spinner />` слева и справа от текста с автоматическим выравниванием по базовой линии.',
+          'Демонстрация слотов `startIcon` и `endIcon`. В панели Controls доступны только `startIcon`, `endIcon` и `children`.',
       },
     },
   },
@@ -387,30 +539,16 @@ export const PropStartAndEndIcons: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: startIcon &amp; endIcon
+          props: startIcon &amp; endIcon (Controls: только startIcon, endIcon, children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите иконки для startIcon и endIcon в панели Controls:
+          Выберите иконки слева и справа от текста:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Text {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Text variant="caption" tone="info" startIcon={<Icon icon={Globe} size="xs" />}>
-            Remote
-          </Text>
-          <Text variant="caption" tone="secondary" startIcon={<Icon icon={MapPin} size="xs" />}>
-            Berlin, Germany
-          </Text>
-          <Text
-            variant="mono"
-            tone="success"
-            weight="bold"
-            startIcon={<Icon icon={DollarSign} size="xs" />}
-          >
-            7,500 EUR / mo
+          <Text startIcon={args.startIcon} endIcon={args.endIcon} tone="info" variant="mono">
+            {args.children}
           </Text>
         </div>
       </div>
@@ -419,18 +557,20 @@ export const PropStartAndEndIcons: Story = {
 };
 
 export const PropTruncate: Story = {
-  name: 'Пропс: truncate (Обрезка многоточием)',
+  name: 'Пропс: truncate (Контролы: truncate, children)',
   args: {
-    as: 'div',
     truncate: true,
     children:
       'Очень длинный заголовок должности или описания, который аккуратно обрезается многоточием при переполнении узкого контейнера',
   },
   parameters: {
+    controls: {
+      include: ['truncate', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `truncate` включает однострочную обрезку текста с `text-overflow: ellipsis` внутри ограниченного по ширине контейнера.',
+          'Демонстрация обрезки текста многоточием `truncate` внутри контейнера шириной 320px. В Controls доступны только `truncate` и `children`.',
       },
     },
   },
@@ -438,16 +578,18 @@ export const PropTruncate: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: truncate (boolean)
+          prop: truncate (Controls: только truncate и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг truncate в Controls внутри контейнера шириной 320px (10 ячеек сетки):
+          Переключайте флаг truncate ({String(args.truncate)}) в узком блоке 320px:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <div className={layoutStyles.box}>
-            <Text {...args} />
+            <Text as="div" truncate={args.truncate}>
+              {args.children}
+            </Text>
           </div>
         </div>
       </div>
@@ -456,20 +598,20 @@ export const PropTruncate: Story = {
 };
 
 export const PropSnapToGridAndLineHeight: Story = {
-  name: 'Пропсы: snapToGrid и lineHeight (Квантование по 32px сетке)',
+  name: 'Пропсы: snapToGrid и lineHeight (Контролы: snapToGrid, lineHeight, children)',
   args: {
-    as: 'div',
     snapToGrid: true,
     lineHeight: 'grid',
-    variant: 'mono',
-    tone: 'accent',
     children: 'Высота и межстрочный интервал кратны ячейке 32px (--ui-grid-cell)',
   },
   parameters: {
+    controls: {
+      include: ['snapToGrid', 'lineHeight', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `snapToGrid` выравнивает контейнер по высоте кратно 32px, а `lineHeight` (`"auto" | "grid" | 0.5`) фиксирует высоту строки в 1 ячейку (32px) или 0.5 ячейки (16px).',
+          'Демонстрация привязки текста к 32px сетке Blueprint. В панели Controls доступны только `snapToGrid`, `lineHeight` и `children`.',
       },
     },
   },
@@ -477,16 +619,24 @@ export const PropSnapToGridAndLineHeight: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: snapToGrid &amp; lineHeight
+          props: snapToGrid &amp; lineHeight (Controls: только snapToGrid, lineHeight, children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте snapToGrid и lineHeight (&quot;auto&quot;, &quot;grid&quot;, 0.5) в панели
-          Controls:
+          Переключайте snapToGrid ({String(args.snapToGrid)}) и lineHeight (&quot;{args.lineHeight}
+          &quot;):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <Text {...args} />
+          <Text
+            as="div"
+            variant="mono"
+            tone="accent"
+            snapToGrid={args.snapToGrid}
+            lineHeight={args.lineHeight}
+          >
+            {args.children}
+          </Text>
         </div>
       </div>
     </div>

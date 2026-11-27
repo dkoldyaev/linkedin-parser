@@ -46,7 +46,7 @@ export default meta;
 type Story = StoryObj<typeof TableRow>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -89,18 +89,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropSelectedAndInteractive: Story = {
-  name: 'Пропсы: selected, interactive и bordered',
+export const PropSelected: Story = {
+  name: 'Пропс: selected (Выделенная строка)',
   args: {
     selected: true,
-    interactive: true,
-    bordered: true,
   },
   parameters: {
+    controls: { include: ['selected'] },
     docs: {
       description: {
         story:
-          'Сравнение выбранной строки (`selected={true}`) и обычной строки в одной таблице.',
+          'Сравнение выбранной строки (`selected={true}`) и обычной строки в одной таблице. Доступен только контрол `selected`.',
       },
     },
   },
@@ -108,7 +107,7 @@ export const PropSelectedAndInteractive: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: selected, interactive &amp; bordered
+          prop: selected (boolean) — Контролы: [selected]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте флаг selected в панели Controls для первой строки:
@@ -117,7 +116,7 @@ export const PropSelectedAndInteractive: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <Table layout="rows" fullHeight={false} bordered>
           <TableBody padding="none">
-            <TableRow {...args}>
+            <TableRow bordered interactive selected={args.selected}>
               <TableCell padding="md">
                 <Text variant="mono">ENT-101 (Настраиваемая строка)</Text>
               </TableCell>
@@ -142,4 +141,22 @@ export const PropSelectedAndInteractive: Story = {
       </div>
     </div>
   ),
+};
+
+export const PropInteractiveAndBordered: Story = {
+  name: 'Пропсы: interactive и bordered (Кликабельность и нижняя граница)',
+  args: {
+    interactive: true,
+    bordered: true,
+  },
+  parameters: {
+    controls: { include: ['interactive', 'bordered'] },
+    docs: {
+      description: {
+        story:
+          'Пропс `interactive` включает подсветку строки при наведении, а `bordered` добавляет нижний разделитель. Доступны только контролы `interactive` и `bordered`.',
+      },
+    },
+  },
+  render: Base.render,
 };

@@ -95,7 +95,7 @@ export default meta;
 type Story = StoryObj<typeof VacancyCard>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -128,15 +128,15 @@ export const PropMatchScoreWorkplaceAndSalary: Story = {
   args: {
     matchScore: 68,
     workplace: 'hybrid',
-    workplaceLabel: 'Гибрид',
     location: 'London, UK',
     salary: 'GBP 8 500 / мес',
   },
   parameters: {
+    controls: { include: ['matchScore', 'workplace', 'location', 'salary'] },
     docs: {
       description: {
         story:
-          'Пропсы `matchScore`, `workplace`, `location` и `salary` формируют компактную мета-строку под заголовком карточки.',
+          'Пропсы `matchScore`, `workplace`, `location` и `salary` формируют компактную мета-строку под заголовком карточки. Доступны только контролы `matchScore`, `workplace`, `location` и `salary`.',
       },
     },
   },
@@ -144,17 +144,17 @@ export const PropMatchScoreWorkplaceAndSalary: Story = {
 };
 
 export const PropSummaryAndAiPending: Story = {
-  name: 'Пропсы: summary, aiPending и pendingAiLabel (Состояние AI-саммари)',
+  name: 'Пропсы: summary и aiPending (Состояние AI-саммари)',
   args: {
-    summary: undefined,
+    summary: '',
     aiPending: true,
-    pendingAiLabel: 'Ожидание генерации AI-саммари...',
   },
   parameters: {
+    controls: { include: ['summary', 'aiPending'] },
     docs: {
       description: {
         story:
-          'Когда `summary` еще не получено (`undefined`) и `aiPending={true}`, вместо абзаца текста отображается строка ожидания с иконкой `Sparkles`.',
+          'Когда `summary` еще не получено (пусто) и `aiPending={true}`, вместо абзаца текста отображается строка ожидания с иконкой `Sparkles`. Доступны только контролы `summary` и `aiPending`.',
       },
     },
   },
@@ -166,14 +166,15 @@ export const PropIsClosedAndIsRejected: Story = {
   args: {
     isClosed: true,
     isRejected: true,
-    closedLabel: 'Закрыта',
-    restoreLabel: 'Восстановить из отказа',
+    canMoveLeft: true,
+    canMoveRight: true,
   },
   parameters: {
+    controls: { include: ['isClosed', 'isRejected', 'canMoveLeft', 'canMoveRight'] },
     docs: {
       description: {
         story:
-          'Пропс `isClosed` добавляет бейдж закрытой вакансии в шапку, а `isRejected` переключает футер в режим архива с кнопкой восстановления.',
+          'Пропс `isClosed` добавляет бейдж закрытой вакансии в шапку, а `isRejected` переключает футер в режим архива с кнопкой восстановления. Доступны только контролы `isClosed`, `isRejected`, `canMoveLeft` и `canMoveRight`.',
       },
     },
   },

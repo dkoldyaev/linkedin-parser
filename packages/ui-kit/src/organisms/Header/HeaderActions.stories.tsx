@@ -49,7 +49,7 @@ export default meta;
 type Story = StoryObj<typeof HeaderActions>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -89,10 +89,11 @@ export const PropShowThemeToggleAndTheme: Story = {
     theme: 'dark',
   },
   parameters: {
+    controls: { include: ['showThemeToggle', 'theme'] },
     docs: {
       description: {
         story:
-          'Пропс `showThemeToggle` включает кнопку смены темы, а `theme` (`"dark" | "light"`) меняет иконку между `Sun` и `Moon`.',
+          'Пропс `showThemeToggle` включает кнопку смены темы, а `theme` (`"dark" | "light"`) меняет иконку между `Sun` и `Moon`. Доступны только контролы `showThemeToggle` и `theme`.',
       },
     },
   },
@@ -100,15 +101,19 @@ export const PropShowThemeToggleAndTheme: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: showThemeToggle &amp; theme
+          props: showThemeToggle &amp; theme — Контролы: [showThemeToggle, theme]
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте theme (&quot;dark&quot; / &quot;light&quot;) в панели Controls:
+          Переключайте theme (&quot;dark&quot; / &quot;light&quot;) и showThemeToggle в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <HeaderActions {...args} onThemeToggle={() => undefined} />
+          <HeaderActions
+            showThemeToggle={args.showThemeToggle}
+            theme={args.theme}
+            onThemeToggle={() => undefined}
+          />
         </div>
       </div>
     </div>
@@ -116,17 +121,17 @@ export const PropShowThemeToggleAndTheme: Story = {
 };
 
 export const PropRefreshAndSettingsLabels: Story = {
-  name: 'Пропсы: onRefresh, refreshLabel, onSettingsClick, settingsLabel',
+  name: 'Пропсы: refreshLabel и settingsLabel (Тексты подсказок кнопок)',
   args: {
     refreshLabel: 'Синхронизировать Канбан-доску',
     settingsLabel: 'Параметры колонок и резюме',
-    showThemeToggle: false,
   },
   parameters: {
+    controls: { include: ['refreshLabel', 'settingsLabel'] },
     docs: {
       description: {
         story:
-          'Кнопки обновления и настроек отображаются только тогда, когда переданы соответствующие обработчики `onRefresh` и `onSettingsClick`.',
+          'Кнопки обновления и настроек отображаются, когда переданы обработчики `onRefresh` и `onSettingsClick`, а их `aria-label`/`title` регулируются пропсами `refreshLabel` и `settingsLabel`. Доступны только контролы `refreshLabel` и `settingsLabel`.',
       },
     },
   },
@@ -134,7 +139,7 @@ export const PropRefreshAndSettingsLabels: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: refreshLabel &amp; settingsLabel
+          props: refreshLabel &amp; settingsLabel — Контролы: [refreshLabel, settingsLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Наведите курсор на кнопки для проверки title / aria-label:
@@ -143,7 +148,9 @@ export const PropRefreshAndSettingsLabels: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
           <HeaderActions
-            {...args}
+            refreshLabel={args.refreshLabel}
+            settingsLabel={args.settingsLabel}
+            showThemeToggle={false}
             onRefresh={() => undefined}
             onSettingsClick={() => undefined}
           />

@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof ModalBody>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -98,10 +98,11 @@ export const PropPaddingAndGap: Story = {
     gap: 'md',
   },
   parameters: {
+    controls: { include: ['padding', 'gap'] },
     docs: {
       description: {
         story:
-          'Пропс `padding` (`none`, `sm`, `md`, `lg`) задает поля вокруг контента, а `gap` — расстояние между дочерними блоками.',
+          'Пропс `padding` (`none`, `sm`, `md`, `lg`) задает поля вокруг контента, а `gap` — расстояние между дочерними блоками. Доступны только контролы `padding` и `gap`.',
       },
     },
   },
@@ -109,7 +110,7 @@ export const PropPaddingAndGap: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: padding &amp; gap
+          props: padding &amp; gap — Контролы: [padding, gap]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте padding и gap в панели Controls:
@@ -117,7 +118,7 @@ export const PropPaddingAndGap: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <ModalBody {...args}>
+          <ModalBody padding={args.padding} gap={args.gap}>
             <div className={layoutStyles.box}>Секция 1</div>
             <div className={layoutStyles.box}>Секция 2</div>
           </ModalBody>
@@ -132,14 +133,13 @@ export const PropScrollableAndSnapScroll: Story = {
   args: {
     scrollable: true,
     snapScroll: true,
-    padding: 'sm',
-    gap: 'sm',
   },
   parameters: {
+    controls: { include: ['scrollable', 'snapScroll'] },
     docs: {
       description: {
         story:
-          'Пропс `scrollable` активирует вертикальный скролл-контейнер, а `snapScroll` подключает хук `useGridScroll()` для выравнивания `scrollTop` кратно 32px.',
+          'Пропс `scrollable` активирует вертикальный скролл-контейнер, а `snapScroll` подключает хук `useGridScroll()` для выравнивания `scrollTop` кратно 32px. Доступны только контролы `scrollable` и `snapScroll`.',
       },
     },
   },
@@ -147,7 +147,7 @@ export const PropScrollableAndSnapScroll: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: scrollable &amp; snapScroll
+          props: scrollable &amp; snapScroll — Контролы: [scrollable, snapScroll]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте флаги scrollable и snapScroll в панели Controls:
@@ -155,7 +155,12 @@ export const PropScrollableAndSnapScroll: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.box}>
-          <ModalBody {...args}>
+          <ModalBody
+            padding="sm"
+            gap="sm"
+            scrollable={args.scrollable}
+            snapScroll={args.snapScroll}
+          >
             <Text variant="mono" size="xs">
               scrollable={String(args.scrollable)} | snapScroll={String(args.snapScroll)}
             </Text>

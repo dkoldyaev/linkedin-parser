@@ -68,7 +68,7 @@ export default meta;
 type Story = StoryObj<typeof Table>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -202,17 +202,18 @@ export const Base: Story = {
   ),
 };
 
-export const PropLayout: Story = {
-  name: 'Пропс: layout (Колонки columns vs Строки rows)',
+export const PropLayoutAndBordered: Story = {
+  name: 'Пропсы: layout и bordered (Колонки columns vs Строки rows)',
   args: {
     layout: 'rows',
     bordered: true,
   },
   parameters: {
+    controls: { include: ['layout', 'bordered'] },
     docs: {
       description: {
         story:
-          'Пропс `layout` переключает направление главного flex-контейнера: `columns` строит горизонтальный ряд колонок `<TableCol>`, а `rows` — вертикальный стек строк `<TableRow>`.',
+          'Пропс `layout` переключает направление главного flex-контейнера: `columns` строит горизонтальный ряд колонок `<TableCol>`, а `rows` — вертикальный стек строк `<TableRow>`. Доступны только контролы `layout` и `bordered`.',
       },
     },
   },
@@ -222,17 +223,16 @@ export const PropLayout: Story = {
 export const PropQuantizeAndFluidColumns: Story = {
   name: 'Пропсы: quantizeColumns, minColGridUnits и fluidColumns',
   args: {
-    layout: 'columns',
     quantizeColumns: true,
     minColGridUnits: 8,
     fluidColumns: false,
-    bordered: true,
   },
   parameters: {
+    controls: { include: ['quantizeColumns', 'minColGridUnits', 'fluidColumns'] },
     docs: {
       description: {
         story:
-          'При `quantizeColumns={true}` `ResizeObserver` вычисляет доступное количество 32px ячеек контейнера и равномерно распределяет их между колонками (но не менее `minColGridUnits`).',
+          'При `quantizeColumns={true}` `ResizeObserver` вычисляет доступное количество 32px ячеек контейнера и равномерно распределяет их между колонками (но не менее `minColGridUnits`). Доступны только контролы `quantizeColumns`, `minColGridUnits` и `fluidColumns`.',
       },
     },
   },

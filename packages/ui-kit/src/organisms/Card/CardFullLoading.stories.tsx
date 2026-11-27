@@ -54,7 +54,7 @@ export default meta;
 type Story = StoryObj<typeof CardFullLoading>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -88,9 +88,11 @@ export const PropTone: Story = {
     tone: 'success',
   },
   parameters: {
+    controls: { include: ['tone'] },
     docs: {
       description: {
-        story: 'Пропс `tone` позволяет сохранить цветовую маркировку колонки или статуса во время загрузки карточки.',
+        story:
+          'Пропс `tone` позволяет сохранить цветовую маркировку колонки или статуса во время загрузки карточки. Доступен только контрол `tone`.',
       },
     },
   },
@@ -98,7 +100,7 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Контролы: [tone]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте tone в панели Controls:
@@ -106,7 +108,7 @@ export const PropTone: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <CardFullLoading {...args} />
+          <CardFullLoading tone={args.tone} />
         </div>
       </div>
     </div>
@@ -118,12 +120,13 @@ export const PropSnapToGridAndHorizontal: Story = {
   args: {
     snapToGrid: true,
     horizontal: false,
-    tone: 'info',
   },
   parameters: {
+    controls: { include: ['snapToGrid', 'horizontal'] },
     docs: {
       description: {
-        story: 'Пропс `snapToGrid` удерживает высоту кратной 32px, а `horizontal` переключает направление контейнера.',
+        story:
+          'Пропс `snapToGrid` удерживает высоту кратной 32px, а `horizontal` переключает направление контейнера. Доступны только контролы `snapToGrid` и `horizontal`.',
       },
     },
   },
@@ -131,7 +134,7 @@ export const PropSnapToGridAndHorizontal: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: snapToGrid &amp; horizontal
+          props: snapToGrid &amp; horizontal — Контролы: [snapToGrid, horizontal]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените флаги snapToGrid и horizontal в панели Controls:
@@ -139,7 +142,7 @@ export const PropSnapToGridAndHorizontal: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <CardFullLoading {...args} />
+          <CardFullLoading tone="info" snapToGrid={args.snapToGrid} horizontal={args.horizontal} />
         </div>
       </div>
     </div>

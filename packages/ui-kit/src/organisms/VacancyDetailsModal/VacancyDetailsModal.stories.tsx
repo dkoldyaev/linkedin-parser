@@ -230,7 +230,7 @@ function InteractiveVacancyModalDemo(args: VacancyDetailsModalProps): React.Reac
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -243,17 +243,18 @@ export const Base: Story = {
 };
 
 export const PropActiveTabCompatibility: Story = {
-  name: 'Пропсы: activeTab="compatibility", compatibilityScore и compatibilitySections',
+  name: 'Пропсы: activeTab="compatibility", isCvOutdated и compatibilityScore',
   args: {
     activeTab: 'compatibility',
     isCvOutdated: true,
     compatibilityScore: 84,
   },
   parameters: {
+    controls: { include: ['activeTab', 'isCvOutdated', 'compatibilityScore'] },
     docs: {
       description: {
         story:
-          'Демонстрация вкладки «Совместимость с CV» (`activeTab="compatibility"`), отображающей предупреждение `isCvOutdated`, общую оценку `cvAssessment`, `<ReportAccordion>` и список рекомендаций.',
+          'Демонстрация вкладки «Совместимость с CV» (`activeTab="compatibility"`), отображающей предупреждение `isCvOutdated`, общую оценку `cvAssessment`, `<ReportAccordion>` и список рекомендаций. Доступны только контролы `activeTab`, `isCvOutdated` и `compatibilityScore`.',
       },
     },
   },
@@ -271,10 +272,11 @@ export const PropHeaderAndStatusControls: Story = {
     isClosed: false,
   },
   parameters: {
+    controls: { include: ['title', 'company', 'status', 'workplace', 'isClosed'] },
     docs: {
       description: {
         story:
-          'Пропсы шапки и панели быстрых переключателей статуса воронки (`status`, `stageOptions`) и формата работы (`workplace`, `workplaceOptions`).',
+          'Пропсы шапки и панели быстрых переключателей статуса воронки (`status`, `stageOptions`) и формата работы (`workplace`, `workplaceOptions`). Доступны только контролы `title`, `company`, `status`, `workplace` и `isClosed`.',
       },
     },
   },

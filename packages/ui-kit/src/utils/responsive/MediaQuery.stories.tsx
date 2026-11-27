@@ -91,7 +91,7 @@ export default meta;
 type Story = StoryObj<typeof MediaQuery>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -117,13 +117,18 @@ export const Base: Story = {
   ),
 };
 
-export const PropMobileTabletDesktopAndWide: Story = {
-  name: 'Пропсы: mobile, tablet, desktop и wide (Слоты брейкпоинтов)',
+export const PropMobileAndTablet: Story = {
+  name: 'Пропсы: mobile и tablet (Мобильный и планшетный слоты)',
+  args: {
+    mobile: MOBILE_SLOT_MAP.MobileBadge,
+    tablet: TABLET_SLOT_MAP.TabletBadge,
+  },
   parameters: {
+    controls: { include: ['mobile', 'tablet'] },
     docs: {
       description: {
         story:
-          'Если слот `tablet` не передан (`tablet={undefined}`), компонент автоматически применяет класс `.noTablet`, расширяя диапазон `desktop` от 768px и выше.',
+          'Если слот `tablet` не передан (`tablet={undefined}`), компонент автоматически применяет класс `.noTablet`, расширяя диапазон `desktop` от 768px и выше. Доступны только контролы `mobile` и `tablet`.',
       },
     },
   },
@@ -131,14 +136,50 @@ export const PropMobileTabletDesktopAndWide: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: mobile, tablet, desktop &amp; wide
+          props: mobile &amp; tablet — Контролы: [mobile, tablet]
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите none для любого слота в Controls, чтобы проверить фоллбэк:
+          Выберите none для tablet в Controls, чтобы проверить фоллбэк на desktop от 768px:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <MediaQuery {...args} />
+        <MediaQuery
+          mobile={args.mobile}
+          tablet={args.tablet}
+          desktop={DESKTOP_SLOT_MAP.DesktopBadge}
+        />
+      </div>
+    </div>
+  ),
+};
+
+export const PropDesktopAndWide: Story = {
+  name: 'Пропсы: desktop и wide (Десктопный и широкоформатный слоты)',
+  args: {
+    desktop: DESKTOP_SLOT_MAP.DesktopBadge,
+    wide: WIDE_SLOT_MAP.WideBadge,
+  },
+  parameters: {
+    controls: { include: ['desktop', 'wide'] },
+    docs: {
+      description: {
+        story:
+          'Слот `wide` переопределяет `desktop` на экранах шире 1440px. Доступны только контролы `desktop` и `wide`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: desktop &amp; wide — Контролы: [desktop, wide]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте слот wide в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <MediaQuery desktop={args.desktop} wide={args.wide} />
       </div>
     </div>
   ),

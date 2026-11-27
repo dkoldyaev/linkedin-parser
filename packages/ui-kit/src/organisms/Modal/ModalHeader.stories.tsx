@@ -142,7 +142,7 @@ export default meta;
 type Story = StoryObj<typeof ModalHeader>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -174,14 +174,13 @@ export const PropTitleDescriptionAndIcon: Story = {
     title: 'Создать этап воронки',
     description: 'Добавьте новую колонку на Канбан-доску кандидатов.',
     icon: ICON_MAP.Settings,
-    actions: undefined,
-    meta: undefined,
-    tabs: undefined,
   },
   parameters: {
+    controls: { include: ['title', 'description', 'icon'] },
     docs: {
       description: {
-        story: 'Базовая конфигурация шапки только с иконкой, заголовком и описанием.',
+        story:
+          'Базовая конфигурация шапки только с иконкой, заголовком и описанием. Доступны только контролы `title`, `description` и `icon`.',
       },
     },
   },
@@ -189,14 +188,19 @@ export const PropTitleDescriptionAndIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title, description &amp; icon
+          props: title, description &amp; icon — Контролы: [title, description, icon]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените title, description и icon в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ModalHeader {...args} onClose={() => undefined} />
+        <ModalHeader
+          title={args.title}
+          description={args.description}
+          icon={args.icon}
+          onClose={() => undefined}
+        />
       </div>
     </div>
   ),
@@ -205,18 +209,16 @@ export const PropTitleDescriptionAndIcon: Story = {
 export const PropActionsMetaAndTabs: Story = {
   name: 'Пропсы: actions, meta и tabs (Расширенная шапка инспектора)',
   args: {
-    title: 'Staff UI Architect',
-    description: 'Stripe • Dublin, Ireland',
-    icon: ICON_MAP.Briefcase,
     actions: ACTIONS_MAP.SyncAndLinkedInBtns,
     meta: META_MAP.LocationAndSalaryBadges,
     tabs: TABS_MAP.DetailsAndCompatibilityTabs,
   },
   parameters: {
+    controls: { include: ['actions', 'meta', 'tabs'] },
     docs: {
       description: {
         story:
-          'Пропсы `actions`, `meta` и `tabs` превращают шапку в полноценный заголовок инспектора карточки вакансии.',
+          'Пропсы `actions`, `meta` и `tabs` превращают шапку в полноценный заголовок инспектора карточки вакансии. Доступны только контролы `actions`, `meta` и `tabs`.',
       },
     },
   },
@@ -224,14 +226,22 @@ export const PropActionsMetaAndTabs: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: actions, meta &amp; tabs
+          props: actions, meta &amp; tabs — Контролы: [actions, meta, tabs]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте слоты actions, meta и tabs в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ModalHeader {...args} onClose={() => undefined} />
+        <ModalHeader
+          title="Staff UI Architect"
+          description="Stripe • Dublin, Ireland"
+          icon={ICON_MAP.Briefcase}
+          actions={args.actions}
+          meta={args.meta}
+          tabs={args.tabs}
+          onClose={() => undefined}
+        />
       </div>
     </div>
   ),
@@ -240,17 +250,15 @@ export const PropActionsMetaAndTabs: Story = {
 export const PropHideCloseButtonAndCloseLabel: Story = {
   name: 'Пропсы: hideCloseButton и closeLabel',
   args: {
-    title: 'Обязательный шаг верификации',
-    description: 'Завершите настройку перед закрытием окна.',
     hideCloseButton: true,
-    actions: undefined,
-    meta: undefined,
-    tabs: undefined,
+    closeLabel: 'Закрыть модальное окно',
   },
   parameters: {
+    controls: { include: ['hideCloseButton', 'closeLabel'] },
     docs: {
       description: {
-        story: 'Пропс `hideCloseButton` убирает крестик закрытия из правого верхнего угла шапки.',
+        story:
+          'Пропс `hideCloseButton` убирает крестик закрытия из правого верхнего угла шапки. Доступны только контролы `hideCloseButton` и `closeLabel`.',
       },
     },
   },
@@ -258,14 +266,20 @@ export const PropHideCloseButtonAndCloseLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: hideCloseButton &amp; closeLabel
+          props: hideCloseButton &amp; closeLabel — Контролы: [hideCloseButton, closeLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг hideCloseButton в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ModalHeader {...args} onClose={() => undefined} />
+        <ModalHeader
+          title="Обязательный шаг верификации"
+          description="Завершите настройку перед закрытием окна."
+          hideCloseButton={args.hideCloseButton}
+          closeLabel={args.closeLabel}
+          onClose={() => undefined}
+        />
       </div>
     </div>
   ),

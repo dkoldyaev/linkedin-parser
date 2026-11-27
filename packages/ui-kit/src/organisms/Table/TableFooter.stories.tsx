@@ -39,7 +39,7 @@ export default meta;
 type Story = StoryObj<typeof TableFooter>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -80,10 +80,11 @@ export const PropJustify: Story = {
     justify: 'end',
   },
   parameters: {
+    controls: { include: ['justify'] },
     docs: {
       description: {
         story:
-          'Пропс `justify` определяет распределение дочерних элементов по горизонтали (`between` разносит счетчик и кнопку по краям, `end` прижимает вправо).',
+          'Пропс `justify` определяет распределение дочерних элементов по горизонтали (`between` разносит счетчик и кнопку по краям, `end` прижимает вправо). Доступен только контрол `justify`.',
       },
     },
   },

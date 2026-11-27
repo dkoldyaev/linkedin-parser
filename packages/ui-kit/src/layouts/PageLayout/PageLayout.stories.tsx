@@ -110,7 +110,7 @@ function InteractivePageLayoutDemo(args: PageLayoutProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -129,14 +129,19 @@ export const PropFullBleedAndSnapToGrid: Story = {
     snapToGrid: true,
   },
   parameters: {
+    controls: { include: ['fullBleed', 'snapToGrid'] },
     docs: {
       description: {
         story:
-          'При `fullBleed={true}` основная область `<main>` занимает 100% ширины без центрирующих полей.',
+          'При `fullBleed={true}` основная область `<main>` занимает 100% ширины без центрирующих полей. Доступны только контролы `fullBleed` и `snapToGrid`.',
       },
     },
   },
-  render: (args) => <InteractivePageLayoutDemo {...args} />,
+  render: (args) => (
+    <InteractivePageLayoutDemo fullBleed={args.fullBleed} snapToGrid={args.snapToGrid}>
+      {null}
+    </InteractivePageLayoutDemo>
+  ),
 };
 
 export const PropBannerAndFooter: Story = {
@@ -146,12 +151,17 @@ export const PropBannerAndFooter: Story = {
     footer: FOOTER_MAP.StandardFooter,
   },
   parameters: {
+    controls: { include: ['banner', 'footer'] },
     docs: {
       description: {
         story:
-          'Пропс `banner` размещает уведомление под `<Header>`, а `footer` рендерит подвал страницы.',
+          'Пропс `banner` размещает уведомление под `<Header>`, а `footer` рендерит подвал страницы. Доступны только контролы `banner` и `footer`.',
       },
     },
   },
-  render: (args) => <InteractivePageLayoutDemo {...args} />,
+  render: (args) => (
+    <InteractivePageLayoutDemo banner={args.banner} footer={args.footer}>
+      {null}
+    </InteractivePageLayoutDemo>
+  ),
 };

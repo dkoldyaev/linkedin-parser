@@ -40,7 +40,7 @@ export default meta;
 type Story = StoryObj<typeof ModalFooter>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -85,10 +85,11 @@ export const PropJustify: Story = {
     justify: 'end',
   },
   parameters: {
+    controls: { include: ['justify'] },
     docs: {
       description: {
         story:
-          'Пропс `justify` управляет раскладкой кнопок: `end` (стандартно справа), `between` (деструктивное действие слева, основные кнопки справа), `start` (слева) и `center` (по центру).',
+          'Пропс `justify` управляет раскладкой кнопок: `end` (стандартно справа), `between` (деструктивное действие слева, основные кнопки справа), `start` (слева) и `center` (по центру). Доступен только контрол `justify`.',
       },
     },
   },
@@ -96,14 +97,14 @@ export const PropJustify: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: justify (&quot;start&quot; | &quot;center&quot; | &quot;end&quot; | &quot;between&quot;)
+          prop: justify (&quot;start&quot; | &quot;center&quot; | &quot;end&quot; | &quot;between&quot;) — Контролы: [justify]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте justify в Controls для верхнего образца или сравните варианты ниже:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ModalFooter {...args}>
+        <ModalFooter justify={args.justify}>
           <ModalFooter.Actions>
             <Button variant="secondary" size="sm">
               Отмена

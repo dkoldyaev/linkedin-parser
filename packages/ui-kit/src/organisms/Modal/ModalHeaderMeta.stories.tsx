@@ -31,7 +31,7 @@ export default meta;
 type Story = StoryObj<typeof ModalHeaderMeta>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -75,12 +75,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropChildren: Story = {
-  name: 'Пропс: children (Набор мета-индикаторов)',
+export const PropClassNameAndChildren: Story = {
+  name: 'Пропсы: className и children (Набор мета-индикаторов)',
+  args: {
+    className: '',
+  },
   parameters: {
+    controls: { include: ['className'] },
     docs: {
       description: {
-        story: 'Пропс `children` принимает любые атомы `<Badge>`, `<Text>` и `<StatusDot>`.',
+        story:
+          'Пропс `children` принимает любые атомы `<Badge>`, `<Text>` и `<StatusDot>`. Доступен только контрол `className`.',
       },
     },
   },
@@ -88,14 +93,14 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children (React.ReactNode)
+          props: children &amp; className — Контролы: [className]
         </Text>
         <Text variant="caption" tone="secondary">
           Пример строки метаданных внутри ModalHeaderMeta:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <ModalHeaderMeta {...args}>
+        <ModalHeaderMeta className={args.className}>
           <Badge tone="info" size="xs">
             ID: VAC-4091
           </Badge>

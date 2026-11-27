@@ -2,6 +2,18 @@ import { Blockquote, Text } from './Text';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
 const meta: Meta<typeof Blockquote> = {
   title: 'Atoms/Text/Blockquote',
   component: Blockquote,
@@ -26,19 +38,8 @@ const meta: Meta<typeof Blockquote> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
-      description:
-        'Семантический цветовой тон вертикальной линии-маркера и оформления блока цитаты.',
+      options: ALL_TONES,
+      description: 'Семантический цветовой тон вертикальной линии-маркера и оформления блока цитаты.',
     },
     author: {
       control: 'text',
@@ -59,12 +60,12 @@ export default meta;
 type Story = StoryObj<typeof Blockquote>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Blockquote`. Позволяет настроить текст цитаты (`children`), автора (`author`) и семантический тон (`tone`) через панель Controls.',
+          'Базовая интерактивная демонстрация `Blockquote` со всеми контролами (`tone`, `author`, `children`, `className`).',
       },
     },
   },
@@ -86,13 +87,19 @@ export const Base: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический тон)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все тона (Контрол: только children)',
+  args: {
+    children: 'Архитектурное правило композиции атомарных примитивов.',
+  },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `tone` управляет цветом боковой линии и акцентом цитаты. Доступны значения `primary`, `accent`, `success`, `warning`, `danger` и другие семантические тона.',
+          'Показывает все основные варианты `tone` (`primary`, `accent`, `success`, `warning`, `danger`) одновременно. В панели Controls доступен **только один контрол** `children`.',
       },
     },
   },
@@ -100,49 +107,38 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Все варианты тонов (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Определяет семантический цвет боковой полосы цитаты. Измените значение tone в Controls для
-          проверки интерактивного образца сверху:
+          Измените текст цитаты в контроле children, чтобы сравнить цветовые маркеры всех тонов:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Blockquote {...args}>
-          Интерактивный образец с выбранным тоном: <strong>{args.tone}</strong>
-        </Blockquote>
         <div className={layoutStyles.stackSm}>
-          <Blockquote tone="primary" author="Primary Tone">
-            Стандартная цитата (tone=&quot;primary&quot;)
-          </Blockquote>
-          <Blockquote tone="accent" author="Accent Tone">
-            Акцентная архитектурная заметка (tone=&quot;accent&quot;)
-          </Blockquote>
-          <Blockquote tone="success" author="Success Tone">
-            Подтвержденное требование или успешный вывод (tone=&quot;success&quot;)
-          </Blockquote>
-          <Blockquote tone="warning" author="Warning Tone">
-            Предупреждение или важная оговорка (tone=&quot;warning&quot;)
-          </Blockquote>
-          <Blockquote tone="danger" author="Danger Tone">
-            Критическое ограничение архитектуры (tone=&quot;danger&quot;)
-          </Blockquote>
+          {(['primary', 'accent', 'success', 'warning', 'danger'] as const).map((t) => (
+            <Blockquote key={t} tone={t} author={`tone="${t}"`}>
+              {args.children}
+            </Blockquote>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropAuthor: Story = {
-  name: 'Пропс: author (Автор / Источник)',
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Выбор тона (Контролы: tone, children)',
   args: {
-    author: 'System Architect — ADR-004',
+    tone: 'accent',
+    children: 'Цитата с индивидуально настраиваемым семантическим тоном.',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `author` добавляет семантический тег `<cite>` с тире перед именем автора или названием документа-источника.',
+        story: 'Одиночный блок цитаты с двумя контролами: `tone` и `children`.',
       },
     },
   },
@@ -150,34 +146,33 @@ export const PropAuthor: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: author
+          prop: tone — Одиночная цитата (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Отображает подпись автора или источник цитаты в нижней части блока. Если пропс не передан,
-          тег &lt;cite&gt; не рендерится.
+          Переключайте tone (&quot;{args.tone}&quot;) и содержимое children:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Blockquote {...args} />
-        <Blockquote tone={args.tone} author={undefined}>
-          Цитата без указания автора (author={'{undefined}'}) — блок содержит только основной текст.
-        </Blockquote>
+        <Blockquote tone={args.tone}>{args.children}</Blockquote>
       </div>
     </div>
   ),
 };
 
-export const PropChildren: Story = {
-  name: 'Пропс: children (Содержимое цитаты)',
+export const PropAuthor: Story = {
+  name: 'Пропс: author (Контролы: author, children)',
   args: {
-    children:
-      'Текст цитаты может содержать как простую строку, так и форматированные React-узлы.',
+    author: 'System Architect — ADR-004',
+    children: 'Никаких неявных фоллбэков конфигурации в рантайм-коде.',
   },
   parameters: {
+    controls: {
+      include: ['author', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `children` отвечает за основное содержимое цитаты внутри `<blockquote>`.',
+          'Демонстрация пропса `author`. В панели Controls доступны только `author` и `children`.',
       },
     },
   },
@@ -185,14 +180,16 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children
+          prop: author (Controls: только author и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Основное содержимое блока цитаты. Отредактируйте поле children в Controls:
+          Отредактируйте или очистите поле author в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Blockquote {...args} />
+        <Blockquote tone="accent" author={args.author}>
+          {args.children}
+        </Blockquote>
       </div>
     </div>
   ),

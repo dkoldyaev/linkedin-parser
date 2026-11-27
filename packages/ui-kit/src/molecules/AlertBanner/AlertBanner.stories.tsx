@@ -50,7 +50,7 @@ export default meta;
 type Story = StoryObj<typeof AlertBanner>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -76,18 +76,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический тип уведомления)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все 4 тона (Контрол: children)',
   args: {
-    tone: 'warning',
-    title: 'CV OUTDATED NOTICE',
-    children: 'Резюме было изменено после последней проверки совместимости. Запустите анализ повторно.',
+    children: 'Пример текста уведомления для сравнения всех 4 семантических тонов баннера.',
   },
   parameters: {
+    controls: { include: ['children'] },
     docs: {
       description: {
         story:
-          'Пропс `tone` выбирает один из 4 режимов: `info` (справка), `success` (успех), `warning` (предупреждение, `role="alert"`), `danger` (критическая ошибка, `role="alert"`).',
+          'Витрина всех 4 значений `tone`: `info`, `success`, `warning`, `danger`. Доступен только один контрол — `children`.',
       },
     },
   },
@@ -95,28 +94,61 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone (&quot;info&quot; | &quot;success&quot; | &quot;warning&quot; | &quot;danger&quot;)
+          prop: tone (Все 4 тона одновременно) — Контролы: [children]
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте tone в Controls для верхнего образца или сравните все 4 тона ниже:
+          Измените текст children в панели Controls для всех 4 баннеров:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <AlertBanner {...args} />
         <div className={layoutStyles.stackSm}>
           <AlertBanner tone="info" title="tone='info'">
-            Информационное системное сообщение.
+            {args.children}
           </AlertBanner>
           <AlertBanner tone="success" title="tone='success'">
-            Операция сохранения успешно завершена.
+            {args.children}
           </AlertBanner>
           <AlertBanner tone="warning" title="tone='warning'">
-            Внимание: часть вакансий будет перемещена в архив.
+            {args.children}
           </AlertBanner>
           <AlertBanner tone="danger" title="tone='danger'">
-            Ошибка подключения к API парсера.
+            {args.children}
           </AlertBanner>
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Интерактивный выбор (Контролы: tone, children)',
+  args: {
+    tone: 'warning',
+    children: 'Резюме было изменено после последней проверки совместимости. Запустите анализ повторно.',
+  },
+  parameters: {
+    controls: { include: ['tone', 'children'] },
+    docs: {
+      description: {
+        story:
+          'Интерактивная настройка пропса `tone` на одном баннере. Доступны только два контрола: `tone` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: tone (Одиночный баннер) — Контролы: [tone, children]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте tone и текст сообщения в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <AlertBanner tone={args.tone} title="CV OUTDATED NOTICE">
+          {args.children}
+        </AlertBanner>
       </div>
     </div>
   ),
@@ -125,15 +157,15 @@ export const PropTone: Story = {
 export const PropTitleAndChildren: Story = {
   name: 'Пропсы: title и children (Заголовок и текст сообщения)',
   args: {
-    tone: 'success',
     title: 'ВЕРСИЯ РЕЗЮМЕ #4 СГЕНЕРИРОВАНА',
     children: 'Соответствие ключевым словам вакансии выросло до 94%.',
   },
   parameters: {
+    controls: { include: ['title', 'children'] },
     docs: {
       description: {
         story:
-          'Пропс `title` рендерит верхний моноширинный заголовок (опционален), а `children` — основной текст сообщения.',
+          'Пропс `title` рендерит верхний моноширинный заголовок (опционален), а `children` — основной текст сообщения. Доступны только контролы `title` и `children`.',
       },
     },
   },
@@ -141,16 +173,18 @@ export const PropTitleAndChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title &amp; children
+          props: title &amp; children — Контролы: [title, children]
         </Text>
         <Text variant="caption" tone="secondary">
           Сравнение баннера с заголовком (title) и компактного однострочного баннера без title:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <AlertBanner {...args} />
-        <AlertBanner tone={args.tone} title={undefined}>
-          Баннер без заголовка (title={'{undefined}'}) — только основной текст children.
+        <AlertBanner tone="success" title={args.title}>
+          {args.children}
+        </AlertBanner>
+        <AlertBanner tone="success" title={undefined}>
+          {args.children}
         </AlertBanner>
       </div>
     </div>
@@ -160,16 +194,14 @@ export const PropTitleAndChildren: Story = {
 export const PropOnDismissAndDismissLabel: Story = {
   name: 'Пропсы: onDismiss и dismissLabel (Кнопка закрытия)',
   args: {
-    tone: 'danger',
-    title: 'RATE LIMIT EXCEEDED',
-    children: 'Задача поставлена в очередь на повторную попытку через 60 секунд.',
     dismissLabel: 'Скрыть сообщение об ошибке',
   },
   parameters: {
+    controls: { include: ['dismissLabel'] },
     docs: {
       description: {
         story:
-          'При передаче функции `onDismiss` в правой части баннера рендерится кнопка с иконкой `X` и атрибутом `aria-label={dismissLabel}`.',
+          'При передаче функции `onDismiss` в правой части баннера рендерится кнопка с иконкой `X` и атрибутом `aria-label={dismissLabel}`. Доступен только контрол `dismissLabel`.',
       },
     },
   },
@@ -177,14 +209,21 @@ export const PropOnDismissAndDismissLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: onDismiss &amp; dismissLabel
+          props: onDismiss &amp; dismissLabel — Контролы: [dismissLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте dismissLabel в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <AlertBanner {...args} onDismiss={() => undefined} />
+        <AlertBanner
+          tone="danger"
+          title="RATE LIMIT EXCEEDED"
+          dismissLabel={args.dismissLabel}
+          onDismiss={() => undefined}
+        >
+          Задача поставлена в очередь на повторную попытку через 60 секунд.
+        </AlertBanner>
       </div>
     </div>
   ),

@@ -113,7 +113,7 @@ export default meta;
 type Story = StoryObj<typeof CollapsibleSection>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -144,12 +144,13 @@ export const PropTitleAndIcon: Story = {
   args: {
     title: 'СИСТЕМНАЯ ДИАГНОСТИКА ВОРКЕРА',
     icon: <Icon icon={Info} size="sm" tone="info" />,
-    defaultOpen: true,
   },
   parameters: {
+    controls: { include: ['title', 'icon'] },
     docs: {
       description: {
-        story: 'Пропсы `title` и `icon` формируют левую часть шапки секции.',
+        story:
+          'Пропсы `title` и `icon` формируют левую часть шапки секции. Доступны только контролы `title` и `icon`.',
       },
     },
   },
@@ -157,14 +158,18 @@ export const PropTitleAndIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: title &amp; icon
+          props: title &amp; icon — Контролы: [title, icon]
         </Text>
         <Text variant="caption" tone="secondary">
           Настройте текст заголовка и иконку в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <CollapsibleSection {...args} />
+        <CollapsibleSection title={args.title} icon={args.icon} defaultOpen>
+          <Paragraph size="sm" spacing="none">
+            Содержимое сворачиваемой секции.
+          </Paragraph>
+        </CollapsibleSection>
       </div>
     </div>
   ),
@@ -173,8 +178,6 @@ export const PropTitleAndIcon: Story = {
 export const PropBadgeAndAccessory: Story = {
   name: 'Пропсы: badge и accessory (Бейдж и кнопки действий в шапке)',
   args: {
-    title: 'НАСТРОЙКИ ИНТЕГРАЦИИ',
-    icon: <Icon icon={SlidersHorizontal} size="sm" tone="accent" />,
     badge: (
       <Badge size="xs" tone="success">
         Active
@@ -185,13 +188,13 @@ export const PropBadgeAndAccessory: Story = {
         <Icon icon={Settings} size="xs" />
       </Button>
     ),
-    defaultOpen: true,
   },
   parameters: {
+    controls: { include: ['badge', 'accessory'] },
     docs: {
       description: {
         story:
-          'Пропс `badge` отображает индикатор рядом с заголовком, а `accessory` размещает интерактивные кнопки справа (клик по кнопке внутри `accessory` не вызывает сворачивание секции благодаря `stopPropagation`).',
+          'Пропс `badge` отображает индикатор рядом с заголовком, а `accessory` размещает интерактивные кнопки справа (клик по кнопке внутри `accessory` не вызывает сворачивание секции благодаря `stopPropagation`). Доступны только контролы `badge` и `accessory`.',
       },
     },
   },
@@ -199,32 +202,42 @@ export const PropBadgeAndAccessory: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: badge &amp; accessory
+          props: badge &amp; accessory — Контролы: [badge, accessory]
         </Text>
         <Text variant="caption" tone="secondary">
           Выберите badge и accessory в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <CollapsibleSection {...args} />
+        <CollapsibleSection
+          title="НАСТРОЙКИ ИНТЕГРАЦИИ"
+          icon={<Icon icon={SlidersHorizontal} size="sm" tone="accent" />}
+          badge={args.badge}
+          accessory={args.accessory}
+          defaultOpen
+        >
+          <Paragraph size="sm" spacing="none">
+            Дополнительные настройки интеграции с внешним сервисом.
+          </Paragraph>
+        </CollapsibleSection>
       </div>
     </div>
   ),
 };
 
 export const PropOpenAndLabels: Story = {
-  name: 'Пропсы: open, defaultOpen, expandLabel, collapseLabel',
+  name: 'Пропсы: defaultOpen, expandLabel, collapseLabel',
   args: {
-    title: 'ЖУРНАЛ СОБЫТИЙ СЕССИИ',
     defaultOpen: false,
     expandLabel: 'Показать полностью',
     collapseLabel: 'Скрыть журнал',
   },
   parameters: {
+    controls: { include: ['defaultOpen', 'expandLabel', 'collapseLabel'] },
     docs: {
       description: {
         story:
-          'Пропсы `open` / `defaultOpen` управляют состоянием раскрытия, а `expandLabel` и `collapseLabel` задают текст подсказки рядом с иконкой шеврона.',
+          'Пропсы `open` / `defaultOpen` управляют состоянием раскрытия, а `expandLabel` и `collapseLabel` задают текст подсказки рядом с иконкой шеврона. Доступны только контролы `defaultOpen`, `expandLabel` и `collapseLabel`.',
       },
     },
   },
@@ -232,14 +245,23 @@ export const PropOpenAndLabels: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: open / defaultOpen / expandLabel / collapseLabel
+          props: defaultOpen / expandLabel / collapseLabel — Контролы: [defaultOpen, expandLabel, collapseLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Кликните по шапке или измените expandLabel / collapseLabel в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <CollapsibleSection {...args} />
+        <CollapsibleSection
+          title="ЖУРНАЛ СОБЫТИЙ СЕССИИ"
+          defaultOpen={args.defaultOpen}
+          expandLabel={args.expandLabel}
+          collapseLabel={args.collapseLabel}
+        >
+          <Paragraph size="sm" spacing="none">
+            Записи журнала событий текущей сессии парсера.
+          </Paragraph>
+        </CollapsibleSection>
       </div>
     </div>
   ),

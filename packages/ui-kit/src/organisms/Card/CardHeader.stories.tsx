@@ -105,7 +105,7 @@ export default meta;
 type Story = StoryObj<typeof CardHeader>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -142,13 +142,13 @@ export const PropOverlineAndOverlineHref: Story = {
   args: {
     overline: 'Linear',
     overlineHref: 'https://linear.app',
-    title: 'Principal UI Engineer',
   },
   parameters: {
+    controls: { include: ['overline', 'overlineHref'] },
     docs: {
       description: {
         story:
-          'Когда задан `overlineHref`, текст `overline` рендерится как внешняя ссылка `<Link external>` с иконкой перехода; если `overlineHref` пуст — как статический моноширинный текст.',
+          'Когда задан `overlineHref`, текст `overline` рендерится как внешняя ссылка `<Link external>` с иконкой перехода; если `overlineHref` пуст — как статический моноширинный текст. Доступны только контролы `overline` и `overlineHref`.',
       },
     },
   },
@@ -156,7 +156,7 @@ export const PropOverlineAndOverlineHref: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: overline &amp; overlineHref
+          props: overline &amp; overlineHref — Контролы: [overline, overlineHref]
         </Text>
         <Text variant="caption" tone="secondary">
           Очистите overlineHref в Controls, чтобы сравнить ссылку и обычный текст:
@@ -166,7 +166,11 @@ export const PropOverlineAndOverlineHref: Story = {
         <div className={layoutStyles.narrowBox}>
           <Card tone="accent">
             <CardBody snapToGrid={false}>
-              <CardHeader {...args} />
+              <CardHeader
+                overline={args.overline}
+                overlineHref={args.overlineHref}
+                title="Principal UI Engineer"
+              />
             </CardBody>
           </Card>
         </div>
@@ -181,14 +185,13 @@ export const PropSelectableAndChecked: Story = {
     selectable: true,
     checked: true,
     checkboxAriaLabel: 'Выбрать вакансию Stripe для пакетного действия',
-    overline: 'Stripe',
-    title: 'Staff Frontend Architect',
   },
   parameters: {
+    controls: { include: ['selectable', 'checked', 'checkboxAriaLabel'] },
     docs: {
       description: {
         story:
-          'Пропс `selectable` включает чекбокс выбора карточки (клик по чекбоксу перехватывает `stopPropagation`, чтобы не открывать модальное окно карточки).',
+          'Пропс `selectable` включает чекбокс выбора карточки (клик по чекбоксу перехватывает `stopPropagation`, чтобы не открывать модальное окно карточки). Доступны только контролы `selectable`, `checked` и `checkboxAriaLabel`.',
       },
     },
   },
@@ -196,7 +199,7 @@ export const PropSelectableAndChecked: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: selectable, checked &amp; checkboxAriaLabel
+          props: selectable, checked &amp; checkboxAriaLabel — Контролы: [selectable, checked, checkboxAriaLabel]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте selectable и checked в панели Controls:
@@ -206,7 +209,13 @@ export const PropSelectableAndChecked: Story = {
         <div className={layoutStyles.narrowBox}>
           <Card tone="success" selected={args.checked}>
             <CardBody snapToGrid={false}>
-              <CardHeader {...args} />
+              <CardHeader
+                overline="Stripe"
+                title="Staff Frontend Architect"
+                selectable={args.selectable}
+                checked={args.checked}
+                checkboxAriaLabel={args.checkboxAriaLabel}
+              />
             </CardBody>
           </Card>
         </div>
@@ -219,15 +228,13 @@ export const PropCompact: Story = {
   name: 'Пропс: compact (Однострочная шапка)',
   args: {
     compact: true,
-    overline: 'Figma',
-    title: 'Lead Design Systems Engineer',
-    statusIndicators: STATUS_MAP.InterviewBadge,
   },
   parameters: {
+    controls: { include: ['compact'] },
     docs: {
       description: {
         story:
-          'В режиме `compact={true}` `overline` и `title` объединяются через слэш `/` в одну компактную строку с обрезкой многоточием.',
+          'В режиме `compact={true}` `overline` и `title` объединяются через слэш `/` в одну компактную строку с обрезкой многоточием. Доступен только контрол `compact`.',
       },
     },
   },
@@ -235,7 +242,7 @@ export const PropCompact: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: compact (boolean)
+          prop: compact (boolean) — Контролы: [compact]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг compact в панели Controls:
@@ -244,7 +251,12 @@ export const PropCompact: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <Card tone="info">
-            <CardHeader {...args} />
+            <CardHeader
+              compact={args.compact}
+              overline="Figma"
+              title="Lead Design Systems Engineer"
+              statusIndicators={STATUS_MAP.InterviewBadge}
+            />
           </Card>
         </div>
       </div>

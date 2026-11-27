@@ -3,6 +3,18 @@ import { Label } from './Label';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Text } from '../Text';
 
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
 const meta: Meta<typeof Label> = {
   title: 'Atoms/Label',
   component: Label,
@@ -27,17 +39,7 @@ const meta: Meta<typeof Label> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон текста подписи.',
     },
     required: {
@@ -63,12 +65,12 @@ export default meta;
 type Story = StoryObj<typeof Label>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Label`. Настраивайте `children`, `tone`, `required` и `disabled` через панель Controls.',
+          'Базовая интерактивная демонстрация `Label` со всеми контролами (`children`, `tone`, `required`, `disabled`, `htmlFor`).',
       },
     },
   },
@@ -92,16 +94,19 @@ export const Base: Story = {
 };
 
 export const PropRequired: Story = {
-  name: 'Пропс: required (Маркер обязательного поля)',
+  name: 'Пропс: required (Контролы: required, children)',
   args: {
     required: true,
     children: 'TARGET SALARY RANGE',
   },
   parameters: {
+    controls: {
+      include: ['required', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `required` добавляет справа от текста звездочку `*` с тоном `danger` и `aria-hidden="true"`.',
+          'Демонстрация пропса `required`. В панели Controls доступны только `required` и `children`.',
       },
     },
   },
@@ -109,32 +114,71 @@ export const PropRequired: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: required (boolean)
+          prop: required (Controls: только required и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг required в Controls, чтобы увидеть появление маркера обязательного поля:
+          Переключите флаг required ({String(args.required)}) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <div className={layoutStyles.stackSm}>
-          <Label {...args} />
-          <Label required={false}>OPTIONAL FIELD (required=false)</Label>
+        <Label required={args.required}>{args.children}</Label>
+      </div>
+    </div>
+  ),
+};
+
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все цвета (Контрол: только children)',
+  args: {
+    children: 'FIELD_LABEL',
+  },
+  parameters: {
+    controls: {
+      include: ['children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Показывает все семантические тона `tone` одновременно с единственным контролом `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: tone — Все тона (Controls: только children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените текст подписи в контроле children:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          {ALL_TONES.map((t) => (
+            <Label key={t} tone={t}>
+              {args.children} ({t})
+            </Label>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цвет подписи)',
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Выбор тона (Контролы: tone, children)',
   args: {
     tone: 'accent',
     children: 'ACCENT FIELD LABEL',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `tone` управляет цветом текста подписи.',
+        story: 'Одиночная подпись с двумя контролами: `tone` и `children`.',
       },
     },
   },
@@ -142,37 +186,33 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Одиночная подпись (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите tone в панели Controls:
+          Выберите tone (&quot;{args.tone}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Label {...args} />
-        <div className={layoutStyles.row}>
-          <Label tone="primary">primary</Label>
-          <Label tone="secondary">secondary</Label>
-          <Label tone="accent">accent</Label>
-          <Label tone="success">success</Label>
-          <Label tone="warning">warning</Label>
-          <Label tone="danger">danger</Label>
-        </div>
+        <Label tone={args.tone}>{args.children}</Label>
       </div>
     </div>
   ),
 };
 
 export const PropDisabled: Story = {
-  name: 'Пропс: disabled (Неактивное состояние)',
+  name: 'Пропс: disabled (Контролы: disabled, children)',
   args: {
     disabled: true,
     children: 'LOCKED CONFIGURATION FIELD',
   },
   parameters: {
+    controls: {
+      include: ['disabled', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `disabled` визуально приглушает подпись неактивного контрола.',
+        story:
+          'Демонстрация пропса `disabled`. В панели Controls доступны только `disabled` и `children`.',
       },
     },
   },
@@ -180,14 +220,14 @@ export const PropDisabled: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: disabled (boolean)
+          prop: disabled (Controls: только disabled и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите disabled в Controls:
+          Переключите disabled ({String(args.disabled)}) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Label {...args} />
+        <Label disabled={args.disabled}>{args.children}</Label>
       </div>
     </div>
   ),

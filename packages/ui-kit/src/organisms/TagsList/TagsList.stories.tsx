@@ -134,7 +134,7 @@ function ControlledTagsList(args: TagsListProps): React.ReactElement {
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -149,60 +149,84 @@ export const Base: Story = {
 export const PropDeletableAndAddable: Story = {
   name: 'Пропсы: deletable, addable, separator и placeholder',
   args: {
-    value: ['React 19', 'TypeScript', 'Node.js'],
     deletable: true,
     addable: true,
     separator: ',',
     placeholder: 'Введите через запятую...',
   },
   parameters: {
+    controls: { include: ['deletable', 'addable', 'separator', 'placeholder'] },
     docs: {
       description: {
         story:
-          'Пропс `deletable` включает крестики удаления на бейджах, а `addable` рендерит поле `<TagsListInput>`, которое разбивает вводимый текст по символу `separator`.',
+          'Пропс `deletable` включает крестики удаления на бейджах, а `addable` рендерит поле `<TagsListInput>`, которое разбивает вводимый текст по символу `separator`. Доступны только контролы `deletable`, `addable`, `separator` и `placeholder`.',
       },
     },
   },
-  render: (args) => <ControlledTagsList {...args} />,
+  render: (args) => (
+    <ControlledTagsList
+      value={['React 19', 'TypeScript', 'Node.js']}
+      deletable={args.deletable}
+      addable={args.addable}
+      separator={args.separator}
+      placeholder={args.placeholder}
+      onChange={() => undefined}
+    />
+  ),
 };
 
 export const PropMaxVisible: Story = {
   name: 'Пропс: maxVisible (Сворачивание списка в кнопку +N)',
   args: {
-    value: SAMPLE_TAGS,
     maxVisible: 4,
-    deletable: false,
-    addable: false,
   },
   parameters: {
+    controls: { include: ['maxVisible'] },
     docs: {
       description: {
         story:
-          'Когда количество тегов превышает `maxVisible`, лишние элементы скрываются за интерактивным бейджем `+N`, клик по которому раскрывает весь список.',
+          'Когда количество тегов превышает `maxVisible`, лишние элементы скрываются за интерактивным бейджем `+N`, клик по которому раскрывает весь список. Доступен только контрол `maxVisible`.',
       },
     },
   },
-  render: (args) => <ControlledTagsList {...args} />,
+  render: (args) => (
+    <ControlledTagsList
+      value={SAMPLE_TAGS}
+      maxVisible={args.maxVisible}
+      deletable={false}
+      addable={false}
+      onChange={() => undefined}
+    />
+  ),
 };
 
 export const PropVariantSizeToneAndIcon: Story = {
   name: 'Пропсы: variant, size, tone и icon (Кастомизация бейджей)',
   args: {
-    value: ['priority', 'dream-job', 'remote-eu'],
     variant: 'outline',
     size: 'xs',
     tone: 'accent',
     icon: ICON_MAP.TagIcon,
-    deletable: true,
-    addable: false,
   },
   parameters: {
+    controls: { include: ['variant', 'size', 'tone', 'icon'] },
     docs: {
       description: {
         story:
-          'Пропсы `variant`, `size`, `tone` и `icon` передаются каждому дочернему `<Badge>` для стилевой адаптации списка.',
+          'Пропсы `variant`, `size`, `tone` и `icon` передаются каждому дочернему `<Badge>` для стилевой адаптации списка. Доступны только контролы `variant`, `size`, `tone` и `icon`.',
       },
     },
   },
-  render: (args) => <ControlledTagsList {...args} />,
+  render: (args) => (
+    <ControlledTagsList
+      value={['priority', 'dream-job', 'remote-eu']}
+      variant={args.variant}
+      size={args.size}
+      tone={args.tone}
+      icon={args.icon}
+      deletable
+      addable={false}
+      onChange={() => undefined}
+    />
+  ),
 };

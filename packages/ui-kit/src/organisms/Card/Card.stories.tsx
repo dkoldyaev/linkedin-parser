@@ -115,7 +115,7 @@ export default meta;
 type Story = StoryObj<typeof Card>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -216,15 +216,13 @@ export const PropCompact: Story = {
   name: 'Пропс: compact (Полный режим / Сжатый 32px режим)',
   args: {
     compact: true,
-    tone: 'success',
-    overline: 'Stripe',
-    title: 'Staff Frontend Architect',
   },
   parameters: {
+    controls: { include: ['compact'] },
     docs: {
       description: {
         story:
-          'Пропс `compact` переключает карточку в однострочный режим `CardCollapsed` высотой в 1 ячейку сетки (32px).',
+          'Пропс `compact` переключает карточку в однострочный режим `CardCollapsed` высотой в 1 ячейку сетки (32px). Доступен только контрол `compact`.',
       },
     },
   },
@@ -232,7 +230,7 @@ export const PropCompact: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: compact (boolean)
+          prop: compact (boolean) — Контролы: [compact]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг compact в панели Controls:
@@ -241,7 +239,10 @@ export const PropCompact: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <Card
-            {...args}
+            compact={args.compact}
+            tone="success"
+            overline="Stripe"
+            title="Staff Frontend Architect"
             statusIndicators={
               <Badge variant="outline" tone="info" size="xs">
                 Interview
@@ -259,14 +260,13 @@ export const PropToneAndSelected: Story = {
   args: {
     tone: 'warning',
     selected: true,
-    overline: 'Revolut',
-    title: 'Senior Fullstack Engineer',
   },
   parameters: {
+    controls: { include: ['tone', 'selected'] },
     docs: {
       description: {
         story:
-          'Пропс `tone` окрашивает акцентную линию карточки (`success`, `warning`, `danger`, `accent`, `info`), а `selected` добавляет рамку активного выбора.',
+          'Пропс `tone` окрашивает акцентную линию карточки (`success`, `warning`, `danger`, `accent`, `info`), а `selected` добавляет рамку активного выбора. Доступны только контролы `tone` и `selected`.',
       },
     },
   },
@@ -274,7 +274,7 @@ export const PropToneAndSelected: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: tone &amp; selected
+          props: tone &amp; selected — Контролы: [tone, selected]
         </Text>
         <Text variant="caption" tone="secondary">
           Измените tone и selected в панели Controls:
@@ -282,7 +282,12 @@ export const PropToneAndSelected: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <Card {...args} />
+          <Card
+            tone={args.tone}
+            selected={args.selected}
+            overline="Revolut"
+            title="Senior Fullstack Engineer"
+          />
         </div>
       </div>
     </div>
@@ -294,13 +299,13 @@ export const PropIsLoading: Story = {
   args: {
     isLoading: true,
     compact: false,
-    tone: 'accent',
   },
   parameters: {
+    controls: { include: ['isLoading', 'compact'] },
     docs: {
       description: {
         story:
-          'При `isLoading={true}` карточка автоматически рендерит `<CardFullLoading>` (или `<CardCollapsedLoading>` при `compact={true}`).',
+          'При `isLoading={true}` карточка автоматически рендерит `<CardFullLoading>` (или `<CardCollapsedLoading>` при `compact={true}`). Доступны только контролы `isLoading` и `compact`.',
       },
     },
   },
@@ -308,7 +313,7 @@ export const PropIsLoading: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: isLoading (boolean)
+          prop: isLoading (boolean) — Контролы: [isLoading, compact]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте isLoading и compact в панели Controls:
@@ -316,7 +321,13 @@ export const PropIsLoading: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <Card {...args} />
+          <Card
+            isLoading={args.isLoading}
+            compact={args.compact}
+            tone="accent"
+            overline="Stripe"
+            title="Staff Frontend Architect"
+          />
         </div>
       </div>
     </div>

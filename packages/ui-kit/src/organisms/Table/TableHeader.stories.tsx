@@ -56,7 +56,7 @@ export default meta;
 type Story = StoryObj<typeof TableHeader>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -99,12 +99,12 @@ export const PropSize: Story = {
   name: 'Пропс: size (Высота шапки sm / md)',
   args: {
     size: 'md',
-    actions: ACTIONS_MAP.AddButton,
   },
   parameters: {
+    controls: { include: ['size'] },
     docs: {
       description: {
-        story: 'Пропс `size` переключает высоту шапки между `sm` и `md`.',
+        story: 'Пропс `size` переключает высоту шапки между `sm` и `md`. Доступен только контрол `size`.',
       },
     },
   },
@@ -112,7 +112,7 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;sm&quot; | &quot;md&quot;)
+          prop: size (&quot;sm&quot; | &quot;md&quot;) — Контролы: [size]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте size в панели Controls:
@@ -120,7 +120,7 @@ export const PropSize: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <TableHeader {...args}>
+          <TableHeader size={args.size} actions={ACTIONS_MAP.AddButton}>
             <Text as="span" variant="mono" weight="semibold" tone="accent">
               STAGE 03
             </Text>
@@ -138,19 +138,40 @@ export const PropSize: Story = {
   ),
 };
 
-export const PropActionsAndChildren: Story = {
-  name: 'Пропсы: actions и children (Слоты заголовка и кнопок меню)',
+export const PropActions: Story = {
+  name: 'Пропс: actions (Кнопки меню в правой части шапки)',
   args: {
-    size: 'sm',
     actions: ACTIONS_MAP.MoreButton,
   },
   parameters: {
+    controls: { include: ['actions'] },
     docs: {
       description: {
         story:
-          'Пропс `children` формирует основное содержимое шапки, а `actions` добавляет интерактивные контролы справа.',
+          'Пропс `actions` добавляет интерактивные контролы справа от заголовка. Доступен только контрол `actions`.',
       },
     },
   },
-  render: Base.render,
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: actions — Контролы: [actions]
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте actions в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.narrowBox}>
+          <TableHeader size="sm" actions={args.actions}>
+            <StatusDot tone="primary" size="md" />
+            <Text as="span" variant="mono-label" weight="semibold" tone="primary" truncate>
+              Backlog
+            </Text>
+          </TableHeader>
+        </div>
+      </div>
+    </div>
+  ),
 };

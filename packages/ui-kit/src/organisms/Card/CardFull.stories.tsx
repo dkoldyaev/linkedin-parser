@@ -77,7 +77,7 @@ export default meta;
 type Story = StoryObj<typeof CardFull>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -178,13 +178,13 @@ export const PropToneAndSelected: Story = {
   args: {
     tone: 'accent',
     selected: true,
-    overline: 'Vercel',
-    title: 'Staff Design Systems Engineer',
   },
   parameters: {
+    controls: { include: ['tone', 'selected'] },
     docs: {
       description: {
-        story: 'Пропсы `tone` и `selected` управляют цветовой маркировкой и рамкой активной карточки.',
+        story:
+          'Пропсы `tone` и `selected` управляют цветовой маркировкой и рамкой активной карточки. Доступны только контролы `tone` и `selected`.',
       },
     },
   },
@@ -192,7 +192,7 @@ export const PropToneAndSelected: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: tone &amp; selected
+          props: tone &amp; selected — Контролы: [tone, selected]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключайте tone и selected в панели Controls:
@@ -200,7 +200,12 @@ export const PropToneAndSelected: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <CardFull {...args}>
+          <CardFull
+            tone={args.tone}
+            selected={args.selected}
+            overline="Vercel"
+            title="Staff Design Systems Engineer"
+          >
             <Paragraph size="sm" tone="secondary" spacing="none">
               Демонстрация выбранной карточки с акцентным тоном.
             </Paragraph>
@@ -215,12 +220,13 @@ export const PropIsLoading: Story = {
   name: 'Пропс: isLoading (Переключение в скелетон CardFullLoading)',
   args: {
     isLoading: true,
-    tone: 'success',
   },
   parameters: {
+    controls: { include: ['isLoading'] },
     docs: {
       description: {
-        story: 'При `isLoading={true}` вместо контента рендерится скелетон `<CardFullLoading>`.',
+        story:
+          'При `isLoading={true}` вместо контента рендерится скелетон `<CardFullLoading>`. Доступен только контрол `isLoading`.',
       },
     },
   },
@@ -228,7 +234,7 @@ export const PropIsLoading: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: isLoading (boolean)
+          prop: isLoading (boolean) — Контролы: [isLoading]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг isLoading в панели Controls:
@@ -236,7 +242,12 @@ export const PropIsLoading: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
-          <CardFull {...args} />
+          <CardFull
+            isLoading={args.isLoading}
+            tone="success"
+            overline="Stripe"
+            title="Staff Frontend Architect"
+          />
         </div>
       </div>
     </div>

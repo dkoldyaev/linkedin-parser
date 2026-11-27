@@ -49,6 +49,10 @@ const meta: Meta<typeof Textarea> = {
       control: 'text',
       description: 'Текст-подсказка при пустом значении.',
     },
+    defaultValue: {
+      control: 'text',
+      description: 'Начальное текстовое содержимое многострочного поля.',
+    },
   },
 };
 
@@ -56,12 +60,12 @@ export default meta;
 type Story = StoryObj<typeof Textarea>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Textarea`. Настраивайте `mono`, `invalid`, `disabled`, `rows` и `placeholder` через панель Controls.',
+          'Базовая интерактивная демонстрация `Textarea` со всеми контролами (`mono`, `invalid`, `disabled`, `rows`, `placeholder`, `defaultValue`).',
       },
     },
   },
@@ -69,7 +73,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Textarea — Многострочное поле ввода текста
+          Textarea — Многострочное поле ввода текста (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Используется для заметок, комментариев, оригинальных текстов вакансий и LLM-промптов.
@@ -83,17 +87,18 @@ export const Base: Story = {
 };
 
 export const PropMono: Story = {
-  name: 'Пропс: mono (Моноширинный режим для промптов и JSON)',
+  name: 'Пропс: mono (Контрол: только mono)',
   args: {
     mono: true,
-    defaultValue:
-      'SYSTEM_PROMPT: Highlight React 19, TypeScript, Design Tokens, and 32px Blueprint Grid experience.',
   },
   parameters: {
+    controls: {
+      include: ['mono'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `mono` включает моноширинный шрифт `JetBrains Mono` для редактирования технических инструкций, промптов и сырых данных.',
+          'Демонстрация пропса `mono`. В панели Controls доступен **только один контрол** — `mono`.',
       },
     },
   },
@@ -101,30 +106,36 @@ export const PropMono: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: mono (boolean)
+          prop: mono (Controls: только mono)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг mono в Controls для смены шрифта между JetBrains Mono и Inter:
+          Переключите флаг mono ({String(args.mono)}) для смены шрифта между JetBrains Mono и Inter:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Textarea {...args} />
+        <Textarea
+          mono={args.mono}
+          defaultValue="SYSTEM_PROMPT: Highlight React 19, TypeScript, Design Tokens, and 32px Blueprint Grid experience."
+          aria-label="Mono textarea"
+        />
       </div>
     </div>
   ),
 };
 
 export const PropInvalid: Story = {
-  name: 'Пропс: invalid (Ошибка валидации)',
+  name: 'Пропс: invalid (Контрол: только invalid)',
   args: {
     invalid: true,
-    defaultValue: 'Слишком короткое описание вакансии (минимум 50 символов).',
   },
   parameters: {
+    controls: {
+      include: ['invalid'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `invalid` подсвечивает рамку красным токеном `--ui-danger` и выставляет `aria-invalid="true"`.',
+          'Демонстрация пропса `invalid`. В панели Controls доступен **только один контрол** — `invalid`.',
       },
     },
   },
@@ -132,29 +143,36 @@ export const PropInvalid: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: invalid (boolean)
+          prop: invalid (Controls: только invalid)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите флаг invalid в панели Controls:
+          Переключите флаг invalid ({String(args.invalid)}) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Textarea {...args} />
+        <Textarea
+          invalid={args.invalid}
+          defaultValue="Слишком короткое описание вакансии (минимум 50 символов)."
+          aria-label="Invalid textarea"
+        />
       </div>
     </div>
   ),
 };
 
 export const PropDisabled: Story = {
-  name: 'Пропс: disabled (Заблокированное состояние)',
+  name: 'Пропс: disabled (Контрол: только disabled)',
   args: {
     disabled: true,
-    defaultValue: 'Архивный текст вакансии, недоступный для редактирования.',
   },
   parameters: {
+    controls: {
+      include: ['disabled'],
+    },
     docs: {
       description: {
-        story: 'Пропс `disabled` блокирует редактирование многострочного поля.',
+        story:
+          'Демонстрация пропса `disabled`. В панели Controls доступен **только один контрол** — `disabled`.',
       },
     },
   },
@@ -162,14 +180,55 @@ export const PropDisabled: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: disabled (boolean)
+          prop: disabled (Controls: только disabled)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключите disabled в панели Controls:
+          Переключите disabled ({String(args.disabled)}) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
-        <Textarea {...args} />
+        <Textarea
+          disabled={args.disabled}
+          defaultValue="Архивный текст вакансии, недоступный для редактирования."
+          aria-label="Disabled textarea"
+        />
+      </div>
+    </div>
+  ),
+};
+
+export const PropRows: Story = {
+  name: 'Пропс: rows (Контрол: только rows)',
+  args: {
+    rows: 6,
+  },
+  parameters: {
+    controls: {
+      include: ['rows'],
+    },
+    docs: {
+      description: {
+        story:
+          'Демонстрация пропса `rows` (начальная высота в строках). В панели Controls доступен **только один контрол** — `rows`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: rows (Controls: только rows)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените количество строк rows ({args.rows}) в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <Textarea
+          rows={args.rows}
+          defaultValue="Многострочное поле с настраиваемым количеством видимых строк."
+          aria-label="Rows textarea"
+        />
       </div>
     </div>
   ),

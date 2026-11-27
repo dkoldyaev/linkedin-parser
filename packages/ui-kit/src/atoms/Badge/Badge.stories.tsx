@@ -5,6 +5,20 @@ import { Icon } from '../Icon';
 import layoutStyles from '../../stories/StoryLayout.module.css';
 import { Text } from '../Text';
 
+const ALL_VARIANTS = ['subtle', 'solid', 'outline', 'chip', 'counter', 'ghost'] as const;
+const ALL_SIZES = ['xs', 'sm', 'md', 'lg'] as const;
+const ALL_TONES = [
+  'neutral',
+  'primary',
+  'secondary',
+  'muted',
+  'accent',
+  'success',
+  'warning',
+  'danger',
+  'info',
+] as const;
+
 const ICON_MAP = {
   none: undefined,
   Sparkles: <Icon icon={Sparkles} size="2xs" />,
@@ -43,27 +57,17 @@ const meta: Meta<typeof Badge> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: [
-        'neutral',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'success',
-        'warning',
-        'danger',
-        'info',
-      ],
+      options: ALL_TONES,
       description: 'Семантический цветовой тон бейджа.',
     },
     variant: {
       control: 'select',
-      options: ['subtle', 'solid', 'outline', 'chip', 'counter', 'ghost'],
+      options: ALL_VARIANTS,
       description: 'Визуальный стиль бейджа (`subtle`, `solid`, `outline`, `chip`, `counter`, `ghost`).',
     },
     size: {
       control: 'inline-radio',
-      options: ['xs', 'sm', 'md', 'lg'],
+      options: ALL_SIZES,
       description: 'Размер бейджа (`xs`, `sm`, `md`, `lg`).',
     },
     icon: {
@@ -101,12 +105,12 @@ export default meta;
 type Story = StoryObj<typeof Badge>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `Badge`. Настраивайте `variant`, `tone`, `size`, `icon`, `endIcon`, `interactive`, `active` и `children` через панель Controls.',
+          'Базовая интерактивная демонстрация `Badge` со всеми контролами (`variant`, `tone`, `size`, `icon`, `endIcon`, `interactive`, `active`, `children`).',
       },
     },
   },
@@ -114,7 +118,7 @@ export const Base: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          Badge — Универсальный индикатор статуса, чип и счетчик
+          Badge — Универсальный индикатор статуса, чип и счетчик (Все контролы)
         </Text>
         <Text variant="caption" tone="secondary">
           Используйте панель Controls для интерактивного тестирования всех пропсов компонента.
@@ -129,18 +133,59 @@ export const Base: Story = {
   ),
 };
 
-export const PropVariant: Story = {
-  name: 'Пропс: variant (Визуальный вариант)',
+export const PropVariantAll: Story = {
+  name: 'Пропс: variant — Все варианты (Контролы: tone, children)',
+  args: {
+    tone: 'primary',
+    children: 'Badge',
+  },
+  parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Показывает все 6 вариантов `variant` (`subtle`, `solid`, `outline`, `chip`, `counter`, `ghost`) одновременно. В панели Controls доступны только `tone` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: variant — Все варианты (Controls: только tone и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Изменяйте tone и children, чтобы сравнить все 6 вариантов оформления:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          {ALL_VARIANTS.map((v) => (
+            <Badge key={v} variant={v} tone={args.tone}>
+              {args.children} ({v})
+            </Badge>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropVariantSingle: Story = {
+  name: 'Пропс: variant — Выбор варианта (Контролы: variant, children)',
   args: {
     variant: 'solid',
-    tone: 'success',
     children: '92% Match',
   },
   parameters: {
+    controls: {
+      include: ['variant', 'children'],
+    },
     docs: {
       description: {
-        story:
-          'Пропс `variant` переключает визуальное представление бейджа: `subtle` (полупрозрачная подложка), `solid` (плотная заливка), `outline` (контурный), `chip` (токен стека/фильтра), `counter` (компактный счетчик), `ghost` (без фона).',
+        story: 'Одиночный бейдж с двумя контролами: `variant` и `children`.',
       },
     },
   },
@@ -148,34 +193,16 @@ export const PropVariant: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: variant (&quot;subtle&quot; | &quot;solid&quot; | &quot;outline&quot; | &quot;chip&quot; | &quot;counter&quot; | &quot;ghost&quot;)
+          prop: variant — Одиночный бейдж (Controls: только variant и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Измените variant в Controls для первого образца или сравните все варианты ниже:
+          Переключайте variant (&quot;{args.variant}&quot;) в панели Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Badge variant="subtle" tone="primary">
-            subtle
-          </Badge>
-          <Badge variant="solid" tone="success">
-            solid
-          </Badge>
-          <Badge variant="outline" tone="info">
-            outline
-          </Badge>
-          <Badge variant="chip" tone="neutral">
-            chip
-          </Badge>
-          <Badge variant="counter" tone="accent">
-            14
-          </Badge>
-          <Badge variant="ghost" tone="secondary">
-            ghost
+          <Badge variant={args.variant} tone="success">
+            {args.children}
           </Badge>
         </div>
       </div>
@@ -183,17 +210,19 @@ export const PropVariant: Story = {
   ),
 };
 
-export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цветовой тон)',
+export const PropToneAll: Story = {
+  name: 'Пропс: tone — Все цвета (Контрол: только children)',
   args: {
-    tone: 'success',
-    children: 'Active Status',
+    children: 'Status',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `tone` задает семантический цвет бейджа (`neutral`, `primary`, `secondary`, `muted`, `accent`, `success`, `warning`, `danger`, `info`).',
+          'Показывает все семантические цвета `tone` одновременно с единственным контролом `children`.',
       },
     },
   },
@@ -201,43 +230,73 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone — Все семантические тона (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Выберите tone в Controls и сравните со всей семантической палитрой:
+          Введите текст в контрол children для сравнения всех 9 тонов:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Badge tone="neutral">neutral</Badge>
-          <Badge tone="primary">primary</Badge>
-          <Badge tone="secondary">secondary</Badge>
-          <Badge tone="muted">muted</Badge>
-          <Badge tone="accent">accent</Badge>
-          <Badge tone="success">success</Badge>
-          <Badge tone="warning">warning</Badge>
-          <Badge tone="danger">danger</Badge>
-          <Badge tone="info">info</Badge>
+          {ALL_TONES.map((t) => (
+            <Badge key={t} tone={t}>
+              {args.children} ({t})
+            </Badge>
+          ))}
         </div>
       </div>
     </div>
   ),
 };
 
-export const PropSize: Story = {
-  name: 'Пропс: size (Размер бейджа)',
+export const PropToneSingle: Story = {
+  name: 'Пропс: tone — Выбор тона (Контролы: tone, children)',
   args: {
-    size: 'md',
-    tone: 'primary',
+    tone: 'success',
+    children: 'Active Worker',
+  },
+  parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
+    docs: {
+      description: {
+        story: 'Одиночный бейдж с двумя контролами: `tone` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: tone — Одиночный бейдж (Controls: только tone и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Выберите tone (&quot;{args.tone}&quot;) в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          <Badge tone={args.tone}>{args.children}</Badge>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropSizeAll: Story = {
+  name: 'Пропс: size — Все размеры (Контрол: только children)',
+  args: {
     children: 'Size Token',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `size` регулирует высоту и внутренние отступы бейджа (`xs`, `sm`, `md`, `lg`).',
+        story:
+          'Показывает все размеры `size` (`xs`, `sm`, `md`, `lg`) одновременно с единственным контролом `children`.',
       },
     },
   },
@@ -245,28 +304,55 @@ export const PropSize: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: size (&quot;xs&quot; | &quot;sm&quot; | &quot;md&quot; | &quot;lg&quot;)
+          prop: size — Все размеры (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Переключайте size в панели Controls:
+          Сравнение размеров xs, sm, md и lg:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge {...args} />
+          {ALL_SIZES.map((sz) => (
+            <Badge key={sz} size={sz} tone="primary">
+              {args.children} ({sz})
+            </Badge>
+          ))}
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropSizeSingle: Story = {
+  name: 'Пропс: size — Выбор размера (Контролы: size, children)',
+  args: {
+    size: 'md',
+    children: 'Badge Size',
+  },
+  parameters: {
+    controls: {
+      include: ['size', 'children'],
+    },
+    docs: {
+      description: {
+        story: 'Одиночный бейдж с двумя контролами: `size` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: size — Одиночный бейдж (Controls: только size и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте size (&quot;{args.size}&quot;) в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge size="xs" tone="primary">
-            size=&quot;xs&quot;
-          </Badge>
-          <Badge size="sm" tone="primary">
-            size=&quot;sm&quot;
-          </Badge>
-          <Badge size="md" tone="primary">
-            size=&quot;md&quot;
-          </Badge>
-          <Badge size="lg" tone="primary">
-            size=&quot;lg&quot;
+          <Badge size={args.size} tone="primary">
+            {args.children}
           </Badge>
         </div>
       </div>
@@ -275,17 +361,20 @@ export const PropSize: Story = {
 };
 
 export const PropIconAndEndIcon: Story = {
-  name: 'Пропсы: icon и endIcon (Иконки внутри бейджа)',
+  name: 'Пропсы: icon и endIcon (Контролы: icon, endIcon, children)',
   args: {
     icon: <Icon icon={Award} size="2xs" />,
     endIcon: <Icon icon={Sparkles} size="2xs" />,
-    tone: 'success',
     children: 'Top Candidate',
   },
   parameters: {
+    controls: {
+      include: ['icon', 'endIcon', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропсы `icon` и `endIcon` позволяют разместить иконки слева и справа от текста бейджа.',
+        story:
+          'Демонстрация слотов `icon` и `endIcon`. В панели Controls доступны только `icon`, `endIcon` и `children`.',
       },
     },
   },
@@ -293,7 +382,7 @@ export const PropIconAndEndIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: icon &amp; endIcon
+          props: icon &amp; endIcon (Controls: только icon, endIcon, children)
         </Text>
         <Text variant="caption" tone="secondary">
           Выберите иконки для слотов icon и endIcon в панели Controls:
@@ -301,45 +390,8 @@ export const PropIconAndEndIcon: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge {...args} />
-        </div>
-      </div>
-    </div>
-  ),
-};
-
-export const PropInteractiveAndActive: Story = {
-  name: 'Пропсы: interactive и active (Кликабельный фильтр-чип)',
-  args: {
-    variant: 'chip',
-    interactive: true,
-    active: true,
-    tone: 'accent',
-    children: 'TypeScript (14)',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Пропс `interactive` делает бейдж фокусируемым с клавиатуры (`role="button"`, `tabIndex={0}`), а `active` подсвечивает выбранное состояние (`aria-pressed="true"`).',
-      },
-    },
-  },
-  render: (args) => (
-    <div className={layoutStyles.propDocBox}>
-      <div className={layoutStyles.propInfoHeader}>
-        <Text variant="mono-label" tone="accent">
-          props: interactive &amp; active (boolean)
-        </Text>
-        <Text variant="caption" tone="secondary">
-          Переключайте флаги interactive и active в панели Controls:
-        </Text>
-      </div>
-      <div className={layoutStyles.propPreviewArea}>
-        <div className={layoutStyles.row}>
-          <Badge {...args} />
-          <Badge variant="chip" interactive active={false} tone="neutral">
-            Невыбранный фильтр (active=false)
+          <Badge tone="success" icon={args.icon} endIcon={args.endIcon}>
+            {args.children}
           </Badge>
         </div>
       </div>
@@ -347,20 +399,21 @@ export const PropInteractiveAndActive: Story = {
   ),
 };
 
-export const PropOnRemoveAndRemoveLabel: Story = {
-  name: 'Пропсы: onRemove и removeLabel (Удаляемый тег)',
+export const PropInteractiveAndActive: Story = {
+  name: 'Пропсы: interactive и active (Контролы: interactive, active, children)',
   args: {
-    variant: 'chip',
-    size: 'sm',
-    tone: 'primary',
-    removeLabel: 'Удалить тег React 19',
-    children: 'React 19',
+    interactive: true,
+    active: true,
+    children: 'TypeScript (14)',
   },
   parameters: {
+    controls: {
+      include: ['interactive', 'active', 'children'],
+    },
     docs: {
       description: {
         story:
-          'При передаче колбэка `onRemove` справа внутри бейджа появляется кнопка с иконкой `X` и доступной меткой `removeLabel`.',
+          'Демонстрация пропсов `interactive` и `active`. В панели Controls доступны только `interactive`, `active` и `children`.',
       },
     },
   },
@@ -368,15 +421,66 @@ export const PropOnRemoveAndRemoveLabel: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          props: onRemove &amp; removeLabel
+          props: interactive &amp; active (Controls: только interactive, active, children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Рендерит встроенную кнопку удаления тега с настраиваемым aria-label (removeLabel):
+          Переключайте флаги interactive ({String(args.interactive)}) и active ({String(args.active)}):
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.row}>
-          <Badge {...args} onRemove={() => undefined} />
+          <Badge
+            variant="chip"
+            tone={args.active ? 'accent' : 'neutral'}
+            interactive={args.interactive}
+            active={args.active}
+          >
+            {args.children}
+          </Badge>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+export const PropRemoveLabel: Story = {
+  name: 'Пропсы: onRemove и removeLabel (Контролы: removeLabel, children)',
+  args: {
+    removeLabel: 'Удалить тег React 19',
+    children: 'React 19',
+  },
+  parameters: {
+    controls: {
+      include: ['removeLabel', 'children'],
+    },
+    docs: {
+      description: {
+        story:
+          'Демонстрация кнопки удаления внутри бейджа. В панели Controls доступны только `removeLabel` и `children`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: onRemove &amp; removeLabel (Controls: только removeLabel и children)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Настройте aria-label кнопки удаления (removeLabel=&quot;{args.removeLabel}&quot;):
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          <Badge
+            variant="chip"
+            size="sm"
+            tone="primary"
+            removeLabel={args.removeLabel}
+            onRemove={() => undefined}
+          >
+            {args.children}
+          </Badge>
         </div>
       </div>
     </div>

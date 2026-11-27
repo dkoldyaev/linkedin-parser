@@ -43,7 +43,7 @@ export default meta;
 type Story = StoryObj<typeof CardBody>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -95,10 +95,11 @@ export const PropSnapToGrid: Story = {
     snapToGrid: true,
   },
   parameters: {
+    controls: { include: ['snapToGrid'] },
     docs: {
       description: {
         story:
-          'Пропс `snapToGrid` управляет автоматическим расчетом CSS-переменной `--bp-card-body-height` кратно 32px.',
+          'Пропс `snapToGrid` управляет автоматическим расчетом CSS-переменной `--bp-card-body-height` кратно 32px. Доступен только контрол `snapToGrid`.',
       },
     },
   },
@@ -106,7 +107,7 @@ export const PropSnapToGrid: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: snapToGrid (boolean)
+          prop: snapToGrid (boolean) — Контролы: [snapToGrid]
         </Text>
         <Text variant="caption" tone="secondary">
           Переключите флаг snapToGrid в панели Controls:
@@ -115,7 +116,7 @@ export const PropSnapToGrid: Story = {
       <div className={layoutStyles.propPreviewArea}>
         <div className={layoutStyles.narrowBox}>
           <Card tone="success">
-            <CardBody {...args}>
+            <CardBody snapToGrid={args.snapToGrid}>
               <Text variant="body-sm">
                 Режим snapToGrid={String(args.snapToGrid)}: высота тела карточки синхронизирована с
                 32px сеткой.

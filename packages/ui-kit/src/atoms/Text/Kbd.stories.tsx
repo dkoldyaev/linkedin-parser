@@ -10,7 +10,7 @@ const meta: Meta<typeof Kbd> = {
     docs: {
       description: {
         component:
-          'Атомарный компонент клавиатурного сочетания (`<kbd>`). Отображает клавиши и горячие клавиши (`Ctrl + K`, `Esc`, `Enter`) с характерным рельефным контуром в стиле Blueprint.',
+          'Атомарный компонент клавиатурного сочетания (`<kbd>`). Отображает клавиши и горячие клавиши (`Ctrl + K`, `Esc`, `Enter`) с рельефным контуром в стиле Blueprint.',
       },
       source: {
         type: 'dynamic',
@@ -23,11 +23,11 @@ const meta: Meta<typeof Kbd> = {
   argTypes: {
     children: {
       control: 'text',
-      description: 'Название клавиши или комбинации клавиш, отображаемое внутри тега `<kbd>`.',
+      description: 'Название клавиши или комбинации клавиш внутри тега `<kbd>`.',
     },
     className: {
       control: 'text',
-      description: 'Дополнительный CSS-класс для кастомизации элемента `<kbd>`.',
+      description: 'Дополнительный CSS-класс элемента `<kbd>`.',
     },
   },
 };
@@ -36,12 +36,11 @@ export default meta;
 type Story = StoryObj<typeof Kbd>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
-        story:
-          'Базовая интерактивная демонстрация компонента `Kbd`. Позволяет настроить текст клавиши через панель Controls.',
+        story: 'Базовая интерактивная демонстрация компонента `Kbd` со всеми контролами.',
       },
     },
   },
@@ -65,15 +64,18 @@ export const Base: Story = {
 };
 
 export const PropChildren: Story = {
-  name: 'Пропс: children (Обозначение клавиши)',
+  name: 'Пропс: children (Контрол: только children)',
   args: {
     children: '⌘ + Shift + P',
   },
   parameters: {
+    controls: {
+      include: ['children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `children` задает текст клавиши или комбинации клавиш. Может использоваться как для одиночных клавиш, так и для составных сочетаний.',
+          'Демонстрация пропса `children`. В панели Controls доступен **только один контрол** — `children`.',
       },
     },
   },
@@ -81,23 +83,15 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children
+          prop: children (Controls: только children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Определяет надпись на клавише. Измените children в Controls для проверки:
+          Задайте обозначение клавиши или шортката в контроле children:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <div>
-          <Kbd {...args} />
-        </div>
-        <div className={layoutStyles.row}>
-          <Kbd>Esc</Kbd>
-          <Kbd>Enter</Kbd>
-          <Kbd>Tab</Kbd>
-          <Kbd>↑</Kbd>
-          <Kbd>↓</Kbd>
-          <Kbd>Ctrl + /</Kbd>
+          <Kbd>{args.children}</Kbd>
         </div>
       </div>
     </div>

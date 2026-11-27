@@ -65,12 +65,12 @@ export default meta;
 type Story = StoryObj<typeof ListItem>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
         story:
-          'Базовая интерактивная демонстрация `ListItem`. Выберите иконку (`icon`), тон (`tone`) и текст (`children`) в панели Controls.',
+          'Базовая интерактивная демонстрация `ListItem` со всеми контролами (`icon`, `tone`, `children`).',
       },
     },
   },
@@ -94,16 +94,19 @@ export const Base: Story = {
 };
 
 export const PropIcon: Story = {
-  name: 'Пропс: icon (Кастомный маркер-иконка)',
+  name: 'Пропс: icon (Контролы: icon, children)',
   args: {
     icon: <Icon icon={CheckCircle2} size="sm" tone="success" />,
     children: 'Подтвержденное требование с кастомной иконкой вместо стандартной точки',
   },
   parameters: {
+    controls: {
+      include: ['icon', 'children'],
+    },
     docs: {
       description: {
         story:
-          'Пропс `icon` позволяет заменить стандартный маркер `<li>` на компонент `<Icon />` из `lucide-react`.',
+          'Демонстрация пропса `icon`. В панели Controls доступны только `icon` и `children`.',
       },
     },
   },
@@ -111,18 +114,15 @@ export const PropIcon: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: icon
+          prop: icon (Controls: только icon и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Заменяет стандартный маркер списка на переданный React-узел. Выберите иконку в Controls:
+          Выберите иконку в контроле icon:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <UnorderedList>
-          <ListItem {...args} />
-          <ListItem icon={undefined} tone="secondary">
-            Элемент без пропса icon (использует стандартный маркер списка)
-          </ListItem>
+          <ListItem icon={args.icon}>{args.children}</ListItem>
         </UnorderedList>
       </div>
     </div>
@@ -130,16 +130,19 @@ export const PropIcon: Story = {
 };
 
 export const PropTone: Story = {
-  name: 'Пропс: tone (Семантический цвет пункта)',
+  name: 'Пропс: tone (Контролы: tone, children)',
   args: {
     tone: 'success',
-    icon: <Icon icon={CheckCircle2} size="sm" tone="success" />,
     children: 'Пункт списка с выбранным семантическим тоном',
   },
   parameters: {
+    controls: {
+      include: ['tone', 'children'],
+    },
     docs: {
       description: {
-        story: 'Пропс `tone` управляет цветом текста элемента списка.',
+        story:
+          'Демонстрация пропса `tone`. В панели Controls доступны только `tone` и `children`.',
       },
     },
   },
@@ -147,50 +150,15 @@ export const PropTone: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: tone
+          prop: tone (Controls: только tone и children)
         </Text>
         <Text variant="caption" tone="secondary">
-          Окрашивает текст пункта списка в выбранный семантический тон:
+          Выберите семантический тон (&quot;{args.tone}&quot;) в Controls:
         </Text>
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <UnorderedList>
-          <ListItem {...args} />
-          <ListItem tone="primary">tone=&quot;primary&quot; — Основной пункт</ListItem>
-          <ListItem tone="secondary">tone=&quot;secondary&quot; — Вторичный пункт</ListItem>
-          <ListItem tone="warning">tone=&quot;warning&quot; — Требует внимания</ListItem>
-          <ListItem tone="danger">tone=&quot;danger&quot; — Критическое замечание</ListItem>
-        </UnorderedList>
-      </div>
-    </div>
-  ),
-};
-
-export const PropChildren: Story = {
-  name: 'Пропс: children (Текст пункта)',
-  args: {
-    children: 'Редактируемый текст элемента списка',
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Пропс `children` задает содержимое элемента `<li>`.',
-      },
-    },
-  },
-  render: (args) => (
-    <div className={layoutStyles.propDocBox}>
-      <div className={layoutStyles.propInfoHeader}>
-        <Text variant="mono-label" tone="accent">
-          prop: children
-        </Text>
-        <Text variant="caption" tone="secondary">
-          Содержимое пункта списка:
-        </Text>
-      </div>
-      <div className={layoutStyles.propPreviewArea}>
-        <UnorderedList>
-          <ListItem {...args} />
+          <ListItem tone={args.tone}>{args.children}</ListItem>
         </UnorderedList>
       </div>
     </div>

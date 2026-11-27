@@ -30,7 +30,7 @@ export default meta;
 type Story = StoryObj<typeof ModalFooterActions>;
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -68,12 +68,17 @@ export const Base: Story = {
   ),
 };
 
-export const PropChildren: Story = {
-  name: 'Пропс: children (Кнопки действий)',
+export const PropClassNameAndChildren: Story = {
+  name: 'Пропсы: className и children (Кнопки действий)',
+  args: {
+    className: '',
+  },
   parameters: {
+    controls: { include: ['className'] },
     docs: {
       description: {
-        story: 'Пропс `children` принимает набор кнопок `<Button>`, выравниваемых в ряд.',
+        story:
+          'Пропс `children` принимает набор кнопок `<Button>`, выравниваемых в ряд. Доступен только контрол `className`.',
       },
     },
   },
@@ -81,7 +86,7 @@ export const PropChildren: Story = {
     <div className={layoutStyles.propDocBox}>
       <div className={layoutStyles.propInfoHeader}>
         <Text variant="mono-label" tone="accent">
-          prop: children (React.ReactNode)
+          props: children &amp; className — Контролы: [className]
         </Text>
         <Text variant="caption" tone="secondary">
           Группировка трех кнопок внутри ModalFooterActions:
@@ -89,7 +94,7 @@ export const PropChildren: Story = {
       </div>
       <div className={layoutStyles.propPreviewArea}>
         <ModalFooter justify="end">
-          <ModalFooterActions {...args}>
+          <ModalFooterActions className={args.className}>
             <Button variant="ghost" size="sm">
               Сбросить
             </Button>

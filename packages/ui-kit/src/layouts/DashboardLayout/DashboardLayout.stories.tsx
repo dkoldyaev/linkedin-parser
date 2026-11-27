@@ -216,7 +216,7 @@ function InteractiveDashboardDemo(args: DashboardLayoutProps): React.ReactElemen
 }
 
 export const Base: Story = {
-  name: 'Базовая (Interactive Controls)',
+  name: 'Базовая (Все контролы)',
   parameters: {
     docs: {
       description: {
@@ -236,14 +236,24 @@ export const PropToolbarAndSidebar: Story = {
     sidebarLabel: 'Боковая навигация по разделам',
   },
   parameters: {
+    controls: { include: ['toolbar', 'sidebar', 'sidebarLabel'] },
     docs: {
       description: {
         story:
-          'Пропс `toolbar` добавляет 32px-квантованную полосу инструментов под `filterBar`, а `sidebar` рендерит боковую колонку `<aside>` слева от рабочей области.',
+          'Пропс `toolbar` добавляет 32px-квантованную полосу инструментов под `filterBar`, а `sidebar` рендерит боковую колонку `<aside>` слева от рабочей области. Доступны только контролы `toolbar`, `sidebar` и `sidebarLabel`.',
       },
     },
   },
-  render: (args) => <InteractiveDashboardDemo {...args} />,
+  render: (args) => (
+    <InteractiveDashboardDemo
+      toolbar={args.toolbar}
+      sidebar={args.sidebar}
+      sidebarLabel={args.sidebarLabel}
+      snapToGrid
+    >
+      {null}
+    </InteractiveDashboardDemo>
+  ),
 };
 
 export const PropSnapToGridAndFooter: Story = {
@@ -253,12 +263,17 @@ export const PropSnapToGridAndFooter: Story = {
     footer: FOOTER_MAP.StatusFooter,
   },
   parameters: {
+    controls: { include: ['snapToGrid', 'footer'] },
     docs: {
       description: {
         story:
-          'Пропс `snapToGrid` управляет хуком `useBlueprintGrid`, а `footer` выводит нижнюю статусную строку дашборда.',
+          'Пропс `snapToGrid` управляет хуком `useBlueprintGrid`, а `footer` выводит нижнюю статусную строку дашборда. Доступны только контролы `snapToGrid` и `footer`.',
       },
     },
   },
-  render: (args) => <InteractiveDashboardDemo {...args} />,
+  render: (args) => (
+    <InteractiveDashboardDemo snapToGrid={args.snapToGrid} footer={args.footer}>
+      {null}
+    </InteractiveDashboardDemo>
+  ),
 };
