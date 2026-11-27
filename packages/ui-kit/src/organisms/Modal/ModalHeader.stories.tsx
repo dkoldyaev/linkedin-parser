@@ -1,11 +1,10 @@
-import { Badge, Button, Icon } from '../../atoms';
+import { Badge, Button, Icon, Text } from '../../atoms';
 import {
   Banknote,
   Briefcase,
   ExternalLink,
   FileText,
   Laptop,
-  Layers,
   MapPin,
   RefreshCw,
   Settings,
@@ -16,126 +15,258 @@ import layoutStyles from '../../stories/StoryLayout.module.css';
 import { ModalHeader } from './ModalHeader';
 import { Tabs } from '../../molecules/Tabs';
 
+const ICON_MAP = {
+  none: undefined,
+  Briefcase: <Icon icon={Briefcase} size="md" tone="accent" />,
+  Settings: <Icon icon={Settings} size="md" tone="accent" />,
+} as const;
+
+const ACTIONS_MAP = {
+  none: undefined,
+  SyncAndLinkedInBtns: (
+    <>
+      <Button variant="ghost" size="sm">
+        <Icon icon={RefreshCw} size="sm" />
+        <span>Reparse</span>
+      </Button>
+      <Button variant="ghost" size="sm">
+        <Icon icon={ExternalLink} size="sm" />
+        <span>LinkedIn</span>
+      </Button>
+    </>
+  ),
+} as const;
+
+const META_MAP = {
+  none: undefined,
+  LocationAndSalaryBadges: (
+    <>
+      <Badge tone="neutral" size="xs" icon={<Icon icon={MapPin} size="xs" />}>
+        Berlin, Germany
+      </Badge>
+      <Badge tone="info" size="xs" icon={<Icon icon={Laptop} size="xs" />}>
+        Remote
+      </Badge>
+      <Badge tone="success" size="xs" icon={<Icon icon={Banknote} size="xs" />}>
+        €85,000 – €110,000 / yr
+      </Badge>
+    </>
+  ),
+} as const;
+
+const TABS_MAP = {
+  none: undefined,
+  DetailsAndCompatibilityTabs: (
+    <Tabs
+      defaultValue="details"
+      items={[
+        {
+          value: 'details',
+          label: 'Описание и детали',
+          icon: <Icon icon={FileText} size="sm" />,
+        },
+        {
+          value: 'compatibility',
+          label: 'Совместимость 88%',
+          icon: <Icon icon={Shield} size="sm" />,
+        },
+      ]}
+    />
+  ),
+} as const;
+
 const meta: Meta<typeof ModalHeader> = {
   title: 'Organisms/Modal/ModalHeader',
   component: ModalHeader,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Доступный подкомпонент шапки модального окна `ModalHeader` (`Modal.Header`), квантованный по высоте 32px сетки Blueprint (`data-min-grids="2"`). Декомпозирует заголовок диалога на зоны: `icon`, `title`, `description`, правый блок действий `actions` + кнопка закрытия (`hideCloseButton`, `closeLabel`), строку мета-бейджей `meta` (`<ModalHeader.Meta>`) и полосу навигационных вкладок `tabs` (`<Tabs>`).',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
+  args: {
+    title: 'Senior Frontend Platform Engineer',
+    description: 'Linear • Berlin, Germany',
+    icon: ICON_MAP.Briefcase,
+    actions: ACTIONS_MAP.SyncAndLinkedInBtns,
+    meta: META_MAP.LocationAndSalaryBadges,
+    tabs: TABS_MAP.DetailsAndCompatibilityTabs,
+    hideCloseButton: false,
+    closeLabel: 'Закрыть модальное окно',
+  },
   argTypes: {
-    title: { control: 'text' },
-    description: { control: 'text' },
-    hideCloseButton: { control: 'boolean' },
-    closeLabel: { control: 'text' },
+    title: { control: 'text', description: 'Основной заголовок диалогового окна (`<h2>`).' },
+    description: { control: 'text', description: 'Описание или подзаголовок под основным названием.' },
+    icon: {
+      control: 'select',
+      options: Object.keys(ICON_MAP),
+      mapping: ICON_MAP,
+      description: 'Ведущая иконка слева от заголовка.',
+    },
+    actions: {
+      control: 'select',
+      options: Object.keys(ACTIONS_MAP),
+      mapping: ACTIONS_MAP,
+      description: 'Дополнительные кнопки действий слева от кнопки закрытия (`X`).',
+    },
+    meta: {
+      control: 'select',
+      options: Object.keys(META_MAP),
+      mapping: META_MAP,
+      description: 'Слот метаданных (бейджи локации, формата работы, зарплаты) под заголовком.',
+    },
+    tabs: {
+      control: 'select',
+      options: Object.keys(TABS_MAP),
+      mapping: TABS_MAP,
+      description: 'Слот навигационных вкладок `<Tabs>` в нижней части шапки.',
+    },
+    hideCloseButton: {
+      control: 'boolean',
+      description: 'Скрывает кнопку закрытия (`X`).',
+    },
+    closeLabel: {
+      control: 'text',
+      description: 'Метка `aria-label` для кнопки закрытия.',
+    },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof ModalHeader>;
 
-export const Basic: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalHeader
-        title="Create Pipeline Column"
-        description="Add a new stage to your candidate Kanban board."
-        onClose={() => alert('Close clicked')}
-      />
-    </div>
-  ),
-};
-
-export const WithIconAndActions: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalHeader
-        title="Sync Configuration"
-        description="Mercure SSE real-time stream status and poll frequency."
-        icon={<Icon icon={Settings} size="md" tone="accent" />}
-        actions={
-          <Button variant="ghost" size="sm" onClick={() => alert('Syncing...')}>
-            <Icon icon={RefreshCw} size="sm" />
-            <span>Sync</span>
-          </Button>
-        }
-        onClose={() => alert('Close clicked')}
-      />
-    </div>
-  ),
-};
-
-export const CompoundWithTabsAndBadges: Story = {
-  render: () => {
-    return (
-      <div className={layoutStyles.panel}>
-        <ModalHeader
-          title="Senior Frontend Platform Engineer"
-          description="Linear • Berlin, Germany"
-          icon={<Icon icon={Briefcase} size="md" tone="accent" />}
-          actions={
-            <>
-              <Button variant="ghost" size="sm" onClick={() => alert('Reparse')}>
-                <Icon icon={RefreshCw} size="sm" />
-                <span>Reparse</span>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => alert('Open LinkedIn')}>
-                <Icon icon={ExternalLink} size="sm" />
-                <span>LinkedIn</span>
-              </Button>
-            </>
-          }
-          onClose={() => alert('Close clicked')}
-          meta={
-            <>
-              <Badge tone="neutral" size="xs" icon={<Icon icon={MapPin} size="xs" />}>
-                Berlin, Germany
-              </Badge>
-              <Badge tone="info" size="xs" icon={<Icon icon={Laptop} size="xs" />}>
-                Remote
-              </Badge>
-              <Badge tone="success" size="xs" icon={<Icon icon={Banknote} size="xs" />}>
-                €85,000 – €110,000 / yr
-              </Badge>
-            </>
-          }
-          tabs={
-            <Tabs
-              defaultValue="details"
-              items={[
-                {
-                  value: 'details',
-                  label: 'Details',
-                  icon: <Icon icon={FileText} size="sm" />,
-                },
-                {
-                  value: 'compatibility',
-                  label: 'Compatibility 88%',
-                  icon: <Icon icon={Shield} size="sm" />,
-                },
-              ]}
-            />
-          }
-        />
-      </div>
-    );
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `ModalHeader`. Настраивайте `title`, `description`, `icon`, `actions`, `meta`, `tabs`, `hideCloseButton` через панель Controls.',
+      },
+    },
   },
-};
-
-export const WithoutCloseButton: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalHeader
-        title="Step 2 of 3: Account Verification"
-        description="Please complete verification before continuing."
-        icon={<Icon icon={Layers} size="md" tone="accent" />}
-        hideCloseButton
-      />
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          ModalHeader — Составная шапка модального диалога
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Включает зоны заголовка, кнопок действий, мета-бейджей и вкладок.
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalHeader {...args} onClose={() => undefined} />
+      </div>
     </div>
   ),
 };
 
-export const TitleOnly: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalHeader title="Confirm Permanent Deletion" onClose={() => alert('Close clicked')} />
+export const PropTitleDescriptionAndIcon: Story = {
+  name: 'Пропсы: title, description и icon',
+  args: {
+    title: 'Создать этап воронки',
+    description: 'Добавьте новую колонку на Канбан-доску кандидатов.',
+    icon: ICON_MAP.Settings,
+    actions: undefined,
+    meta: undefined,
+    tabs: undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Базовая конфигурация шапки только с иконкой, заголовком и описанием.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: title, description &amp; icon
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Измените title, description и icon в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalHeader {...args} onClose={() => undefined} />
+      </div>
+    </div>
+  ),
+};
+
+export const PropActionsMetaAndTabs: Story = {
+  name: 'Пропсы: actions, meta и tabs (Расширенная шапка инспектора)',
+  args: {
+    title: 'Staff UI Architect',
+    description: 'Stripe • Dublin, Ireland',
+    icon: ICON_MAP.Briefcase,
+    actions: ACTIONS_MAP.SyncAndLinkedInBtns,
+    meta: META_MAP.LocationAndSalaryBadges,
+    tabs: TABS_MAP.DetailsAndCompatibilityTabs,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропсы `actions`, `meta` и `tabs` превращают шапку в полноценный заголовок инспектора карточки вакансии.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: actions, meta &amp; tabs
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте слоты actions, meta и tabs в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalHeader {...args} onClose={() => undefined} />
+      </div>
+    </div>
+  ),
+};
+
+export const PropHideCloseButtonAndCloseLabel: Story = {
+  name: 'Пропсы: hideCloseButton и closeLabel',
+  args: {
+    title: 'Обязательный шаг верификации',
+    description: 'Завершите настройку перед закрытием окна.',
+    hideCloseButton: true,
+    actions: undefined,
+    meta: undefined,
+    tabs: undefined,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Пропс `hideCloseButton` убирает крестик закрытия из правого верхнего угла шапки.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: hideCloseButton &amp; closeLabel
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключите флаг hideCloseButton в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalHeader {...args} onClose={() => undefined} />
+      </div>
     </div>
   ),
 };

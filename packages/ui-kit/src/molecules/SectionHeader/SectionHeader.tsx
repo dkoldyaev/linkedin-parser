@@ -21,8 +21,8 @@ export interface SectionHeaderProps extends Omit<React.HTMLAttributes<HTMLDivEle
   readonly collapsible?: boolean;
   readonly open?: boolean;
   readonly onToggle?: () => void;
-  readonly expandLabel?: string;
-  readonly collapseLabel?: string;
+  readonly expandLabel?: string | null;
+  readonly collapseLabel?: string | null;
   readonly divider?: boolean;
 }
 

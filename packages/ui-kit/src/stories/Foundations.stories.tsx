@@ -1,40 +1,17 @@
 import {
-  AlertCircle,
-  AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  Briefcase,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Copy,
-  Edit3,
-  ExternalLink,
-  Filter,
-  Info,
-  Layers,
-  Plus,
-  RefreshCw,
-  Search,
-  Settings,
-  Sparkles,
-  Trash2,
-  Users,
-  X,
-} from 'lucide-react';
-import {
   Badge,
   Card,
   COLOR_TOKENS,
   Icon,
+  SearchBar,
   SPACING_TOKENS,
   Text,
   TYPOGRAPHY_TOKENS,
   useCopyToClipboard,
 } from '../index';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { icons as lucideIcons } from 'lucide-react';
 import styles from './Foundations.module.css';
 
 const meta: Meta = {
@@ -310,47 +287,53 @@ export const ShadowsAndBorders: StoryObj = {
   render: () => <ShadowsCatalog />,
 };
 
-const ICON_CATALOG = [
-  { name: 'Search', icon: Search },
-  { name: 'Plus', icon: Plus },
-  { name: 'Edit3', icon: Edit3 },
-  { name: 'Trash2', icon: Trash2 },
-  { name: 'Check', icon: Check },
-  { name: 'X', icon: X },
-  { name: 'ChevronDown', icon: ChevronDown },
-  { name: 'ArrowUp', icon: ArrowUp },
-  { name: 'ArrowDown', icon: ArrowDown },
-  { name: 'RefreshCw', icon: RefreshCw },
-  { name: 'Copy', icon: Copy },
-  { name: 'ExternalLink', icon: ExternalLink },
-  { name: 'Sparkles', icon: Sparkles },
-  { name: 'Filter', icon: Filter },
-  { name: 'Settings', icon: Settings },
-  { name: 'Users', icon: Users },
-  { name: 'Briefcase', icon: Briefcase },
-  { name: 'Layers', icon: Layers },
-  { name: 'Clock', icon: Clock },
-  { name: 'Info', icon: Info },
-  { name: 'CheckCircle2', icon: CheckCircle2 },
-  { name: 'AlertTriangle', icon: AlertTriangle },
-  { name: 'AlertCircle', icon: AlertCircle },
-] as const;
+const ALL_LUCIDE_ICON_ENTRIES = Object.entries(lucideIcons).map(([name, icon]) => ({
+  name,
+  icon,
+}));
 
 function IconsCatalog(): React.ReactElement {
   const { copiedValue, copy } = useCopyToClipboard(2000);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredIcons = useMemo(() => {
+    const normalized = searchQuery.trim().toLowerCase();
+    if (!normalized) {
+      return ALL_LUCIDE_ICON_ENTRIES;
+    }
+    return ALL_LUCIDE_ICON_ENTRIES.filter((entry) => entry.name.toLowerCase().includes(normalized));
+  }, [searchQuery]);
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <Text as="h2" variant="heading">
-          Icon System (Lucide + Atomic Icon Wrapper)
+          Icon System — Все иконки из библиотеки lucide-react ({ALL_LUCIDE_ICON_ENTRIES.length})
         </Text>
-        <Text variant="caption" tone="secondary">
-          {'Click any icon card to copy the <Icon icon={...} /> JSX snippet.'}
+        <Text variant="body-sm" tone="secondary">
+          Все представленные ниже иконки импортируются напрямую из библиотеки{' '}
+          <strong>lucide-react</strong> и оборачиваются в атомарный компонент{' '}
+          <code>{'<Icon icon={...} />'}</code> дизайн-системы Blueprint. Кликните по любой карточке,
+          чтобы скопировать готовый JSX-код.
         </Text>
       </div>
+
+      <div className={styles.iconToolbar}>
+        <div className={styles.iconSearchBox}>
+          <SearchBar
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            placeholder="Поиск иконки из lucide-react по названию..."
+            aria-label="Search lucide-react icons"
+          />
+        </div>
+        <Badge size="md" tone="accent">
+          {`lucide-react: показано ${filteredIcons.length} из ${ALL_LUCIDE_ICON_ENTRIES.length}`}
+        </Badge>
+      </div>
+
       <div className={styles.iconGrid}>
-        {ICON_CATALOG.map((entry) => {
+        {filteredIcons.map((entry) => {
           const snippet = `<Icon icon={${entry.name}} size="md" />`;
           const isCopied = copiedValue === snippet;
           return (
@@ -361,9 +344,11 @@ function IconsCatalog(): React.ReactElement {
               onClick={() => void copy(snippet)}
             >
               <Icon icon={entry.icon} size="lg" tone={isCopied ? 'success' : 'accent'} />
-              <Text variant="mono">{entry.name}</Text>
-              <Badge size="sm" tone={isCopied ? 'success' : 'neutral'}>
-                {isCopied ? 'Copied JSX' : 'Copy JSX'}
+              <Text variant="mono" size="xs">
+                {entry.name}
+              </Text>
+              <Badge size="xs" tone={isCopied ? 'success' : 'neutral'}>
+                {isCopied ? 'Copied JSX' : 'lucide-react'}
               </Badge>
             </button>
           );
@@ -374,5 +359,13 @@ function IconsCatalog(): React.ReactElement {
 }
 
 export const Icons: StoryObj = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Полный интерактивный каталог всех иконок из библиотеки `lucide-react`, поддерживаемых атомарным компонентом `<Icon />`.',
+      },
+    },
+  },
   render: () => <IconsCatalog />,
 };

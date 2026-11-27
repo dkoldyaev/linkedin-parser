@@ -1,6 +1,7 @@
 import { Badge, Button, Text } from '../../atoms';
 import { DataTable, type DataTableColumn } from './DataTable';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import layoutStyles from '../../stories/StoryLayout.module.css';
 
 interface QueueRow {
   readonly id: string;
@@ -40,7 +41,7 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
     header: 'Task ID',
     accessor: 'id',
     sortable: true,
-    gridUnits: 5,
+    gridUnits: 4,
     cell: (row) => <Text variant="mono">{row.id}</Text>,
   },
   {
@@ -48,20 +49,20 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
     header: 'Vacancy Title',
     accessor: 'jobTitle',
     sortable: true,
-    gridUnits: 13,
+    gridUnits: 8,
   },
   {
     id: 'company',
     header: 'Company',
     accessor: 'company',
     sortable: true,
-    gridUnits: 8,
+    gridUnits: 4,
   },
   {
     id: 'status',
     header: 'Status',
     sortable: true,
-    gridUnits: 6,
+    gridUnits: 4,
     sortValue: (row) => row.status,
     cell: (row) => (
       <Badge
@@ -74,57 +75,190 @@ const COLUMNS: readonly DataTableColumn<QueueRow>[] = [
       </Badge>
     ),
   },
-  {
-    id: 'attempts',
-    header: 'Retries',
-    accessor: 'attempts',
-    sortable: true,
-    gridUnits: 6,
-    align: 'right',
-  },
 ];
 
 const meta: Meta<typeof DataTable<QueueRow>> = {
-  title: 'Organisms/DataTable',
+  title: 'Organisms/DataTable/DataTable',
   component: DataTable,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Типизированный табличный организм `DataTable<T>` на 32px сетке Blueprint. Поддерживает декларативное описание колонок (`columns` с ширинами `gridUnits`), сортировку через `<SortButton>`, состояние загрузки (`loading` -> `<DataTableLoading>`), пустое состояние (`<EmptyState>`) и кликабельные строки (`onRowClick`).',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
+  args: {
+    columns: COLUMNS,
+    data: SAMPLE_ROWS,
+    getRowId: (row: QueueRow) => row.id,
+    loading: false,
+    loadingLabel: 'Синхронизация очереди фоновых задач...',
+    emptyTitle: 'Очередь задач пуста',
+    emptyDescription: 'Все задачи парсинга и LLM-адаптации завершены.',
+    caption: 'Активные задачи фонового воркера',
+  },
+  argTypes: {
+    columns: {
+      control: 'object',
+      description: 'Массив описаний колонок `DataTableColumn<T>[]` (`id`, `header`, `accessor`, `cell`, `sortable`, `gridUnits`).',
+    },
+    data: {
+      control: 'object',
+      description: 'Массив строк данных `T[]`.',
+    },
+    loading: {
+      control: 'boolean',
+      description: 'Если `true`, вместо таблицы рендерит `<DataTableLoading>` со спиннером.',
+    },
+    loadingLabel: {
+      control: 'text',
+      description: 'Текст статуса загрузки для `<DataTableLoading>`.',
+    },
+    emptyTitle: {
+      control: 'text',
+      description: 'Заголовок `<EmptyState>` при пустом массиве `data`.',
+    },
+    emptyDescription: {
+      control: 'text',
+      description: 'Описание `<EmptyState>` при пустом массиве `data`.',
+    },
+    caption: {
+      control: 'text',
+      description: 'Семантический заголовок `<caption>` таблицы.',
+    },
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof DataTable<QueueRow>>;
 
-export const SortableQueueTable: Story = {
-  render: () => (
-    <DataTable
-      columns={COLUMNS}
-      data={SAMPLE_ROWS}
-      getRowId={(row) => row.id}
-      caption="Active queue tasks"
-    />
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `DataTable`. Кликните по заголовкам колонок для сортировки или настройте `loading`, `loadingLabel`, `caption` в панели Controls.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          DataTable — Типизированная таблица с сортировкой и 32px сеткой колонок
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Нажмите на заголовки Task ID, Vacancy Title, Company или Status для сортировки строк.
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <DataTable {...args} />
+      </div>
+    </div>
   ),
 };
 
-export const LoadingTable: Story = {
-  render: () => (
-    <DataTable
-      columns={COLUMNS}
-      data={[]}
-      getRowId={(row) => row.id}
-      loading
-      loadingLabel="Synchronizing worker queue..."
-    />
+export const PropColumnsAndData: Story = {
+  name: 'Пропсы: columns и data (Схема колонок и массив записей)',
+  args: {
+    columns: COLUMNS,
+    data: SAMPLE_ROWS,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `columns` задает заголовки, ширину в ячейках 32px (`gridUnits`), рендереры ячеек (`cell`) и флаги сортировки (`sortable`), а `data` передает строки таблицы.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: columns &amp; data
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Таблица с 4 колонками, квантованными по сетке через useDataTableColumns:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <DataTable {...args} />
+      </div>
+    </div>
   ),
 };
 
-export const EmptyTable: Story = {
-  render: () => (
-    <DataTable
-      columns={COLUMNS}
-      data={[]}
-      getRowId={(row) => row.id}
-      emptyTitle="Queue is Empty"
-      emptyDescription="All background parsing and LLM adaptation tasks have finished."
-      emptyAction={<Button variant="primary">Refresh Queue</Button>}
-    />
+export const PropLoadingAndLoadingLabel: Story = {
+  name: 'Пропсы: loading и loadingLabel (Состояние загрузки)',
+  args: {
+    loading: true,
+    loadingLabel: 'Загрузка очереди парсинга из Mercure...',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'При `loading={true}` компонент делегирует рендеринг подкомпоненту `<DataTableLoading label={loadingLabel} />`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: loading &amp; loadingLabel
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключите флаг loading и измените loadingLabel в панели Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <DataTable {...args} />
+      </div>
+    </div>
+  ),
+};
+
+export const PropEmptyStateFallbacks: Story = {
+  name: 'Пропсы: emptyTitle, emptyDescription, emptyAction (Пустая таблица)',
+  args: {
+    data: [],
+    emptyTitle: 'ОЧЕРЕДЬ ЗАДАЧ ПУСТА',
+    emptyDescription: 'Добавьте новую ссылку на вакансию для запуска фонового парсинга.',
+    emptyAction: (
+      <Button variant="primary" size="sm">
+        Обновить очередь
+      </Button>
+    ),
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Когда `data.length === 0` и `loading === false`, вместо `<table>` рендерится молекула `<EmptyState>` с переданными пропсами `emptyTitle`, `emptyDescription` и `emptyAction`.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          props: emptyTitle, emptyDescription &amp; emptyAction (при data=[])
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Настройте заголовок и описание пустого состояния в Controls:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <DataTable {...args} />
+      </div>
+    </div>
   ),
 };

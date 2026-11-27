@@ -1,99 +1,144 @@
-import { Button, Icon, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Plus, Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { SearchBar, type SearchBarProps } from './SearchBar';
 import layoutStyles from '../../stories/StoryLayout.module.css';
+import { Text } from '../../atoms';
 
 const meta: Meta<typeof SearchBar> = {
   title: 'Molecules/SearchBar',
   component: SearchBar,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Молекула строки поиска `SearchBar` (`role="searchbox"`), собранная из `<Input mono>`, иконки `Search` из `lucide-react` и кнопки быстрой очистки с иконкой `X`. Поддерживает адаптивное расширение ширины по фокусу (`expandOnFocus`) на 32px сетке Blueprint и сброс фокуса клавишей `Escape`.',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
   args: {
     value: 'Senior React Architect',
     placeholder: 'Поиск по компании, должности, стеку...',
     expandOnFocus: false,
     disabled: false,
-    clearLabel: 'Clear search',
+    clearLabel: 'Очистить поиск',
   },
   argTypes: {
-    value: { control: 'text' },
-    placeholder: { control: 'text' },
-    expandOnFocus: { control: 'boolean' },
-    disabled: { control: 'boolean' },
-    clearLabel: { control: 'text' },
+    value: {
+      control: 'text',
+      description: 'Текущий поисковый запрос.',
+    },
+    placeholder: {
+      control: 'text',
+      description: 'Текст-подсказка в пустом поле поиска.',
+    },
+    expandOnFocus: {
+      control: 'boolean',
+      description:
+        'Если `true`, в состоянии покоя поле имеет компактную ширину и плавно расширяется до полной ширины по сетке при фокусе.',
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Блокирует ввод и скрывает кнопку очистки.',
+    },
+    clearLabel: {
+      control: 'text',
+      description: 'Доступная метка `aria-label` для кнопки быстрой очистки (`X`).',
+    },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof SearchBar>;
 
-function ControlledSearchBarStory(props: SearchBarProps): React.ReactElement {
-  const [query, setQuery] = useState(props.value);
+function ControlledSearchBar(args: SearchBarProps): React.ReactElement {
+  const [query, setQuery] = useState(args.value);
 
   useEffect(() => {
-    setQuery(props.value);
-  }, [props.value]);
+    setQuery(args.value);
+  }, [args.value]);
 
   return (
-    <div className={layoutStyles.stack}>
-      <SearchBar {...props} value={query} onValueChange={setQuery} aria-label="Filter vacancies" />
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          SearchBar — Поисковое поле с автоочисткой и поддержкой Escape
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Введите текст или нажмите крестик справа для мгновенного сброса запроса.
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <SearchBar {...args} value={query} onValueChange={setQuery} aria-label="Search vacancies" />
+      </div>
     </div>
   );
 }
 
-export const Interactive: Story = {
-  render: (args) => <ControlledSearchBarStory {...args} />,
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `SearchBar`. Настраивайте `value`, `placeholder`, `expandOnFocus`, `disabled` и `clearLabel` через панель Controls.',
+      },
+    },
+  },
+  render: (args) => <ControlledSearchBar {...args} />,
 };
 
-export const ExpandOnFocus: Story = {
+export const PropExpandOnFocus: Story = {
+  name: 'Пропс: expandOnFocus (Адаптивное раскрытие по фокусу)',
   args: {
-    value: 'Typescript, React',
+    value: 'TypeScript',
     placeholder: 'Кликните для раскрытия по фокусу...',
     expandOnFocus: true,
   },
-  render: (args) => <ControlledSearchBarStory {...args} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `expandOnFocus` включает компактный режим в шапке приложения (`Header`), плавно увеличивающий ширину поля при получении фокуса.',
+      },
+    },
+  },
+  render: (args) => <ControlledSearchBar {...args} />,
 };
 
-function AdaptiveHeaderDemo(props: SearchBarProps): React.ReactElement {
-  const [query, setQuery] = useState(props.value);
-
-  useEffect(() => {
-    setQuery(props.value);
-  }, [props.value]);
-
-  return (
-    <div className={layoutStyles.adaptiveHeaderDemo}>
-      <div className={layoutStyles.adaptiveHeaderBrand}>
-        <Text variant="mono" weight="bold">
-          LINKEDIN PARSER
-        </Text>
-      </div>
-      <div className={layoutStyles.adaptiveHeaderCenter}>
-        <SearchBar
-          {...props}
-          value={query}
-          onValueChange={setQuery}
-          aria-label="Search in header"
-        />
-      </div>
-      <div className={layoutStyles.adaptiveHeaderActions}>
-        <Button variant="primary" size="icon" aria-label="Add vacancy">
-          <Icon icon={Plus} size="sm" />
-        </Button>
-        <Button variant="secondary" size="icon" aria-label="Settings">
-          <Icon icon={Settings} size="sm" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-export const AdaptiveHeaderExpandOnFocus: Story = {
+export const PropValueAndClearLabel: Story = {
+  name: 'Пропсы: value, placeholder и clearLabel',
   args: {
-    value: '',
-    placeholder: 'Поиск вакансий (фокус скрывает соседние элементы шапки)...',
-    expandOnFocus: false,
+    value: 'Distributed Systems',
+    placeholder: 'Введите ключевое слово...',
+    clearLabel: 'Стереть поисковый запрос',
   },
-  render: (args) => <AdaptiveHeaderDemo {...args} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Когда `value` не пусто, справа автоматически появляется кнопка очистки с `aria-label={clearLabel}`.',
+      },
+    },
+  },
+  render: (args) => <ControlledSearchBar {...args} />,
+};
+
+export const PropDisabled: Story = {
+  name: 'Пропс: disabled (Заблокированный поиск)',
+  args: {
+    value: 'Locked search query',
+    disabled: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Пропс `disabled` отключает поле поиска и скрывает кнопку очистки.',
+      },
+    },
+  },
+  render: (args) => <ControlledSearchBar {...args} />,
 };

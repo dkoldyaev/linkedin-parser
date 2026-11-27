@@ -1,4 +1,4 @@
-import { Button, Icon } from '../../atoms';
+import { Button, Icon, Text } from '../../atoms';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Trash2, XCircle } from 'lucide-react';
 import layoutStyles from '../../stories/StoryLayout.module.css';
@@ -8,10 +8,30 @@ const meta: Meta<typeof ModalFooter> = {
   title: 'Organisms/Modal/ModalFooter',
   component: ModalFooter,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Подкомпонент нижней панели действий модального окна `ModalFooter` (`Modal.Footer`), квантованный по высоте 32px сетки Blueprint (`data-min-grids="2"`). Поддерживает режимы горизонтального выравнивания `justify` (`start`, `center`, `end`, `between`) и группировку кнопок через `<ModalFooter.Actions>`.',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
+  args: {
+    justify: 'between',
+  },
   argTypes: {
     justify: {
-      control: 'radio',
+      control: 'inline-radio',
       options: ['start', 'center', 'end', 'between'],
+      description:
+        'Горизонтальное распределение кнопок в футере (`start`, `center`, `end`, `between`).',
+    },
+    className: {
+      control: 'text',
+      description: 'Дополнительный CSS-класс контейнера футера.',
     },
   },
 };
@@ -19,85 +39,91 @@ const meta: Meta<typeof ModalFooter> = {
 export default meta;
 type Story = StoryObj<typeof ModalFooter>;
 
-export const JustifyEnd: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalFooter justify="end">
-        <ModalFooter.Actions>
-          <Button variant="secondary" size="sm" onClick={() => alert('Cancel')}>
-            Cancel
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `ModalFooter`. Переключайте `justify` (`start`, `center`, `end`, `between`) через панель Controls.',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          ModalFooter — Нижняя панель кнопок модального окна
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Минимальная высота — 2 ячейки сетки (64px) с верхним разделителем.
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalFooter {...args}>
+          <Button variant="secondary" size="sm" tone="danger">
+            <Icon icon={Trash2} size="sm" />
+            <span>Удалить запись</span>
           </Button>
-          <Button variant="primary" size="sm" onClick={() => alert('Save Changes')}>
-            Save Changes
-          </Button>
-        </ModalFooter.Actions>
-      </ModalFooter>
+          <ModalFooter.Actions>
+            <Button variant="secondary" size="sm">
+              Отмена
+            </Button>
+            <Button variant="primary" size="sm">
+              Сохранить изменения
+            </Button>
+          </ModalFooter.Actions>
+        </ModalFooter>
+      </div>
     </div>
   ),
 };
 
-export const JustifyBetween: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalFooter justify="between">
-        <Button variant="secondary" tone="danger" size="sm" onClick={() => alert('Delete')}>
-          <Icon icon={Trash2} size="sm" />
-          <span>Delete Column</span>
-        </Button>
-        <ModalFooter.Actions>
-          <Button variant="secondary" size="sm" onClick={() => alert('Cancel')}>
-            Cancel
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => alert('Apply Changes')}>
-            Apply Changes
-          </Button>
-        </ModalFooter.Actions>
-      </ModalFooter>
-    </div>
-  ),
-};
+export const PropJustify: Story = {
+  name: 'Пропс: justify (Выравнивание кнопок start / center / end / between)',
+  args: {
+    justify: 'end',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `justify` управляет раскладкой кнопок: `end` (стандартно справа), `between` (деструктивное действие слева, основные кнопки справа), `start` (слева) и `center` (по центру).',
+      },
+    },
+  },
+  render: (args) => (
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          prop: justify (&quot;start&quot; | &quot;center&quot; | &quot;end&quot; | &quot;between&quot;)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Переключайте justify в Controls для верхнего образца или сравните варианты ниже:
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <ModalFooter {...args}>
+          <ModalFooter.Actions>
+            <Button variant="secondary" size="sm">
+              Отмена
+            </Button>
+            <Button variant="primary" size="sm">
+              Применить ({args.justify})
+            </Button>
+          </ModalFooter.Actions>
+        </ModalFooter>
 
-export const VacancyFooterAction: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalFooter justify="between">
-        <Button variant="secondary" size="sm" onClick={() => alert('Move to rejected')}>
-          <Icon icon={XCircle} size="sm" tone="danger" />
-          <span>Перенести в отказ</span>
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => alert('Close')}>
-          Закрыть
-        </Button>
-      </ModalFooter>
-    </div>
-  ),
-};
-
-export const JustifyStart: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalFooter justify="start">
-        <ModalFooter.Actions>
-          <Button variant="primary" size="sm" onClick={() => alert('Download')}>
-            Download Report
+        <ModalFooter justify="between">
+          <Button variant="secondary" size="sm">
+            <Icon icon={XCircle} size="sm" tone="danger" />
+            <span>В не подошло (justify=&quot;between&quot;)</span>
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => alert('Copy Link')}>
-            Copy Link
+          <Button variant="secondary" size="sm">
+            Закрыть
           </Button>
-        </ModalFooter.Actions>
-      </ModalFooter>
-    </div>
-  ),
-};
-
-export const JustifyCenter: Story = {
-  render: () => (
-    <div className={layoutStyles.panel}>
-      <ModalFooter justify="center">
-        <Button variant="primary" size="sm" onClick={() => alert('Acknowledged')}>
-          I Understand and Agree
-        </Button>
-      </ModalFooter>
+        </ModalFooter>
+      </div>
     </div>
   ),
 };

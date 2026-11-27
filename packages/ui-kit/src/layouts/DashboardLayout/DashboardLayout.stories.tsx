@@ -1,9 +1,60 @@
-import { Badge, StatusDot, Text } from '../../atoms';
+import { Badge, Button, StatusDot, Text } from '../../atoms';
 import { Card, Header, Table, TableBody, TableCell, TableCol, TableHeader } from '../../organisms';
+import { DashboardLayout, type DashboardLayoutProps } from './DashboardLayout';
 import { FilterBar, SearchBar } from '../../molecules';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState } from 'react';
-import { DashboardLayout } from './DashboardLayout';
+import layoutStyles from '../../stories/StoryLayout.module.css';
+
+const TOOLBAR_MAP = {
+  none: undefined,
+  BulkActionsToolbar: (
+    <div className={layoutStyles.row}>
+      <Badge tone="accent" size="sm">
+        Выбрано: 3 карточки
+      </Badge>
+      <Button variant="secondary" size="sm">
+        Переместить выбранные
+      </Button>
+      <Button variant="ghost" size="sm" tone="danger">
+        В не подошло
+      </Button>
+    </div>
+  ),
+} as const;
+
+const SIDEBAR_MAP = {
+  none: undefined,
+  QuickNavSidebar: (
+    <div className={layoutStyles.box}>
+      <div className={layoutStyles.stackSm}>
+        <Text variant="mono-label" tone="accent">
+          WORKSPACE NAV
+        </Text>
+        <Badge tone="primary" size="sm">
+          01 // Kanban Board
+        </Badge>
+        <Badge tone="neutral" size="sm">
+          02 // Master CV
+        </Badge>
+        <Badge tone="neutral" size="sm">
+          03 // Analytics
+        </Badge>
+      </div>
+    </div>
+  ),
+} as const;
+
+const FOOTER_MAP = {
+  none: undefined,
+  StatusFooter: (
+    <div className={layoutStyles.box}>
+      <Text variant="mono" size="xs" tone="muted">
+        BLUEPRINT WORKSPACE // 32PX GRID ACTIVE // MERCURE SSE CONNECTED
+      </Text>
+    </div>
+  ),
+} as const;
 
 const meta: Meta<typeof DashboardLayout> = {
   title: 'Layouts/DashboardLayout',
@@ -11,18 +62,63 @@ const meta: Meta<typeof DashboardLayout> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
+    docs: {
+      description: {
+        component:
+          'Каркас рабочего пространства `DashboardLayout` для насыщенных данными экранов (Канбан-доски, панели администрирования, таблицы очередей). Включает встроенное квантование по 32px сетке Blueprint (`useBlueprintGrid`, `snapToGrid`) и snap-прокрутку рабочей области и сайдбара (`useGridScroll`). Поддерживает слоты `header`, `filterBar`, `toolbar`, `sidebar`, `footer` и основную область `children` (`<main data-bp-scroller="true">`).',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
+  args: {
+    snapToGrid: true,
+    sidebarLabel: 'Навигация рабочего пространства',
+    toolbar: TOOLBAR_MAP.none,
+    sidebar: SIDEBAR_MAP.none,
+    footer: FOOTER_MAP.StatusFooter,
+  },
+  argTypes: {
+    snapToGrid: {
+      control: 'boolean',
+      description: 'Включает автоматическое квантование элементов по 32px сетке через `useBlueprintGrid`.',
+    },
+    sidebarLabel: {
+      control: 'text',
+      description: 'Доступная метка `aria-label` для боковой панели `<aside>`.',
+    },
+    toolbar: {
+      control: 'select',
+      options: Object.keys(TOOLBAR_MAP),
+      mapping: TOOLBAR_MAP,
+      description: 'Слот панели инструментов (`<section aria-label="Workspace toolbar">`) под `filterBar`.',
+    },
+    sidebar: {
+      control: 'select',
+      options: Object.keys(SIDEBAR_MAP),
+      mapping: SIDEBAR_MAP,
+      description: 'Слот боковой панели `<aside>` слева от главной рабочей области `<main>`.',
+    },
+    footer: {
+      control: 'select',
+      options: Object.keys(FOOTER_MAP),
+      mapping: FOOTER_MAP,
+      description: 'Слот нижнего колонтитула `<footer>` рабочего пространства.',
+    },
   },
 };
 
 export default meta;
 type Story = StoryObj<typeof DashboardLayout>;
 
-function UniversalDashboardDemo(): React.ReactElement {
+function InteractiveDashboardDemo(args: DashboardLayoutProps): React.ReactElement {
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('');
 
   return (
     <DashboardLayout
+      {...args}
       header={
         <Header
           title="BLUEPRINT.UI"
@@ -31,7 +127,7 @@ function UniversalDashboardDemo(): React.ReactElement {
             <SearchBar
               value={search}
               onValueChange={setSearch}
-              placeholder="Search items..."
+              placeholder="Поиск карточек..."
               aria-label="Search workspace"
               expandOnFocus
             />
@@ -48,8 +144,8 @@ function UniversalDashboardDemo(): React.ReactElement {
               value: region,
               onChange: setRegion,
               options: [
-                { value: '', label: 'All Regions' },
-                { value: 'eu', label: 'Europe' },
+                { value: '', label: 'Все регионы' },
+                { value: 'eu', label: 'Europe (EU)' },
                 { value: 'us', label: 'North America' },
               ],
             },
@@ -85,6 +181,7 @@ function UniversalDashboardDemo(): React.ReactElement {
             </TableCell>
           </TableBody>
         </TableCol>
+
         <TableCol gridUnits={10}>
           <TableHeader>
             <Text as="span" variant="mono" weight="semibold" tone="accent">
@@ -118,6 +215,50 @@ function UniversalDashboardDemo(): React.ReactElement {
   );
 }
 
-export const DefaultWorkspace: Story = {
-  render: () => <UniversalDashboardDemo />,
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `DashboardLayout`. Переключайте слоты `toolbar`, `sidebar`, `footer` и флаг `snapToGrid` через панель Controls.',
+      },
+    },
+  },
+  render: (args) => <InteractiveDashboardDemo {...args} />,
+};
+
+export const PropToolbarAndSidebar: Story = {
+  name: 'Пропсы: toolbar, sidebar и sidebarLabel (Панель массовых действий и сайдбар)',
+  args: {
+    toolbar: TOOLBAR_MAP.BulkActionsToolbar,
+    sidebar: SIDEBAR_MAP.QuickNavSidebar,
+    sidebarLabel: 'Боковая навигация по разделам',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `toolbar` добавляет 32px-квантованную полосу инструментов под `filterBar`, а `sidebar` рендерит боковую колонку `<aside>` слева от рабочей области.',
+      },
+    },
+  },
+  render: (args) => <InteractiveDashboardDemo {...args} />,
+};
+
+export const PropSnapToGridAndFooter: Story = {
+  name: 'Пропсы: snapToGrid и footer (Квантование сетки и нижняя строка статуса)',
+  args: {
+    snapToGrid: true,
+    footer: FOOTER_MAP.StatusFooter,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `snapToGrid` управляет хуком `useBlueprintGrid`, а `footer` выводит нижнюю статусную строку дашборда.',
+      },
+    },
+  },
+  render: (args) => <InteractiveDashboardDemo {...args} />,
 };

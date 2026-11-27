@@ -1,135 +1,180 @@
 import { Button, Icon, Input, Text } from '../../atoms';
-import { ColorPicker, FormField, Tabs } from '../../molecules';
-import { ExternalLink, FileText, Layers, RefreshCw, Shield, Trash2 } from 'lucide-react';
+import { ColorPicker, FormField } from '../../molecules';
+import { Layers, Settings } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Modal, type ModalProps } from './Modal';
 import React, { useState } from 'react';
-import { Modal } from './Modal';
-import { useDisclosure } from '../../hooks';
+import layoutStyles from '../../stories/StoryLayout.module.css';
+
+const ICON_MAP = {
+  none: undefined,
+  Layers: <Icon icon={Layers} size="md" tone="accent" />,
+  Settings: <Icon icon={Settings} size="md" tone="accent" />,
+} as const;
 
 const meta: Meta<typeof Modal> = {
-  title: 'Organisms/Modal',
+  title: 'Organisms/Modal/Modal',
   component: Modal,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Доступный организм модального диалогового окна `Modal` на базе `@radix-ui/react-dialog` и портала `<OverlayProvider>`, строго выровненный по 32px сетке Blueprint (`useBlueprintGrid`). Поддерживает как сокращенный режим через пропсы (`title`, `description`, `icon`, `footer`), так и составную композицию через подкомпоненты `<Modal.Header>`, `<Modal.Body>` и `<Modal.Footer>`.',
+      },
+      source: {
+        type: 'dynamic',
+      },
+    },
+  },
+  args: {
+    isOpen: false,
+    title: 'Создать колонку Канбан',
+    description: 'Настройте новый этап воронки вакансий на 32px сетке Blueprint.',
+    icon: ICON_MAP.Layers,
+    size: 'md',
+    closeLabel: 'Закрыть модальное окно',
+    hideCloseButton: false,
+  },
+  argTypes: {
+    isOpen: {
+      control: 'boolean',
+      description: 'Управляет открытым/закрытым состоянием модального окна.',
+    },
+    title: {
+      control: 'text',
+      description: 'Заголовок модального окна (активирует shorthand-режим с автоматическим `ModalHeader` и `ModalBody`).',
+    },
+    description: {
+      control: 'text',
+      description: 'Вторичное описание под заголовком модального окна (`DialogPrimitive.Description`).',
+    },
+    icon: {
+      control: 'select',
+      options: Object.keys(ICON_MAP),
+      mapping: ICON_MAP,
+      description: 'Иконка слева от заголовка модального окна.',
+    },
+    size: {
+      control: 'inline-radio',
+      options: ['sm', 'md', 'lg', 'xl', '2xl', 'custom'],
+      description: 'Предустановленный размер ширины модального окна (`sm`, `md`, `lg`, `xl`, `2xl`, `custom`).',
+    },
+    width: {
+      control: 'text',
+      description: 'Явное переопределение ширины в пикселях или CSS-единицах (например `"640px"`).',
+    },
+    closeLabel: {
+      control: 'text',
+      description: 'Доступная метка `aria-label` для кнопки закрытия.',
+    },
+    hideCloseButton: {
+      control: 'boolean',
+      description: 'Скрывает кнопку закрытия (`X`) в шапке модального окна.',
+    },
+  },
 };
 
 export default meta;
 type Story = StoryObj<typeof Modal>;
 
-function ShorthandModalDemo(): React.ReactElement {
-  const { isOpen, open, close } = useDisclosure({ defaultIsOpen: false });
+function InteractiveModalDemo(args: ModalProps): React.ReactElement {
+  const [open, setOpen] = useState(args.isOpen);
+  const [color, setColor] = useState('blue');
+
+  React.useEffect(() => {
+    setOpen(args.isOpen);
+  }, [args.isOpen]);
 
   return (
-    <div>
-      <Button variant="primary" onClick={open}>
-        Open Shorthand Modal
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onClose={close}
-        title="Create Kanban Column"
-        description="Configure a new pipeline stage on the 32px Blueprint board."
-        icon={<Icon icon={Layers} size="md" tone="accent" />}
-        footer={
-          <>
-            <Button variant="secondary" onClick={close}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={close}>
-              Create Column
-            </Button>
-          </>
-        }
-      >
-        <FormField label="Column Name" required>
-          {(a11yProps) => <Input {...a11yProps} defaultValue="System Design Round" />}
-        </FormField>
-        <FormField label="Accent Palette">
-          <ColorPicker value="blue" onChange={() => undefined} />
-        </FormField>
-      </Modal>
-    </div>
-  );
-}
-
-function ComposableModalDemo(): React.ReactElement {
-  const { isOpen, open, close } = useDisclosure({ defaultIsOpen: false });
-  const [activeTab, setActiveTab] = useState<'details' | 'audit'>('details');
-
-  return (
-    <div>
-      <Button variant="secondary" onClick={open}>
-        Open Composable Compound Modal
-      </Button>
-      <Modal isOpen={isOpen} onClose={close} size="lg">
-        <Modal.Header
-          title="Component Inspector"
-          description="Decomposed into Modal.Header, Modal.Body, and Modal.Footer."
-          icon={<Icon icon={Layers} size="md" tone="accent" />}
-          actions={
+    <div className={layoutStyles.propDocBox}>
+      <div className={layoutStyles.propInfoHeader}>
+        <Text variant="mono-label" tone="accent">
+          Modal — Модальное диалоговое окно (size=&quot;{args.size}&quot;)
+        </Text>
+        <Text variant="caption" tone="secondary">
+          Нажмите кнопку ниже для открытия модального окна с привязкой к 32px сетке.
+        </Text>
+      </div>
+      <div className={layoutStyles.propPreviewArea}>
+        <div className={layoutStyles.row}>
+          <Button variant="primary" onClick={() => setOpen(true)}>
+            Открыть Modal ({args.size})
+          </Button>
+        </div>
+        <Modal
+          {...args}
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          footer={
             <>
-              <Button variant="ghost" size="sm">
-                <Icon icon={RefreshCw} size="sm" />
-                <span>Sync</span>
+              <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
+                Отмена
               </Button>
-              <Button variant="ghost" size="sm">
-                <Icon icon={ExternalLink} size="sm" />
+              <Button variant="primary" size="sm" onClick={() => setOpen(false)}>
+                Создать колонку
               </Button>
             </>
           }
-          tabs={
-            <Tabs
-              value={activeTab}
-              onValueChange={(val) => setActiveTab(val as 'details' | 'audit')}
-              items={[
-                {
-                  value: 'details',
-                  label: 'Details',
-                  icon: <Icon icon={FileText} size="sm" />,
-                },
-                {
-                  value: 'audit',
-                  label: 'Audit Log',
-                  icon: <Icon icon={Shield} size="sm" />,
-                },
-              ]}
-            />
-          }
-        />
-
-        <Modal.Body padding="md">
-          <Text as="p" variant="body" tone="secondary">
-            Active view: <strong>{activeTab.toUpperCase()}</strong>.
-          </Text>
-          <Text as="p" variant="body">
-            This demonstrates composition where `Modal.Header` holds custom accessories and tabs,
-            `Modal.Body` provides grid-aligned scrollable content, and `Modal.Footer` formats split
-            action triggers.
-          </Text>
-        </Modal.Body>
-
-        <Modal.Footer justify="between">
-          <Button variant="secondary" tone="danger" size="sm" onClick={close}>
-            <Icon icon={Trash2} size="sm" />
-            <span>Delete Entity</span>
-          </Button>
-          <Modal.Footer.Actions>
-            <Button variant="secondary" size="sm" onClick={close}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={close}>
-              Save Changes
-            </Button>
-          </Modal.Footer.Actions>
-        </Modal.Footer>
-      </Modal>
+        >
+          <FormField label="НАЗВАНИЕ КОЛОНКИ" required>
+            {(a11yProps) => <Input {...a11yProps} defaultValue="System Design Round" />}
+          </FormField>
+          <FormField label="ЦВЕТОВОЙ АКЦЕНТ">
+            <ColorPicker value={color} onChange={setColor} />
+          </FormField>
+        </Modal>
+      </div>
     </div>
   );
 }
 
-export const InteractiveModal: Story = {
-  render: () => <ShorthandModalDemo />,
+export const Base: Story = {
+  name: 'Базовая (Interactive Controls)',
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Базовая интерактивная демонстрация `Modal`. Откройте окно кнопкой и настраивайте `size`, `width`, `title`, `description`, `icon`, `hideCloseButton` через панель Controls.',
+      },
+    },
+  },
+  render: (args) => <InteractiveModalDemo {...args} />,
 };
 
-export const ComposableCompoundModal: Story = {
-  render: () => <ComposableModalDemo />,
+export const PropSizeAndWidth: Story = {
+  name: 'Пропсы: size и width (Управление габаритами окна)',
+  args: {
+    size: 'lg',
+    width: undefined,
+    title: 'Инспектор параметров (size="lg")',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропс `size` выбирает стандартный пресет ширины (`sm`, `md`, `lg`, `xl`, `2xl`), а `width` позволяет задать точную кастомную ширину (например `"768px"`).',
+      },
+    },
+  },
+  render: (args) => <InteractiveModalDemo {...args} />,
+};
+
+export const PropTitleDescriptionAndIcon: Story = {
+  name: 'Пропсы: title, description, icon и hideCloseButton',
+  args: {
+    title: 'Системная конфигурация',
+    description: 'Проверьте настройки синхронизации перед применением.',
+    icon: ICON_MAP.Settings,
+    hideCloseButton: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Пропсы `title`, `description`, `icon` и `hideCloseButton` автоматически передаются во внутренний `<ModalHeader>` в shorthand-режиме.',
+      },
+    },
+  },
+  render: (args) => <InteractiveModalDemo {...args} />,
 };
