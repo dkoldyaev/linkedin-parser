@@ -1,5 +1,6 @@
 import {
   Badge,
+  type BadgeTone,
   Button,
   Icon,
   Skeleton,
@@ -12,7 +13,15 @@ import { Check, Edit3, History, MessageSquare, Plus, Trash2 } from 'lucide-react
 import React, { useState } from 'react';
 import { type TranslateFn, useTranslation } from '../../i18n/I18nContext';
 import { TitledSection } from '../TitledSection';
-import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
+
+export interface UiVacancyHistoryItem {
+  readonly id: string;
+  readonly label: React.ReactNode;
+  readonly fromLabel?: React.ReactNode;
+  readonly timestamp?: React.ReactNode;
+  readonly tone?: BadgeTone;
+  readonly comment?: string;
+}
 
 export interface VacancyHistorySectionProps {
   items: readonly UiVacancyHistoryItem[];

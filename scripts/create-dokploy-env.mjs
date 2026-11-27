@@ -516,6 +516,7 @@ async function main() {
     githubId: githubId,
     composePath: './docker-compose.yml',
     composeType: 'docker-compose',
+    enableSubmodules: true,
     isolatedDeployment: false,
     autoDeploy: true,
     triggerType: 'push',

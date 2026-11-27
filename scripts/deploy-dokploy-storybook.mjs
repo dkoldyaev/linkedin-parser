@@ -290,7 +290,7 @@ async function main() {
     branch: gitBranch,
     githubId,
     buildPath: '/',
-    enableSubmodules: false,
+    enableSubmodules: true,
     triggerType: 'push',
   });
 
@@ -300,6 +300,8 @@ async function main() {
     dockerfile: customDockerfile,
     dockerContextPath: '.',
     dockerBuildStage: '',
+    herokuVersion: null,
+    railpackVersion: null,
   });
 
   await dokployRequest('/application.update', 'POST', {
@@ -311,6 +313,7 @@ async function main() {
     branch: gitBranch,
     githubId,
     buildPath: '/',
+    enableSubmodules: true,
     buildType: 'dockerfile',
     dockerfile: customDockerfile,
     dockerContextPath: '.',

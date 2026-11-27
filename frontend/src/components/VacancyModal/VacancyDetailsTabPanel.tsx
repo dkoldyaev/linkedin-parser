@@ -1,10 +1,9 @@
 import React from 'react';
 import { SectionStack } from '../SectionStack';
-import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
 import type { Vacancy } from '../../types/models';
 import { VacancyAiSummarySection } from './VacancyAiSummarySection';
 import { VacancyCompanySection } from './VacancyCompanySection';
-import { VacancyHistorySection } from './VacancyHistorySection';
+import { type UiVacancyHistoryItem, VacancyHistorySection } from './VacancyHistorySection';
 import { VacancyNotesSection } from './VacancyNotesSection';
 import { VacancySkillsSection } from './VacancySkillsSection';
 
