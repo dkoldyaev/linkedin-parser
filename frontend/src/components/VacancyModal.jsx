@@ -137,7 +137,7 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
       const sections = modal.querySelectorAll(
         activeTab === 'details'
           ? '.vacancy-salary, .vacancy-ai-summary, .vacancy-tokens-section, .stage-history-section, .vacancy-notes-section, .orig-desc-section'
-          : '.compatibility-summary, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
+          : '.compatibility-summary, .compatibility-breakdown, .compatibility-assessment, .compatibility-group-title, .compatibility-row, .compatibility-recommendation-list'
       );
       sections.forEach(section => {
         section.style.minHeight = '0px';
@@ -1557,6 +1557,67 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
             )}
 
             {compatibility ? (
+              (() => {
+                const dims = compatibility.dimension_scores || compatibility.dimensionScores || null;
+                const matchedList = compatibility.matched_requirements || [];
+                const missingList = compatibility.missing_requirements || [];
+                const criticalList = compatibility.critical_gaps || [];
+                const rawDisplayScore = compatibility.calculated_score ?? compatibility.overall_score ?? 0;
+
+                const fmtPct = (val) => {
+                  const rounded = Math.round(val * 10) / 10;
+                  return Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
+                };
+
+                // Weighted contributions from policy v2.0 (40% req tech, 25% exp, 15% seniority, 10% opt tech, 10% domain)
+                const reqTechGain = dims ? (Number(dims.requiredTechnicalSkills ?? 0) * 0.40) : null;
+                const profExpGain = dims ? (Number(dims.relevantProfessionalExperience ?? 0) * 0.25) : null;
+                const seniorityGain = dims ? (Number(dims.seniorityAlignment ?? 0) * 0.15) : null;
+                const optTechGain = dims ? (Number(dims.optionalTechnicalSkills ?? 0) * 0.10) : null;
+                const domainGain = dims ? (Number(dims.domainExperience ?? 0) * 0.10) : null;
+
+                // Critical gaps: -15% each, capped at -45%
+                const criticalImpacts = criticalList.map((_, idx) => (idx < 3 ? 15 : 0));
+                const totalCriticalPenalty = Math.min(criticalList.length * 15, 45);
+
+                // Positive pool earned from technical skills & experience/domain requirements
+                const totalEarnedFromRequirements = dims
+                  ? (reqTechGain + optTechGain + profExpGain + domainGain)
+                  : Math.max(0, Number(rawDisplayScore) + totalCriticalPenalty - 12);
+
+                const perMatchGain = matchedList.length > 0
+                  ? Math.max(0.5, Math.round((totalEarnedFromRequirements / matchedList.length) * 10) / 10)
+                  : 0;
+
+                // Missing requirements: distribute unconfirmed skills/experience potential by severity weight
+                const unconfirmedPool = dims
+                  ? Math.max(0, (40 - reqTechGain) + (10 - optTechGain) + (25 - profExpGain) + (10 - domainGain))
+                  : Math.max(0, 100 - (Number(rawDisplayScore) + totalCriticalPenalty));
+
+                const severityWeights = { critical: 4, high: 3, medium: 2, low: 1 };
+                const missingWeights = missingList.map(m => severityWeights[(m.severity || 'medium').toLowerCase()] || 2);
+                const totalMissingWeight = missingWeights.reduce((acc, w) => acc + w, 0);
+                const fallbackMissingLoss = { critical: 10, high: 6, medium: 4, low: 2 };
+
+                const missingImpacts = missingList.map((m, idx) => {
+                  const sev = (m.severity || 'medium').toLowerCase();
+                  if (unconfirmedPool > 0.5 && totalMissingWeight > 0) {
+                    return Math.max(0.5, Math.round(((unconfirmedPool * missingWeights[idx]) / totalMissingWeight) * 10) / 10);
+                  }
+                  return fallbackMissingLoss[sev] || 4;
+                });
+                const totalMissingImpact = Math.round(missingImpacts.reduce((acc, v) => acc + v, 0) * 10) / 10;
+                const totalMatchedImpact = Math.round((perMatchGain * matchedList.length) * 10) / 10;
+
+                const breakdownChips = dims ? [
+                  { key: 'req_tech', label: t('vacancyModal.compat_dim_req_tech'), gain: reqTechGain, max: 40 },
+                  { key: 'prof_exp', label: t('vacancyModal.compat_dim_prof_exp'), gain: profExpGain, max: 25 },
+                  { key: 'seniority', label: t('vacancyModal.compat_dim_seniority'), gain: seniorityGain, max: 15 },
+                  { key: 'opt_tech', label: t('vacancyModal.compat_dim_opt_tech'), gain: optTechGain, max: 10 },
+                  { key: 'domain', label: t('vacancyModal.compat_dim_domain'), gain: domainGain, max: 10 },
+                ] : [];
+
+                return (
               <div>
                 {compatibility.is_outdated && (
                   <div className="compatibility-notice is-outdated">
@@ -1568,6 +1629,30 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                 <p className="compatibility-summary">
                   {compatibility.summary}
                 </p>
+
+                {/* Formula Score Breakdown by Category & Penalties */}
+                {(breakdownChips.length > 0 || totalCriticalPenalty > 0) && (
+                  <div className="compatibility-breakdown">
+                    <div className="compatibility-breakdown-header">
+                      <span>{t('vacancyModal.compat_breakdown_title', { score: Math.round(rawDisplayScore) })}</span>
+                    </div>
+                    <div className="compatibility-breakdown-grid">
+                      {breakdownChips.map((chip) => (
+                        <div key={chip.key} className="compatibility-breakdown-chip">
+                          <span className="compatibility-breakdown-chip-label">{chip.label}:</span>
+                          <span className="compatibility-breakdown-chip-val is-plus">+{fmtPct(chip.gain)}%</span>
+                          <span className="compatibility-breakdown-chip-max">/ {chip.max}%</span>
+                        </div>
+                      ))}
+                      {totalCriticalPenalty > 0 && (
+                        <div className="compatibility-breakdown-chip">
+                          <span className="compatibility-breakdown-chip-label">{t('vacancyModal.compat_dim_critical_penalty')}:</span>
+                          <span className="compatibility-breakdown-chip-val is-minus">&minus;{fmtPct(totalCriticalPenalty)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Seniority assessment */}
                 {compatibility.seniority_assessment && (() => {
@@ -1583,23 +1668,46 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                   return (
                     <div className="compatibility-assessment">
                       <span style={{ color: 'var(--text-secondary)' }}>{t('vacancyModal.compat_seniority')} </span>
-                      <strong style={{ color: statusColor }}>{statusLabel}</strong> — {compatibility.seniority_assessment.comment}
+                      <strong style={{ color: statusColor }}>{statusLabel}</strong>
+                      {seniorityGain != null && (
+                        <span
+                          className="compatibility-impact-badge is-plus"
+                          title={`${t('vacancyModal.compat_dim_seniority')}: +${fmtPct(seniorityGain)}% / 15%`}
+                          style={{ marginRight: '4px' }}
+                        >
+                          +{fmtPct(seniorityGain)}%
+                        </span>
+                      )}
+                      {' '}— {compatibility.seniority_assessment.comment}
                     </div>
                   );
                 })()}
 
                 {/* Matched Requirements with Evidence toggles */}
-                {compatibility.matched_requirements?.length > 0 && (
+                {matchedList.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-matched">
-                      {t('vacancyModal.compat_matched', { count: compatibility.matched_requirements.length })}
+                      <span>{t('vacancyModal.compat_matched', { count: matchedList.length })}</span>
+                      {totalMatchedImpact > 0 && (
+                        <span className="compatibility-group-impact" title={t('vacancyModal.compat_impact_match_hint')}>
+                          +{fmtPct(totalMatchedImpact)}%
+                        </span>
+                      )}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.matched_requirements.map((m, idx) => (
+                      {matchedList.map((m, idx) => (
                         <div key={idx} className="compatibility-row">
                           <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`m_${idx}`]: !prev[`m_${idx}`] }))}>
                             <div className="compatibility-row-title" style={{ color: 'var(--aspen-mint)' }}>
-                              &bull; {m.requirement}
+                              <span>&bull; {m.requirement}</span>
+                              {perMatchGain > 0 && (
+                                <span
+                                  className="compatibility-impact-badge is-plus"
+                                  title={t('vacancyModal.compat_impact_match_hint')}
+                                >
+                                  +{fmtPct(perMatchGain)}%
+                                </span>
+                              )}
                             </div>
                             <span className="compatibility-toggle-btn" style={{ color: 'var(--aspen-mint)' }}>
                               {t('vacancyModal.compat_evidence')} {showEvidenceMap[`m_${idx}`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -1617,16 +1725,22 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                 )}
 
                 {/* Missing Requirements with Details toggles */}
-                {compatibility.missing_requirements?.length > 0 && (
+                {missingList.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-missing">
-                      {t('vacancyModal.compat_missing', { count: compatibility.missing_requirements.length })}
+                      <span>{t('vacancyModal.compat_missing', { count: missingList.length })}</span>
+                      {totalMissingImpact > 0 && (
+                        <span className="compatibility-group-impact" title={t('vacancyModal.compat_impact_missing_hint')}>
+                          &minus;{fmtPct(totalMissingImpact)}%
+                        </span>
+                      )}
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.missing_requirements.map((m, idx) => {
+                      {missingList.map((m, idx) => {
                         const sev = (m.severity || 'medium').toLowerCase();
                         const sevTitle = t(`vacancyModal.compat_severity.${sev}`) || sev;
                         const isExpanded = !!showEvidenceMap[`missing_${idx}`];
+                        const missLoss = missingImpacts[idx] || 0;
                         return (
                           <div key={idx} className="compatibility-row">
                             <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`missing_${idx}`]: !prev[`missing_${idx}`] }))}>
@@ -1635,6 +1749,14 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                                 <span className={`compatibility-severity-badge severity-${sev}`} title={sevTitle}>
                                   {sev}
                                 </span>
+                                {missLoss > 0 && (
+                                  <span
+                                    className="compatibility-impact-badge is-minus-potential"
+                                    title={t('vacancyModal.compat_impact_missing_hint')}
+                                  >
+                                    &minus;{fmtPct(missLoss)}%
+                                  </span>
+                                )}
                               </div>
                               <span className="compatibility-toggle-btn">
                                 {t('vacancyModal.compat_details')} {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -1653,14 +1775,18 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                 )}
 
                 {/* Critical Gaps with Details toggles */}
-                {compatibility.critical_gaps?.length > 0 && (
+                {criticalList.length > 0 && (
                   <div className="compatibility-group">
                     <div className="compatibility-group-title is-critical">
-                      {t('vacancyModal.compat_gaps')}
+                      <span>{t('vacancyModal.compat_gaps')}</span>
+                      <span className="compatibility-group-impact" title={t('vacancyModal.compat_impact_critical_hint')}>
+                        &minus;{fmtPct(totalCriticalPenalty)}%
+                      </span>
                     </div>
                     <div className="compatibility-list">
-                      {compatibility.critical_gaps.map((g, idx) => {
+                      {criticalList.map((g, idx) => {
                         const isExpanded = showEvidenceMap[`gap_${idx}`] !== false; // expanded by default for critical gaps or collapsible
+                        const gapPenalty = criticalImpacts[idx] ?? 15;
                         return (
                           <div key={idx} className="compatibility-row">
                             <div className="compatibility-row-header" onClick={() => setShowEvidenceMap(prev => ({ ...prev, [`gap_${idx}`]: !isExpanded }))}>
@@ -1668,6 +1794,12 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                                 <span>&bull; {g.requirement}</span>
                                 <span className="compatibility-severity-badge severity-critical" title={t('vacancyModal.compat_severity.critical') || 'CRITICAL'}>
                                   critical
+                                </span>
+                                <span
+                                  className="compatibility-impact-badge is-minus-critical"
+                                  title={t('vacancyModal.compat_impact_critical_hint')}
+                                >
+                                  &minus;{fmtPct(gapPenalty)}%
                                 </span>
                               </div>
                               {g.reason && (
@@ -1702,6 +1834,8 @@ export default function VacancyModal({ vacancy, isOpen, onClose, columns = DEFAU
                   </div>
                 )}
               </div>
+                );
+              })()
             ) : (analyzingCompatibility || loadingCompatibility) ? (
               <div className="card-skeleton-block" aria-hidden="true" style={{ padding: '16px var(--vacancy-inset-right) 16px var(--vacancy-inset-left)' }}>
                 <div className="skeleton-line" style={{ width: '100%' }} />
