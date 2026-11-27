@@ -1,8 +1,8 @@
 import { Paragraph, Skeleton } from '@blueprint/ui-kit';
 import { Building2 } from 'lucide-react';
 import React from 'react';
+import { TitledSection } from '../TitledSection';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
 
 export interface VacancyCompanySectionProps {
   companyDescription?: string;
@@ -23,12 +23,12 @@ export function VacancyCompanySection({
 
   if (loading) {
     return (
-      <VacancySection title={t('vacancyModal.about_company')} icon={Building2}>
+      <TitledSection title={t('vacancyModal.about_company')} icon={Building2}>
         <div style={SKELETON_STACK_STYLE} data-testid="vacancy-company-skeleton">
           <Skeleton variant="text" width="100" height="xs" />
           <Skeleton variant="text" width="75" height="xs" />
         </div>
-      </VacancySection>
+      </TitledSection>
     );
   }
 
@@ -37,8 +37,8 @@ export function VacancyCompanySection({
   }
 
   return (
-    <VacancySection title={t('vacancyModal.about_company')} icon={Building2}>
+    <TitledSection title={t('vacancyModal.about_company')} icon={Building2}>
       <Paragraph size="sm">{companyDescription}</Paragraph>
-    </VacancySection>
+    </TitledSection>
   );
 }

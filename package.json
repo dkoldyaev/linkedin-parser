@@ -47,6 +47,7 @@
     "test:llm": "./.venv/bin/python -m pytest tests/test_vacancy_llm.py",
     "test:mercure": "./.venv/bin/python -m pytest tests/test_mercure_card_creation.py",
     "backend:dev": "PYTHONPATH=. ./.venv/bin/uvicorn backend.main:app --reload --port 8000",
+    "ui-kit:build": "pnpm --filter @blueprint/ui-kit run build",
     "frontend:dev": "pnpm --dir frontend run dev",
     "frontend:build": "pnpm --dir frontend run build",
     "lint:frontend": "pnpm --dir frontend run lint",

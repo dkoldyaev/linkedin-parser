@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Skeleton, Textarea } from '@blueprint/ui-kit';
 import { FileText } from 'lucide-react';
 import { SaveButton } from './SaveButton';
+import { TitledSection } from '../TitledSection';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
 
 export interface VacancyDescriptionSectionProps {
   description?: string;
@@ -32,7 +32,7 @@ export function VacancyDescriptionSection({
   }, [description]);
 
   return (
-    <VacancySection
+    <TitledSection
       title={t('vacancyModal.raw_desc_title')}
       icon={FileText}
       accessory={
@@ -56,6 +56,6 @@ export function VacancyDescriptionSection({
           onChange={(e) => setDraft(e.target.value)}
         />
       )}
-    </VacancySection>
+    </TitledSection>
   );
 }

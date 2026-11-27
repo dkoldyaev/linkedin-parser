@@ -63,15 +63,10 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
 
   const ariaSortValue = isSorted ? (direction === 'asc' ? 'ascending' : 'descending') : 'none';
 
-  const resolvedTone: SemanticTone =
-    tone !== 'neutral' ? tone : isActive ? 'accent' : 'secondary';
+  const resolvedTone: SemanticTone = tone !== 'neutral' ? tone : isActive ? 'accent' : 'secondary';
 
   const iconElement = (
-    <Icon
-      icon={SortIconComponent}
-      size={size === 'sm' ? 'xs' : 'sm'}
-      tone={resolvedTone}
-    />
+    <Icon icon={SortIconComponent} size={size === 'sm' ? 'xs' : 'sm'} tone={resolvedTone} />
   );
 
   return (
@@ -96,13 +91,7 @@ export const SortButton = forwardRef<HTMLButtonElement, SortButtonProps>(functio
       {...rest}
     >
       {children !== undefined && (
-        <Text
-          as="span"
-          variant="mono"
-          size="xs"
-          tone={resolvedTone}
-          truncate
-        >
+        <Text as="span" variant="mono" size="xs" tone={resolvedTone} truncate>
           {children}
         </Text>
       )}

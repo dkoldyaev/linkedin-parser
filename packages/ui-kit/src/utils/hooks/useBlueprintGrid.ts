@@ -235,6 +235,8 @@ export function useBlueprintGrid<T extends HTMLElement>(
     let lastHeight = root.clientHeight;
     let lastScrollHeight = root.scrollHeight;
     let lastVh = window.innerHeight;
+    let mutationObserver: MutationObserver | null = null;
+    const subtreeSizes = new WeakMap<Element, { w: number; h: number }>();
 
     const updateSnapshots = () => {
       lastWidth = root.clientWidth;
@@ -245,6 +247,7 @@ export function useBlueprintGrid<T extends HTMLElement>(
 
     const runAlign = () => {
       align();
+      mutationObserver?.takeRecords();
       updateSnapshots();
     };
 
@@ -261,9 +264,21 @@ export function useBlueprintGrid<T extends HTMLElement>(
 
     const resizeObserver =
       typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(() => {
+        ? new ResizeObserver((entries) => {
             if (applying) return;
+            let subtreeResized = false;
+            for (const entry of entries) {
+              if (entry.target === root) continue;
+              const w = Math.round(entry.contentRect.width);
+              const h = Math.round(entry.contentRect.height);
+              const prev = subtreeSizes.get(entry.target);
+              subtreeSizes.set(entry.target, { w, h });
+              if (prev !== undefined && (prev.w !== w || prev.h !== h)) {
+                subtreeResized = true;
+              }
+            }
             if (
+              subtreeResized ||
               root.clientWidth !== lastWidth ||
               root.clientHeight !== lastHeight ||
               (observeSubtree && root.scrollHeight !== lastScrollHeight) ||
@@ -275,14 +290,26 @@ export function useBlueprintGrid<T extends HTMLElement>(
           })
         : null;
 
+    const observeSubtreeTargets = () => {
+      if (!resizeObserver || !observeSubtree) return;
+      const targets = root.querySelectorAll<HTMLElement>(
+        'textarea, [data-bp-scroller] > *, [data-ui-scroller] > *',
+      );
+      for (const el of targets) {
+        resizeObserver.observe(el);
+      }
+    };
+
     if (resizeObserver) {
       resizeObserver.observe(root);
+      observeSubtreeTargets();
     }
 
-    const mutationObserver =
+    mutationObserver =
       observeSubtree && typeof MutationObserver !== 'undefined'
         ? new MutationObserver(() => {
             if (!applying) {
+              observeSubtreeTargets();
               schedule();
             }
           })

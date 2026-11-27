@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Button, Icon, Input, Text } from '@blueprint/ui-kit';
 import React from 'react';
+import { TitledSection } from './TitledSection';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface LoginDevSectionProps {
@@ -15,21 +16,12 @@ export interface LoginDevSectionProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-const DEV_SECTION_STYLE = {
-  borderTop: '1px solid var(--ui-pixel-line)',
-  paddingTop: 'var(--ui-space-3)',
-  display: 'flex',
-  flexDirection: 'column' as const,
-  gap: 'var(--ui-space-2)',
-};
-
 const FORM_STYLE = {
   display: 'flex',
   flexDirection: 'column' as const,
   gap: 'var(--ui-space-2)',
 };
 
-const SPARKLES_ICON = <Icon icon={Sparkles} size="xs" />;
 const ARROW_RIGHT_ICON = <Icon icon={ArrowRight} size="xs" />;
 
 export default function LoginDevSection({
@@ -47,11 +39,7 @@ export default function LoginDevSection({
   if (!devMode) return null;
 
   return (
-    <div style={DEV_SECTION_STYLE}>
-      <Text variant="caption" tone="muted" startIcon={SPARKLES_ICON}>
-        {devCaption}
-      </Text>
-
+    <TitledSection title={devCaption} icon={Sparkles}>
       <form onSubmit={onSubmit} style={FORM_STYLE}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <Text variant="caption">{t('auth.name_label')}</Text>
@@ -83,6 +71,6 @@ export default function LoginDevSection({
           {devBtnLabel}
         </Button>
       </form>
-    </div>
+    </TitledSection>
   );
 }

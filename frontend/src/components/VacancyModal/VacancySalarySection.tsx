@@ -2,11 +2,11 @@ import { Input, Label, Select, type SelectOption } from '@blueprint/ui-kit';
 import React, { useEffect, useState } from 'react';
 import { Banknote } from 'lucide-react';
 import { SaveButton } from './SaveButton';
+import { TitledSection } from '../TitledSection';
 import type { TranslateFn } from '../../i18n/I18nContext';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
 import type { Vacancy } from '../../types/models';
-import { VacancySection } from './VacancySection';
 
 export interface SalaryData {
   min: string;
@@ -81,7 +81,7 @@ export function VacancySalarySection({
   };
 
   return (
-    <VacancySection
+    <TitledSection
       title={t('vacancyModal.salary_title')}
       icon={Banknote}
       accessory={onSaveSalary && <SaveButton status={saveStatus} onClick={handleSave} />}
@@ -112,6 +112,6 @@ export function VacancySalarySection({
           />
         </div>
       </div>
-    </VacancySection>
+    </TitledSection>
   );
 }

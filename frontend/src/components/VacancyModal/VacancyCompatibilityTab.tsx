@@ -8,7 +8,6 @@ import {
   Icon,
   List,
   ListItem,
-  Paragraph,
   Skeleton,
   Text,
 } from '@blueprint/ui-kit';
@@ -20,9 +19,9 @@ import {
 } from './vacancyModalHelpers';
 import type { CompatibilityAnalysis, Vacancy } from '../../types/models';
 import React from 'react';
+import { SectionStack } from '../SectionStack';
+import { TitledSection } from '../TitledSection';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
-import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyCompatibilityTabProps {
   vacancy: Vacancy;
@@ -55,12 +54,12 @@ export function VacancyCompatibilityTab({
 
   if (!compatibility && (loadingCompatibility || loadingDetails)) {
     return (
-      <VacancyTabContent>
+      <SectionStack>
         <div style={SKELETON_STACK_STYLE} data-testid="vacancy-compatibility-skeleton">
           <Skeleton variant="rect" width="100" height="md" />
           <Skeleton variant="rect" width="100" height="lg" />
         </div>
-      </VacancyTabContent>
+      </SectionStack>
     );
   }
 
@@ -71,7 +70,7 @@ export function VacancyCompatibilityTab({
   const recommendations = buildRecommendationsList(compatibility);
 
   return (
-    <VacancyTabContent>
+    <SectionStack>
       {isCvOutdated && (
         <AlertBanner tone="warning">
           {t('vacancyModal.compat_outdated', { revision: revisionStr })}
@@ -80,9 +79,9 @@ export function VacancyCompatibilityTab({
       {compatError && <AlertBanner tone="danger">{compatError}</AlertBanner>}
 
       {seniority && (
-        <VacancySection title={t('vacancyModal.compat_seniority')} icon={Sparkles}>
+        <TitledSection title={t('vacancyModal.compat_seniority')} icon={Sparkles}>
           <Blockquote tone={seniority.statusTone}>{seniority.comment}</Blockquote>
-        </VacancySection>
+        </TitledSection>
       )}
 
       {sections.length === 0 && (
@@ -109,7 +108,7 @@ export function VacancyCompatibilityTab({
       )}
 
       {compatibility?.matched_requirements && (
-        <VacancySection
+        <TitledSection
           title={t('vacancyModal.compat_matched', {
             count: compatibility.matched_requirements.length,
           })}
@@ -117,15 +116,15 @@ export function VacancyCompatibilityTab({
           tone="success"
         >
           {compatibility.matched_requirements.map((item, i) => (
-            <CollapsibleSection title={item.requirement} key={i}>
+            <CollapsibleSection title={item.requirement} key={i} expandLabel={null} collapseLabel={null}>
               <Text>{item.evidence}</Text>
             </CollapsibleSection>
           ))}
-        </VacancySection>
+        </TitledSection>
       )}
 
       {compatibility?.missing_requirements && (
-        <VacancySection
+        <TitledSection
           title={t('vacancyModal.compat_missing', {
             count: compatibility.missing_requirements.length,
           })}
@@ -143,11 +142,11 @@ export function VacancyCompatibilityTab({
               <Text>{item.reason}</Text>
             </CollapsibleSection>
           ))}
-        </VacancySection>
+        </TitledSection>
       )}
 
       {compatibility?.critical_gaps && (
-        <VacancySection
+        <TitledSection
           title={t('vacancyModal.compat_gaps', { count: compatibility.critical_gaps.length })}
           icon={AlertTriangle}
           tone="danger"
@@ -165,24 +164,22 @@ export function VacancyCompatibilityTab({
               </CollapsibleSection>
             ),
           )}
-        </VacancySection>
+        </TitledSection>
       )}
 
       {recommendations.length > 0 && (
-        <VacancySection
+        <TitledSection
           title={t('vacancyModal.compat_recommendations')}
           icon={Layers}
           paddingBody="md"
         >
           <List>
             {recommendations.map((rec, i) => (
-              <ListItem key={i}>
-                {rec}
-              </ListItem>
+              <ListItem key={i}>{rec}</ListItem>
             ))}
           </List>
-        </VacancySection>
+        </TitledSection>
       )}
-    </VacancyTabContent>
+    </SectionStack>
   );
 }

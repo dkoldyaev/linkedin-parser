@@ -9,7 +9,7 @@ ARG APP_URL=http://localhost:8000
 ENV APP_URL=${APP_URL}
 
 RUN apk add --no-cache zip
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ ./packages/
 COPY services/ ./services/
 COPY extension/ ./extension/

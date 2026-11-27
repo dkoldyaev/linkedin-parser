@@ -1,8 +1,8 @@
 import { type SalaryData, VacancySalarySection } from './VacancySalarySection';
 import React from 'react';
+import { SectionStack } from '../SectionStack';
 import type { Vacancy } from '../../types/models';
 import { VacancyDescriptionSection } from './VacancyDescriptionSection';
-import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyRawDataTabProps {
   salaryMin?: Vacancy['salary_min'];
@@ -26,7 +26,7 @@ export function VacancyRawDataTab({
   onSaveDescription,
 }: VacancyRawDataTabProps): React.ReactElement {
   return (
-    <VacancyTabContent>
+    <SectionStack>
       <VacancySalarySection
         salaryMin={salaryMin}
         salaryMax={salaryMax}
@@ -39,6 +39,6 @@ export function VacancyRawDataTab({
         loading={loadingDescription}
         onSaveDescription={onSaveDescription}
       />
-    </VacancyTabContent>
+    </SectionStack>
   );
 }

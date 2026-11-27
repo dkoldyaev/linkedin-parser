@@ -1,4 +1,5 @@
 import React from 'react';
+import { SectionStack } from '../SectionStack';
 import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
 import type { Vacancy } from '../../types/models';
 import { VacancyAiSummarySection } from './VacancyAiSummarySection';
@@ -6,7 +7,6 @@ import { VacancyCompanySection } from './VacancyCompanySection';
 import { VacancyHistorySection } from './VacancyHistorySection';
 import { VacancyNotesSection } from './VacancyNotesSection';
 import { VacancySkillsSection } from './VacancySkillsSection';
-import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyDetailsTabPanelProps {
   vacancy: Vacancy;
@@ -36,7 +36,7 @@ export function VacancyDetailsTabPanel({
   onDeleteComment,
 }: VacancyDetailsTabPanelProps): React.ReactElement {
   return (
-    <VacancyTabContent>
+    <SectionStack>
       <VacancyAiSummarySection
         summary={vacancy.ai_summary ? vacancy.ai_summary : undefined}
         onResummarize={onResummarize}
@@ -67,6 +67,6 @@ export function VacancyDetailsTabPanel({
         loading={loadingDetails}
         onSaveNotes={(notes) => onPatchField({ notes })}
       />
-    </VacancyTabContent>
+    </SectionStack>
   );
 }

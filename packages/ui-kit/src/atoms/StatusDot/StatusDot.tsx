@@ -1,6 +1,6 @@
-import type { SemanticTone } from '../../tokens';
 import React, { forwardRef } from 'react';
 import { cn } from '../../utils';
+import type { SemanticTone } from '../../tokens';
 import styles from './StatusDot.module.css';
 
 export type StatusDotTone = SemanticTone;
@@ -18,15 +18,7 @@ export interface StatusDotProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Atomic StatusDot indicator for connection status, activity indicators, and semantic status markers.
  */
 export const StatusDot = forwardRef<HTMLSpanElement, StatusDotProps>(function StatusDot(
-  {
-    tone = 'neutral',
-    size = 'md',
-    pulse = false,
-    glow = false,
-    label,
-    className,
-    ...rest
-  },
+  { tone = 'neutral', size = 'md', pulse = false, glow = false, label, className, ...rest },
   ref,
 ) {
   const colorClass = styles[`tone-${tone}`];

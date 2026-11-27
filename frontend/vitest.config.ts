@@ -27,5 +27,10 @@ export default defineConfig({
       'src/**/*.test.{ts,tsx}',
     ],
     globals: true,
+    server: {
+      deps: {
+        inline: [/@blueprint\/ui-kit/, /lucide-react/, /@radix-ui/, /@formkit\/auto-animate/],
+      },
+    },
   },
 });

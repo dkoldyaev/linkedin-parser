@@ -14,6 +14,8 @@ import {
 import { Layers, Palette, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { resolveHexFromPalette, resolvePaletteFromHex } from './columnPalette';
+import { SectionStack } from './SectionStack';
+import { TitledSection } from './TitledSection';
 import { useTranslation } from '../i18n/I18nContext';
 
 export interface ColumnCreatePayload {
@@ -28,24 +30,7 @@ export interface ColumnCreateModalProps {
   onCreate: (payload: ColumnCreatePayload) => Promise<void> | void;
 }
 
-const LANES_BOX_STYLE: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: 'var(--ui-space-3)',
-  padding: 'var(--ui-space-3)',
-  background: 'var(--ui-bg-subtle)',
-  border: '1px solid var(--ui-border-subtle)',
-};
-
-const FORM_STYLE: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 'var(--ui-space-4)',
-};
-
 const PLUS_ICON = <Icon icon={Plus} size="md" tone="accent" />;
-const PALETTE_ICON = <Icon icon={Palette} size="xs" />;
-const LAYERS_ICON = <Icon icon={Layers} size="xs" tone="accent" />;
 
 function useColumnCreateForm(
   onCreate: (payload: ColumnCreatePayload) => Promise<void> | void,
@@ -112,14 +97,9 @@ export default function ColumnCreateModal({
 
   const isSubmitDisabled = form.loading || !form.name.trim();
   const checkboxLabel = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-      <Text variant="body" weight="medium" startIcon={LAYERS_ICON}>
-        {t('kanban.enable_stages')}
-      </Text>
-      <Text variant="caption" tone="muted">
-        {t('kanban.enable_stages_hint')}
-      </Text>
-    </div>
+    <Text variant="caption" tone="muted">
+      {t('kanban.enable_stages_hint')}
+    </Text>
   );
 
   return (
@@ -131,39 +111,35 @@ export default function ColumnCreateModal({
       />
 
       <ModalBody>
-        <form id="create-column-form" onSubmit={form.handleSubmit} style={FORM_STYLE}>
-          {form.error && <AlertBanner tone="danger" title={form.error} />}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
-            <Text as="label" variant="caption" weight="medium">
-              {t('kanban.column_name_placeholder')}
-            </Text>
-            <Input
-              placeholder={t('kanban.column_name_placeholder')}
-              value={form.name}
-              onChange={(e) => form.setName(e.target.value)}
-              autoFocus
-              required
-            />
-          </div>
+        <form id="create-column-form" onSubmit={form.handleSubmit}>
+          <SectionStack>
+            {form.error && <AlertBanner tone="danger" title={form.error} />}
+            <TitledSection title={t('kanban.column_name_placeholder')}>
+              <Input
+                placeholder={t('kanban.column_name_placeholder')}
+                value={form.name}
+                onChange={(e) => form.setName(e.target.value)}
+                autoFocus
+                required
+              />
+            </TitledSection>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1-5)' }}>
-            <Text as="label" variant="caption" weight="medium" startIcon={PALETTE_ICON}>
-              {t('kanban.column_color')}
-            </Text>
-            <ColorPicker
-              value={resolvePaletteFromHex(form.color)}
-              onChange={(palette) => form.setColor(resolveHexFromPalette(palette))}
-            />
-          </div>
+            <TitledSection title={t('kanban.column_color')} icon={Palette}>
+              <ColorPicker
+                value={resolvePaletteFromHex(form.color)}
+                onChange={(palette) => form.setColor(resolveHexFromPalette(palette))}
+              />
+            </TitledSection>
 
-          <div style={LANES_BOX_STYLE}>
-            <Checkbox
-              id="modal-has-lanes"
-              checked={form.hasLanes}
-              onChange={(e) => form.setHasLanes(e.target.checked)}
-              label={checkboxLabel}
-            />
-          </div>
+            <TitledSection title={t('kanban.enable_stages')} icon={Layers}>
+              <Checkbox
+                id="modal-has-lanes"
+                checked={form.hasLanes}
+                onChange={(e) => form.setHasLanes(e.target.checked)}
+                label={checkboxLabel}
+              />
+            </TitledSection>
+          </SectionStack>
         </form>
       </ModalBody>
 

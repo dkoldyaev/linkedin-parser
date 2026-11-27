@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Skeleton, Textarea } from '@blueprint/ui-kit';
-import { StickyNote } from 'lucide-react';
 import { SaveButton } from './SaveButton';
+import { StickyNote } from 'lucide-react';
+import { TitledSection } from '../TitledSection';
 import { useSave } from './useSave';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
 
 export interface VacancyNotesSectionProps {
   notes?: string;
@@ -26,11 +26,12 @@ export function VacancyNotesSection({
   }, [notes]);
 
   return (
-    <VacancySection
+    <TitledSection
       title={t('vacancyModal.notes_title')}
       icon={StickyNote}
       accessory={
-        !loading && onSaveNotes && <SaveButton status={saveStatus} onClick={() => saveNotes(draft)} />
+        !loading &&
+        onSaveNotes && <SaveButton status={saveStatus} onClick={() => saveNotes(draft)} />
       }
     >
       {loading ? (
@@ -45,6 +46,6 @@ export function VacancyNotesSection({
           onChange={(e) => setDraft(e.target.value)}
         />
       )}
-    </VacancySection>
+    </TitledSection>
   );
 }

@@ -16,8 +16,8 @@ export interface CollapsibleSectionProps extends Omit<
   readonly open?: boolean;
   readonly defaultOpen?: boolean;
   readonly onOpenChange?: (open: boolean) => void;
-  readonly expandLabel?: string;
-  readonly collapseLabel?: string;
+  readonly expandLabel?: string | null;
+  readonly collapseLabel?: string | null;
   readonly children: React.ReactNode;
 }
 
@@ -37,8 +37,8 @@ export const CollapsibleSection = forwardRef<HTMLDivElement, CollapsibleSectionP
       open,
       defaultOpen = false,
       onOpenChange,
-      expandLabel = 'Expand',
-      collapseLabel = 'Collapse',
+      expandLabel = null,
+      collapseLabel = null,
       children,
       className,
       ...rest

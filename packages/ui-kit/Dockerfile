@@ -5,7 +5,7 @@ FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ui-kit/package.json ./packages/ui-kit/
 COPY frontend/package.json ./frontend/
 RUN pnpm install --frozen-lockfile --filter @blueprint/ui-kit...

@@ -1,19 +1,29 @@
 # ==========================================
-# Frontend Production Builder (Vite SPA)
+# Stage 1: Base Workspace Dependencies
 # ==========================================
-FROM node:24-alpine AS builder
+FROM node:24-alpine AS deps
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ui-kit/package.json ./packages/ui-kit/
 COPY frontend/package.json ./frontend/
-RUN pnpm install --frozen-lockfile --filter frontend...
+RUN pnpm install --frozen-lockfile --filter @blueprint/ui-kit --filter frontend
 
+# ==========================================
+# Stage 2: UI-Kit Builder (@blueprint/ui-kit)
+# ==========================================
+FROM deps AS ui-kit-builder
 COPY packages/ui-kit ./packages/ui-kit
+RUN pnpm --filter @blueprint/ui-kit run build
+
+# ==========================================
+# Stage 3: Frontend Production Builder (Vite SPA)
+# ==========================================
+FROM ui-kit-builder AS builder
 COPY frontend ./frontend
 WORKDIR /app/frontend
-RUN pnpm run build
+RUN pnpm exec vite build
 
 # ==========================================
 # Target: runner (Production Static Nginx)
@@ -30,18 +40,8 @@ CMD ["nginx", "-g", "daemon off;"]
 # ==========================================
 # Target: dev (Development with Vite HMR)
 # ==========================================
-FROM node:24-alpine AS dev
-RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
-WORKDIR /app
-
+FROM ui-kit-builder AS dev
 ENV NODE_ENV=development
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/ui-kit/package.json ./packages/ui-kit/
-COPY frontend/package.json ./frontend/
-RUN pnpm install --frozen-lockfile --filter frontend...
-
-COPY packages/ui-kit ./packages/ui-kit
 COPY frontend ./frontend
 WORKDIR /app/frontend
 

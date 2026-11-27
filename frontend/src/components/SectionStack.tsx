@@ -5,6 +5,7 @@ const style: CSSProperties = {
   flexDirection: 'column',
   gap: 'var(--ui-grid-cell)',
 };
-export function VacancyTabContent({ children }: PropsWithChildren<{ isCompact?: boolean }>) {
+
+export function SectionStack({ children }: PropsWithChildren<{ isCompact?: boolean }>) {
   return <div style={style}>{children}</div>;
 }

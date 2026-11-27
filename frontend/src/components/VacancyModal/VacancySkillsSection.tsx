@@ -1,8 +1,8 @@
 import { Layers, Tag } from 'lucide-react';
 import React from 'react';
 import { TagsList } from '@blueprint/ui-kit';
+import { TitledSection } from '../TitledSection';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
 
 export interface VacancySkillsSectionProps {
   techStack?: readonly string[];
@@ -21,7 +21,7 @@ export function VacancySkillsSection({
 
   return (
     <>
-      <VacancySection title={t('vacancyModal.tech_stack_title')} icon={Layers}>
+      <TitledSection title={t('vacancyModal.tech_stack_title')} icon={Layers}>
         <TagsList
           value={techStack}
           onChange={onTechStackChange}
@@ -30,9 +30,9 @@ export function VacancySkillsSection({
           placeholder={t('vacancyModal.add_token_placeholder')}
           tone="accent"
         />
-      </VacancySection>
+      </TitledSection>
 
-      <VacancySection title={t('vacancyModal.tags_title')} icon={Tag}>
+      <TitledSection title={t('vacancyModal.tags_title')} icon={Tag}>
         <TagsList
           value={tags}
           onChange={onTagsChange}
@@ -41,7 +41,7 @@ export function VacancySkillsSection({
           placeholder={t('vacancyModal.add_tag_placeholder')}
           tone="neutral"
         />
-      </VacancySection>
+      </TitledSection>
     </>
   );
 }

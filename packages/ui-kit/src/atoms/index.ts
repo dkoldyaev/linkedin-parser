@@ -45,13 +45,7 @@ export {
   type KbdProps,
   type LinkProps,
 } from './Text';
-export {
-  Badge,
-  type BadgeProps,
-  type BadgeTone,
-  type BadgeVariant,
-  type BadgeSize,
-} from './Badge';
+export { Badge, type BadgeProps, type BadgeTone, type BadgeVariant, type BadgeSize } from './Badge';
 export {
   StatusDot,
   type StatusDotProps,

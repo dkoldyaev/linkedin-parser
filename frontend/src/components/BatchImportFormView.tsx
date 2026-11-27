@@ -8,7 +8,16 @@ import {
   Textarea,
 } from '@blueprint/ui-kit';
 import React from 'react';
+import { SectionStack } from './SectionStack';
+import { TitledSection } from './TitledSection';
 import { useTranslation } from '../i18n/I18nContext';
+
+const FORM_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  flex: 1,
+  minHeight: 0,
+};
 
 export interface BatchImportFormViewProps {
   urlsText: string;
@@ -35,17 +44,13 @@ export default function BatchImportFormView({
   const isSubmitDisabled = loading || !urlsText.trim();
 
   return (
-    <form onSubmit={onSubmit}>
+    <form onSubmit={onSubmit} style={FORM_STYLE}>
       <ModalBody>
         {error && (
           <AlertBanner tone="danger" title={error} style={{ marginBottom: 'var(--ui-space-4)' }} />
         )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
-            <Text as="label" variant="caption" weight="medium">
-              {t('batchModal.urls_label')}
-            </Text>
+        <SectionStack>
+          <TitledSection title={t('batchModal.urls_label')}>
             <Textarea
               value={urlsText}
               onChange={(e) => onUrlsChange(e.target.value)}
@@ -57,12 +62,8 @@ export default function BatchImportFormView({
             <Text variant="caption" tone="muted">
               {t('batchModal.urls_hint')}
             </Text>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-1)' }}>
-            <Text as="label" variant="caption" weight="medium">
-              {t('batchModal.tags_label')}
-            </Text>
+          </TitledSection>
+          <TitledSection title={t('batchModal.tags_label')}>
             <Input
               type="text"
               value={tagsInput}
@@ -73,8 +74,8 @@ export default function BatchImportFormView({
             <Text variant="caption" tone="muted">
               {t('batchModal.tags_hint')}
             </Text>
-          </div>
-        </div>
+          </TitledSection>
+        </SectionStack>
       </ModalBody>
 
       <ModalFooter justify="end">

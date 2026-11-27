@@ -1,8 +1,8 @@
-import type { SemanticTone } from '../../tokens';
 import React, { forwardRef } from 'react';
 import { Button } from '../Button';
 import { cn } from '../../utils';
 import { Icon } from '../Icon';
+import type { SemanticTone } from '../../tokens';
 import styles from './Badge.module.css';
 import { Text } from '../Text';
 import { X } from 'lucide-react';

@@ -11,8 +11,8 @@ import {
 import { Check, Edit3, History, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { type TranslateFn, useTranslation } from '../../i18n/I18nContext';
+import { TitledSection } from '../TitledSection';
 import type { VacancyHistoryItem as UiVacancyHistoryItem } from '@blueprint/ui-kit';
-import { VacancySection } from './VacancySection';
 
 export interface VacancyHistorySectionProps {
   items: readonly UiVacancyHistoryItem[];
@@ -149,12 +149,12 @@ export function VacancyHistorySection({
 
   if (loading) {
     return (
-      <VacancySection title={t('vacancyModal.history_timeline_title')} icon={History}>
+      <TitledSection title={t('vacancyModal.history_timeline_title')} icon={History}>
         <div style={SKELETON_STACK_STYLE} data-testid="vacancy-history-skeleton">
           <Skeleton variant="rect" width="100" height="sm" />
           <Skeleton variant="rect" width="75" height="sm" />
         </div>
-      </VacancySection>
+      </TitledSection>
     );
   }
 
@@ -189,7 +189,7 @@ export function VacancyHistorySection({
   }));
 
   return (
-    <VacancySection
+    <TitledSection
       title={t('vacancyModal.history_timeline_title')}
       icon={History}
       badge={
@@ -203,6 +203,6 @@ export function VacancyHistorySection({
         emptyTitle={t('vacancyModal.history_empty_title')}
         emptyDescription={t('vacancyModal.history_empty_description')}
       />
-    </VacancySection>
+    </TitledSection>
   );
 }

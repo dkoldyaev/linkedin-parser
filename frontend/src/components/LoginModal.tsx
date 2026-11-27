@@ -3,6 +3,7 @@ import { Briefcase } from 'lucide-react';
 import LoginDevSection from './LoginDevSection';
 import LoginGoogleSection from './LoginGoogleSection';
 import React from 'react';
+import { SectionStack } from './SectionStack';
 import { useLoginController } from './useLoginController';
 import type { User } from '../types/models';
 import { useTranslation } from '../i18n/I18nContext';
@@ -55,7 +56,7 @@ export default function LoginModal({
       />
 
       <ModalBody>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-4)' }}>
+        <SectionStack>
           {ctrl.error && <AlertBanner tone="danger" title={ctrl.error} />}
 
           <LoginGoogleSection
@@ -75,7 +76,7 @@ export default function LoginModal({
             onDevEmailChange={ctrl.setDevEmail}
             onSubmit={ctrl.handleDevLogin}
           />
-        </div>
+        </SectionStack>
       </ModalBody>
     </Modal>
   );

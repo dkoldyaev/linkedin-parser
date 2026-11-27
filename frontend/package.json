@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:ui-kit": "pnpm --dir ../packages/ui-kit run build",
+    "build": "pnpm --dir ../packages/ui-kit run build && vite build",
     "preview": "vite preview",
     "lint": "oxlint src/ && pnpm --dir ../packages/ui-kit run lint",
     "lint:fix": "oxlint --fix src/ && pnpm --dir ../packages/ui-kit run lint:fix",

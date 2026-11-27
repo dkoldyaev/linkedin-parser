@@ -341,14 +341,7 @@ export const CardCollapsedLoading = forwardRef<HTMLDivElement, CardCollapsedLoad
  */
 export const CardFullLoading = forwardRef<HTMLDivElement, CardFullLoadingProps>(
   function CardFullLoading(
-    {
-      tone,
-      horizontal = false,
-      snapToGrid = true,
-      bodyClassName,
-      className,
-      ...rest
-    },
+    { tone, horizontal = false, snapToGrid = true, bodyClassName, className, ...rest },
     ref,
   ) {
     const toneClass = resolveCardToneClass(tone);
@@ -420,14 +413,7 @@ export const CardCollapsed = forwardRef<HTMLDivElement, CardCollapsedProps>(func
   ref,
 ) {
   if (isLoading) {
-    return (
-      <CardCollapsedLoading
-        ref={ref}
-        tone={tone}
-        className={className}
-        {...rest}
-      />
-    );
+    return <CardCollapsedLoading ref={ref} tone={tone} className={className} {...rest} />;
   }
 
   const toneClass = resolveCardToneClass(tone);

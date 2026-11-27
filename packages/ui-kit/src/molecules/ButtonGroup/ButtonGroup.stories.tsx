@@ -50,7 +50,12 @@ export const SecondaryActions: Story = {
         <Button variant="secondary" size="sm" startIcon={<Icon icon={Download} size="xs" />}>
           Export
         </Button>
-        <Button variant="secondary" tone="danger" size="sm" startIcon={<Icon icon={Trash2} size="xs" />}>
+        <Button
+          variant="secondary"
+          tone="danger"
+          size="sm"
+          startIcon={<Icon icon={Trash2} size="xs" />}
+        >
           Delete
         </Button>
       </ButtonGroup>

@@ -10,7 +10,7 @@ import {
 import React, { PropsWithChildren } from 'react';
 import { LucideIcon } from 'lucide-react';
 
-export interface VacancySectionProps {
+export interface TitledSectionProps {
   title: string;
   icon?: LucideIcon;
   accessory?: React.ReactNode;
@@ -19,7 +19,7 @@ export interface VacancySectionProps {
   tone?: SectionHeaderProps['tone'];
 }
 
-export function VacancySection({
+export function TitledSection({
   title,
   icon,
   accessory,
@@ -27,7 +27,7 @@ export function VacancySection({
   children,
   paddingBody = 'md',
   tone,
-}: PropsWithChildren<VacancySectionProps>) {
+}: PropsWithChildren<TitledSectionProps>) {
   const bodyRef = useBlueprintGrid<HTMLDivElement>({
     deps: [children],
     observeSubtree: true,

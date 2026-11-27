@@ -81,11 +81,7 @@ function UniversalDashboardDemo(): React.ReactElement {
               <Card title="Design Tokens Audit" subtitle="Core System" tone="accent" />
             </TableCell>
             <TableCell padding="none">
-              <Card
-                title="Accessibility Verification"
-                subtitle="QA Pipeline"
-                tone="success"
-              />
+              <Card title="Accessibility Verification" subtitle="QA Pipeline" tone="success" />
             </TableCell>
           </TableBody>
         </TableCol>

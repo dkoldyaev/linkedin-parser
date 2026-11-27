@@ -12,6 +12,7 @@ import { useTranslation } from '../../i18n/I18nContext';
 import { vacancyService } from '../../services/vacancyService';
 
 import type { SalaryData } from './VacancySalarySection';
+import { SectionStack } from '../SectionStack';
 import { useVacancyCompatibility } from './useVacancyCompatibility';
 import { useVacancyHistory } from './useVacancyHistory';
 import { VacancyCompatibilityTab } from './VacancyCompatibilityTab';
@@ -20,7 +21,6 @@ import { VacancyModalFooter } from './VacancyModalFooter';
 import { VacancyModalHeader } from './VacancyModalHeader';
 import { VacancyRawDataTab } from './VacancyRawDataTab';
 import VacancyReparseBanner from './VacancyReparseBanner';
-import { VacancyTabContent } from './VacancyTabContent';
 
 export interface VacancyModalProps {
   vacancy: Vacancy | null;
@@ -164,7 +164,7 @@ export default function VacancyModal({
         matchScore={vacancy.calculated_score}
       />
       <Modal.Body>
-        <VacancyTabContent>
+        <SectionStack>
           {activeTab === 'raw_data' && (
             <VacancyRawDataTab
               salaryMin={vacancy.salary_min}
@@ -201,7 +201,7 @@ export default function VacancyModal({
               onDeleteComment={history.handleDeleteComment}
             />
           )}
-        </VacancyTabContent>
+        </SectionStack>
       </Modal.Body>
       <VacancyModalFooter
         onClose={onClose}

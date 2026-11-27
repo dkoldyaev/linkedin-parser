@@ -29,7 +29,17 @@ const meta: Meta<typeof Card> = {
   argTypes: {
     tone: {
       control: 'select',
-      options: ['neutral', 'primary', 'secondary', 'muted', 'accent', 'success', 'warning', 'danger', 'info'],
+      options: [
+        'neutral',
+        'primary',
+        'secondary',
+        'muted',
+        'accent',
+        'success',
+        'warning',
+        'danger',
+        'info',
+      ],
     },
     selected: { control: 'boolean' },
     interactive: { control: 'boolean' },

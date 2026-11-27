@@ -1,8 +1,8 @@
 import { Button, Icon, Paragraph, Text } from '@blueprint/ui-kit';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import React from 'react';
+import { TitledSection } from '../TitledSection';
 import { useTranslation } from '../../i18n/I18nContext';
-import { VacancySection } from './VacancySection';
 
 export interface VacancyAiSummarySectionProps {
   summary?: string;
@@ -18,7 +18,7 @@ export function VacancyAiSummarySection({
   const { t } = useTranslation();
 
   return (
-    <VacancySection
+    <TitledSection
       title={t('vacancyModal.ai_summary_title')}
       icon={Sparkles}
       accessory={
@@ -42,6 +42,6 @@ export function VacancyAiSummarySection({
           {t('vacancyModal.no_summary')}
         </Text>
       )}
-    </VacancySection>
+    </TitledSection>
   );
 }
